@@ -1,0 +1,59 @@
+export interface LoginRequest {
+  username: string;
+  password: string;
+}
+
+export interface RegisterRequest {
+  username: string;
+  email: string;
+  password: string;
+}
+
+export interface CreateUserRequest {
+  username: string;
+  password: string;
+  role: 'admin' | 'buyer' | 'seller';
+}
+
+export interface UpdateUserRequest {
+  username?: string;
+  password?: string;
+  role?: 'admin' | 'buyer' | 'seller';
+}
+
+export interface LoginResponse {
+  data: {
+    token: string;
+    user: User;
+  }
+}
+
+export interface UsersResponse {
+  data: User[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export interface User {
+  id: number;
+  username: string;
+  role: 'admin' | 'buyer' | 'seller';
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string;
+}
+
+export interface AuthState {
+  user: User | null;
+  token: string | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  login: (credentials: LoginRequest) => Promise<void>;
+  register: (data: RegisterRequest) => Promise<void>;
+  logout: () => void;
+  checkAuth: () => void;
+}

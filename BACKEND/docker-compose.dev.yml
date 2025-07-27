@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  app:
+    build: 
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_NAME=express_ts_dev_db
+      - DB_USER=root
+      - DB_PASSWORD=password
+      - JWT_SECRET=dev_jwt_secret_key_here
+      - JWT_EXPIRES_IN=24h
+      - LOG_LEVEL=debug
+    depends_on:
+      - db
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - ./logs:/app/logs
+    restart: unless-stopped
+    command: npm run dev
+
+  db:
+    image: mysql:8.0
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=password
+      - MYSQL_DATABASE=express_ts_dev_db
+      - MYSQL_USER=dev_user
+      - MYSQL_PASSWORD=dev_password
+    volumes:
+      - mysql_dev_data:/var/lib/mysql
+    restart: unless-stopped
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    ports:
+      - "8080:80"
+    environment:
+      - PMA_HOST=db
+      - PMA_PORT=3306
+      - PMA_USER=root
+      - PMA_PASSWORD=password
+    depends_on:
+      - db
+    restart: unless-stopped
+
+volumes:
+  mysql_dev_data: 
