@@ -1,4 +1,2 @@
-# JJLM
-# JJLM
-# JJLM
-# JJLM
+# JJLM management system
+
