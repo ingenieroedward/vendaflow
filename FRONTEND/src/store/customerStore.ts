@@ -1,6 +1,22 @@
 import { create } from 'zustand';
 import { customerService } from '../services/customers';
 import { Customer, CreateCustomerRequest, UpdateCustomerRequest } from '../types/customer';
+import { customerRepository } from '../repositories/CustomerRepository';
+import { LocalCustomer } from '../database/LocalDatabase';
+import { CreateCustomerDTO } from '../database/models';
+import { useAuthStore } from './authStore';
+
+// Helper to convert LocalCustomer to Customer type
+const toCustomer = (local: LocalCustomer): Customer => ({
+  id: local.id!,
+  name: local.name,
+  contact: local.contact,
+  address: local.address,
+  note: local.note,
+  createdAt: local.createdAt || new Date().toISOString(),
+  updatedAt: local.updatedAt || new Date().toISOString(),
+  deletedAt: local.deletedAt
+});
 
 interface CustomerState {
   customers: Customer[];
@@ -40,88 +56,65 @@ export const useCustomerStore = create<CustomerState>((set, get) => ({
   getCustomers: async (page = 1, limit = 10) => {
     set({ loading: true, error: null });
     try {
-      const response = await customerService.getCustomers(page, limit);
-      set({
-        customers: response.data,
-        pagination: response.pagination,
-        loading: false,
-      });
-    } catch (error: unknown) {
-      // Fallback to mock data if API fails
-      console.log('API failed, using mock data for customers');
-      const mockCustomers: Customer[] = [
-        {
-          id: 1,
-          name: 'Juan Pérez',
-          contact: 'juan.perez@email.com',
-          address: 'Calle 123 # 45-67, Bogotá',
-          note: 'Cliente frecuente',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        {
-          id: 2,
-          name: 'María García',
-          contact: '+57 310 987 6543',
-          address: 'Carrera 78 # 90-12, Medellín',
-          note: 'Prefiere contacto por WhatsApp',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        {
-          id: 3,
-          name: 'Carlos López',
-          contact: 'carlos.lopez@email.com',
-          address: 'Avenida 5 # 23-45, Cali',
-          note: 'Cliente corporativo',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        {
-          id: 4,
-          name: 'Ana Rodríguez',
-          contact: '+57 320 111 2222',
-          address: 'Calle 10 # 15-20, Barranquilla',
-          note: 'Entrega en oficina',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        {
-          id: 5,
-          name: 'Luis Martínez',
-          contact: 'luis.martinez@email.com',
-          address: 'Carrera 50 # 30-40, Bucaramanga',
-          note: 'Cliente VIP',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-      ];
-      set({
-        customers: mockCustomers,
-        pagination: {
-          page: 1,
-          limit: 10,
-          total: mockCustomers.length,
-          totalPages: 1,
-        },
-        loading: false,
-      });
-    }
-  },
+      const userId = useAuthStore.getState().user?.id;
 
-  searchCustomers: async (query: string) => {
-    try {
-      const customers = await customerService.searchCustomers(query);
-      return customers;
+      // Get from local DB first
+      let localCustomers = await customerRepository.getAllSortedByName();
+
+      // If empty, try to sync from server
+      if (localCustomers.length === 0 && navigator.onLine) {
+        try {
+          const response = await customerService.getCustomers(1, 1000);
+          // Save all customers from server to local DB
+          for (const serverCustomer of response.data) {
+            await customerRepository.saveFromServer(serverCustomer, userId);
+          }
+          // Re-fetch from local DB after sync
+          localCustomers = await customerRepository.getAllSortedByName();
+        } catch (syncError) {
+          console.log('Server sync failed, using local data:', syncError);
+        }
+      }
+
+      // Client-side pagination
+      const startIndex = (page - 1) * limit;
+      const endIndex = startIndex + limit;
+      const paginatedCustomers = localCustomers.slice(startIndex, endIndex);
+
+      set({
+        customers: paginatedCustomers.map(toCustomer),
+        pagination: {
+          page,
+          limit,
+          total: localCustomers.length,
+          totalPages: Math.ceil(localCustomers.length / limit),
+        },
+        loading: false,
+      });
     } catch (error: unknown) {
-      let errorMessage = 'Error al buscar clientes';
-      
+      let errorMessage = 'Error al cargar clientes';
       if (error && typeof error === 'object' && 'message' in error) {
         errorMessage = String(error.message);
       } else if (error instanceof Error) {
         errorMessage = error.message;
       }
-      
+      set({ error: errorMessage, loading: false });
+    }
+  },
+
+  searchCustomers: async (query: string) => {
+    try {
+      const localCustomers = await customerRepository.search(query);
+      return localCustomers.map(toCustomer);
+    } catch (error: unknown) {
+      let errorMessage = 'Error al buscar clientes';
+
+      if (error && typeof error === 'object' && 'message' in error) {
+        errorMessage = String(error.message);
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
       set({ error: errorMessage });
       throw error;
     }
@@ -130,17 +123,21 @@ export const useCustomerStore = create<CustomerState>((set, get) => ({
   getCustomerById: async (id: number) => {
     set({ loading: true, error: null });
     try {
-      const customer = await customerService.getCustomerById(id);
-      set({ currentCustomer: customer, loading: false });
+      const localCustomer = await customerRepository.getById(id);
+      if (localCustomer) {
+        set({ currentCustomer: toCustomer(localCustomer), loading: false });
+      } else {
+        set({ error: 'Cliente no encontrado', loading: false });
+      }
     } catch (error: unknown) {
       let errorMessage = 'Error al cargar cliente';
-      
+
       if (error && typeof error === 'object' && 'message' in error) {
         errorMessage = String(error.message);
       } else if (error instanceof Error) {
         errorMessage = error.message;
       }
-      
+
       set({ error: errorMessage, loading: false });
     }
   },
@@ -148,7 +145,18 @@ export const useCustomerStore = create<CustomerState>((set, get) => ({
   createCustomer: async (customerData: CreateCustomerRequest) => {
     set({ loading: true, error: null });
     try {
-      const newCustomer = await customerService.createCustomer(customerData);
+      const userId = useAuthStore.getState().user?.id;
+
+      const customerDTO: CreateCustomerDTO = {
+        name: customerData.name,
+        contact: customerData.contact || '',
+        address: customerData.address || '',
+        note: customerData.note
+      };
+
+      const localCustomer = await customerRepository.createLocal(customerDTO, userId);
+      const newCustomer = toCustomer(localCustomer);
+
       set(state => ({
         customers: [...state.customers, newCustomer],
         pagination: {
@@ -157,35 +165,32 @@ export const useCustomerStore = create<CustomerState>((set, get) => ({
         },
         loading: false,
       }));
+
       return newCustomer;
     } catch (error: unknown) {
-      // Fallback to mock creation if API fails
-      console.log('API failed, creating mock customer');
-      const newCustomer: Customer = {
-        id: Math.max(...get().customers.map(c => c.id), 0) + 1,
-        ...customerData,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      
-      set(state => ({
-        customers: [...state.customers, newCustomer],
-        pagination: {
-          ...state.pagination,
-          total: state.pagination.total + 1,
-        },
-        loading: false,
-      }));
-      return newCustomer;
+      let errorMessage = 'Error al crear cliente';
+
+      if (error && typeof error === 'object' && 'message' in error) {
+        errorMessage = String(error.message);
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
+      set({ error: errorMessage, loading: false });
+      throw error;
     }
   },
 
   updateCustomer: async (id: number, customerData: UpdateCustomerRequest) => {
     set({ loading: true, error: null });
     try {
-      const updatedCustomer = await customerService.updateCustomer(id, customerData);
+      const userId = useAuthStore.getState().user?.id;
+
+      const localCustomer = await customerRepository.updateLocal(id, customerData, userId);
+      const updatedCustomer = toCustomer(localCustomer);
+
       set(state => ({
-        customers: state.customers.map(customer => 
+        customers: state.customers.map(customer =>
           customer.id === id ? updatedCustomer : customer
         ),
         currentCustomer: state.currentCustomer?.id === id ? updatedCustomer : state.currentCustomer,
@@ -193,13 +198,13 @@ export const useCustomerStore = create<CustomerState>((set, get) => ({
       }));
     } catch (error: unknown) {
       let errorMessage = 'Error al actualizar cliente';
-      
+
       if (error && typeof error === 'object' && 'message' in error) {
         errorMessage = String(error.message);
       } else if (error instanceof Error) {
         errorMessage = error.message;
       }
-      
+
       set({ error: errorMessage, loading: false });
       throw error;
     }
@@ -208,20 +213,26 @@ export const useCustomerStore = create<CustomerState>((set, get) => ({
   deleteCustomer: async (id: number) => {
     set({ loading: true, error: null });
     try {
-      await customerService.deleteCustomer(id);
+      const userId = useAuthStore.getState().user?.id;
+      await customerRepository.deleteLocal(id, userId);
+
       set(state => ({
         customers: state.customers.filter(customer => customer.id !== id),
+        pagination: {
+          ...state.pagination,
+          total: Math.max(0, state.pagination.total - 1),
+        },
         loading: false,
       }));
     } catch (error: unknown) {
       let errorMessage = 'Error al eliminar cliente';
-      
+
       if (error && typeof error === 'object' && 'message' in error) {
         errorMessage = String(error.message);
       } else if (error instanceof Error) {
         errorMessage = error.message;
       }
-      
+
       set({ error: errorMessage, loading: false });
       throw error;
     }

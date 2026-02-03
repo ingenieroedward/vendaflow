@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Limpiar Datos de la App - JJLM</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h1 { color: #667eea; margin-bottom: 10px; }
+    .warning {
+      background: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 15px;
+      margin: 20px 0;
+    }
+    button {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      margin: 10px 5px 10px 0;
+    }
+    button:hover { background: #5568d3; }
+    button.danger { background: #dc3545; }
+    button.danger:hover { background: #c82333; }
+    .success { 
+      background: #d4edda; 
+      border-left: 4px solid #28a745;
+      padding: 15px;
+      margin: 20px 0;
+      display: none;
+    }
+    .log {
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      padding: 15px;
+      border-radius: 4px;
+      margin: 20px 0;
+      font-family: monospace;
+      font-size: 14px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .log div { margin: 5px 0; }
+    .log .error { color: #dc3545; }
+    .log .success { color: #28a745; }
+    .log .info { color: #007bff; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧹 Limpiar Datos de la Aplicación</h1>
+    <p>Esta herramienta limpia todos los datos locales para solucionar el error de Orders.</p>
+
+    <div class="warning">
+      ⚠️ <strong>Advertencia:</strong> Esto eliminará:
+      <ul>
+        <li>Service Worker y todos los caches</li>
+        <li>IndexedDB (órdenes, productos, clientes locales)</li>
+        <li>LocalStorage y SessionStorage</li>
+      </ul>
+      Deberás volver a hacer login después de limpiar.
+    </div>
+
+    <button onclick="clearAll()">🗑️ Limpiar Todo y Recargar</button>
+    <button onclick="clearCachesOnly()">💾 Solo Limpiar Caches (mantener datos)</button>
+    <button onclick="clearIndexDBOnly()">🗄️ Solo Limpiar IndexedDB</button>
+    
+    <div id="success" class="success">
+      ✅ Datos limpiados exitosamente. La página se recargará en 3 segundos...
+    </div>
+
+    <div id="log" class="log"></div>
+  </div>
+
+  <script>
+    const log = document.getElementById('log');
+    const success = document.getElementById('success');
+
+    function addLog(message, type = 'info') {
+      const div = document.createElement('div');
+      div.className = type;
+      div.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      log.appendChild(div);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    async function clearServiceWorker() {
+      addLog('Desregistrando Service Workers...', 'info');
+      
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        
+        for (let registration of registrations) {
+          await registration.unregister();
+          addLog(`✓ Service Worker desregistrado: ${registration.scope}`, 'success');
+        }
+      }
+    }
+
+    async function clearCaches() {
+      addLog('Limpiando caches...', 'info');
+      
+      if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        
+        for (let cacheName of cacheNames) {
+          await caches.delete(cacheName);
+          addLog(`✓ Cache eliminado: ${cacheName}`, 'success');
+        }
+      }
+    }
+
+    async function clearIndexedDB() {
+      addLog('Limpiando IndexedDB...', 'info');
+      
+      if ('indexedDB' in window) {
+        try {
+          // Eliminar la base de datos principal
+          const deleteRequest = indexedDB.deleteDatabase('jjlm-local-db');
+          
+          deleteRequest.onsuccess = () => {
+            addLog('✓ IndexedDB eliminada exitosamente', 'success');
+          };
+          
+          deleteRequest.onerror = (event) => {
+            addLog(`✗ Error al eliminar IndexedDB: ${event.target.error}`, 'error');
+          };
+          
+          deleteRequest.onblocked = () => {
+            addLog('⚠ IndexedDB bloqueada (cierra otras pestañas de la app)', 'error');
+          };
+          
+          // Esperar a que termine
+          await new Promise((resolve) => {
+            deleteRequest.onsuccess = deleteRequest.onerror = resolve;
+          });
+          
+        } catch (error) {
+          addLog(`✗ Error: ${error.message}`, 'error');
+        }
+      }
+    }
+
+    async function clearStorage() {
+      addLog('Limpiando LocalStorage y SessionStorage...', 'info');
+      
+      try {
+        localStorage.clear();
+        addLog('✓ LocalStorage limpiado', 'success');
+        
+        sessionStorage.clear();
+        addLog('✓ SessionStorage limpiado', 'success');
+      } catch (error) {
+        addLog(`✗ Error al limpiar storage: ${error.message}`, 'error');
+      }
+    }
+
+    async function clearAll() {
+      addLog('========================================', 'info');
+      addLog('INICIANDO LIMPIEZA COMPLETA', 'info');
+      addLog('========================================', 'info');
+
+      try {
+        await clearServiceWorker();
+        await clearCaches();
+        await clearIndexedDB();
+        await clearStorage();
+        
+        addLog('========================================', 'success');
+        addLog('✅ LIMPIEZA COMPLETA EXITOSA', 'success');
+        addLog('========================================', 'success');
+        
+        success.style.display = 'block';
+        
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 3000);
+        
+      } catch (error) {
+        addLog(`✗ Error durante la limpieza: ${error.message}`, 'error');
+      }
+    }
+
+    async function clearCachesOnly() {
+      addLog('========================================', 'info');
+      addLog('LIMPIANDO SOLO CACHES', 'info');
+      addLog('========================================', 'info');
+
+      try {
+        await clearServiceWorker();
+        await clearCaches();
+        
+        addLog('========================================', 'success');
+        addLog('✅ CACHES LIMPIADOS', 'success');
+        addLog('========================================', 'success');
+        
+        success.style.display = 'block';
+        
+        setTimeout(() => {
+          window.location.reload(true);
+        }, 3000);
+        
+      } catch (error) {
+        addLog(`✗ Error: ${error.message}`, 'error');
+      }
+    }
+
+    async function clearIndexDBOnly() {
+      addLog('========================================', 'info');
+      addLog('LIMPIANDO SOLO INDEXEDDB', 'info');
+      addLog('========================================', 'info');
+
+      try {
+        await clearIndexedDB();
+        
+        addLog('========================================', 'success');
+        addLog('✅ INDEXEDDB LIMPIADA', 'success');
+        addLog('========================================', 'success');
+        
+        success.style.display = 'block';
+        
+        setTimeout(() => {
+          window.location.reload();
+        }, 3000);
+        
+      } catch (error) {
+        addLog(`✗ Error: ${error.message}`, 'error');
+      }
+    }
+
+    // Mostrar estado inicial
+    addLog('🔧 Herramienta de limpieza cargada', 'info');
+    addLog('Haz click en un botón para comenzar', 'info');
+  </script>
+</body>
+</html>

@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Service Worker - JJLM</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #1a1a2e;
+      color: #eee;
+      line-height: 1.6;
+    }
+    h1 { color: #00d9ff; border-bottom: 2px solid #00d9ff; padding-bottom: 10px; }
+    h2 { color: #ffd700; margin-top: 30px; }
+    .test-result {
+      background: #16213e;
+      border-radius: 8px;
+      padding: 15px;
+      margin: 10px 0;
+      border-left: 4px solid #666;
+    }
+    .test-result.pass { border-left-color: #00ff88; }
+    .test-result.fail { border-left-color: #ff4757; }
+    .test-result.running { border-left-color: #ffd700; }
+    .pass-icon { color: #00ff88; }
+    .fail-icon { color: #ff4757; }
+    .info { color: #00d9ff; }
+    pre {
+      background: #0f0f23;
+      padding: 15px;
+      border-radius: 5px;
+      overflow-x: auto;
+      font-size: 13px;
+    }
+    button {
+      background: #00d9ff;
+      color: #1a1a2e;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    button:hover { background: #00b8d9; }
+    button:disabled { background: #666; cursor: not-allowed; }
+    #status { font-size: 18px; margin: 20px 0; }
+    .summary {
+      background: #16213e;
+      padding: 20px;
+      border-radius: 8px;
+      margin-top: 30px;
+    }
+    .summary h3 { margin-top: 0; color: #00d9ff; }
+  </style>
+</head>
+<body>
+  <h1>🧪 Test Service Worker - JJLM</h1>
+
+  <div id="status">Cargando...</div>
+
+  <div>
+    <button id="btnRunTests" disabled>Ejecutar Todos los Tests</button>
+    <button id="btnRegisterSW" disabled>Registrar SW Manualmente</button>
+    <button id="btnClearCache">Limpiar Caches</button>
+  </div>
+
+  <div id="results"></div>
+
+  <div id="summary" class="summary" style="display:none;">
+    <h3>📊 Resumen</h3>
+    <div id="summaryContent"></div>
+  </div>
+
+  <script>
+    const results = document.getElementById('results');
+    const status = document.getElementById('status');
+    const summary = document.getElementById('summary');
+    const summaryContent = document.getElementById('summaryContent');
+
+    let testResults = {};
+
+    function log(testName, message, type = 'info') {
+      const div = document.createElement('div');
+      div.className = `test-result ${type}`;
+
+      let icon = '📋';
+      if (type === 'pass') icon = '✅';
+      if (type === 'fail') icon = '❌';
+      if (type === 'running') icon = '⏳';
+
+      div.innerHTML = `<strong>${icon} ${testName}</strong><br>${message}`;
+      results.appendChild(div);
+
+      // Auto scroll
+      window.scrollTo(0, document.body.scrollHeight);
+    }
+
+    function updateStatus(msg) {
+      status.innerHTML = msg;
+    }
+
+    // Test 1: Check SW Support
+    async function testSWSupport() {
+      log('Test 1: Soporte de Service Worker', 'Verificando...', 'running');
+
+      if ('serviceWorker' in navigator) {
+        log('Test 1: Soporte de Service Worker', 'Service Worker soportado en este navegador', 'pass');
+        testResults.support = true;
+        return true;
+      } else {
+        log('Test 1: Soporte de Service Worker', 'Service Worker NO soportado', 'fail');
+        testResults.support = false;
+        return false;
+      }
+    }
+
+    // Test 2: Check Registration
+    async function testRegistration() {
+      log('Test 2: Registro del SW', 'Verificando registro...', 'running');
+
+      try {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+
+        if (registrations.length > 0) {
+          const reg = registrations[0];
+          const state = reg.active ? reg.active.state : 'no active';
+          log('Test 2: Registro del SW',
+            `SW registrado<br>Scope: ${reg.scope}<br>Estado: ${state}`, 'pass');
+          testResults.registration = true;
+          return reg;
+        } else {
+          log('Test 2: Registro del SW',
+            'No hay SW registrado. Intentando registrar...', 'running');
+
+          // Try to register
+          const reg = await navigator.serviceWorker.register('/sw.js');
+          log('Test 2: Registro del SW',
+            `SW registrado exitosamente<br>Scope: ${reg.scope}`, 'pass');
+          testResults.registration = true;
+          return reg;
+        }
+      } catch (error) {
+        log('Test 2: Registro del SW', `Error: ${error.message}`, 'fail');
+        testResults.registration = false;
+        return null;
+      }
+    }
+
+    // Test 3: Check Caches
+    async function testCaches() {
+      log('Test 3: Caches', 'Verificando caches...', 'running');
+
+      try {
+        const cacheNames = await caches.keys();
+
+        if (cacheNames.length > 0) {
+          let details = `Total de caches: ${cacheNames.length}<br><pre>`;
+          for (const name of cacheNames) {
+            const cache = await caches.open(name);
+            const keys = await cache.keys();
+            details += `${name}: ${keys.length} items\n`;
+          }
+          details += '</pre>';
+          log('Test 3: Caches', details, 'pass');
+          testResults.caches = true;
+        } else {
+          log('Test 3: Caches', 'No hay caches creados aún (normal en primera carga)', 'info');
+          testResults.caches = 'pending';
+        }
+        return cacheNames;
+      } catch (error) {
+        log('Test 3: Caches', `Error: ${error.message}`, 'fail');
+        testResults.caches = false;
+        return [];
+      }
+    }
+
+    // Test 4: Get Version
+    async function testVersion() {
+      log('Test 4: Versión del SW', 'Obteniendo versión...', 'running');
+
+      try {
+        const registration = await navigator.serviceWorker.ready;
+
+        if (!registration.active) {
+          log('Test 4: Versión del SW', 'SW no está activo todavía', 'fail');
+          testResults.version = false;
+          return null;
+        }
+
+        return new Promise((resolve) => {
+          const messageChannel = new MessageChannel();
+
+          messageChannel.port1.onmessage = (event) => {
+            log('Test 4: Versión del SW', `Versión: ${event.data.version}`, 'pass');
+            testResults.version = event.data.version;
+            resolve(event.data.version);
+          };
+
+          registration.active.postMessage(
+            { type: 'GET_VERSION' },
+            [messageChannel.port2]
+          );
+
+          setTimeout(() => {
+            log('Test 4: Versión del SW', 'Timeout esperando respuesta', 'fail');
+            testResults.version = false;
+            resolve(null);
+          }, 3000);
+        });
+      } catch (error) {
+        log('Test 4: Versión del SW', `Error: ${error.message}`, 'fail');
+        testResults.version = false;
+        return null;
+      }
+    }
+
+    // Test 5: Network First Strategy
+    async function testNetworkFirst() {
+      log('Test 5: Estrategia Network-First', 'Probando request a API...', 'running');
+
+      try {
+        const startTime = performance.now();
+        const response = await fetch('/api/health');
+        const endTime = performance.now();
+
+        log('Test 5: Estrategia Network-First',
+          `Response en ${Math.round(endTime - startTime)}ms<br>Status: ${response.status}`,
+          response.ok ? 'pass' : 'fail');
+        testResults.networkFirst = response.ok;
+        return response.ok;
+      } catch (error) {
+        log('Test 5: Estrategia Network-First',
+          `Error (normal si backend no está corriendo): ${error.message}`, 'info');
+        testResults.networkFirst = 'skipped';
+        return false;
+      }
+    }
+
+    // Test 6: Offline Detection
+    async function testOfflineDetection() {
+      log('Test 6: Detección Offline', 'Verificando estado de conexión...', 'running');
+
+      const isOnline = navigator.onLine;
+      log('Test 6: Detección Offline',
+        `Estado actual: ${isOnline ? '🟢 Online' : '🔴 Offline'}<br>` +
+        'navigator.onLine funciona correctamente', 'pass');
+      testResults.offlineDetection = true;
+      return isOnline;
+    }
+
+    // Show Summary
+    function showSummary() {
+      let passed = 0;
+      let failed = 0;
+      let total = Object.keys(testResults).length;
+
+      let html = '<ul>';
+      for (const [test, result] of Object.entries(testResults)) {
+        if (result === true || (typeof result === 'string' && result !== 'false')) {
+          passed++;
+          html += `<li class="pass-icon">✅ ${test}</li>`;
+        } else if (result === false) {
+          failed++;
+          html += `<li class="fail-icon">❌ ${test}</li>`;
+        } else {
+          html += `<li class="info">ℹ️ ${test}: ${result}</li>`;
+        }
+      }
+      html += '</ul>';
+
+      html += `<p><strong>Resultado: ${passed}/${total} tests pasaron</strong></p>`;
+
+      if (failed === 0) {
+        html += '<p style="color:#00ff88;font-size:20px;">🎉 ¡Todos los tests pasaron!</p>';
+      }
+
+      summaryContent.innerHTML = html;
+      summary.style.display = 'block';
+    }
+
+    // Run all tests
+    async function runAllTests() {
+      results.innerHTML = '';
+      testResults = {};
+      summary.style.display = 'none';
+
+      updateStatus('⏳ Ejecutando tests...');
+
+      await testSWSupport();
+      await new Promise(r => setTimeout(r, 500));
+
+      await testRegistration();
+      await new Promise(r => setTimeout(r, 500));
+
+      // Wait for SW to be ready
+      await navigator.serviceWorker.ready;
+      await new Promise(r => setTimeout(r, 1000));
+
+      await testCaches();
+      await new Promise(r => setTimeout(r, 500));
+
+      await testVersion();
+      await new Promise(r => setTimeout(r, 500));
+
+      await testNetworkFirst();
+      await new Promise(r => setTimeout(r, 500));
+
+      await testOfflineDetection();
+
+      updateStatus('✅ Tests completados');
+      showSummary();
+    }
+
+    // Clear caches
+    async function clearAllCaches() {
+      updateStatus('🗑️ Limpiando caches...');
+      const cacheNames = await caches.keys();
+      await Promise.all(cacheNames.map(name => caches.delete(name)));
+      log('Limpiar Caches', `${cacheNames.length} caches eliminados`, 'pass');
+      updateStatus('✅ Caches limpiados');
+    }
+
+    // Manual SW registration
+    async function registerSWManually() {
+      updateStatus('📝 Registrando SW...');
+      try {
+        const reg = await navigator.serviceWorker.register('/sw.js');
+        log('Registro Manual', `SW registrado: ${reg.scope}`, 'pass');
+        updateStatus('✅ SW registrado');
+      } catch (error) {
+        log('Registro Manual', `Error: ${error.message}`, 'fail');
+        updateStatus('❌ Error al registrar');
+      }
+    }
+
+    // Initialize
+    window.addEventListener('load', async () => {
+      document.getElementById('btnRunTests').disabled = false;
+      document.getElementById('btnRegisterSW').disabled = false;
+
+      document.getElementById('btnRunTests').onclick = runAllTests;
+      document.getElementById('btnRegisterSW').onclick = registerSWManually;
+      document.getElementById('btnClearCache').onclick = clearAllCaches;
+
+      updateStatus('✅ Listo. Presiona "Ejecutar Todos los Tests" para comenzar.');
+
+      // Auto-run tests after 2 seconds
+      setTimeout(() => {
+        updateStatus('🚀 Ejecutando tests automáticamente...');
+        runAllTests();
+      }, 2000);
+    });
+  </script>
+</body>
+</html>

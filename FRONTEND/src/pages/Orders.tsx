@@ -215,13 +215,13 @@ const Orders: React.FC = () => {
                           <div className="flex items-center space-x-2">
                             <User className="w-4 h-4 text-gray-400" />
                             <span className="text-sm text-gray-600">
-                              Cliente: {order.customer.name}
+                              Cliente: {order.customer?.name || `ID: ${order.customerId}`}
                             </span>
                           </div>
                           <div className="flex items-center space-x-2">
                             <User className="w-4 h-4 text-gray-400" />
                             <span className="text-sm text-gray-600">
-                              Creado por: {order.user.username}
+                              Creado por: {order.user?.username || `ID: ${order.userId}`}
                             </span>
                           </div>
 

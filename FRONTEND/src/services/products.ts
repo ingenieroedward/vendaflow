@@ -14,32 +14,33 @@ import {
 
 export class ProductService {
   // Products
-  async searchProducts(query: string,includePrices:boolean=true): Promise<Product[]> {
+  async searchProducts(query: string, includePrices: boolean = true): Promise<Product[]> {
     try {
       // Try the search endpoint first
-      const response = await apiService.get<ApiResponse<Product[]>>(`/products/${includePrices?"":"prices"}search?q=${encodeURIComponent(query)}&includePrices=true`);
+      const endpoint = includePrices ? '/products/search/prices' : '/products/search';
+      const response = await apiService.get<ApiResponse<Product[]>>(`${endpoint}?search=${encodeURIComponent(query)}`);
       return response.data;
     } catch (error) {
       // Fallback: get all products and filter in frontend
-      const response = await apiService.get<PaginatedResponse<Product>>('/products', { 
-        page: 1, 
+      const response = await apiService.get<PaginatedResponse<Product>>('/products/prices', {
+        page: 1,
         limit: 100, // Get more products for better search
-        includePrices: true 
       });
-      
+
       const allProducts = response.data;
-      const filteredProducts = allProducts.filter(product => 
+      const filteredProducts = allProducts.filter(product =>
         product.name.toLowerCase().includes(query.toLowerCase()) ||
         product.code.toLowerCase().includes(query.toLowerCase())
       );
-      
+
       return filteredProducts;
     }
   }
 
   async getProducts(page = 1, limit = 10, includePrices = true): Promise<PaginatedResponse<Product>> {
     const params = { page, limit };
-    return apiService.get<PaginatedResponse<Product>>(`/products/${includePrices?"":"prices"}`, params);
+    const endpoint = includePrices ? '/products/prices' : '/products';
+    return apiService.get<PaginatedResponse<Product>>(endpoint, params);
   }
 
   async getProductById(id: number): Promise<Product> {
