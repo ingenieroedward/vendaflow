@@ -294,6 +294,8 @@ export const useProductStore = create<ProductState>((set) => ({
             createdAt: serverProduct.createdAt || new Date().toISOString(),
             updatedAt: serverProduct.updatedAt || new Date().toISOString(),
           };
+          // Cache-on-visit: guardar en IndexedDB para acceso offline futuro
+          productRepository.saveFromServer(serverProduct).catch(() => {});
           set({ currentProduct: product, loading: false });
           return;
         } catch (apiError) {
@@ -336,6 +338,8 @@ export const useProductStore = create<ProductState>((set) => ({
               location: p.supplier.location,
             } : undefined,
           }));
+          // Cache-on-visit: guardar precios en IndexedDB para acceso offline futuro
+          serverPrices.forEach(p => priceRepository.saveFromServer(p).catch(() => {}));
           set({ prices, loading: false });
           return;
         } catch (apiError) {
