@@ -23,10 +23,10 @@ interface Config {
  * Registra el Service Worker
  */
 export function register(config?: Config): void {
-  if (process.env.NODE_ENV === 'production' && 'serviceWorker' in navigator) {
+  if (import.meta.env.PROD && 'serviceWorker' in navigator) {
     // Esperar a que la página cargue completamente
     window.addEventListener('load', () => {
-      const swUrl = `${process.env.BASE_URL || '/'}sw.js`;
+      const swUrl = `${import.meta.env.BASE_URL || '/'}sw.js`;
 
       if (isLocalhost) {
         // En localhost, verificar si el SW existe
@@ -243,7 +243,7 @@ export async function cacheUrls(urls: string[], cacheName?: string): Promise<boo
 export function registerForDevelopment(config?: Config): void {
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      const swUrl = `${process.env.BASE_URL || '/'}sw.js`;
+      const swUrl = `${import.meta.env.BASE_URL || '/'}sw.js`;
       registerValidSW(swUrl, config);
     });
   }

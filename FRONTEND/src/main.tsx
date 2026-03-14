@@ -12,9 +12,9 @@ createRoot(document.getElementById('root')!).render(
 );
 
 // Registrar Service Worker
-// En producción, se registra automáticamente
-// En desarrollo, descomentar la siguiente línea para testear offline
-// serviceWorkerRegistration.registerForDevelopment();
+// En desarrollo: registro directo para testear offline
+// En producción: register() lo maneja automáticamente
+serviceWorkerRegistration.registerForDevelopment();
 
 serviceWorkerRegistration.register({
   onSuccess: (registration) => {
