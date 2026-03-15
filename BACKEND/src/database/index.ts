@@ -27,18 +27,31 @@ const sequelize = new Sequelize({
   },
 });
 
-export const initializeDatabase = async (): Promise<void> => {
-  try {
-    await sequelize.authenticate();
-    console.log('✅ Database connection established successfully.');
+const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-    // Sync database - crea tablas si no existen (safe para producción)
-    await sequelize.sync({ alter: false });
-    console.log('✅ Database synchronized.');
-    await createDefaultCategory();
-  } catch (error) {
-    console.error('❌ Unable to connect to the database:', error);
-    process.exit(1);
+export const initializeDatabase = async (): Promise<void> => {
+  const maxRetries = 10;
+  const retryDelay = 5000;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      await sequelize.authenticate();
+      console.log('✅ Database connection established successfully.');
+
+      // Sync database - crea tablas si no existen (safe para producción)
+      await sequelize.sync({ alter: false });
+      console.log('✅ Database synchronized.');
+      await createDefaultCategory();
+      return;
+    } catch (error) {
+      console.error(`❌ DB connection attempt ${attempt}/${maxRetries} failed:`, error);
+      if (attempt === maxRetries) {
+        console.error('❌ Unable to connect to the database after all retries.');
+        process.exit(1);
+      }
+      console.log(`⏳ Retrying in ${retryDelay / 1000}s...`);
+      await wait(retryDelay);
+    }
   }
 };
 
