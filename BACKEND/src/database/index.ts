@@ -32,12 +32,10 @@ export const initializeDatabase = async (): Promise<void> => {
     await sequelize.authenticate();
     console.log('✅ Database connection established successfully.');
 
-    // Sync database in development
-    if (config.server.nodeEnv === 'development') {
-      await sequelize.sync();
-      console.log('✅ Database synchronized.');
-      await createDefaultCategory();
-    }
+    // Sync database - crea tablas si no existen (safe para producción)
+    await sequelize.sync({ alter: false });
+    console.log('✅ Database synchronized.');
+    await createDefaultCategory();
   } catch (error) {
     console.error('❌ Unable to connect to the database:', error);
     process.exit(1);

@@ -1,5 +1,26 @@
 services:
 
+  # ── MySQL Database ──────────────────────────────────────────────────────────
+  mysql:
+    image: mysql:8.0
+    container_name: jjlm-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: jjlm_db
+      MYSQL_USER: jjlm_user
+      MYSQL_PASSWORD: jjlm_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
   # ── Backend ────────────────────────────────────────────────────────────────
   backend:
     build:
@@ -10,13 +31,13 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
-      DB_HOST: 138.201.123.150
+      DB_HOST: mysql
       DB_PORT: 3306
-      DB_NAME: adminedw_jjlm
-      DB_USER: adminedw_jjlm
-      DB_PASSWORD: "48dekKpLEI[["
+      DB_NAME: jjlm_db
+      DB_USER: jjlm_user
+      DB_PASSWORD: jjlm_password
       DB_DIALECT: mysql
-      JWT_SECRET: your_jwt_secret_key_here
+      JWT_SECRET: jjlm_jwt_super_secret_2026
       JWT_EXPIRES_IN: 24h
       CORS_ORIGIN: http://localhost
       LOG_LEVEL: info
@@ -25,13 +46,16 @@ services:
       VAPID_SUBJECT: mailto:admin@jjlm.com
     volumes:
       - ./BACKEND/logs:/app/logs
+    depends_on:
+      mysql:
+        condition: service_healthy
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 20s
+      start_period: 30s
 
   # ── Frontend ───────────────────────────────────────────────────────────────
   frontend:
@@ -46,3 +70,7 @@ services:
       backend:
         condition: service_healthy
     restart: unless-stopped
+
+volumes:
+  mysql_data:
+    driver: local
