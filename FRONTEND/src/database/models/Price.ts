@@ -57,8 +57,9 @@ export const PriceTransform = {
   fromServer: (serverPrice: ServerPrice, userId?: number): Omit<LocalPrice, 'id'> => {
     return {
       serverId: serverPrice.id,
-      productId: serverPrice.productId,
-      supplierId: serverPrice.supplierId,
+      productId: serverPrice.productId ?? (serverPrice as any).product?.id,
+      // El backend a veces devuelve supplierId: null pero sí incluye supplier.id
+      supplierId: serverPrice.supplierId ?? (serverPrice as any).supplier?.id,
       price: serverPrice.price,
       updatedByUserId: serverPrice.updatedByUserId,
       createdAt: serverPrice.createdAt,

@@ -243,12 +243,16 @@ export abstract class BaseRepository<
     operation: 'CREATE' | 'UPDATE' | 'DELETE',
     recordId: number
   ): Promise<void> {
+    // Normalizar entityType a minúsculas para coincidir con el schema de IndexedDB
+    const entityType = this.entityName.toLowerCase().replace(' ', '_') as SyncQueueItem['entityType'];
+
     const queueItem: Omit<SyncQueueItem, 'id'> = {
-      entityType: this.entityName,
-      entityId: recordId,
-      operation,
-      createdAt: new Date().toISOString(),
-      retries: 0
+      entityType,
+      entityLocalId: recordId,
+      operation: operation.toLowerCase() as SyncQueueItem['operation'],
+      data: {},
+      attempts: 0,
+      createdAt: Date.now(),
     };
 
     await db.syncQueue.add(queueItem as SyncQueueItem);
@@ -258,9 +262,11 @@ export abstract class BaseRepository<
    * Remove operation from sync queue
    */
   protected async removeFromSyncQueue(recordId: number): Promise<void> {
+    const entityType = this.entityName.toLowerCase().replace(' ', '_');
     const queueItems = await db.syncQueue
-      .where(['entityType', 'entityId'])
-      .equals([this.entityName, recordId])
+      .where('entityLocalId')
+      .equals(recordId)
+      .filter(item => item.entityType === entityType)
       .toArray();
 
     for (const item of queueItems) {
