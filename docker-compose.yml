@@ -20,6 +20,8 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
+    networks:
+      - jjlm-network
 
   # ── Backend ────────────────────────────────────────────────────────────────
   backend:
@@ -56,6 +58,9 @@ services:
       timeout: 10s
       retries: 5
       start_period: 60s
+    networks:
+      - jjlm-network
+      - dokploy-network
 
   # ── Frontend ───────────────────────────────────────────────────────────────
   frontend:
@@ -70,6 +75,15 @@ services:
       backend:
         condition: service_healthy
     restart: unless-stopped
+    networks:
+      - jjlm-network
+      - dokploy-network
+
+networks:
+  jjlm-network:
+    driver: bridge
+  dokploy-network:
+    external: true
 
 volumes:
   mysql_data:
