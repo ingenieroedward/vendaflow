@@ -1,0 +1,48 @@
+services:
+
+  # ── Backend ────────────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./BACKEND
+    container_name: jjlm-backend
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DB_HOST: 138.201.123.150
+      DB_PORT: 3306
+      DB_NAME: adminedw_jjlm
+      DB_USER: adminedw_jjlm
+      DB_PASSWORD: "48dekKpLEI[["
+      DB_DIALECT: mysql
+      JWT_SECRET: your_jwt_secret_key_here
+      JWT_EXPIRES_IN: 24h
+      CORS_ORIGIN: http://localhost
+      LOG_LEVEL: info
+      VAPID_PUBLIC_KEY: BFs2khE7TREeTo_S95ob5C_JBfpjvhTsnw2eRezgJ2jH8_Jh9V8tC0Xtcj9sEkpjhxpmXD1_dYzpeWOBEN9-fVw
+      VAPID_PRIVATE_KEY: 6kvoyQf61Kdif0a4n5kIWwbxirkf6BX8cF5Nv2gPQSQ
+      VAPID_SUBJECT: mailto:admin@jjlm.com
+    volumes:
+      - ./BACKEND/logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  # ── Frontend ───────────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./FRONTEND
+      args:
+        VITE_API_BASE_URL: /api
+    container_name: jjlm-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped

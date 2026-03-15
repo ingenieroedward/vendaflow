@@ -4,6 +4,8 @@ import { useAuthStore } from './store/authStore';
 import { useUIStore } from './store/uiStore';
 import { db } from './database/LocalDatabase';
 import UpdateNotification from './components/ui/UpdateNotification';
+import ErrorBoundary from './components/ui/ErrorBoundary';
+import { initOnlineSync } from './utils/backgroundProductSync';
 
 const NotificationContainer: React.FC = () => {
   const { notifications, removeNotification } = useUIStore();
@@ -89,14 +91,20 @@ function App() {
     };
 
     checkDB();
+
+    // Escuchar reconexión a internet para re-sincronizar automáticamente
+    const cleanupOnlineSync = initOnlineSync();
+    return () => cleanupOnlineSync();
   }, [checkAuth]);
 
   return (
-    <div className="App min-h-screen">
-      <AppRouter />
-      <NotificationContainer />
-      <UpdateNotification position="bottom" />
-    </div>
+    <ErrorBoundary>
+      <div className="App min-h-screen">
+        <AppRouter />
+        <NotificationContainer />
+        <UpdateNotification position="bottom" />
+      </div>
+    </ErrorBoundary>
   );
 }
 

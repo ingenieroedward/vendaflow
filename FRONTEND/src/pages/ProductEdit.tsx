@@ -221,7 +221,6 @@ const ProductEdit: React.FC = () => {
           message: 'El precio se ha eliminado correctamente',
         });
       } catch (error: unknown) {
-        console.log(error);
         let errorMessage = 'Error al eliminar el precio';
         
         if (error && typeof error === 'object' && 'message' in error) {

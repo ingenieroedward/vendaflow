@@ -162,8 +162,7 @@ const UserEdit: React.FC = () => {
       });
       
       navigate('/users');
-    } catch (error: unknown) {
-      console.log(error);
+    } catch {
       // Error is handled by the store
     }
   };

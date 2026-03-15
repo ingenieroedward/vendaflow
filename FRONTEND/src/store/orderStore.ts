@@ -156,6 +156,19 @@ export const useOrderStore = create<OrderState>((set) => ({
   getOrderById: async (id: number) => {
     set({ loading: true, error: null });
     try {
+      if (navigator.onLine) {
+        try {
+          const serverOrder = await orderService.getOrderById(id);
+          // Cache-on-fetch: guardar en IndexedDB
+          const userId = useAuthStore.getState().user?.id;
+          orderRepository.saveFromServer(serverOrder, userId).catch(() => {});
+          set({ currentOrder: serverOrder, loading: false });
+          return;
+        } catch {
+          // Si el API falla, caemos al fallback de IndexedDB
+        }
+      }
+      // Offline (o API fallida): leer de IndexedDB
       const result = await orderRepository.getByIdWithRelations(id);
       if (!result) {
         throw new Error('Order not found');

@@ -68,8 +68,8 @@ const ProductNew: React.FC = () => {
       try {
         const response = await productService.getSuppliers(1, 100);
         setSuppliers(response.data);
-      } catch (error) {
-        console.error('Error loading suppliers:', error);
+      } catch {
+        // Fallo silencioso: los proveedores son opcionales en la creación
       }
     };
     loadSuppliers();

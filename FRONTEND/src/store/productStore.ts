@@ -13,6 +13,7 @@ interface ProductState {
   prices: Price[];
   priceComparison: PriceComparisonResult | null;
   loading: boolean;
+  pricesLoading: boolean; // Estado de carga separado para precios
   error: string | null;
   pagination: PaginationInfo;
   searchQuery: string;
@@ -76,6 +77,7 @@ export const useProductStore = create<ProductState>((set) => ({
   prices: [],
   priceComparison: null,
   loading: false,
+  pricesLoading: false,
   error: null,
   pagination: {
     total: 0,
@@ -111,8 +113,8 @@ export const useProductStore = create<ProductState>((set) => ({
             updatedAt: serverProduct.updatedAt || new Date().toISOString(),
             prices: serverProduct.prices?.map((p: any) => ({
               id: p.id,
-              productId: p.productId,
-              supplierId: p.supplierId,
+              productId: p.productId ?? p.supplier?.id,
+              supplierId: p.supplierId ?? p.supplier?.id,
               price: p.price,
               updatedByUserId: p.updatedByUserId,
               createdAt: p.createdAt || new Date().toISOString(),
@@ -211,8 +213,8 @@ export const useProductStore = create<ProductState>((set) => ({
             updatedAt: serverProduct.updatedAt || new Date().toISOString(),
             prices: serverProduct.prices?.map((p: any) => ({
               id: p.id,
-              productId: p.productId,
-              supplierId: p.supplierId,
+              productId: p.productId ?? p.supplier?.id,
+              supplierId: p.supplierId ?? p.supplier?.id,
               price: p.price,
               updatedByUserId: p.updatedByUserId,
               createdAt: p.createdAt || new Date().toISOString(),
@@ -317,16 +319,16 @@ export const useProductStore = create<ProductState>((set) => ({
   },
 
   getPricesByProduct: async (productId: number) => {
-    set({ loading: true, error: null });
+    set({ pricesLoading: true, prices: [], error: null });
     try {
       // If online, fetch from server API
       if (navigator.onLine) {
         try {
           const serverPrices = await productService.getPricesByProduct(productId);
-          const prices: Price[] = serverPrices.map((p) => ({
+          const prices: Price[] = serverPrices.map((p: any) => ({
             id: p.id,
-            productId: p.productId,
-            supplierId: p.supplierId,
+            productId: p.productId ?? p.supplier?.id,
+            supplierId: p.supplierId ?? p.supplier?.id,
             price: p.price,
             updatedByUserId: p.updatedByUserId,
             createdAt: p.createdAt || new Date().toISOString(),
@@ -338,9 +340,18 @@ export const useProductStore = create<ProductState>((set) => ({
               location: p.supplier.location,
             } : undefined,
           }));
-          // Cache-on-visit: guardar precios en IndexedDB para acceso offline futuro
-          serverPrices.forEach(p => priceRepository.saveFromServer(p).catch(() => {}));
-          set({ prices, loading: false });
+          // Cache-on-visit: guardar precios Y proveedores en IndexedDB para acceso offline futuro
+          const { supplierRepository } = await import('../repositories/SupplierRepository');
+          serverPrices.forEach((p: any) => {
+            if (p.supplier) {
+              supplierRepository.saveFromServer(p.supplier).catch(() => {});
+            }
+            priceRepository.saveFromServer({
+              ...p,
+              supplierId: p.supplierId ?? p.supplier?.id,
+            }).catch(() => {});
+          });
+          set({ prices, pricesLoading: false });
           return;
         } catch (apiError) {
           console.warn('⚠️ Failed to fetch prices from server, trying local DB:', apiError);
@@ -348,23 +359,24 @@ export const useProductStore = create<ProductState>((set) => ({
       }
 
       // Offline or server failed: try local DB
-      // First find the product by serverId to get local prices
       const localProduct = await productRepository.getByServerId(productId);
       if (!localProduct) {
-        set({ prices: [], loading: false });
+        set({ prices: [], pricesLoading: false });
         return;
       }
 
       const result = await productRepository.getWithPricesByServerId(productId);
       if (!result) {
-        set({ prices: [], loading: false });
+        set({ prices: [], pricesLoading: false });
         return;
       }
       const prices = result.prices.map(toPrice);
-      set({ prices, loading: false });
+      set({ prices, pricesLoading: false });
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-      set({ error: errorMessage, loading: false });
+      // Los precios fallidos NO deben bloquear la página del producto.
+      // Solo se registra en consola y se muestra sección vacía.
+      console.warn('⚠️ Error cargando precios:', error);
+      set({ prices: [], pricesLoading: false });
     }
   },
 
@@ -456,7 +468,7 @@ export const useProductStore = create<ProductState>((set) => ({
   },
 
   clearCurrentProduct: () => {
-    set({ currentProduct: null, prices: [] });
+    set({ currentProduct: null, prices: [], pricesLoading: false, loading: false, error: null });
   },
 
   clearPriceComparison: () => {

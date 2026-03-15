@@ -43,6 +43,13 @@ export const config = {
     maxFiles: process.env['LOG_MAX_FILES'] || '14d',
     maxSize: process.env['LOG_MAX_SIZE'] || '20m',
   },
+
+  // VAPID (Web Push)
+  vapid: {
+    publicKey: process.env['VAPID_PUBLIC_KEY'] || '',
+    privateKey: process.env['VAPID_PRIVATE_KEY'] || '',
+    subject: process.env['VAPID_SUBJECT'] || 'mailto:admin@jjlm.com',
+  },
 };
 
 export default config; 

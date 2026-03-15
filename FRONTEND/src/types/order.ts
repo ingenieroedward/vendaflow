@@ -40,20 +40,24 @@ export interface Order {
 
 export interface CreateOrderRequest {
   customerId: number;
+  userId?: number;
   items: {
     productId: number;
     quantity: number;
     unitPrice: number;
+    taxRate: number;
   }[];
   notes?: string;
 }
 
 export interface UpdateOrderRequest {
   customerId?: number;
+  userId?: number;
   items?: {
     productId: number;
     quantity: number;
     unitPrice: number;
+    taxRate: number;
   }[];
   status?: 'pending' | 'processing' | 'completed' | 'cancelled';
   notes?: string;

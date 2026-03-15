@@ -11,6 +11,7 @@ import {
   SearchOrderDto
 } from './order.dto';
 import { NotFoundError } from '@/core/errors/AppError';
+import logger from '@/core/logger';
 import { validateSchema, validatePartialSchema, paginationSchema, PaginationQuery } from '@/core/utils/validation';
 import { createOrderSchema, updateOrderSchema, searchOrderSchema } from './order.dto';
 import { Op } from 'sequelize';
@@ -43,7 +44,7 @@ export class OrderService {
 
       return `ORD-${nextNumber.toString().padStart(4, '0')}`;
     } catch (error) {
-      console.error('Error generating order number:', error);
+      logger.error('Error generating order number:', error as Error);
       // Fallback: usar timestamp como número de orden
       const timestamp = Date.now();
       return `ORD-${timestamp}`;

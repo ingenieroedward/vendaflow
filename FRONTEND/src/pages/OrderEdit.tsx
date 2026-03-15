@@ -281,6 +281,7 @@ const OrderEdit: React.FC = () => {
 
     const orderData: UpdateOrderRequest = {
       customerId: selectedCustomer.id,
+      userId: user?.id,
       items: orderItems.map(item => ({
         productId: item.productId,
         quantity: item.quantity,
@@ -298,8 +299,9 @@ const OrderEdit: React.FC = () => {
         message: 'La orden se ha actualizado correctamente',
       });
       navigate(`/orders/${id}`);
-    } catch (error) {
-      console.error('Error al actualizar la orden:', error);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'Error al actualizar la orden';
+      addNotification({ type: 'error', title: 'Error', message: msg });
     }
   };
 
@@ -320,9 +322,11 @@ const OrderEdit: React.FC = () => {
   };
 
   const handleBack = () => {
-    
+    if (window.history.length > 1) {
       navigate(-1);
-    
+    } else {
+      navigate('/orders');
+    }
   };
 
   // Show loading while fetching order data

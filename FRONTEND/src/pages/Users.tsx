@@ -107,8 +107,7 @@ const Users: React.FC = () => {
         title: "Usuario restaurado",
         message: "El usuario se ha restaurado correctamente",
       });
-    } catch (error: unknown) {
-      console.log(error);
+    } catch {
       // Error is handled by the store
     } finally {
       handleRefresh()
@@ -138,8 +137,7 @@ const Users: React.FC = () => {
         title: "Usuario eliminado",
         message: "El usuario se ha eliminado correctamente",
       });
-    } catch (error: unknown) {
-      console.log(error);
+    } catch {
       // Error is handled by the store
     } finally {
       handleRefresh()

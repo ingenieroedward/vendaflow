@@ -97,23 +97,25 @@ export class UserService {
   }
 
   async deleteUser(id: number): Promise<void> {
-    const user = await User.findByPk(id);
+    const user = await User.findByPk(id, {
+      paranoid: false,
+      include: [Order, Price],
+    });
+
     if (!user) {
-      const userDeleted = await User.findByPk(id, {
-        paranoid: false,
-        include: [Order, Price],
-      });
-      if (userDeleted && userDeleted?.prices?.length > 0) {
+      throw new NotFoundError("User not found");
+    }
+
+    if (user.deletedAt) {
+      if (user.prices?.length > 0) {
         throw new ConflictError("El usuario tiene precios asignados");
       }
-      if (userDeleted && userDeleted.orders.length > 0) {
+      if (user.orders?.length > 0) {
         throw new ConflictError("El usuario tiene ordenes realizadas");
       }
-      if (!userDeleted) {
-        throw new NotFoundError("User not found");
-      }
-      return await userDeleted.destroy({ force: true });
+      return await user.destroy({ force: true });
     }
+
     return await user.destroy();
   }
 

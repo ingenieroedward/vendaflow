@@ -18,13 +18,14 @@ export class ProductService {
     try {
       // Try the search endpoint first
       const endpoint = includePrices ? '/products/search/prices' : '/products/search';
-      const response = await apiService.get<ApiResponse<Product[]>>(`${endpoint}?search=${encodeURIComponent(query)}`);
+      // Backend espera el parámetro ?q= (no ?search=)
+      const response = await apiService.get<ApiResponse<Product[]>>(`${endpoint}?q=${encodeURIComponent(query)}`);
       return response.data;
     } catch (error) {
-      // Fallback: get all products and filter in frontend
+      // Fallback: obtener todos los productos del servidor y filtrar en el cliente
       const response = await apiService.get<PaginatedResponse<Product>>('/products/prices', {
         page: 1,
-        limit: 100, // Get more products for better search
+        limit: 500, // Aumentado para no perder productos con el fallback
       });
 
       const allProducts = response.data;

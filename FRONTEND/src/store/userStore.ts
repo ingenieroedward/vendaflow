@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { usersService } from '../services/users';
 import { User, CreateUserRequest, UpdateUserRequest } from '../types/auth';
+import { userRepository } from '../repositories/UserRepository';
 
 interface UserState {
   users: User[];
@@ -40,21 +41,34 @@ export const useUserStore = create<UserState>((set) => ({
   getUsers: async (page = 1, limit = 10) => {
     set({ loading: true, error: null });
     try {
-      const response = await usersService.getUsers(page, limit);
+      if (navigator.onLine) {
+        const response = await usersService.getUsers(page, limit);
+        // Cache-on-fetch: guardar en IndexedDB
+        userRepository.saveAllFromServer(response.data).catch(() => {});
+        set({ users: response.data, pagination: response.pagination, loading: false });
+        return;
+      }
+      // Offline: leer de IndexedDB
+      const localUsers = await userRepository.getAll();
       set({
-        users: response.data,
-        pagination: response.pagination,
+        users: localUsers.map(u => ({
+          id: u.serverId || u.id,
+          username: u.username,
+          role: u.role as 'buyer' | 'seller' | 'admin',
+          createdAt: u.createdAt,
+          updatedAt: u.updatedAt,
+        })),
         loading: false,
       });
     } catch (error: unknown) {
       let errorMessage = 'Error al cargar usuarios';
-      
+
       if (error && typeof error === 'object' && 'message' in error) {
         errorMessage = String(error.message);
       } else if (error instanceof Error) {
         errorMessage = error.message;
       }
-      
+
       set({ error: errorMessage, loading: false });
     }
   },
@@ -62,17 +76,38 @@ export const useUserStore = create<UserState>((set) => ({
   getUserById: async (id: number) => {
     set({ loading: true, error: null });
     try {
-      const user = await usersService.getUserById(id);
-      set({ currentUser: user, loading: false });
+      if (navigator.onLine) {
+        const user = await usersService.getUserById(id);
+        // Cache-on-fetch: guardar en IndexedDB
+        userRepository.saveFromServer(user).catch(() => {});
+        set({ currentUser: user, loading: false });
+        return;
+      }
+      // Offline: leer de IndexedDB por serverId
+      const localUser = await userRepository.getByServerId(id);
+      if (localUser) {
+        set({
+          currentUser: {
+            id: localUser.serverId || localUser.id,
+            username: localUser.username,
+            role: localUser.role as 'buyer' | 'seller' | 'admin',
+            createdAt: localUser.createdAt,
+            updatedAt: localUser.updatedAt,
+          },
+          loading: false,
+        });
+      } else {
+        throw new Error('Usuario no disponible offline');
+      }
     } catch (error: unknown) {
       let errorMessage = 'Error al cargar usuario';
-      
+
       if (error && typeof error === 'object' && 'message' in error) {
         errorMessage = String(error.message);
       } else if (error instanceof Error) {
         errorMessage = error.message;
       }
-      
+
       set({ error: errorMessage, loading: false });
     }
   },

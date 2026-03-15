@@ -10,7 +10,7 @@ import { Price } from '@/modules/price/price.model';
 import { Customer } from '@/modules/customer/customer.model';
 import { Order } from '@/modules/order/order.model';
 import { OrderItem } from '@/modules/order/order-item.model';
-
+import { PushSubscription } from '@/modules/push/push-subscription.model';
 
 
 const sequelize = new Sequelize({
@@ -21,7 +21,7 @@ const sequelize = new Sequelize({
   username: config.database.user,
   password: config.database.password,
   logging: config.server.nodeEnv === 'development' ? console.log : false,
-  models: [User, Category, Product, Supplier, Price, Customer, Order, OrderItem], // Add all models here
+  models: [User, Category, Product, Supplier, Price, Customer, Order, OrderItem, PushSubscription], // Add all models here
   modelMatch: (filename, member) => {
     return filename.substring(0, filename.indexOf('.model')) === member.toLowerCase();
   },

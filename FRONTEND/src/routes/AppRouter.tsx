@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import Layout from '../components/layout/Layout';
 import Login from '../pages/Login';
@@ -77,6 +77,13 @@ const PublicRoute: React.FC<RouteProps> = ({ children }) => {
   return <>{children}</>;
 };
 
+// Fuerza remount completo de ProductDetail en cada navegación,
+// evitando estado corrupto por requests async "huérfanos" del mount anterior.
+const ProductDetailRoute: React.FC = () => {
+  const location = useLocation();
+  return <ProductDetail key={location.key} />;
+};
+
 const AppRouter: React.FC = () => {
   return (
     <Router>
@@ -112,13 +119,13 @@ const AppRouter: React.FC = () => {
             } 
           />
           
-          <Route 
-            path="/products/:id" 
+          <Route
+            path="/products/:id"
             element={
               <BuyerRoute>
-                <ProductDetail />
+                <ProductDetailRoute />
               </BuyerRoute>
-            } 
+            }
           />
           
           <Route 

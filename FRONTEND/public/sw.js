@@ -504,6 +504,56 @@ self.addEventListener('install', (event) => {
 });
 
 // ============================================================================
+// PUSH NOTIFICATIONS
+// ============================================================================
+
+self.addEventListener('push', (event) => {
+  if (!event.data) return;
+
+  let payload;
+  try {
+    payload = event.data.json();
+  } catch {
+    payload = { title: 'JJLM', body: event.data.text() };
+  }
+
+  const { title = 'JJLM', body = '', data = {} } = payload;
+
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      icon: '/logo.png',
+      badge: '/logo.png',
+      data,
+      tag: 'price-update',
+      renotify: true,
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  // Navegar al producto si viene en los datos
+  const productId = event.notification.data?.productId;
+  const targetUrl = productId ? `/products/${productId}` : '/';
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      // Si ya hay una ventana abierta, navegar ahí
+      for (const client of clients) {
+        if ('navigate' in client) {
+          client.navigate(targetUrl);
+          return client.focus();
+        }
+      }
+      // Si no hay ventana, abrir una nueva
+      return self.clients.openWindow(targetUrl);
+    })
+  );
+});
+
+// ============================================================================
 // LOG DE INICIALIZACIÓN
 // ============================================================================
 

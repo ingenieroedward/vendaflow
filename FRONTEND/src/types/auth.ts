@@ -44,7 +44,7 @@ export interface User {
   role: 'admin' | 'buyer' | 'seller';
   createdAt: string;
   updatedAt: string;
-  deletedAt: string;
+  deletedAt?: string | null;
 }
 
 export interface AuthState {

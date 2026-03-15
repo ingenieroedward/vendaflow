@@ -1,14 +1,20 @@
 import { useState } from 'react';
-import { User, LogOut, Package, Shield, ChevronDown, Calendar } from 'lucide-react';
+import { User, LogOut, Package, Shield, ChevronDown, Calendar, Bell, BellOff } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
+import { useSyncStore } from '../../store/syncStore';
 import Button from '../ui/Button';
 import InstallButton from '../ui/InstallButton';
+import TopLoadingBar from '../ui/TopLoadingBar';
+import { usePushNotifications } from '../../hooks/usePushNotifications';
 
 const Header = () => {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const { status, current, total } = useSyncStore();
+  const { isSupported: pushSupported, isSubscribed: pushSubscribed, isLoading: pushLoading, toggle: togglePush } = usePushNotifications();
+  const percent = total > 0 ? Math.round((current / total) * 100) : 0;
 
   const handleLogout = () => {
     logout();
@@ -26,6 +32,7 @@ const Header = () => {
 
   return (
     <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
+      <TopLoadingBar />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-14 sm:h-16">
           {/* Left section */}
@@ -43,6 +50,16 @@ const Header = () => {
               <span className="text-lg sm:text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors duration-200">
                 JJLM
               </span>
+              {status === 'syncing' && (
+                <span className="text-xs text-blue-400 font-normal ml-2 hidden sm:inline">
+                  {percent}%
+                </span>
+              )}
+              {status === 'done' && (
+                <span className="text-xs text-green-500 font-normal ml-2 hidden sm:inline">
+                  ✓
+                </span>
+              )}
             </Link>
           </div>
 
@@ -76,6 +93,22 @@ const Header = () => {
               )}
             </div>
             
+            {/* Push Notification Toggle */}
+            {pushSupported && (
+              <button
+                onClick={togglePush}
+                disabled={pushLoading}
+                title={pushSubscribed ? 'Desactivar notificaciones' : 'Activar notificaciones'}
+                className="p-2 rounded-xl text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors duration-200 disabled:opacity-50"
+              >
+                {pushSubscribed ? (
+                  <Bell className="w-5 h-5 text-blue-600" />
+                ) : (
+                  <BellOff className="w-5 h-5" />
+                )}
+              </button>
+            )}
+
             {/* Install Button - More compact on mobile */}
             <div className="hidden sm:block">
               <InstallButton />

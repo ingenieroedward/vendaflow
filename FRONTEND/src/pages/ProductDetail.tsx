@@ -32,15 +32,16 @@ interface PriceErrors {
 const ProductDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { 
-    currentProduct: product, 
-    prices, 
-    loading, 
-    error, 
-    getProductById, 
+  const {
+    currentProduct: product,
+    prices,
+    loading,
+    pricesLoading,
+    error,
+    getProductById,
     getPricesByProduct,
     clearError,
-    clearCurrentProduct 
+    clearCurrentProduct
   } = useProductStore();
   const { addNotification } = useUIStore();
 
@@ -386,7 +387,16 @@ const ProductDetail: React.FC = () => {
         </div>
 
         {/* Price Stats - Mobile Optimized */}
-        {prices.length > 0 && (
+        {pricesLoading ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="bg-white rounded-lg p-3 sm:p-6 shadow-sm border border-gray-200 animate-pulse">
+                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2" />
+                <div className="h-7 bg-gray-200 rounded w-1/2" />
+              </div>
+            ))}
+          </div>
+        ) : prices.length > 0 && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
             <div className="bg-white rounded-lg p-3 sm:p-6 shadow-sm border border-gray-200">
               <div className="flex items-center justify-between">
@@ -455,7 +465,19 @@ const ProductDetail: React.FC = () => {
             </Button>
           </div>
 
-          <PriceTable prices={prices} />
+          {pricesLoading ? (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden animate-pulse">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="flex items-center px-4 py-4 border-b border-gray-100 last:border-0 gap-4">
+                  <div className="h-4 bg-gray-200 rounded w-1/3" />
+                  <div className="h-4 bg-gray-200 rounded w-1/4 ml-auto" />
+                  <div className="h-4 bg-gray-200 rounded w-1/5" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <PriceTable prices={prices} />
+          )}
         </div>
 
         {/* Product Info - Mobile Optimized */}

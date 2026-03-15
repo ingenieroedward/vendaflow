@@ -6,6 +6,7 @@ import { CreatePriceDto, UpdatePriceDto, PriceResponseDto, PricesListResponseDto
 import { NotFoundError, ConflictError } from '@/core/errors/AppError';
 import { validateSchema, validatePartialSchema, paginationSchema, PaginationQuery } from '@/core/utils/validation';
 import { createPriceSchema, updatePriceSchema } from './price.dto';
+import { pushService } from '@/modules/push/push.service';
 
 export class PriceService {
   async createPrice(priceData: CreatePriceDto, userId: number): Promise<PriceResponseDto> {
@@ -38,7 +39,13 @@ export class PriceService {
       ...validatedData,
       updatedByUserId: userId,
     } as PriceAttributes);
-    
+
+    pushService.notifyAll(
+      '💰 Precio actualizado',
+      `${product.name}: $${validatedData.price}`,
+      { productId: product.id, price: validatedData.price },
+    ).catch(() => {});
+
     return this.mapToResponseDto(price);
   }
 
@@ -104,7 +111,16 @@ export class PriceService {
       ...validatedData,
       updatedByUserId: userId,
     } as any);
-    
+
+    const updatedProduct = await Product.findByPk(price.productId);
+    if (updatedProduct && validatedData.price !== undefined) {
+      pushService.notifyAll(
+        '💰 Precio actualizado',
+        `${updatedProduct.name}: $${validatedData.price}`,
+        { productId: updatedProduct.id, price: validatedData.price },
+      ).catch(() => {});
+    }
+
     return this.mapToResponseDto(price);
   }
 

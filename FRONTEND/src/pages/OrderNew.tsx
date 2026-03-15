@@ -159,6 +159,7 @@ const OrderNew: React.FC = () => {
 
     const orderData: CreateOrderRequest = {
       customerId: selectedCustomer.id,
+      userId: user?.id,
       items: orderItems.map((item) => ({
         productId: item.productId,
         quantity: item.quantity,
@@ -176,8 +177,9 @@ const OrderNew: React.FC = () => {
         message: "La orden se ha creado correctamente",
       });
       navigate(`/orders/${newOrder.id}`);
-    } catch (error) {
-      console.error("Error al crear la orden:", error);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'Error al crear la orden';
+      addNotification({ type: 'error', title: 'Error', message: msg });
     }
   };
 

@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useOrderStore } from "../store/orderStore";
 import { useAuthStore } from "../store/authStore";
+import { useUIStore } from "../store/uiStore";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
 import ErrorMessage from "../components/ui/ErrorMessage";
 import Button from "../components/ui/Button";
@@ -28,6 +29,7 @@ const OrderDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuthStore();
+  const { addNotification } = useUIStore();
   const { currentOrder, loading, error, getOrderById, clearError, updateOrder, deleteOrder } =
     useOrderStore();
   const printRef = useRef<HTMLDivElement>(null);
@@ -57,8 +59,9 @@ const OrderDetail: React.FC = () => {
       await updateOrder(currentOrder.id, { status: newStatus as any });
       await getOrderById(currentOrder.id); // Refresh order data
       setShowStatusDropdown(false);
-    } catch (error) {
-      console.error('Error updating status:', error);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'Error al actualizar el estado';
+      addNotification({ type: 'error', title: 'Error', message: msg });
     } finally {
       setUpdatingStatus(false);
     }

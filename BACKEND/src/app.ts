@@ -16,6 +16,7 @@ import supplierRoutes from '@/modules/supplier/supplier.routes';
 import priceRoutes from '@/modules/price/price.routes';
 import customerRoutes from '@/modules/customer/customer.routes';
 import orderRoutes from '@/modules/order/order.routes';
+import pushRoutes from '@/modules/push/push.routes';
 
 const app = express();
 
@@ -61,7 +62,8 @@ app.get('/health', (_req, res) => {
 });
 
 // API routes
-app.use('/api/auth', limiter, authRoutes);
+app.use('/api', limiter);
+app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/products', productRoutes);
@@ -69,6 +71,7 @@ app.use('/api/suppliers', supplierRoutes);
 app.use('/api/prices', priceRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/push', pushRoutes);
 
 // 404 handler
 app.use('*', notFoundHandler);

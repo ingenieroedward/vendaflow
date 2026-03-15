@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Plus, Search, Eye, Edit, Trash2, Calendar, User } from "lucide-react";
 import { useOrderStore } from "../store/orderStore";
 import { useAuthStore } from "../store/authStore";
+import { useUIStore } from "../store/uiStore";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
 import ErrorMessage from "../components/ui/ErrorMessage";
 import Button from "../components/ui/Button";
@@ -14,6 +15,7 @@ const Orders: React.FC = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const { user } = useAuthStore();
+  const { addNotification } = useUIStore();
   const { orders, loading, error, pagination, getOrders, clearError, deleteOrder } =
     useOrderStore();
 
@@ -351,8 +353,10 @@ const Orders: React.FC = () => {
                     setShowDeleteModal(false);
                     setOrderToDelete(null);
                     handleRefresh();
-                  } catch {
-                    // Puedes agregar notificación de error si lo deseas
+                  } catch (error: unknown) {
+                    const msg = error instanceof Error ? error.message : 'Error al eliminar la orden';
+                    addNotification({ type: 'error', title: 'Error', message: msg });
+                    setShowDeleteModal(false);
                   }
                 }}
               >
