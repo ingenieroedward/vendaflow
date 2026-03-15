@@ -35,6 +35,7 @@ RUN mkdir -p logs
 
 # Expose port
 EXPOSE 3001
+# cache-bust: 1
 
 # Start the application
 CMD ["npm", "start"] 
