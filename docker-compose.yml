@@ -45,7 +45,7 @@ services:
       VAPID_PRIVATE_KEY: 6kvoyQf61Kdif0a4n5kIWwbxirkf6BX8cF5Nv2gPQSQ
       VAPID_SUBJECT: mailto:admin@jjlm.com
     volumes:
-      - ./BACKEND/logs:/app/logs
+      - backend_logs:/app/logs
     depends_on:
       mysql:
         condition: service_healthy
@@ -73,4 +73,6 @@ services:
 
 volumes:
   mysql_data:
+    driver: local
+  backend_logs:
     driver: local
