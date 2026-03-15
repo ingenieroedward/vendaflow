@@ -34,7 +34,7 @@ USER nodejs
 RUN mkdir -p logs
 
 # Expose port
-EXPOSE 3000
+EXPOSE 3001
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
