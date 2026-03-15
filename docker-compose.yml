@@ -27,10 +27,10 @@ services:
       context: ./BACKEND
     container_name: jjlm-backend
     ports:
-      - "3000:3000"
+      - "3001:3001"
     environment:
       NODE_ENV: production
-      PORT: 3000
+      PORT: 3001
       DB_HOST: mysql
       DB_PORT: 3306
       DB_NAME: jjlm_db
@@ -51,7 +51,7 @@ services:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      test: ["CMD", "wget", "-qO-", "http://localhost:3001/health"]
       interval: 30s
       timeout: 10s
       retries: 3
