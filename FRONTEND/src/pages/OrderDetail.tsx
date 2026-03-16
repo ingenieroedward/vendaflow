@@ -223,22 +223,35 @@ const OrderDetail: React.FC = () => {
 
   // Calculate totals with dynamic tax rates
   const calculateOrderTotals = () => {
+    if (!currentOrder?.items || currentOrder.items.length === 0) {
+      return {
+        subtotal: currentOrder?.totalAmount || 0,
+        totalTax: 0,
+        total: currentOrder?.totalAmount || 0,
+      };
+    }
+
     let subtotal = 0;
     let totalTax = 0;
 
-    currentOrder?.items.forEach((item) => {
-      const itemSubtotal = item.quantity * item.unitPrice;
-      const itemTax = itemSubtotal * ((item.taxRate || 0) / 100);
-
-      subtotal += itemSubtotal;
+    currentOrder.items.forEach((item) => {
+      const itemBase =
+        Number(item.totalPrice) ||
+        Number(item.quantity) * Number(item.unitPrice);
+      const itemTax = itemBase * ((Number(item.taxRate) || 0) / 100);
+      subtotal += itemBase;
       totalTax += itemTax;
     });
 
-    return {
-      subtotal,
-      totalTax,
-      total: subtotal + totalTax,
-    };
+    if (subtotal === 0) {
+      return {
+        subtotal: currentOrder.totalAmount,
+        totalTax: 0,
+        total: currentOrder.totalAmount,
+      };
+    }
+
+    return { subtotal, totalTax, total: subtotal + totalTax };
   };
 
   const totals = currentOrder
@@ -544,9 +557,9 @@ const OrderDetail: React.FC = () => {
 
           {/* Mobile Product Cards */}
           <div className="lg:hidden space-y-4">
-            {currentOrder.items.map((item, index) => {
-              const itemSubtotal = item.quantity * item.unitPrice;
-              const itemTax = itemSubtotal * ((item.taxRate || 0) / 100);
+            {(currentOrder.items || []).map((item, index) => {
+              const itemSubtotal = Number(item.totalPrice) || Number(item.quantity) * Number(item.unitPrice);
+              const itemTax = itemSubtotal * ((Number(item.taxRate) || 0) / 100);
               const itemTotal = itemSubtotal + itemTax;
 
               return (
@@ -633,9 +646,9 @@ const OrderDetail: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {currentOrder.items.map((item, index) => {
-                  const itemSubtotal = item.quantity * item.unitPrice;
-                  const itemTax = itemSubtotal * ((item.taxRate || 0) / 100);
+                {(currentOrder.items || []).map((item, index) => {
+                  const itemSubtotal = Number(item.totalPrice) || Number(item.quantity) * Number(item.unitPrice);
+                  const itemTax = itemSubtotal * ((Number(item.taxRate) || 0) / 100);
                   const itemTotal = itemSubtotal + itemTax;
 
                   return (

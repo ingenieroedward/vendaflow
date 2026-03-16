@@ -249,7 +249,9 @@ export const useOrderStore = create<OrderState>((set) => ({
 
       set(state => ({
         orders: state.orders.map(o => o.id === id ? order : o),
-        currentOrder: order,
+        currentOrder: state.currentOrder?.id === id
+          ? { ...order, items: state.currentOrder.items || [] }
+          : state.currentOrder,
         loading: false,
       }));
       return order;
