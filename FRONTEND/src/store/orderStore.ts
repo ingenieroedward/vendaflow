@@ -173,7 +173,19 @@ export const useOrderStore = create<OrderState>((set) => ({
       if (!result) {
         throw new Error('Order not found');
       }
-      const order = toOrder(result.order);
+      const order = {
+        ...toOrder(result.order),
+        items: result.items.map(item => ({
+          id: item.id!,
+          productId: item.productId,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          subtotal: item.quantity * item.unitPrice,
+          totalPrice: item.totalPrice,
+          taxRate: item.taxRate || 0,
+          product: item.product || { id: item.productId, name: 'Desconocido', code: '-' },
+        })),
+      };
       set({ currentOrder: order, loading: false });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Error desconocido';

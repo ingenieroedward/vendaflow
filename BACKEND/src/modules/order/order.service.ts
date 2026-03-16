@@ -432,26 +432,24 @@ export class OrderService {
           role: order.user.role,
         }
       }),
-      ...(orderItems && orderItems.length > 0 && {
-        items: orderItems.map(item => ({
-          id: item.id,
-          productId: item.productId,
-          quantity: item.quantity,
-          taxRate: item.taxRate,
-          unitPrice: Number(item.unitPrice),
-          totalPrice: Number(item.totalPrice),
-          ...(item.product && {
-            product: {
-              id: item.product.id,
-              name: item.product.name,
-              code: item.product.code,
-              unit: item.product.unit,
-            }
-          }),
-          createdAt: item.createdAt,
-          updatedAt: item.updatedAt,
-        }))
-      }),
+      items: (orderItems || []).map(item => ({
+        id: item.id,
+        productId: item.productId,
+        quantity: item.quantity,
+        taxRate: item.taxRate,
+        unitPrice: Number(item.unitPrice),
+        totalPrice: Number(item.totalPrice),
+        ...(item.product && {
+          product: {
+            id: item.product.id,
+            name: item.product.name,
+            code: item.product.code,
+            unit: item.product.unit,
+          }
+        }),
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt,
+      })),
       createdAt: order.createdAt,
       updatedAt: order.updatedAt,
     };
