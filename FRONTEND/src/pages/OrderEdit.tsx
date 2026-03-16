@@ -57,74 +57,26 @@ const OrderEdit: React.FC = () => {
   const [includeProducts, setIncludeProducts] = useState(false);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
 
+  // Reset state when id changes (prevents stale data from previous order)
+  useEffect(() => {
+    setIsDataLoaded(false);
+    setOrderItems([]);
+    setIncludeProducts(false);
+    setSelectedCustomer(null);
+    setNotes('');
+  }, [id]);
+
   useEffect(() => {
     if (id) {
       getOrderById(parseInt(id));
     }
     getProducts(1, 100);
     getCustomers(1, 100);
-
-    if (currentOrder && !isDataLoaded) {
-        // Set customer
-        const fullCustomer = customers.find(c => c.id === currentOrder.customer.id);
-        if (fullCustomer) {
-          setSelectedCustomer(fullCustomer);
-        } else {
-          // Fallback: crea un objeto Customer con los campos requeridos
-          setSelectedCustomer({
-            ...currentOrder.customer,
-            createdAt: '',
-            updatedAt: ''
-          });
-        }
-        
-        // Set notes
-        setNotes(currentOrder.notes || '');
-        
-        // Asegura que order.items exista antes de mapear
-        if (!currentOrder.items) {
-          setOrderItems([]);
-          setIsDataLoaded(true);
-          return;
-        }
-        // Convert order items to the local format
-        const items: OrderItem[] = currentOrder.items.map((item) => {
-          const fullProduct = products.find(p => p.id === item.product.id);
-          const baseProduct = fullProduct || {
-            id: item.product.id,
-            name: item.product.name,
-            code: item.product.code,
-            unit: getProductUnit(item.product),
-            categoryId: 0,
-            salePrice: item.unitPrice,
-            createdAt: '',
-            updatedAt: '',
-            prices: [],
-          };
-          return {
-            id: item.id,
-            productId: item.product.id,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            taxRate: item.taxRate,
-            product: baseProduct
-          };
-        });
-        
-        setOrderItems(items);
-        
-        // Show products section if there are items
-        if (items.length > 0) {
-          setIncludeProducts(true);
-        }
-        
-        setIsDataLoaded(true);
-      }
   }, [id, getOrderById, getProducts, getCustomers]);
 
   // Load order data when order is fetched
   useEffect(() => {
-    if (currentOrder && !isDataLoaded) {
+    if (currentOrder && !isDataLoaded && currentOrder.id === parseInt(id!)) {
       // Set customer
       const fullCustomer = customers.find(c => c.id === currentOrder.customer.id);
       if (fullCustomer) {
@@ -180,7 +132,7 @@ const OrderEdit: React.FC = () => {
       
       setIsDataLoaded(true);
     }
-  }, [currentOrder, isDataLoaded, products, customers]);
+  }, [currentOrder, isDataLoaded, products, customers, id]);
 
   const handleAddItem = () => {
     if (!selectedProduct || quantity <= 0 || unitPrice <= 0) {
