@@ -25,6 +25,12 @@ const CRITICAL_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
+  '/favicon.ico',
+  '/apple-touch-icon.png',
+  '/icons/icon-192x192.png',
+  '/icons/icon-512x512.png',
+  '/icons/icon-192x192-maskable.png',
+  '/icons/icon-512x512-maskable.png',
   // Vite genera estos archivos con hash, los capturaremos dinámicamente
 ];
 
@@ -522,8 +528,8 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.registration.showNotification(title, {
       body,
-      icon: '/logo.png',
-      badge: '/logo.png',
+      icon: '/icons/icon-192x192.png',
+      badge: '/icons/icon-96x96.png',
       data,
       tag: 'price-update',
       renotify: true,
