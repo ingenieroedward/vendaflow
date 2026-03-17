@@ -33,14 +33,15 @@ app.use(cors({
 app.use(httpLogger);
 app.use(requestLogger);
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: config.rateLimit.windowMs,
-  max: config.rateLimit.maxRequests,
+// Rate limiting - solo en rutas de autenticación (anti fuerza bruta)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 20, // 20 intentos por IP cada 15 min
   message: {
     status: 'error',
-    message: 'Too many requests from this IP, please try again later.',
+    message: 'Demasiados intentos de autenticación, intenta de nuevo en 15 minutos.',
   },
+  skipSuccessfulRequests: true, // no cuenta los logins exitosos
 });
 
 
@@ -62,8 +63,7 @@ app.get('/health', (_req, res) => {
 });
 
 // API routes
-app.use('/api', limiter);
-app.use('/api/auth', authRoutes);
+app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/products', productRoutes);
