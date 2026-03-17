@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Package, Save, Plus, DollarSign, Building, X } from 'lucide-react';
-import { useProductStore } from '../store/productStore';
 import { useUIStore } from '../store/uiStore';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
@@ -38,8 +37,8 @@ type ProductFormErrors = {
 
 const ProductNew: React.FC = () => {
   const navigate = useNavigate();
-  const { createProduct, loading } = useProductStore();
   const { addNotification } = useUIStore();
+  const [loading, setLoading] = useState(false);
   
   const [formData, setFormData] = useState<ProductFormData>({
     name: '',
@@ -203,14 +202,16 @@ const ProductNew: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
 
     if (includePrice && priceEntries.length > 0 && !validatePriceEntries()) return;
 
+    setLoading(true);
     try {
-      const newProduct = await createProduct(formData);
-      
+      // Crear producto directo en el servidor para obtener el ID real del servidor
+      const newProduct = await productService.createProduct(formData);
+
       // Create prices if requested
       if (includePrice && priceEntries.length > 0) {
         for (const entry of priceEntries) {
@@ -228,14 +229,14 @@ const ProductNew: React.FC = () => {
       addNotification({
         type: 'success',
         title: 'Producto creado',
-        message: includePrice 
+        message: includePrice
           ? 'El producto y precio se han creado correctamente'
           : 'El producto se ha creado correctamente',
       });
       navigate(`/products/${newProduct.id}`);
     } catch (error: unknown) {
-      let errorMessage = 'Error al actualizar el producto';
-      
+      let errorMessage = 'Error al crear el producto';
+
       if (error && typeof error === 'object' && 'message' in error) {
         errorMessage = String(error.message);
       } else if (error instanceof Error) {
@@ -246,6 +247,8 @@ const ProductNew: React.FC = () => {
         title: 'Error',
         message: errorMessage,
       });
+    } finally {
+      setLoading(false);
     }
   };
 
