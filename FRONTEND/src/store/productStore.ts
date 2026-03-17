@@ -17,6 +17,7 @@ interface ProductState {
   error: string | null;
   pagination: PaginationInfo;
   searchQuery: string;
+  _productRequestToken: number; // Token para cancelar requests obsoletas
 
   // Product Actions
   searchProducts: (query: string, includePrices?: boolean) => Promise<void>;
@@ -79,6 +80,7 @@ export const useProductStore = create<ProductState>((set) => ({
   loading: false,
   pricesLoading: false,
   error: null,
+  _productRequestToken: 0,
   pagination: {
     total: 0,
     page: 1,
@@ -279,7 +281,9 @@ export const useProductStore = create<ProductState>((set) => ({
 
  
   getProductById: async (id: number) => {
-    set({ loading: true, error: null });
+    // Generar token único para esta request y limpiar producto anterior
+    const token = Date.now() + Math.random();
+    set({ loading: true, error: null, currentProduct: null, _productRequestToken: token });
     try {
       // If online, fetch from server API
       if (navigator.onLine) {
@@ -298,7 +302,11 @@ export const useProductStore = create<ProductState>((set) => ({
           };
           // Cache-on-visit: guardar en IndexedDB para acceso offline futuro
           productRepository.saveFromServer(serverProduct).catch(() => {});
-          set({ currentProduct: product, loading: false });
+          // Solo actualizar si esta request sigue siendo la vigente
+          set(state => {
+            if (state._productRequestToken !== token) return state;
+            return { currentProduct: product, loading: false };
+          });
           return;
         } catch (apiError) {
           console.warn('⚠️ Failed to fetch product from server, trying local DB:', apiError);
@@ -311,10 +319,16 @@ export const useProductStore = create<ProductState>((set) => ({
         throw new Error('Producto no encontrado');
       }
       const product = toProduct(localProduct);
-      set({ currentProduct: product, loading: false });
+      set(state => {
+        if (state._productRequestToken !== token) return state;
+        return { currentProduct: product, loading: false };
+      });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-      set({ error: errorMessage, loading: false });
+      set(state => {
+        if (state._productRequestToken !== token) return state;
+        return { error: errorMessage, loading: false };
+      });
     }
   },
 
