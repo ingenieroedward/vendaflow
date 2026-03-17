@@ -331,6 +331,10 @@ export const useProductStore = create<ProductState>((set) => ({
             supplierId: p.supplierId ?? p.supplier?.id,
             price: p.price,
             updatedByUserId: p.updatedByUserId,
+            updatedByUser: p.updatedByUser ? {
+              id: p.updatedByUser.id,
+              username: p.updatedByUser.username,
+            } : undefined,
             createdAt: p.createdAt || new Date().toISOString(),
             updatedAt: p.updatedAt || new Date().toISOString(),
             supplier: p.supplier ? {
