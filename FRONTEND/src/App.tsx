@@ -2,10 +2,7 @@ import React, { useEffect } from 'react';
 import AppRouter from './routes/AppRouter';
 import { useAuthStore } from './store/authStore';
 import { useUIStore } from './store/uiStore';
-import { db } from './database/LocalDatabase';
-import UpdateNotification from './components/ui/UpdateNotification';
 import ErrorBoundary from './components/ui/ErrorBoundary';
-import { initOnlineSync } from './utils/backgroundProductSync';
 
 const NotificationContainer: React.FC = () => {
   const { notifications, removeNotification } = useUIStore();
@@ -78,23 +75,6 @@ function App() {
 
   useEffect(() => {
     checkAuth();
-
-    // Verificar que la DB esté disponible
-    const checkDB = async () => {
-      try {
-        await db.open();
-        const stats = await db.getStats();
-        console.log('📊 Database stats:', stats);
-      } catch (error) {
-        console.error('❌ Database error:', error);
-      }
-    };
-
-    checkDB();
-
-    // Escuchar reconexión a internet para re-sincronizar automáticamente
-    const cleanupOnlineSync = initOnlineSync();
-    return () => cleanupOnlineSync();
   }, [checkAuth]);
 
   return (
@@ -102,7 +82,6 @@ function App() {
       <div className="App min-h-screen">
         <AppRouter />
         <NotificationContainer />
-        <UpdateNotification position="bottom" />
       </div>
     </ErrorBoundary>
   );
