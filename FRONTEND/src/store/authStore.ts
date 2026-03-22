@@ -18,20 +18,6 @@ export const useAuthStore = create<AuthState>((set) => ({
         isAuthenticated: true,
         isLoading: false,
       });
-      // Sincronizar productos en background sin bloquear el login
-      import('../utils/backgroundProductSync')
-        .then(({ syncAllProductsInBackground }) => syncAllProductsInBackground())
-        .catch(() => {});
-      // Suscribir a notificaciones push si el navegador lo soporta y hay permiso
-      import('../services/pushNotifications')
-        .then(({ isSubscribed, requestPermissionAndSubscribe }) => {
-          if (!('PushManager' in window) || !('Notification' in window)) return;
-          if (Notification.permission === 'denied') return;
-          return isSubscribed().then((already) => {
-            if (!already) return requestPermissionAndSubscribe();
-          });
-        })
-        .catch(() => {});
     } catch (error) {
       set({ isLoading: false });
       throw error;
@@ -55,10 +41,6 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   logout: () => {
-    // Desuscribir de push notifications al salir
-    import('../services/pushNotifications')
-      .then(({ unsubscribeFromPush }) => unsubscribeFromPush())
-      .catch(() => {});
     authService.logout();
     set({
       user: null,

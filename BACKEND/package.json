@@ -21,7 +21,8 @@
     "docker:dev": "docker-compose -f docker-compose.dev.yml up",
     "docker:prod": "docker-compose up -d",
     "docker:down": "docker-compose down",
-    "docker:logs": "docker-compose logs -f"
+    "docker:logs": "docker-compose logs -f",
+    "seed": "ts-node -r tsconfig-paths/register src/seeders/seed.ts"
   },
   "keywords": [
     "nodejs",

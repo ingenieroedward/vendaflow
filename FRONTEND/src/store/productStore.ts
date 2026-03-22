@@ -1,11 +1,13 @@
 import { create } from 'zustand';
 import { Product, Price, PaginationInfo } from '../types';
 import { productService } from '../services/products';
-import { productRepository } from '../repositories/ProductRepository';
-import { priceRepository, PriceComparisonResult } from '../repositories/PriceRepository';
-import { LocalProduct, LocalPrice } from '../database/LocalDatabase';
-import { CreateProductDTO, CreatePriceDTO } from '../database/models';
-import { useAuthStore } from './authStore';
+
+interface PriceComparisonResult {
+  productId: number;
+  productName: string;
+  prices: Price[];
+  bestPrice: Price | null;
+}
 
 interface ProductState {
   products: Product[];
@@ -13,11 +15,10 @@ interface ProductState {
   prices: Price[];
   priceComparison: PriceComparisonResult | null;
   loading: boolean;
-  pricesLoading: boolean; // Estado de carga separado para precios
+  pricesLoading: boolean;
   error: string | null;
   pagination: PaginationInfo;
   searchQuery: string;
-  _productRequestToken: number; // Token para cancelar requests obsoletas
 
   // Product Actions
   searchProducts: (query: string, includePrices?: boolean) => Promise<void>;
@@ -42,33 +43,47 @@ interface ProductState {
   clearPriceComparison: () => void;
 }
 
-// Helper to convert LocalProduct to Product (for backward compatibility)
-const toProduct = (local: LocalProduct, prices?: LocalPrice[]): Product => ({
-  id: local.id!,
-  name: local.name,
-  code: local.code,
-  unit: local.unit,
-  salePrice: local.salePrice,
-  categoryId: local.categoryId || null,
-  createdAt: local.createdAt || new Date().toISOString(),
-  updatedAt: local.updatedAt || new Date().toISOString(),
-  prices: prices?.map(toPrice),
+const mapServerProduct = (p: any): Product => ({
+  id: p.id,
+  name: p.name,
+  code: p.code,
+  unit: p.unit,
+  salePrice: p.salePrice,
+  categoryId: p.categoryId || null,
+  category: p.category,
+  createdAt: p.createdAt || new Date().toISOString(),
+  updatedAt: p.updatedAt || new Date().toISOString(),
+  prices: p.prices?.map((pr: any) => ({
+    id: pr.id,
+    productId: pr.productId ?? p.id,
+    supplierId: pr.supplierId ?? pr.supplier?.id,
+    price: pr.price,
+    updatedByUserId: pr.updatedByUserId,
+    createdAt: pr.createdAt || new Date().toISOString(),
+    updatedAt: pr.updatedAt || new Date().toISOString(),
+    supplier: pr.supplier ? {
+      id: pr.supplier.id,
+      name: pr.supplier.name,
+      contact: pr.supplier.contact,
+      location: pr.supplier.location,
+    } : undefined,
+  })) || [],
 });
 
-// Helper to convert LocalPrice to Price (for backward compatibility)
-const toPrice = (local: LocalPrice & { supplier?: any }): Price => ({
-  id: local.id!,
-  productId: local.productId,
-  supplierId: local.supplierId,
-  price: local.price,
-  updatedByUserId: local.updatedByUserId,
-  createdAt: local.createdAt || new Date().toISOString(),
-  updatedAt: local.updatedAt || new Date().toISOString(),
-  supplier: local.supplier ? {
-    id: local.supplier.id || local.supplier.serverId,
-    name: local.supplier.name,
-    contact: local.supplier.contact,
-    location: local.supplier.location
+const mapServerPrice = (p: any): Price => ({
+  id: p.id,
+  productId: p.productId,
+  supplierId: p.supplierId ?? p.supplier?.id,
+  price: p.price,
+  updatedByUserId: p.updatedByUserId,
+  updatedByUser: p.updatedByUser ? { id: p.updatedByUser.id, username: p.updatedByUser.username } : undefined,
+  createdAt: p.createdAt || new Date().toISOString(),
+  updatedAt: p.updatedAt || new Date().toISOString(),
+  supplier: p.supplier ? {
+    id: p.supplier.id,
+    name: p.supplier.name,
+    contact: p.supplier.contact,
+    location: p.supplier.location,
   } : undefined,
 });
 
@@ -80,13 +95,7 @@ export const useProductStore = create<ProductState>((set) => ({
   loading: false,
   pricesLoading: false,
   error: null,
-  _productRequestToken: 0,
-  pagination: {
-    total: 0,
-    page: 1,
-    limit: 10,
-    totalPages: 0,
-  },
+  pagination: { total: 0, page: 1, limit: 10, totalPages: 0 },
   searchQuery: '',
 
   searchProducts: async (query: string, includePrices = true) => {
@@ -94,340 +103,73 @@ export const useProductStore = create<ProductState>((set) => ({
       set({ products: [] });
       return;
     }
-
     set({ loading: true, error: null });
     try {
-      // If online, search via server API
-      if (navigator.onLine) {
-        try {
-          console.log(`🔍 Searching "${query}" on server...`);
-          const serverProducts = await productService.searchProducts(query, includePrices);
-
-          // Convert server response to Product format
-          const products = serverProducts.map((serverProduct) => ({
-            id: serverProduct.id,
-            name: serverProduct.name,
-            code: serverProduct.code,
-            unit: serverProduct.unit,
-            salePrice: serverProduct.salePrice,
-            categoryId: serverProduct.categoryId || null,
-            createdAt: serverProduct.createdAt || new Date().toISOString(),
-            updatedAt: serverProduct.updatedAt || new Date().toISOString(),
-            prices: serverProduct.prices?.map((p: any) => ({
-              id: p.id,
-              productId: p.productId ?? p.supplier?.id,
-              supplierId: p.supplierId ?? p.supplier?.id,
-              price: p.price,
-              updatedByUserId: p.updatedByUserId,
-              createdAt: p.createdAt || new Date().toISOString(),
-              updatedAt: p.updatedAt || new Date().toISOString(),
-              supplier: p.supplier ? {
-                id: p.supplier.id,
-                name: p.supplier.name,
-                contact: p.supplier.contact,
-                location: p.supplier.location
-              } : undefined,
-            })) || [],
-          }));
-
-          set({ products, loading: false, error: null });
-          return;
-        } catch (apiError) {
-          console.warn('⚠️ Server search failed, falling back to local:', apiError);
-          // Fall through to local search
-        }
-      }
-
-      // Offline or server failed: search in local DB
-      console.log(`🔍 Searching "${query}" in local DB...`);
-      if (includePrices) {
-        const results = await productRepository.searchWithPrices(query);
-        const products = results.map(r => toProduct(r.product, r.prices));
-        set({ products, loading: false, error: null });
-      } else {
-        const localProducts = await productRepository.search(query);
-        const products = localProducts.map(p => toProduct(p));
-        set({ products, loading: false, error: null });
-      }
+      const serverProducts = await productService.searchProducts(query, includePrices);
+      set({ products: serverProducts.map(mapServerProduct), loading: false, error: null });
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-      console.error('❌ Search error:', errorMessage);
+      const errorMessage = error instanceof Error ? error.message : 'Error al buscar productos';
       set({ error: errorMessage, loading: false });
     }
   },
 
-  getProducts: async (page = 1, limit = 10, includePrices = true) => {
+  getProducts: async (page = 1, limit = 10, includePrices = false) => {
     set({ loading: true, error: null });
     try {
-      // If online, fetch from server API with pagination (server handles pagination)
-      if (navigator.onLine) {
-        try {
-          console.log(`📥 Fetching page ${page} from server...`);
-          const userId = useAuthStore.getState().user?.id;
-
-          // Fetch from server API with pagination
-          const response = await productService.getProducts(page, limit, includePrices);
-
-          // Save fetched products to local DB for offline caching
-          if (response.data && response.data.length > 0) {
-            console.log(`💾 Caching ${response.data.length} products to local DB...`);
-
-            // Import price and supplier repositories
-            const { priceRepository } = await import('../repositories/PriceRepository');
-            const { supplierRepository } = await import('../repositories/SupplierRepository');
-
-            for (const serverProduct of response.data) {
-              try {
-                // Save product
-                const savedProduct = await productRepository.saveFromServer(serverProduct, userId);
-
-                // Save prices and suppliers if present
-                if (serverProduct.prices && serverProduct.prices.length > 0) {
-                  for (const serverPrice of serverProduct.prices) {
-                    // Save supplier if present
-                    if (serverPrice.supplier) {
-                      await supplierRepository.saveFromServer(serverPrice.supplier, userId);
-                    }
-
-                    // Save price with correct productId (server's productId)
-                    const priceToSave = {
-                      ...serverPrice,
-                      productId: savedProduct.serverId || serverProduct.id
-                    };
-                    await priceRepository.saveFromServer(priceToSave, userId);
-                  }
-                }
-              } catch (err) {
-                console.warn('Failed to cache product:', serverProduct.code, err);
-              }
-            }
-          }
-
-          // Convert server response to Product format (already has prices from server)
-          const products = response.data.map((serverProduct) => ({
-            id: serverProduct.id,
-            name: serverProduct.name,
-            code: serverProduct.code,
-            unit: serverProduct.unit,
-            salePrice: serverProduct.salePrice,
-            categoryId: serverProduct.categoryId || null,
-            createdAt: serverProduct.createdAt || new Date().toISOString(),
-            updatedAt: serverProduct.updatedAt || new Date().toISOString(),
-            prices: serverProduct.prices?.map((p: any) => ({
-              id: p.id,
-              productId: p.productId ?? p.supplier?.id,
-              supplierId: p.supplierId ?? p.supplier?.id,
-              price: p.price,
-              updatedByUserId: p.updatedByUserId,
-              createdAt: p.createdAt || new Date().toISOString(),
-              updatedAt: p.updatedAt || new Date().toISOString(),
-              supplier: p.supplier ? {
-                id: p.supplier.id,
-                name: p.supplier.name,
-                contact: p.supplier.contact,
-                location: p.supplier.location
-              } : undefined,
-            })) || [],
-          }));
-
-          set({
-            products,
-            pagination: {
-              total: response.pagination?.total || 0,
-              page: response.pagination?.page || page,
-              limit: response.pagination?.limit || limit,
-              totalPages: response.pagination?.totalPages || Math.ceil((response.pagination?.total || 0) / limit),
-            },
-            loading: false,
-            error: null,
-          });
-          return;
-        } catch (apiError) {
-          console.warn('⚠️ Failed to fetch from server, falling back to local data:', apiError);
-          // Fall through to use local DB
-        }
-      }
-
-      // Offline or server failed: use local DB with client-side pagination
-      console.log('📴 Using local DB for products...');
-      const localProductsWithPrices = includePrices
-        ? await productRepository.getAllWithPrices()
-        : (await productRepository.getAll()).map(p => ({ product: p, prices: [] }));
-
-      // Apply client-side pagination
-      const startIndex = (page - 1) * limit;
-      const endIndex = startIndex + limit;
-      const paginatedProducts = localProductsWithPrices.slice(startIndex, endIndex);
-
-      const products = paginatedProducts.map(p => toProduct(p.product, p.prices));
-
+      const response = await productService.getProducts(page, limit, includePrices);
       set({
-        products,
+        products: response.data.map(mapServerProduct),
         pagination: {
-          total: localProductsWithPrices.length,
-          page,
-          limit,
-          totalPages: Math.ceil(localProductsWithPrices.length / limit),
+          total: response.pagination?.total || 0,
+          page: response.pagination?.page || page,
+          limit: response.pagination?.limit || limit,
+          totalPages: response.pagination?.totalPages || 0,
         },
         loading: false,
-        error: localProductsWithPrices.length === 0 ? 'Sin conexión. No hay datos disponibles offline.' : null,
+        error: null,
       });
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-      console.error('❌ Critical error loading products:', errorMessage);
+      const errorMessage = error instanceof Error ? error.message : 'Error al cargar productos';
       set({ error: errorMessage, loading: false });
     }
   },
 
- 
   getProductById: async (id: number) => {
-    // Generar token único para esta request y limpiar producto anterior
-    const token = Date.now() + Math.random();
-    set({ loading: true, error: null, currentProduct: null, _productRequestToken: token });
+    set({ loading: true, error: null, currentProduct: null });
     try {
-      // If online, fetch from server API
-      if (navigator.onLine) {
-        try {
-          const serverProduct = await productService.getProductById(id);
-          const product: Product = {
-            id: serverProduct.id,
-            name: serverProduct.name,
-            code: serverProduct.code,
-            unit: serverProduct.unit,
-            salePrice: serverProduct.salePrice,
-            categoryId: serverProduct.categoryId || null,
-            category: serverProduct.category,
-            createdAt: serverProduct.createdAt || new Date().toISOString(),
-            updatedAt: serverProduct.updatedAt || new Date().toISOString(),
-          };
-          // Cache-on-visit: guardar en IndexedDB para acceso offline futuro
-          productRepository.saveFromServer(serverProduct).catch(() => {});
-          // Solo actualizar si esta request sigue siendo la vigente
-          set(state => {
-            if (state._productRequestToken !== token) return state;
-            return { currentProduct: product, loading: false };
-          });
-          return;
-        } catch (apiError) {
-          console.warn('⚠️ Failed to fetch product from server, trying local DB:', apiError);
-        }
-      }
-
-      // Offline or server failed: try local DB by serverId
-      const localProduct = await productRepository.getByServerId(id);
-      if (!localProduct) {
-        throw new Error('Producto no encontrado');
-      }
-      const product = toProduct(localProduct);
-      set(state => {
-        if (state._productRequestToken !== token) return state;
-        return { currentProduct: product, loading: false };
-      });
+      const serverProduct = await productService.getProductById(id);
+      set({ currentProduct: mapServerProduct(serverProduct), loading: false });
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-      set(state => {
-        if (state._productRequestToken !== token) return state;
-        return { error: errorMessage, loading: false };
-      });
+      const errorMessage = error instanceof Error ? error.message : 'Error al cargar producto';
+      set({ error: errorMessage, loading: false });
     }
   },
 
   getPricesByProduct: async (productId: number) => {
     set({ pricesLoading: true, prices: [], error: null });
     try {
-      // If online, fetch from server API
-      if (navigator.onLine) {
-        try {
-          const serverPrices = await productService.getPricesByProduct(productId);
-          const prices: Price[] = serverPrices.map((p: any) => ({
-            id: p.id,
-            productId: p.productId ?? p.supplier?.id,
-            supplierId: p.supplierId ?? p.supplier?.id,
-            price: p.price,
-            updatedByUserId: p.updatedByUserId,
-            updatedByUser: p.updatedByUser ? {
-              id: p.updatedByUser.id,
-              username: p.updatedByUser.username,
-            } : undefined,
-            createdAt: p.createdAt || new Date().toISOString(),
-            updatedAt: p.updatedAt || new Date().toISOString(),
-            supplier: p.supplier ? {
-              id: p.supplier.id,
-              name: p.supplier.name,
-              contact: p.supplier.contact,
-              location: p.supplier.location,
-            } : undefined,
-          }));
-          // Cache-on-visit: guardar precios Y proveedores en IndexedDB para acceso offline futuro
-          const { supplierRepository } = await import('../repositories/SupplierRepository');
-          serverPrices.forEach((p: any) => {
-            if (p.supplier) {
-              supplierRepository.saveFromServer(p.supplier).catch(() => {});
-            }
-            priceRepository.saveFromServer({
-              ...p,
-              supplierId: p.supplierId ?? p.supplier?.id,
-            }).catch(() => {});
-          });
-          set({ prices, pricesLoading: false });
-          return;
-        } catch (apiError) {
-          console.warn('⚠️ Failed to fetch prices from server, trying local DB:', apiError);
-        }
-      }
-
-      // Offline or server failed: try local DB
-      const localProduct = await productRepository.getByServerId(productId);
-      if (!localProduct) {
-        set({ prices: [], pricesLoading: false });
-        return;
-      }
-
-      const result = await productRepository.getWithPricesByServerId(productId);
-      if (!result) {
-        set({ prices: [], pricesLoading: false });
-        return;
-      }
-      const prices = result.prices.map(toPrice);
-      set({ prices, pricesLoading: false });
+      const serverPrices = await productService.getPricesByProduct(productId);
+      set({ prices: serverPrices.map(mapServerPrice), pricesLoading: false });
     } catch (error: unknown) {
-      // Los precios fallidos NO deben bloquear la página del producto.
-      // Solo se registra en consola y se muestra sección vacía.
-      console.warn('⚠️ Error cargando precios:', error);
+      console.warn('Error cargando precios:', error);
       set({ prices: [], pricesLoading: false });
     }
-  },
-
-  setSearchQuery: (query: string) => {
-    set({ searchQuery: query });
-  },
-
-  clearError: () => {
-    set({ error: null });
   },
 
   createProduct: async (data) => {
     set({ loading: true, error: null });
     try {
-      // Get current user ID from auth store
-      const userId = useAuthStore.getState().user?.id;
-
-      // Create product in local DB with sync queue
-      const productData: CreateProductDTO = {
+      const product = await productService.createProduct({
         name: data.name,
         code: data.code,
         unit: data.unit,
         salePrice: data.salePrice,
-        categoryId: data.categoryId || undefined,
-      };
-
-      const localProduct = await productRepository.createLocal(productData, userId);
-      const product = toProduct(localProduct);
-
+        categoryId: data.categoryId ?? undefined,
+      });
       set({ loading: false });
-      return product;
+      return mapServerProduct(product);
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      const errorMessage = error instanceof Error ? error.message : 'Error al crear producto';
       set({ error: errorMessage, loading: false });
       throw error;
     }
@@ -436,29 +178,22 @@ export const useProductStore = create<ProductState>((set) => ({
   updateProduct: async (id, data) => {
     set({ loading: true, error: null });
     try {
-      // Get current user ID from auth store
-      const userId = useAuthStore.getState().user?.id;
-
-      // Update product in local DB with sync queue
-      const updates: Partial<CreateProductDTO> = {
+      const product = await productService.updateProduct(id, {
         name: data.name,
         code: data.code,
         unit: data.unit,
         salePrice: data.salePrice,
-        categoryId: data.categoryId || undefined,
-      };
-
-      const localProduct = await productRepository.updateLocal(id, updates, userId);
-      const product = toProduct(localProduct);
-
+        categoryId: data.categoryId ?? undefined,
+      });
+      const mapped = mapServerProduct(product);
       set(state => ({
-        products: state.products.map(p => p.id === id ? product : p),
-        currentProduct: state.currentProduct?.id === id ? product : state.currentProduct,
+        products: state.products.map(p => p.id === id ? mapped : p),
+        currentProduct: state.currentProduct?.id === id ? mapped : state.currentProduct,
         loading: false,
       }));
-      return product;
+      return mapped;
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      const errorMessage = error instanceof Error ? error.message : 'Error al actualizar producto';
       set({ error: errorMessage, loading: false });
       throw error;
     }
@@ -467,55 +202,26 @@ export const useProductStore = create<ProductState>((set) => ({
   deleteProduct: async (id: number) => {
     set({ loading: true, error: null });
     try {
-      // Get current user ID from auth store
-      const userId = useAuthStore.getState().user?.id;
-
-      // Soft delete product in local DB with sync queue
-      await productRepository.deleteLocal(id, userId);
-
+      await productService.deleteProduct(id);
       set(state => ({
         products: state.products.filter(p => p.id !== id),
         currentProduct: state.currentProduct?.id === id ? null : state.currentProduct,
         loading: false,
       }));
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      const errorMessage = error instanceof Error ? error.message : 'Error al eliminar producto';
       set({ error: errorMessage, loading: false });
       throw error;
     }
   },
 
-  clearCurrentProduct: () => {
-    set({ currentProduct: null, prices: [], pricesLoading: false, loading: false, error: null });
-  },
-
-  clearPriceComparison: () => {
-    set({ priceComparison: null });
-  },
-
-  // Price management methods
-
   createPrice: async (data) => {
     set({ loading: true, error: null });
     try {
-      const userId = useAuthStore.getState().user?.id;
-
-      const priceDTO: CreatePriceDTO = {
-        productId: data.productId,
-        supplierId: data.supplierId,
-        price: data.price,
-        updatedByUserId: data.updatedByUserId
-      };
-
-      const localPrice = await priceRepository.createLocal(priceDTO, userId);
-      const price = toPrice(localPrice);
-
-      set(state => ({
-        prices: [...state.prices, price],
-        loading: false,
-      }));
-
-      return price;
+      const price = await productService.createPrice(data);
+      const mapped = mapServerPrice(price);
+      set(state => ({ prices: [...state.prices, mapped], loading: false }));
+      return mapped;
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Error al crear precio';
       set({ error: errorMessage, loading: false });
@@ -526,17 +232,13 @@ export const useProductStore = create<ProductState>((set) => ({
   updatePrice: async (id, data) => {
     set({ loading: true, error: null });
     try {
-      const userId = useAuthStore.getState().user?.id;
-
-      const localPrice = await priceRepository.updateLocal(id, data, userId);
-      const price = toPrice(localPrice);
-
+      const price = await productService.updatePrice(id, data);
+      const mapped = mapServerPrice(price);
       set(state => ({
-        prices: state.prices.map(p => p.id === id ? price : p),
+        prices: state.prices.map(p => p.id === id ? mapped : p),
         loading: false,
       }));
-
-      return price;
+      return mapped;
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Error al actualizar precio';
       set({ error: errorMessage, loading: false });
@@ -547,13 +249,8 @@ export const useProductStore = create<ProductState>((set) => ({
   deletePrice: async (id: number) => {
     set({ loading: true, error: null });
     try {
-      const userId = useAuthStore.getState().user?.id;
-      await priceRepository.deleteLocal(id, userId);
-
-      set(state => ({
-        prices: state.prices.filter(p => p.id !== id),
-        loading: false,
-      }));
+      await productService.deletePrice(id);
+      set(state => ({ prices: state.prices.filter(p => p.id !== id), loading: false }));
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Error al eliminar precio';
       set({ error: errorMessage, loading: false });
@@ -564,13 +261,21 @@ export const useProductStore = create<ProductState>((set) => ({
   compareSuppliers: async (productId: number) => {
     set({ loading: true, error: null });
     try {
-      const comparison = await priceRepository.compareSuppliers(productId);
-
-      if (!comparison) {
-        throw new Error('No se encontraron precios para comparar');
-      }
-
-      set({ priceComparison: comparison, loading: false });
+      const serverPrices = await productService.getPricesByProduct(productId);
+      const prices = serverPrices.map(mapServerPrice);
+      const bestPrice = prices.length > 0
+        ? prices.reduce((min, p) => p.price < min.price ? p : min, prices[0])
+        : null;
+      const product = await productService.getProductById(productId);
+      set({
+        priceComparison: {
+          productId,
+          productName: product.name,
+          prices,
+          bestPrice,
+        },
+        loading: false,
+      });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Error al comparar proveedores';
       set({ error: errorMessage, loading: false });
@@ -581,18 +286,18 @@ export const useProductStore = create<ProductState>((set) => ({
   bulkUpdatePrices: async (prices) => {
     set({ loading: true, error: null });
     try {
-      const userId = useAuthStore.getState().user?.id;
-      const updatedCount = await priceRepository.bulkUpdatePrices(prices, userId);
-
-      // Refresh prices if we're currently viewing a product
-      // This could be improved by refreshing only affected prices
+      await Promise.all(prices.map(p => productService.updatePrice(p.id, { price: p.price, updatedByUserId: p.updatedByUserId })));
       set({ loading: false });
-
-      return updatedCount;
+      return prices.length;
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Error al actualizar precios';
       set({ error: errorMessage, loading: false });
       throw error;
     }
   },
+
+  setSearchQuery: (query: string) => set({ searchQuery: query }),
+  clearError: () => set({ error: null }),
+  clearCurrentProduct: () => set({ currentProduct: null, prices: [], pricesLoading: false, loading: false, error: null }),
+  clearPriceComparison: () => set({ priceComparison: null }),
 }));

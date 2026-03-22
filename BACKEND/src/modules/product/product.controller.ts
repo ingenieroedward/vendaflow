@@ -69,7 +69,8 @@ export class ProductController {
 
   searchProducts = asyncHandler(async (req: Request, res: Response) => {
     const searchData: SearchProductDto = req.query as any;
-    const products = await this.productService.searchProducts(searchData);
+    // required_prices=false: muestra todos los productos, incluyendo los sin precio
+    const products = await this.productService.searchProducts(searchData, false);
 
     res.status(200).json({
       status: 'success',

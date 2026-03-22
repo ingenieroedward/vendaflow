@@ -32,7 +32,7 @@ const Home: React.FC = () => {
       // If there's a search query, clear it and reload all products
       window.location.reload();
     } else {
-      getProducts(pagination.page);
+      getProducts(pagination.page, pagination.limit, false);
     }
   };
 
