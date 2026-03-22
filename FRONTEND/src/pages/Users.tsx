@@ -12,8 +12,8 @@ import {
   MoreVertical,
   X,
   User2,
-  
   RefreshCcw,
+  AlertTriangle,
 } from "lucide-react";
 import { useUserStore } from "../store/userStore";
 import { useUIStore } from "../store/uiStore";
@@ -51,6 +51,7 @@ const Users: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [activeUserMenu, setActiveUserMenu] = useState<number | null>(null);
+  const [pendingPermDelete, setPendingPermDelete] = useState<{ id: number; username: string } | null>(null);
 
   useEffect(() => {
     getUsers();
@@ -140,9 +141,31 @@ const Users: React.FC = () => {
     } catch {
       // Error is handled by the store
     } finally {
-      handleRefresh()
+      handleRefresh();
     }
     setActiveUserMenu(null);
+  };
+
+  const handlePermDeleteClick = (userId: number, username: string) => {
+    setPendingPermDelete({ id: userId, username });
+    setActiveUserMenu(null);
+  };
+
+  const handlePermDeleteConfirm = async () => {
+    if (!pendingPermDelete || !currentUser) return;
+    try {
+      await deleteUser(pendingPermDelete.id, currentUser.id);
+      addNotification({
+        type: "success",
+        title: "Usuario eliminado",
+        message: "El usuario y sus precios han sido transferidos correctamente",
+      });
+    } catch {
+      // Error handled by store
+    } finally {
+      handleRefresh();
+      setPendingPermDelete(null);
+    }
   };
 
   const getRoleBadge = (role: string) => {
@@ -408,11 +431,11 @@ const Users: React.FC = () => {
                         </button>
                         {user.id !== currentUser?.id && (
                           <button
-                            onClick={() => handleDeleteUser(user.id)}
+                            onClick={() => handlePermDeleteClick(user.id, user.username)}
                             className="flex items-center space-x-3 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
                           >
                             <Trash2 className="w-4 h-4" />
-                            <span>Eliminar usuario</span>
+                            <span>Eliminar permanente</span>
                           </button>
                         )}
                       </div>
@@ -457,6 +480,57 @@ const Users: React.FC = () => {
 
       {/* Bottom safe area for mobile */}
       <div className="h-6" />
+
+      {/* Modal: confirmación eliminación permanente */}
+      {pendingPermDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setPendingPermDelete(null)} />
+          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+            {/* Icono */}
+            <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertTriangle className="w-7 h-7 text-red-600" />
+            </div>
+
+            <h3 className="text-lg font-semibold text-gray-900 text-center mb-2">
+              Eliminar permanentemente
+            </h3>
+
+            <p className="text-sm text-gray-600 text-center mb-1">
+              Vas a eliminar el usuario{" "}
+              <span className="font-semibold text-gray-900">
+                {pendingPermDelete.username}
+              </span>{" "}
+              de forma permanente.
+            </p>
+
+            <div className="mt-3 mb-5 bg-amber-50 border border-amber-200 rounded-lg p-3">
+              <p className="text-xs text-amber-800 text-center">
+                ⚠️ Si este usuario tiene precios registrados, serán
+                transferidos a tu cuenta (
+                <span className="font-semibold">{currentUser?.username}</span>).
+                Esta acción no se puede deshacer.
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setPendingPermDelete(null)}
+                className="flex-1 px-4 py-2.5 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                disabled={loading}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handlePermDeleteConfirm}
+                disabled={loading}
+                className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-xl text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
+              >
+                {loading ? "Eliminando..." : "Sí, eliminar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

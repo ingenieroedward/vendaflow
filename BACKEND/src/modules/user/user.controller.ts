@@ -52,7 +52,8 @@ export class UserController {
   // DELETE /api/users/:id
   deleteUser = asyncHandler(async (req: Request, res: Response) => {
     const { id } = validateSchema(idParamSchema, req.params) as IdParam;
-    await this.userService.deleteUser(id);
+    const transferTo = req.query.transferTo ? Number(req.query.transferTo) : undefined;
+    await this.userService.deleteUser(id, transferTo);
     res.status(204).send();
   });
 
