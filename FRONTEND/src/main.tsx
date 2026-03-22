@@ -10,5 +10,5 @@ createRoot(document.getElementById('root')!).render(
   </StrictMode>
 );
 
-// Service Worker y modo offline DESACTIVADOS - solo modo online
-serviceWorkerRegistration.unregister();
+// Service Worker activado - modo offline habilitado
+serviceWorkerRegistration.register();
