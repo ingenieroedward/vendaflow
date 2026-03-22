@@ -23,7 +23,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
   const debouncedSearch = debounce((query: string) => {
     setSearchQuery(query);
     if (query.trim()) {
-      searchProducts(query, true);
+      searchProducts(query, false);
       setShowResults(true);
     } else {
       setShowResults(false);

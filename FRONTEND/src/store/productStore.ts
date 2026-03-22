@@ -113,7 +113,7 @@ export const useProductStore = create<ProductState>((set) => ({
     }
   },
 
-  getProducts: async (page = 1, limit = 10, includePrices = true) => {
+  getProducts: async (page = 1, limit = 10, includePrices = false) => {
     set({ loading: true, error: null });
     try {
       const response = await productService.getProducts(page, limit, includePrices);
