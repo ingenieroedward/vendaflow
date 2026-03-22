@@ -96,7 +96,7 @@ export class UserService {
     return this.mapToResponseDto(user);
   }
 
-  async deleteUser(id: number): Promise<void> {
+  async deleteUser(id: number, transferToAdminId?: number): Promise<void> {
     const user = await User.findByPk(id, {
       paranoid: false,
       include: [Order, Price],
@@ -108,7 +108,14 @@ export class UserService {
 
     if (user.deletedAt) {
       if (user.prices?.length > 0) {
-        throw new ConflictError("El usuario tiene precios asignados");
+        if (!transferToAdminId) {
+          throw new ConflictError("El usuario tiene precios asignados");
+        }
+        // Reasignar precios al admin que elimina
+        await Price.update(
+          { updatedByUserId: transferToAdminId },
+          { where: { updatedByUserId: id } }
+        );
       }
       if (user.orders?.length > 0) {
         throw new ConflictError("El usuario tiene ordenes realizadas");

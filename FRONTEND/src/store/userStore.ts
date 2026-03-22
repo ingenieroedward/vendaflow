@@ -20,7 +20,7 @@ interface UserState {
   getUserById: (id: number) => Promise<void>;
   createUser: (userData: CreateUserRequest) => Promise<void>;
   updateUser: (id: number, userData: UpdateUserRequest) => Promise<void>;
-  deleteUser: (id: number) => Promise<void>;
+  deleteUser: (id: number, transferTo?: number) => Promise<void>;
   restoreUser: (id: number) => Promise<void>;
   clearError: () => void;
   clearCurrentUser: () => void;
@@ -163,10 +163,10 @@ export const useUserStore = create<UserState>((set) => ({
     }
   },
 
-  deleteUser: async (id: number) => {
+  deleteUser: async (id: number, transferTo?: number) => {
     set({ loading: true, error: null });
     try {
-      await usersService.deleteUser(id);
+      await usersService.deleteUser(id, transferTo);
       set(state => ({
         users: state.users.filter(user => user.id !== id),
         loading: false,

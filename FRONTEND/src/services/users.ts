@@ -35,8 +35,8 @@ export class UsersService {
     return response.data;
   }
 
-  async deleteUser(id: number): Promise<void> {
-    await apiService.delete(`/users/${id}`);
+  async deleteUser(id: number, transferTo?: number): Promise<void> {
+    await apiService.delete(`/users/${id}`, transferTo ? { transferTo } : undefined);
   }
 
   async restoreUser(id: number): Promise<void> {
