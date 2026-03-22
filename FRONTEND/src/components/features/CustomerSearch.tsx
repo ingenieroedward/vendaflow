@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, User, X } from 'lucide-react';
+import { Search, User, X, Phone, MapPin, StickyNote } from 'lucide-react';
 import { Customer } from '../../types/customer';
 
 interface CustomerSearchProps {
@@ -160,27 +160,68 @@ const CustomerSearch: React.FC<CustomerSearchProps> = ({
 
       {/* Selected Customer Display */}
       {selectedCustomer && (
-        <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-md">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <User className="h-4 w-4 text-green-600 mr-2" />
-              <div>
-                <div className="font-medium text-green-900">{selectedCustomer.name}</div>
-                {selectedCustomer.contact && (
-                  <div className="text-xs text-green-700">{selectedCustomer.contact}</div>
-                )}
-                {selectedCustomer.address && (
-                  <div className="text-xs text-green-700 truncate">{selectedCustomer.address}</div>
-                )}
+        <div className="mt-3 bg-white border border-green-300 rounded-lg shadow-sm overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-3 bg-green-600">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 bg-white/20 rounded-full flex items-center justify-center">
+                <User className="h-4 w-4 text-white" />
               </div>
+              <span className="font-semibold text-white text-sm">Cliente seleccionado</span>
             </div>
             <button
               onClick={handleClear}
-              className="text-green-600 hover:text-green-800"
+              className="text-white/70 hover:text-white transition-colors"
               type="button"
+              title="Cambiar cliente"
             >
               <X className="h-4 w-4" />
             </button>
+          </div>
+
+          {/* Body - línea por línea */}
+          <div className="divide-y divide-gray-100">
+            {/* Nombre */}
+            <div className="flex items-center gap-3 px-4 py-2.5">
+              <User className="h-4 w-4 text-green-500 flex-shrink-0" />
+              <div>
+                <p className="text-xs text-gray-400 leading-none mb-0.5">Nombre</p>
+                <p className="text-sm font-semibold text-gray-900">{selectedCustomer.name}</p>
+              </div>
+            </div>
+
+            {/* Contacto */}
+            {selectedCustomer.contact && (
+              <div className="flex items-center gap-3 px-4 py-2.5">
+                <Phone className="h-4 w-4 text-green-500 flex-shrink-0" />
+                <div>
+                  <p className="text-xs text-gray-400 leading-none mb-0.5">Contacto</p>
+                  <p className="text-sm text-gray-800">{selectedCustomer.contact}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Dirección */}
+            {selectedCustomer.address && (
+              <div className="flex items-center gap-3 px-4 py-2.5">
+                <MapPin className="h-4 w-4 text-green-500 flex-shrink-0" />
+                <div>
+                  <p className="text-xs text-gray-400 leading-none mb-0.5">Dirección</p>
+                  <p className="text-sm text-gray-800">{selectedCustomer.address}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Nota */}
+            {selectedCustomer.note && (
+              <div className="flex items-center gap-3 px-4 py-2.5">
+                <StickyNote className="h-4 w-4 text-green-500 flex-shrink-0" />
+                <div>
+                  <p className="text-xs text-gray-400 leading-none mb-0.5">Nota</p>
+                  <p className="text-sm text-gray-800">{selectedCustomer.note}</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

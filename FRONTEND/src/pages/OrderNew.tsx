@@ -60,7 +60,7 @@ const OrderNew: React.FC = () => {
   const [includeProducts, setIncludeProducts] = useState(false);
 
   useEffect(() => {
-    getProducts(1, 2000, true);
+    getProducts(1, 2000, false);
 
     getCustomers(1, 2000);
   }, [getProducts, getCustomers]);
