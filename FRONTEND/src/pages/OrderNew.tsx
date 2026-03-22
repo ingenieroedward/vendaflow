@@ -292,263 +292,183 @@ const OrderNew: React.FC = () => {
               )}
             </div>
 
-            {/* Products Section - Mobile Optimized */}
-            <div className="border-t pt-6">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 mb-4">
-                <h3 className="text-base sm:text-lg font-medium text-gray-900 flex items-center">
-                  <Package className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                  Productos de la orden
+            {/* Products Section */}
+            <div className="border-t pt-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-base font-medium text-gray-900 flex items-center">
+                  <Package className="w-4 h-4 mr-2" />
+                  Productos
+                  {orderItems.length > 0 && (
+                    <span className="ml-2 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-normal">
+                      {orderItems.length}
+                    </span>
+                  )}
                 </h3>
                 <Button
                   type="button"
                   variant="outline"
                   icon={Plus}
-                  onClick={() => {
-                    setIncludeProducts(true);
-                  }}
+                  onClick={() => setIncludeProducts(true)}
                   size="sm"
-                  className="w-full sm:w-auto"
                 >
-                  Agregar producto
+                  Agregar
                 </Button>
               </div>
 
+              {/* Add product form */}
               {includeProducts && (
-                <div className="space-y-4">
-                  {/* Product Selection */}
-                  <div className="p-3 sm:p-4 border border-gray-200 rounded-lg bg-gray-50">
-                    <h4 className="text-sm font-medium text-gray-900 mb-3">
-                      Seleccionar producto
-                    </h4>
-
-                    <div className="space-y-4">
-                      {productsLoading ? (
-                        <div className="flex items-center justify-center py-8">
-                          <LoadingSpinner size="md" />
-                          <span className="ml-2 text-sm text-gray-500">
-                            Cargando productos...
-                          </span>
-                        </div>
-                      ) : (
-                        <ProductSearch
-                          onProductSelect={handleProductSelect}
-                          selectedProduct={selectedProduct}
-                          products={products}
-                          placeholder="Buscar producto..."
-                        />
-                      )}
-
-                      {selectedProduct && (
-                        <div className="space-y-4 sm:space-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:gap-4">
-                          <div>
-                            <Input
-                              label="Cantidad"
-                              type="number"
-                              value={quantity === 0 ? "" : String(quantity)}
-                              onChange={(e) =>
-                                setQuantity(parseInt(e.target.value) || 0)
-                              }
-                              min="1"
-                              required
-                            />
-                          </div>
-
-                          <div>
-                            <Input
-                              label="Precio unitario"
-                              type="number"
-                              value={unitPrice === 0 ? "" : String(unitPrice)}
-                              onChange={(e) =>
-                                setUnitPrice(parseFloat(e.target.value) || 0)
-                              }
-                              min="0"
-                              step="0.01"
-                              required
-                            />
-                          </div>
-
-                          <div>
-                            <Input
-                              label="IVA (%)"
-                              type="number"
-                              value={taxRate}
-                              onChange={(e) =>
-                                setTaxRate(parseFloat(e.target.value) || 0)
-                              }
-                              min="0"
-                              max="100"
-                              step="0.01"
-                              readOnly
-                              className="cursor-not-allowed"
-                              
-                            />
-                          </div>
-
-                          <div className="flex items-end">
-                            <Button
-                              type="button"
-                              variant="primary"
-                              icon={Plus}
-                              onClick={handleAddItem}
-                              disabled={quantity <= 0 || unitPrice <= 0}
-                              className="w-full"
-                              size="sm"
-                            >
-                              Agregar
-                            </Button>
-                          </div>
-                        </div>
-                      )}
+                <div className="mb-3 p-3 border border-blue-200 rounded-lg bg-blue-50">
+                  {productsLoading ? (
+                    <div className="flex items-center gap-2 py-2">
+                      <LoadingSpinner size="sm" />
+                      <span className="text-sm text-gray-500">Cargando productos...</span>
                     </div>
-                  </div>
+                  ) : (
+                    <ProductSearch
+                      onProductSelect={handleProductSelect}
+                      selectedProduct={selectedProduct}
+                      products={products}
+                      placeholder="Buscar producto..."
+                    />
+                  )}
 
-                  {/* Order Items List */}
-                  {orderItems.length > 0 && (
-                    <div className="space-y-4">
-                      {orderItems.map((item, index) => (
-                        <div
-                          key={item.id}
-                          className="p-3 sm:p-4 border border-gray-200 rounded-lg bg-gray-50"
+                  {selectedProduct && (
+                    <div className="mt-3 flex items-center gap-2">
+                      <div className="flex-1">
+                        <label className="block text-xs text-gray-500 mb-1">Cant.</label>
+                        <input
+                          type="number"
+                          value={quantity === 0 ? "" : String(quantity)}
+                          onChange={(e) => setQuantity(parseInt(e.target.value) || 0)}
+                          min="1"
+                          placeholder="1"
+                          className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div className="flex-[2]">
+                        <label className="block text-xs text-gray-500 mb-1">Precio unit.</label>
+                        <input
+                          type="number"
+                          value={unitPrice === 0 ? "" : String(unitPrice)}
+                          onChange={(e) => setUnitPrice(parseFloat(e.target.value) || 0)}
+                          min="0"
+                          step="0.01"
+                          placeholder="0"
+                          className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <label className="block text-xs text-gray-500 mb-1">IVA %</label>
+                        <input
+                          type="number"
+                          value={taxRate}
+                          onChange={(e) => setTaxRate(parseFloat(e.target.value) || 0)}
+                          min="0"
+                          max="100"
+                          readOnly
+                          className="w-full px-2 py-1.5 border border-gray-200 rounded text-sm bg-gray-100 cursor-not-allowed"
+                        />
+                      </div>
+                      <div className="flex-none pt-5">
+                        <button
+                          type="button"
+                          onClick={handleAddItem}
+                          disabled={quantity <= 0 || unitPrice <= 0}
+                          className="px-3 py-1.5 bg-blue-600 text-white rounded text-sm font-medium disabled:opacity-40 hover:bg-blue-700 transition-colors"
                         >
-                          <div className="flex items-center justify-between mb-3">
-                            <h4 className="text-sm font-medium text-gray-900">
-                              Producto #{index + 1}
-                            </h4>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              onClick={() => handleRemoveItem(item.id)}
-                              size="sm"
-                              className="text-red-600 hover:text-red-700 -mr-2"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-
-                          <div className="mb-3">
-                            <p className="font-medium text-sm">
-                              {item.product.name}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              Código: {item.product.code}
-                            </p>
-                          </div>
-
-                          {/* Mobile: Stack quantity, price, tax vertically */}
-                          <div className="space-y-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Cantidad
-                              </label>
-                              <input
-                                type="number"
-                                value={item.quantity}
-                                onChange={(e) => {
-                                  const value = parseInt(e.target.value) || 0;
-                                  updateOrderItem(item.id, "quantity", value);
-                                }}
-                                min="1"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Precio unitario
-                              </label>
-                              <input
-                                type="number"
-                                value={item.unitPrice}
-                                onChange={(e) => {
-                                  const value = parseFloat(e.target.value) || 0;
-                                  updateOrderItem(item.id, "unitPrice", value);
-                                }}
-                                min="0"
-                                step="0.01"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-2">
-                                IVA (%)
-                              </label>
-                              <input
-                                type="number"
-                                value={item.taxRate}
-                                onChange={(e) => {
-                                  const value = parseFloat(e.target.value) || 0;
-                                  updateOrderItem(item.id, "taxRate", value);
-                                }}
-                                min="0"
-                                max="100"
-                                step="0.01"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                              />
-                            </div>
-                          </div>
-
-                          <div className="mt-3 pt-3 border-t border-gray-200">
-                            <div className="flex justify-between items-center text-sm">
-                              <span>Subtotal:</span>
-                              <span>
-                                {formatCurrency(item.quantity * item.unitPrice)}
-                              </span>
-                            </div>
-                            <div className="flex justify-between items-center text-sm">
-                              <span>IVA:</span>
-                              <span>
-                                {formatCurrency(
-                                  item.quantity *
-                                    item.unitPrice *
-                                    (item.taxRate / 100)
-                                )}
-                              </span>
-                            </div>
-                            <div className="flex justify-between items-center text-sm font-semibold">
-                              <span>Total:</span>
-                              <span className="text-blue-600">
-                                {formatCurrency(
-                                  item.quantity *
-                                    item.unitPrice *
-                                    (1 + item.taxRate / 100)
-                                )}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-
-                      {/* Order Summary */}
-                      <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                        <h4 className="text-sm font-medium text-blue-900 mb-3">
-                          Resumen de la orden
-                        </h4>
-                        <div className="space-y-2">
-                          <div className="flex justify-between items-center text-sm">
-                            <span>Subtotal:</span>
-                            <span>{formatCurrency(calculateSubtotal())}</span>
-                          </div>
-                          <div className="flex justify-between items-center text-sm">
-                            <span>IVA total:</span>
-                            <span>{formatCurrency(calculateTotalTax())}</span>
-                          </div>
-                          <div className="flex justify-between items-center border-t pt-2">
-                            <span className="text-base font-semibold">
-                              Total:
-                            </span>
-                            <span className="text-lg font-bold text-blue-600">
-                              {formatCurrency(calculateTotal())}
-                            </span>
-                          </div>
-                          <p className="text-xs text-blue-700 mt-2">
-                            {orderItems.length} producto
-                            {orderItems.length !== 1 ? "s" : ""} en la orden
-                          </p>
-                        </div>
+                          <Plus className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* Items list - compact rows */}
+              {orderItems.length > 0 && (
+                <div className="border border-gray-200 rounded-lg overflow-hidden">
+                  {/* Header */}
+                  <div className="grid grid-cols-[1fr_auto] bg-gray-100 px-3 py-1.5 border-b border-gray-200">
+                    <span className="text-xs font-medium text-gray-600">Producto</span>
+                    <span className="text-xs font-medium text-gray-600 text-right">Total</span>
+                  </div>
+
+                  {/* Rows */}
+                  <div className="divide-y divide-gray-100">
+                    {orderItems.map((item) => (
+                      <div key={item.id} className="px-3 py-2">
+                        {/* Row line 1: name + total + delete */}
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-gray-900 truncate leading-tight">
+                              {item.product.name}
+                            </p>
+                            <p className="text-xs text-gray-400">{item.product.code}</p>
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className="text-sm font-semibold text-blue-600 whitespace-nowrap">
+                              {formatCurrency(item.quantity * item.unitPrice * (1 + item.taxRate / 100))}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveItem(item.id)}
+                              className="text-gray-300 hover:text-red-500 transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Row line 2: editable fields inline */}
+                        <div className="flex items-center gap-1.5 mt-1.5">
+                          <span className="text-xs text-gray-400 whitespace-nowrap">Cant:</span>
+                          <input
+                            type="number"
+                            value={item.quantity}
+                            onChange={(e) => updateOrderItem(item.id, "quantity", parseInt(e.target.value) || 0)}
+                            min="1"
+                            className="w-14 px-1.5 py-0.5 border border-gray-200 rounded text-xs text-center focus:outline-none focus:ring-1 focus:ring-blue-400"
+                          />
+                          <span className="text-xs text-gray-300">×</span>
+                          <span className="text-xs text-gray-400 whitespace-nowrap">$</span>
+                          <input
+                            type="number"
+                            value={item.unitPrice}
+                            onChange={(e) => updateOrderItem(item.id, "unitPrice", parseFloat(e.target.value) || 0)}
+                            min="0"
+                            step="0.01"
+                            className="w-24 px-1.5 py-0.5 border border-gray-200 rounded text-xs text-right focus:outline-none focus:ring-1 focus:ring-blue-400"
+                          />
+                          <span className="text-xs text-gray-400 whitespace-nowrap ml-1">IVA:</span>
+                          <input
+                            type="number"
+                            value={item.taxRate}
+                            onChange={(e) => updateOrderItem(item.id, "taxRate", parseFloat(e.target.value) || 0)}
+                            min="0"
+                            max="100"
+                            className="w-12 px-1.5 py-0.5 border border-gray-200 rounded text-xs text-center focus:outline-none focus:ring-1 focus:ring-blue-400"
+                          />
+                          <span className="text-xs text-gray-400">%</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Summary footer */}
+                  <div className="bg-gray-50 border-t border-gray-200 px-3 py-2 space-y-1">
+                    <div className="flex justify-between text-xs text-gray-500">
+                      <span>Subtotal</span>
+                      <span>{formatCurrency(calculateSubtotal())}</span>
+                    </div>
+                    <div className="flex justify-between text-xs text-gray-500">
+                      <span>IVA</span>
+                      <span>{formatCurrency(calculateTotalTax())}</span>
+                    </div>
+                    <div className="flex justify-between text-sm font-bold text-gray-900 pt-1 border-t border-gray-200">
+                      <span>Total</span>
+                      <span className="text-blue-600">{formatCurrency(calculateTotal())}</span>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
