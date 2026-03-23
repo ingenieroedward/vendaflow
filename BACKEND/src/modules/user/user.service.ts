@@ -96,6 +96,18 @@ export class UserService {
     return this.mapToResponseDto(user);
   }
 
+  /**
+   * Elimina un usuario con lógica en dos pasos:
+   *
+   * 1. SOFT DELETE (primer llamado): si el usuario está activo, lo marca como eliminado (deletedAt).
+   *
+   * 2. HARD DELETE (segundo llamado, cuando deletedAt ya existe):
+   *    - Si tiene precios asignados: requiere `transferToAdminId` para reasignarlos antes de borrar.
+   *    - Si tiene órdenes creadas: lanza ConflictError (no se puede borrar).
+   *    - Si no hay conflictos: elimina físicamente el registro.
+   *
+   * @param transferToAdminId  ID del admin que absorbe los precios del usuario eliminado.
+   */
   async deleteUser(id: number, transferToAdminId?: number): Promise<void> {
     const user = await User.findByPk(id, {
       paranoid: false,

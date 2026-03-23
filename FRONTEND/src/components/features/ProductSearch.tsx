@@ -37,7 +37,6 @@ const ProductSearch: React.FC<ProductSearchProps> = ({
   );
 
   const handleProductSelect = (product: Product) => {
-    console.log('Product selected:', product);
     onProductSelect(product);
     setQuery(product.name);
     setShowDropdown(false);

@@ -18,6 +18,11 @@ import { Op } from 'sequelize';
 import sequelize from '@/database';
 
 export class OrderService {
+  /**
+   * Genera el siguiente número de orden en formato ORD-XXXX.
+   * Busca la última orden existente (incluyendo soft-deleted) y suma 1.
+   * El contador empieza en 2000. Si ocurre algún error usa el timestamp como fallback.
+   */
   private async generateOrderNumber(): Promise<string> {
     try {
       // Buscar la última orden para obtener el siguiente número
@@ -51,6 +56,13 @@ export class OrderService {
     }
   }
 
+  /**
+   * Crea una nueva orden con sus items.
+   * Valida la existencia de cliente, usuario y todos los productos antes de persistir.
+   * Los items se crean en paralelo con Promise.all (no usa transacción — si falla un item
+   * la orden queda huérfana; considerar envolver en transacción si esto es crítico).
+   * Si no se provee orderNumber, lo genera automáticamente.
+   */
   async createOrder(orderData: CreateOrderDto, userId: number): Promise<OrderResponseDto> {
     const validatedData = validateSchema(createOrderSchema, orderData);
 
@@ -200,6 +212,15 @@ export class OrderService {
     return this.mapToResponseDto(order, order.orderItems);
   }
 
+  /**
+   * Actualiza una orden y sincroniza sus items dentro de una transacción DB.
+   * Algoritmo de sync de items:
+   *  1. Elimina los items que ya no vienen en el payload.
+   *  2. Actualiza los items existentes (tienen id).
+   *  3. Crea los items nuevos (sin id).
+   *  4. Recalcula totalAmount sumando los totalPrice actuales.
+   * Si cualquier paso falla, hace rollback completo.
+   */
   async updateOrder(id: number, updateData: UpdateOrderDto): Promise<OrderResponseDto> {
     const validatedData = validatePartialSchema(updateOrderSchema, updateData) as Partial<UpdateOrderDto>;
 
