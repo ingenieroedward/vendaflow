@@ -9,7 +9,10 @@ import {
   User,
   ShoppingCart,
   FileText,
+  WifiOff,
+  RefreshCw,
 } from "lucide-react";
+import { useNetworkStatus } from "../hooks/useNetworkStatus";
 import { useOrderStore } from "../store/orderStore";
 import { useProductStore } from "../store/productStore";
 import { useCustomerStore } from "../store/customerStore";
@@ -171,12 +174,23 @@ const OrderNew: React.FC = () => {
 
     try {
       const newOrder = await createOrder(orderData);
-      addNotification({
-        type: "success",
-        title: "Orden creada",
-        message: "La orden se ha creado correctamente",
-      });
-      navigate(`/orders/${newOrder.id}`);
+      const isLocalOrder = (newOrder as any)._isLocal;
+
+      if (isLocalOrder) {
+        addNotification({
+          type: "warning",
+          title: "Orden guardada sin conexión",
+          message: "Se sincronizará automáticamente cuando haya internet",
+        });
+        navigate("/orders");
+      } else {
+        addNotification({
+          type: "success",
+          title: "Orden creada",
+          message: "La orden se ha creado correctamente",
+        });
+        navigate(`/orders/${newOrder.id}`);
+      }
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : 'Error al crear la orden';
       addNotification({ type: 'error', title: 'Error', message: msg });
@@ -198,6 +212,8 @@ const OrderNew: React.FC = () => {
     setSelectedCustomer(newCustomer);
     setShowCustomerModal(false);
   };
+
+  const { isOffline } = useNetworkStatus();
 
   const handleBack = () => {
     navigate("/orders");
@@ -221,6 +237,16 @@ const OrderNew: React.FC = () => {
           </div>
           <span className="text-xs text-gray-400 flex-shrink-0">{user?.username}</span>
         </div>
+
+        {/* Banner sin conexión */}
+        {isOffline && (
+          <div className="mb-3 flex items-center gap-2 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-lg">
+            <WifiOff className="w-4 h-4 text-amber-500 flex-shrink-0" />
+            <p className="text-xs text-amber-700 flex-1">
+              Sin conexión — la orden se guardará localmente y se sincronizará cuando haya internet.
+            </p>
+          </div>
+        )}
 
         {/* Error Message */}
         {error && (
