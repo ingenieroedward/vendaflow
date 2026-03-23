@@ -206,37 +206,20 @@ const OrderNew: React.FC = () => {
   return (
     <div className="bg-gray-50">
       <div className="px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-7xl mx-auto">
-        {/* Mobile Header - Compact */}
-        <div className="mb-4 sm:mb-6 lg:mb-8">
-          <Button
-            variant="ghost"
-            icon={ArrowLeft}
+        {/* Header compacto */}
+        <div className="flex items-center gap-3 mb-4">
+          <button
+            type="button"
             onClick={handleBack}
-            className="mb-3 sm:mb-4 -ml-2"
-            size="sm"
+            className="p-2 -ml-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
           >
-            Volver
-          </Button>
-
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
-            <div className="flex items-center space-x-3 sm:space-x-4">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                <ShoppingCart className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
-                  Nueva orden
-                </h1>
-                <p className="text-sm sm:text-base text-gray-600 mt-1">
-                  Crea una nueva orden de venta
-                </p>
-              </div>
-              <div className="text-xs lg:text-sm text-gray-500 text-right">
-                <span className="hidden sm:inline">{user?.username} • </span>
-                {user?.role}
-              </div>
-            </div>
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <ShoppingCart className="w-5 h-5 text-blue-600 flex-shrink-0" />
+            <h1 className="text-lg font-semibold text-gray-900 truncate">Nueva orden</h1>
           </div>
+          <span className="text-xs text-gray-400 flex-shrink-0">{user?.username}</span>
         </div>
 
         {/* Error Message */}
@@ -249,46 +232,39 @@ const OrderNew: React.FC = () => {
         )}
 
         {/* Form - Mobile Optimized */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
-          <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             {/* Customer Information */}
             <div>
-              <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-4 flex items-center">
-                <User className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                Información del cliente
-              </h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-base font-medium text-gray-900 flex items-center">
+                  <User className="w-4 h-4 mr-2" />
+                  Cliente
+                </h3>
+                {!selectedCustomer && (
+                  <button
+                    type="button"
+                    onClick={handleCreateCustomer}
+                    className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Nuevo cliente
+                  </button>
+                )}
+              </div>
 
               {customersLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <LoadingSpinner size="md" />
-                  <span className="ml-2 text-sm text-gray-500">
-                    Cargando clientes...
-                  </span>
+                <div className="flex items-center gap-2 py-3">
+                  <LoadingSpinner size="sm" />
+                  <span className="text-sm text-gray-500">Cargando clientes...</span>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  <div>
-                    <CustomerSearch
-                      onCustomerSelect={setSelectedCustomer}
-                      selectedCustomer={selectedCustomer}
-                      customers={customers}
-                      placeholder="Buscar cliente..."
-                    />
-                  </div>
-
-                  <div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      icon={Plus}
-                      onClick={handleCreateCustomer}
-                      className="w-full sm:w-auto"
-                      size="sm"
-                    >
-                      Crear nuevo cliente
-                    </Button>
-                  </div>
-                </div>
+                <CustomerSearch
+                  onCustomerSelect={setSelectedCustomer}
+                  selectedCustomer={selectedCustomer}
+                  customers={customers}
+                  placeholder="Buscar cliente..."
+                />
               )}
             </div>
 
