@@ -87,6 +87,7 @@ const OrderNew: React.FC = () => {
     setQuantity(1);
     setUnitPrice(0);
     setTaxRate(0);
+    setIncludeProducts(false); // cerrar panel al agregar
   };
 
   const handleRemoveItem = (id: string) => {
@@ -221,7 +222,7 @@ const OrderNew: React.FC = () => {
 
   return (
     <div className="bg-gray-50">
-      <div className="px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-7xl mx-auto">
+      <div className="px-3 py-4 max-w-2xl mx-auto">
         {/* Header compacto */}
         <div className="flex items-center gap-3 mb-4">
           <button
@@ -295,7 +296,7 @@ const OrderNew: React.FC = () => {
             </div>
 
             {/* Products Section */}
-            <div className="border-t pt-4">
+            <div className="border-t pt-3">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-base font-medium text-gray-900 flex items-center">
                   <Package className="w-4 h-4 mr-2" />
@@ -306,15 +307,16 @@ const OrderNew: React.FC = () => {
                     </span>
                   )}
                 </h3>
-                <Button
-                  type="button"
-                  variant="outline"
-                  icon={Plus}
-                  onClick={() => setIncludeProducts(true)}
-                  size="sm"
-                >
-                  Agregar
-                </Button>
+                {!includeProducts && (
+                  <button
+                    type="button"
+                    onClick={() => setIncludeProducts(true)}
+                    className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Agregar producto
+                  </button>
+                )}
               </div>
 
               {/* Add product form */}
@@ -476,40 +478,31 @@ const OrderNew: React.FC = () => {
             </div>
 
             {/* Notes Section */}
-            <div className="border-t pt-6">
-              <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-4 flex items-center">
-                <FileText className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                Notas adicionales (Opcional)
-              </h3>
+            <div className="border-t pt-3">
+              <div className="flex items-center gap-1.5 mb-2">
+                <FileText className="w-4 h-4 text-gray-400" />
+                <label className="text-sm font-medium text-gray-700">
+                  Notas <span className="text-gray-400 font-normal">(opcional)</span>
+                </label>
+              </div>
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                rows={3}
+                rows={2}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm"
-                placeholder="Agrega notas adicionales para esta orden..."
+                placeholder="Notas para esta orden..."
               />
             </div>
 
-            {/* Mobile: Stack buttons vertically, make them full width */}
-            <div className="flex gap-4 flex-col sm:flex-row sm:justify-end space-y-3 sm:space-y-0 sm:space-x-3 pt-6 border-t">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleBack}
-                disabled={loading}
-                className="w-full sm:w-auto order-2 sm:order-1"
-              >
-                Cancelar
-              </Button>
+            {/* Botón crear */}
+            <div className="pt-2">
               <Button
                 type="submit"
                 variant="primary"
                 icon={Save}
                 loading={loading}
-                disabled={
-                  loading || orderItems.length === 0 || !selectedCustomer
-                }
-                className="w-full sm:w-auto order-1 sm:order-2"
+                disabled={loading || orderItems.length === 0 || !selectedCustomer}
+                className="w-full"
               >
                 {loading ? "Creando..." : "Crear orden"}
               </Button>
