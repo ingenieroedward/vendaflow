@@ -254,9 +254,10 @@ export const useOrderStore = create<OrderState>((set) => ({
   syncPendingOrders: async () => {
     if (!navigator.onLine) return { synced: 0, failed: 0 };
 
+    // Sin límite de attempts — reintentar siempre que haya conexión
     const pendingItems = await db.syncQueue
       .where('entityType').equals('order')
-      .filter(item => item.operation === 'create' && item.attempts < 3)
+      .filter(item => item.operation === 'create')
       .toArray();
 
     let synced = 0;
@@ -277,17 +278,38 @@ export const useOrderStore = create<OrderState>((set) => ({
         // Eliminar de la cola
         await db.syncQueue.delete(item.id!);
         synced++;
-      } catch {
+      } catch (err) {
         await db.syncQueue.update(item.id!, {
           attempts: item.attempts + 1,
           lastAttemptAt: Date.now(),
+          error: err instanceof Error ? err.message : 'Error desconocido',
         });
         failed++;
       }
     }
 
     const pendingSync = await db.syncQueue.count();
-    set({ pendingSync });
+
+    // Refrescar la lista de órdenes desde el servidor tras sincronizar
+    if (synced > 0) {
+      try {
+        const response = await orderService.getOrders(1, 50);
+        set({
+          orders: response.data,
+          pendingSync,
+          pagination: {
+            total: response.pagination?.total || 0,
+            page: 1,
+            limit: 50,
+            totalPages: response.pagination?.totalPages || 0,
+          },
+        });
+      } catch {
+        set({ pendingSync });
+      }
+    } else {
+      set({ pendingSync });
+    }
 
     return { synced, failed };
   },
