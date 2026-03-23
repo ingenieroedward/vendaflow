@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Search, Eye, Edit, Trash2, Calendar, User, WifiOff } from "lucide-react";
+import { Plus, Search, Eye, Edit, Trash2, Calendar, User, WifiOff, RefreshCw } from "lucide-react";
 import { useOrderStore } from "../store/orderStore";
 import { useAuthStore } from "../store/authStore";
 import { useUIStore } from "../store/uiStore";
@@ -14,9 +14,10 @@ import { Order, OrderItem } from "../types";
 const Orders: React.FC = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
+  const [syncing, setSyncing] = useState(false);
   const { user } = useAuthStore();
   const { addNotification } = useUIStore();
-  const { orders, loading, error, pagination, getOrders, clearError, deleteOrder } =
+  const { orders, loading, error, pagination, getOrders, clearError, deleteOrder, syncPendingOrders } =
     useOrderStore();
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -28,6 +29,24 @@ const Orders: React.FC = () => {
 
   const handleRefresh = () => {
     getOrders(pagination.page);
+  };
+
+  const handleManualSync = async () => {
+    setSyncing(true);
+    try {
+      const { synced, failed } = await syncPendingOrders();
+      if (synced > 0) {
+        addNotification({ type: 'success', title: 'Sincronizado', message: `${synced} orden${synced > 1 ? 'es' : ''} enviada${synced > 1 ? 's' : ''} al servidor` });
+      } else if (failed > 0) {
+        addNotification({ type: 'error', title: 'Error al sincronizar', message: `${failed} orden${failed > 1 ? 'es' : ''} no pudieron sincronizarse. Revisa la consola para más detalles.` });
+      } else {
+        addNotification({ type: 'info', title: 'Sin pendientes', message: 'No hay órdenes pendientes de sincronizar' });
+      }
+      getOrders();
+    } finally {
+      setSyncing(false);
+    }
+  };
   };
 
   const formatDate = (dateString: string) => {
@@ -117,16 +136,31 @@ const Orders: React.FC = () => {
           </div>
 
           {/* Actions */}
-          <div className="flex justify-between items-center">
-            <Button
-              variant="outline"
-              icon={Search}
-              onClick={handleRefresh}
-              size="sm"
-              className="text-xs sm:text-sm"
-            >
-              Actualizar
-            </Button>
+          <div className="flex justify-between items-center gap-2">
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                icon={Search}
+                onClick={handleRefresh}
+                size="sm"
+                className="text-xs sm:text-sm"
+              >
+                Actualizar
+              </Button>
+              {/* Botón de sync manual — solo si hay pendientes */}
+              {orders.some(o => (o as any)._isLocal) && navigator.onLine && (
+                <Button
+                  variant="outline"
+                  icon={syncing ? undefined : RefreshCw}
+                  onClick={handleManualSync}
+                  disabled={syncing}
+                  size="sm"
+                  className="text-xs text-amber-700 border-amber-300 hover:bg-amber-50"
+                >
+                  {syncing ? <LoadingSpinner size="sm" /> : 'Sincronizar'}
+                </Button>
+              )}
+            </div>
 
             {(user?.role === "admin" || user?.role === "seller") && (
               <Button
