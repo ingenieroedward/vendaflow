@@ -6,14 +6,13 @@ import {
   Trash2,
   User,
   Calendar,
-  DollarSign,
+  Printer,
   Package,
-  Menu,
-  X,
-  Notebook,
   ChevronDown,
   Check,
   WifiOff,
+  Phone,
+  MapPin,
 } from "lucide-react";
 import { useOrderStore } from "../store/orderStore";
 import { useAuthStore } from "../store/authStore";
@@ -21,7 +20,6 @@ import { useUIStore } from "../store/uiStore";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
 import ErrorMessage from "../components/ui/ErrorMessage";
 import Button from "../components/ui/Button";
-import PrintButton from "../components/ui/PrintButton";
 import OrderPrintView from "../components/features/OrderPrintView";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -34,7 +32,6 @@ const OrderDetail: React.FC = () => {
   const { currentOrder, loading, error, getOrderById, clearError, updateOrder, deleteOrder } =
     useOrderStore();
   const printRef = useRef<HTMLDivElement>(null);
-  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
@@ -286,455 +283,184 @@ const OrderDetail: React.FC = () => {
   }
 
   const isLocalOrder = (currentOrder as any)._isLocal;
+  const canEdit = user?.role === "admin" || user?.role === "seller";
 
   return (
     <div className="bg-gray-50 min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 py-4 lg:py-8">
+      <div className="max-w-2xl mx-auto px-3 py-3 space-y-3">
 
-        {/* Banner orden local */}
+        {/* Offline banner */}
         {isLocalOrder && (
-          <div className="mb-3 flex items-center gap-2 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-lg">
+          <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg">
             <WifiOff className="w-4 h-4 text-amber-500 flex-shrink-0" />
             <p className="text-xs text-amber-700">
-              Esta orden está guardada localmente y se sincronizará cuando haya conexión a internet.
+              Guardada localmente · se sincronizará con internet
             </p>
           </div>
         )}
 
-        {/* Header */}
-        <div>
-          <Button
-            variant="ghost"
-            icon={ArrowLeft}
-            className="mb-3 sm:mb-4 -ml-2"
+        {/* Header bar */}
+        <div className="flex items-center gap-2">
+          <button
             onClick={() => navigate("/orders")}
-            size="sm"
+            className="p-1.5 rounded-md hover:bg-gray-200 text-gray-600 flex-shrink-0"
           >
-            <span className="hidden sm:inline">Volver</span>
-          </Button>
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 lg:p-6 mb-4 lg:mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center space-x-2 lg:space-x-3">
-                <h1 className="text-lg lg:text-2xl font-bold text-gray-900">
-                  <span className="hidden sm:inline">
-                    #{currentOrder.orderNumber}
-                  </span>
-                  <span className="sm:hidden">#{currentOrder.orderNumber}</span>
-                </h1>
-              </div>
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <h1 className="flex-1 font-bold text-gray-900 text-base">
+            #{currentOrder.orderNumber}
+          </h1>
 
-              {/* Desktop Actions */}
-              <div className="hidden lg:flex items-center space-x-2">
-                <PrintButton onPrint={handlePrint} />
-                {(user?.role === "admin" || user?.role === "seller") && (
-                  <>
-                    <Button
-                      variant="outline"
-                      icon={Edit}
-                      onClick={() =>
-                        navigate(`/orders/${currentOrder.id}/edit`)
-                      }
-                      size="sm"
-                    >
-                      Editar
-                    </Button>
-                    {user?.role === "admin" && (
-                      <Button
-                        variant="outline"
-                        icon={Trash2}
-                        onClick={() => setShowDeleteModal(true)}
-                        size="sm"
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        Eliminar
-                      </Button>
-                    )}
-                  </>
-                )}
-              </div>
-
-              {/* Mobile Menu Button */}
-              <div className="lg:hidden">
-                <Button
-                  variant="ghost"
-                  icon={showMobileMenu ? X : Menu}
-                  onClick={() => setShowMobileMenu(!showMobileMenu)}
-                  size="sm"
-                >
-                  <span className="hidden">abrir</span>
-                </Button>
-              </div>
-            </div>
-
-            {/* Mobile Actions Menu */}
-            {showMobileMenu && (
-              <div className="lg:hidden place-content-center mb-2 gap-1 grid grid-cols-3 border-t pt-4 mt-4">
-                <Button
-                  onClick={handlePrint}
-                  className="w-full justify-start py-1"
-                  variant="outline"
-                  size="sm"
-                >
-                  Imprimir
-                </Button>
-                {(user?.role === "admin" || user?.role === "seller") && (
-                  <>
-                    <Button
-                      onClick={() =>
-                        navigate(`/orders/${currentOrder.id}/edit`)
-                      }
-                      className="w-full justify-start"
-                      variant="outline"
-                      size="sm"
-                    >
-                      Editar
-                    </Button>
-                    {user?.role === "admin" && (
-                      <Button
-                        onClick={() => setShowDeleteModal(true)}
-                        className="w-full justify-start text-red-600 hover:text-red-700"
-                        variant="outline"
-                        size="sm"
-                      >
-                        Eliminar
-                      </Button>
-                    )}
-                  </>
-                )}
+          {/* Status dropdown */}
+          <div className="relative">
+            {canEdit ? (
+              <button
+                onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+                disabled={updatingStatus}
+                className={`px-2.5 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${getStatusColor(currentOrder.status)} ${updatingStatus ? 'opacity-50' : 'hover:opacity-80'}`}
+              >
+                {updatingStatus ? <LoadingSpinner size="sm" /> : <span>{getStatusText(currentOrder.status)}</span>}
+                <ChevronDown className="w-3 h-3" />
+              </button>
+            ) : (
+              <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(currentOrder.status)}`}>
+                {getStatusText(currentOrder.status)}
+              </span>
+            )}
+            {showStatusDropdown && (
+              <div className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[140px]">
+                {statusOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => handleStatusChange(option.value)}
+                    disabled={updatingStatus || option.value === currentOrder.status}
+                    className={`w-full text-left px-3 py-2 hover:bg-gray-50 flex items-center justify-between text-sm ${option.value === currentOrder.status ? 'bg-gray-50' : ''}`}
+                  >
+                    <span className={`px-2 py-0.5 rounded text-xs ${option.color}`}>{option.label}</span>
+                    {option.value === currentOrder.status && <Check className="w-3 h-3 text-green-600" />}
+                  </button>
+                ))}
               </div>
             )}
-
-            {/* Order Info - Mobile Optimized */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4 mb-4 lg:mb-6">
-              <div className="flex items-center space-x-2">
-                <Calendar className="w-4 h-4 lg:w-5 lg:h-5 text-gray-400" />
-                <div>
-                  <p className="text-xs lg:text-sm text-gray-500">Fecha</p>
-                  <p className="font-medium text-sm lg:text-base">
-                    {formatDate(currentOrder.createdAt)}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-2">
-                <User className="w-4 h-4 lg:w-5 lg:h-5 text-gray-400" />
-                <div>
-                  <p className="text-xs lg:text-sm text-gray-500">Creado por</p>
-                  <p className="font-medium text-sm lg:text-base">
-                    {currentOrder.user?.username ?? `Usuario #${currentOrder.userId}`}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-2 sm:col-span-2 lg:col-span-1">
-                <DollarSign className="w-4 h-4 lg:w-5 lg:h-5 text-gray-400" />
-                <div>
-                  <p className="text-xs lg:text-sm text-gray-500">Total</p>
-                  <p className="font-bold text-base lg:text-lg text-blue-600">
-                    {formatCurrency(totals.total)}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Status with Dropdown */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                {(user?.role === "admin" || user?.role === "seller") ? (
-                  <div className="relative">
-                    <button
-                      onClick={() => setShowStatusDropdown(!showStatusDropdown)}
-                      disabled={updatingStatus}
-                      className={`px-3 py-1 rounded-full text-xs lg:text-sm font-medium ${getStatusColor(
-                        currentOrder.status
-                      )} hover:opacity-80 transition-opacity flex items-center space-x-1 ${
-                        updatingStatus ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-                      }`}
-                    >
-                      <span>{getStatusText(currentOrder.status)}</span>
-                      <ChevronDown className="w-3 h-3" />
-                    </button>
-
-                    {showStatusDropdown && (
-                      <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[140px]">
-                        {statusOptions.map((option) => (
-                          <button
-                            key={option.value}
-                            onClick={() => handleStatusChange(option.value)}
-                            disabled={updatingStatus || option.value === currentOrder.status}
-                            className={`w-full text-left px-3 py-2 hover:bg-gray-50 transition-colors flex items-center justify-between text-sm ${
-                              option.value === currentOrder.status ? 'bg-gray-50' : ''
-                            } ${
-                              updatingStatus ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-                            }`}
-                          >
-                            <span className={`px-2 py-1 rounded text-xs ${option.color}`}>
-                              {option.label}
-                            </span>
-                            {option.value === currentOrder.status && (
-                              <Check className="w-3 h-3 text-green-600" />
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs lg:text-sm font-medium ${getStatusColor(
-                      currentOrder.status
-                    )}`}
-                  >
-                    {getStatusText(currentOrder.status)}
-                  </span>
-                )}
-              </div>
-
-              {updatingStatus && (
-                <div className="flex items-center space-x-2 text-sm text-gray-500">
-                  <LoadingSpinner size="sm" />
-                  <span>Actualizando estado...</span>
-                </div>
-              )}
-            </div>
           </div>
-        </div>
 
-        {/* Customer and User Info */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 mb-4 lg:mb-6">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 lg:p-6">
-            <h2 className="text-base lg:text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <User className="w-4 h-4 lg:w-5 lg:h-5 text-blue-600 mr-2" />
-              Datos del cliente
-            </h2>
-            <div className="space-y-3">
-              <div>
-                <p className="text-xs lg:text-sm text-gray-500">Nombre</p>
-                <p className="font-medium text-gray-900 text-sm lg:text-base">
-                  {currentOrder.customer?.name ?? `Cliente #${currentOrder.customerId}`}
-                </p>
-              </div>
-              {currentOrder.customer?.contact && (
-                <div>
-                  <p className="text-xs lg:text-sm text-gray-500">Contacto</p>
-                  <p className="text-gray-700 text-sm lg:text-base">
-                    {currentOrder.customer.contact}
-                  </p>
-                </div>
-              )}
-              {currentOrder.customer?.address && (
-                <div>
-                  <p className="text-xs lg:text-sm text-gray-500">Dirección</p>
-                  <p className="text-gray-700 text-sm lg:text-base">
-                    {currentOrder.customer.address}
-                  </p>
-                </div>
-              )}
-              {currentOrder.customer?.note && (
-                <div>
-                  <p className="text-xs lg:text-sm text-gray-500">Nota</p>
-                  <p className="text-gray-700 italic text-sm lg:text-base">
-                    {currentOrder.customer.note}
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-          {/* Notes */}
-          {currentOrder.notes && (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 lg:p-6 mb-4 lg:mb-6">
-              <h2 className="text-base lg:text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <span className="w-4 h-4 lg:w-5 lg:h-5 text-yellow-600 mr-2">
-                  <Notebook />
-                </span>
-                Notas de la orden
-              </h2>
-              <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
-                <p className="text-gray-700 leading-relaxed text-sm lg:text-base">
-                  {currentOrder.notes.split("\n").map((line, index) => (
-                    <React.Fragment key={index}>
-                      {line}
-                      <br />
-                    </React.Fragment>
-                  ))}
-                </p>
-              </div>
-            </div>
+          {/* Action icons */}
+          <button
+            onClick={handlePrint}
+            className="p-1.5 rounded-md hover:bg-gray-200 text-gray-600"
+            title="Imprimir"
+          >
+            <Printer className="w-4 h-4" />
+          </button>
+          {canEdit && (
+            <button
+              onClick={() => navigate(`/orders/${currentOrder.id}/edit`)}
+              className="p-1.5 rounded-md hover:bg-gray-200 text-gray-600"
+              title="Editar"
+            >
+              <Edit className="w-4 h-4" />
+            </button>
+          )}
+          {user?.role === "admin" && (
+            <button
+              onClick={() => setShowDeleteModal(true)}
+              className="p-1.5 rounded-md hover:bg-red-100 text-red-500"
+              title="Eliminar"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
           )}
         </div>
 
-        {/* Products - Mobile Optimized */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 lg:p-6 mb-4 lg:mb-6">
-          <h2 className="text-base lg:text-lg font-semibold text-gray-900 mb-4 flex items-center">
-            <Package className="w-4 h-4 lg:w-5 lg:h-5 text-green-600 mr-2" />
-            Productos
-          </h2>
+        {/* Info row compacto */}
+        <div className="bg-white rounded-lg border border-gray-200 p-3 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+          <div className="flex items-center gap-1.5 text-gray-600">
+            <Calendar className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+            <span>{formatDate(currentOrder.createdAt)}</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-gray-600">
+            <User className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+            <span>{currentOrder.user?.username ?? `Usuario #${currentOrder.userId}`}</span>
+          </div>
+          <div className="col-span-2 pt-1.5 border-t border-gray-100 flex items-center justify-between">
+            <span className="text-gray-500">Total de la orden</span>
+            <span className="font-bold text-base text-blue-600">{formatCurrency(totals.total)}</span>
+          </div>
+        </div>
 
-          {/* Mobile Product Cards */}
-          <div className="lg:hidden space-y-4">
+        {/* Cliente compacto */}
+        <div className="bg-white rounded-lg border border-gray-200 p-3">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Cliente</p>
+          <p className="font-semibold text-sm text-gray-900">
+            {currentOrder.customer?.name ?? `Cliente #${currentOrder.customerId}`}
+          </p>
+          {currentOrder.customer?.contact && (
+            <div className="flex items-center gap-1.5 mt-1 text-xs text-gray-600">
+              <Phone className="w-3 h-3 text-gray-400" />
+              <span>{currentOrder.customer.contact}</span>
+            </div>
+          )}
+          {currentOrder.customer?.address && (
+            <div className="flex items-center gap-1.5 mt-0.5 text-xs text-gray-600">
+              <MapPin className="w-3 h-3 text-gray-400" />
+              <span>{currentOrder.customer.address}</span>
+            </div>
+          )}
+          {currentOrder.customer?.note && (
+            <p className="mt-1 text-xs text-gray-500 italic">{currentOrder.customer.note}</p>
+          )}
+        </div>
+
+        {/* Notas compactas */}
+        {currentOrder.notes && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+            <p className="text-xs font-semibold text-yellow-700 mb-1">Notas</p>
+            <p className="text-xs text-gray-700 whitespace-pre-line">{currentOrder.notes}</p>
+          </div>
+        )}
+
+        {/* Productos */}
+        <div className="bg-white rounded-lg border border-gray-200 p-3">
+          <div className="flex items-center gap-1.5 mb-2">
+            <Package className="w-3.5 h-3.5 text-green-600" />
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Productos</p>
+          </div>
+
+          {/* Lista de items - filas compactas en móvil */}
+          <div className="space-y-0 divide-y divide-gray-100">
             {(currentOrder.items || []).map((item, index) => {
               const itemSubtotal = Number(item.totalPrice) || Number(item.quantity) * Number(item.unitPrice);
               const itemTax = itemSubtotal * ((Number(item.taxRate) || 0) / 100);
               const itemTotal = itemSubtotal + itemTax;
-
               return (
-                <div
-                  key={index}
-                  className="border border-gray-200 rounded-lg p-4"
-                >
-                  <div className="flex justify-between items-start mb-3">
-                    <div className="flex-1 min-w-0 mr-3">
-                      <p className="font-medium text-gray-900 text-sm truncate">
-                        {item.product.name}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        Código: {item.product.code}
-                      </p>
+                <div key={index} className="py-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">{item.product?.name}</p>
+                      <p className="text-xs text-gray-400">{item.product?.code} · {item.quantity} × {formatCurrency(item.unitPrice)}{item.taxRate ? ` + IVA ${item.taxRate}%` : ''}</p>
                     </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-green-600 text-sm">
-                        {formatCurrency(itemTotal)}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-2 text-xs">
-                    <div>
-                      <p className="text-gray-500">Cantidad</p>
-                      <p className="font-medium">{item.quantity}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500">Precio Unit.</p>
-                      <p className="font-medium">
-                        {formatCurrency(item.unitPrice)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500">IVA</p>
-                      <p className="font-medium">{item.taxRate || 0}%</p>
-                    </div>
-                  </div>
-
-                  <div className="mt-2 pt-2 border-t border-gray-100 text-xs text-gray-600">
-                    <div className="flex justify-between">
-                      <span>Subtotal:</span>
-                      <span>{formatCurrency(itemSubtotal)}</span>
-                    </div>
-                    {itemTax > 0 && (
-                      <div className="flex justify-between">
-                        <span>IVA ({item.taxRate}%):</span>
-                        <span>{formatCurrency(itemTax)}</span>
-                      </div>
-                    )}
+                    <p className="text-sm font-semibold text-green-600 flex-shrink-0">{formatCurrency(itemTotal)}</p>
                   </div>
                 </div>
               );
             })}
           </div>
 
-          {/* Desktop Table */}
-          <div className="hidden lg:block overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">
-                    Producto
-                  </th>
-                  <th className="text-center py-3 px-4 font-medium text-gray-700">
-                    Cantidad
-                  </th>
-                  <th className="text-right py-3 px-4 font-medium text-gray-700">
-                    Precio Unit.
-                  </th>
-                  <th className="text-center py-3 px-4 font-medium text-gray-700">
-                    IVA
-                  </th>
-                  <th className="text-right py-3 px-4 font-medium text-gray-700">
-                    Subtotal
-                  </th>
-                  <th className="text-right py-3 px-4 font-medium text-gray-700">
-                    IVA
-                  </th>
-                  <th className="text-right py-3 px-4 font-medium text-gray-700">
-                    Total
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {(currentOrder.items || []).map((item, index) => {
-                  const itemSubtotal = Number(item.totalPrice) || Number(item.quantity) * Number(item.unitPrice);
-                  const itemTax = itemSubtotal * ((Number(item.taxRate) || 0) / 100);
-                  const itemTotal = itemSubtotal + itemTax;
-
-                  return (
-                    <tr
-                      key={index}
-                      className="border-b border-gray-100 hover:bg-gray-50"
-                    >
-                      <td className="py-3 px-4">
-                        <div>
-                          <p className="font-medium text-gray-900">
-                            {item.product.name}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            Código: {item.product.code}
-                          </p>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-center">
-                        <span className="font-medium text-gray-900">
-                          {item.quantity}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <span className="text-gray-700">
-                          {formatCurrency(item.unitPrice)}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-center">
-                        <span className="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                          {item.taxRate || 0}%
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <span className="text-gray-700">
-                          {formatCurrency(itemSubtotal)}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <span className="text-gray-700">
-                          {formatCurrency(itemTax)}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <span className="font-semibold text-green-600">
-                          {formatCurrency(itemTotal)}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Order Summary */}
-          <div className="mt-6 pt-4 border-t border-gray-200">
-            <div className="flex justify-end">
-              <div className="w-full lg:w-64 space-y-2">
-                <div className="flex justify-between text-sm text-gray-600">
-                  <span>Subtotal:</span>
-                  <span>{formatCurrency(totals.subtotal)}</span>
-                </div>
-                <div className="flex justify-between text-sm text-gray-600">
-                  <span>Total IVA:</span>
-                  <span>{formatCurrency(totals.totalTax)}</span>
-                </div>
-                <div className="flex justify-between text-base lg:text-lg font-bold text-gray-900 pt-2 border-t border-gray-200">
-                  <span>Total:</span>
-                  <span className="text-blue-600">
-                    {formatCurrency(totals.total)}
-                  </span>
-                </div>
+          {/* Totales */}
+          <div className="mt-2 pt-2 border-t border-gray-100 space-y-1">
+            <div className="flex justify-between text-xs text-gray-500">
+              <span>Subtotal</span>
+              <span>{formatCurrency(totals.subtotal)}</span>
+            </div>
+            {totals.totalTax > 0 && (
+              <div className="flex justify-between text-xs text-gray-500">
+                <span>IVA</span>
+                <span>{formatCurrency(totals.totalTax)}</span>
               </div>
+            )}
+            <div className="flex justify-between font-bold text-sm text-gray-900 pt-1 border-t border-gray-100">
+              <span>Total</span>
+              <span className="text-blue-600">{formatCurrency(totals.total)}</span>
             </div>
           </div>
         </div>
@@ -744,33 +470,27 @@ const OrderDetail: React.FC = () => {
           <OrderPrintView ref={printRef} order={currentOrder} />
         </div>
 
-        {/* Click outside handler for dropdown */}
+        {/* Click outside status dropdown */}
         {showStatusDropdown && (
-          <div
-            className="fixed inset-0 z-5"
-            onClick={() => setShowStatusDropdown(false)}
-          />
+          <div className="fixed inset-0 z-5" onClick={() => setShowStatusDropdown(false)} />
         )}
 
-        {/* Modal de confirmación de eliminación */}
+        {/* Modal eliminar */}
         {showDeleteModal && (
-          <div className="fixed px-2 inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-            <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-sm">
-              <h2 className="text-lg font-bold mb-4">¿Eliminar orden?</h2>
-              <p className="mb-6">Esta acción no se puede deshacer. ¿Seguro que deseas eliminar la orden?</p>
+          <div className="fixed px-4 inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+            <div className="bg-white rounded-lg shadow-lg p-5 w-full max-w-sm">
+              <h2 className="text-base font-bold mb-2">¿Eliminar orden?</h2>
+              <p className="text-sm text-gray-600 mb-4">Esta acción no se puede deshacer.</p>
               <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setShowDeleteModal(false)}>
-                  Cancelar
-                </Button>
+                <Button variant="outline" size="sm" onClick={() => setShowDeleteModal(false)}>Cancelar</Button>
                 <Button
                   variant="danger"
+                  size="sm"
                   onClick={async () => {
                     try {
                       await deleteOrder(currentOrder.id);
                       navigate('/orders');
-                    } catch {
-                      // Puedes agregar notificación de error si lo deseas
-                    }
+                    } catch { /* handled */ }
                   }}
                 >
                   Eliminar
