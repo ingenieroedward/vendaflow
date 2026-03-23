@@ -30,7 +30,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       {/* Main content
           - Desktop: offset left by sidebar width (w-56 = 224px)
           - Mobile: offset bottom by bottom nav height (h-16 = 64px) */}
-      <main className="md:ml-56 pb-16 md:pb-0 min-h-screen">
+      <main className="md:ml-56 pb-bottom-nav md:pb-0 min-h-screen">
         {children}
       </main>
 

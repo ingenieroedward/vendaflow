@@ -30,7 +30,8 @@ const BottomNav = () => {
 
   return (
     <nav
-      className="md:hidden fixed bottom-0 inset-x-0 bg-white border-t border-gray-200 z-40 pb-safe"
+      className="md:hidden fixed bottom-0 inset-x-0 bg-white border-t border-gray-200 z-40"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       aria-label="Navegación inferior"
     >
       <div className="flex items-stretch h-16">
