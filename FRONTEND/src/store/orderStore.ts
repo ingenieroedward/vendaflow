@@ -312,7 +312,23 @@ export const useOrderStore = create<OrderState>((set) => ({
   deleteOrder: async (id: number) => {
     set({ loading: true, error: null });
     try {
-      await orderService.deleteOrder(id);
+      // Buscar en IndexedDB (por id local o serverId)
+      const localOrder = await db.orders.get(id)
+        ?? await db.orders.where('serverId').equals(id).first();
+
+      // Si tiene serverId, eliminar en servidor
+      if (localOrder?.serverId || (!localOrder && navigator.onLine)) {
+        await orderService.deleteOrder(localOrder?.serverId ?? id);
+      }
+
+      // Eliminar de IndexedDB
+      if (localOrder?.id) {
+        await db.orderItems.where('orderId').equals(localOrder.id).delete();
+        // Eliminar de syncQueue si estaba pendiente
+        await db.syncQueue.where('entityLocalId').equals(localOrder.id).delete();
+        await db.orders.delete(localOrder.id);
+      }
+
       set(state => ({
         orders: state.orders.filter(o => o.id !== id),
         currentOrder: state.currentOrder?.id === id ? null : state.currentOrder,
