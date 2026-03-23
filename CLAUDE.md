@@ -1,7 +1,9 @@
 # DOCUMENTACIÓN TÉCNICA DEL PROYECTO JJLM
 
 > Análisis completo de arquitectura, estructura y funcionalidades del sistema
-> Generado: 2026-01-01
+> Última actualización: 2026-03-23
+
+**Ver también:** [CHANGELOG.md](./CHANGELOG.md) · [CONTRIBUTING.md](./CONTRIBUTING.md)
 
 ---
 
@@ -956,15 +958,27 @@ const limiter = rateLimit({
 
 #### 9. Docker Support
 
-**Archivos:**
-- `Dockerfile` - Producción (multi-stage build)
-- `Dockerfile.dev` - Desarrollo con hot reload
-- `docker-compose.yml` - Orquestación con MySQL
+**Archivo de deploy (único):** `docker-compose.yml` en la raíz del proyecto.
 
 **Servicios:**
-- Backend (Node.js)
-- MySQL database
-- Volúmenes para persistencia
+- `backend` — Node.js en puerto 3001, conectado a `jjlm-network` y `dokploy-network`
+- `frontend` — nginx en puerto 8080, hace proxy de `/api/` al backend
+- `mysql` — MySQL 8.0 en puerto 3307, volumen persistente
+
+**Infraestructura:** VPS con Dokploy + Traefik como reverse proxy.
+La red `dokploy-network` es externa y gestionada por Dokploy.
+
+**Dockerfiles:**
+- `BACKEND/Dockerfile` — Multi-stage: stage `builder` compila TypeScript,
+  stage `production` copia solo `dist/` + dependencias de producción (imagen liviana).
+- `FRONTEND/Dockerfile` — Multi-stage: stage `builder` genera el bundle con Vite,
+  stage final sirve con nginx usando `nginx.conf` del proyecto.
+- `FRONTEND/nginx.conf` — Proxy de `/api/` → `http://backend:3001`, SPA routing con `try_files`.
+
+**Healthchecks:**
+- Backend: `GET /health` con `start_period: 60s` (tiempo para conectar con MySQL)
+- MySQL: `mysqladmin ping` con 10 reintentos
+- Frontend depende de backend `service_healthy` para arrancar
 
 #### 10. Health Check
 
