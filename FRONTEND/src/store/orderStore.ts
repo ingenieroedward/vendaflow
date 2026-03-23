@@ -5,6 +5,83 @@ import { PaginationInfo } from '../types';
 import { db, SyncStatus, LocalOrder, LocalOrderItem } from '../database/LocalDatabase';
 import { orderRepository } from '../repositories/OrderRepository';
 
+// ─── Helpers para cargar desde IndexedDB ────────────────────────────────────
+
+async function loadOrdersFromLocal(): Promise<Order[]> {
+  const localOrders = await db.orders.filter(o => !o.deletedAt).reverse().toArray();
+  return Promise.all(localOrders.map(o => mapLocalOrder(o)));
+}
+
+async function loadOrderFromLocal(id: number): Promise<Order | null> {
+  // Buscar por id local o por serverId
+  const local = await db.orders.get(id)
+    ?? await db.orders.where('serverId').equals(id).first();
+  if (!local) return null;
+  return mapLocalOrder(local);
+}
+
+async function mapLocalOrder(o: LocalOrder): Promise<Order> {
+  // Cargar cliente desde IndexedDB
+  const customer = await db.customers.get(o.customerId)
+    ?? await db.customers.where('serverId').equals(o.customerId).first();
+
+  // Cargar usuario desde IndexedDB
+  const user = await db.users.get(o.userId)
+    ?? await db.users.where('serverId').equals(o.userId).first();
+
+  // Cargar items
+  const localItems = await db.orderItems
+    .where('orderId').equals(o.id!)
+    .filter(i => !i.deletedAt)
+    .toArray();
+
+  const items = await Promise.all(localItems.map(async item => {
+    const product = await db.products.get(item.productId)
+      ?? await db.products.where('serverId').equals(item.productId).first();
+    return {
+      id: item.id!,
+      productId: item.productId,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      taxRate: item.taxRate,
+      subtotal: item.totalPrice,
+      totalPrice: item.totalPrice,
+      product: {
+        id: product?.serverId ?? product?.id ?? item.productId,
+        name: product?.name ?? `Producto #${item.productId}`,
+        code: product?.code ?? '',
+      },
+    };
+  }));
+
+  const isPending = o._syncStatus === SyncStatus.PENDING_CREATE;
+
+  return {
+    id: isPending ? o.id! : (o.serverId ?? o.id!),
+    orderNumber: o.orderNumber,
+    customerId: o.customerId,
+    userId: o.userId,
+    totalAmount: o.totalAmount,
+    status: o.status,
+    notes: o.notes,
+    customer: {
+      id: customer?.serverId ?? customer?.id ?? o.customerId,
+      name: customer?.name ?? `Cliente #${o.customerId}`,
+      contact: customer?.contact,
+      address: customer?.address,
+    },
+    user: {
+      id: user?.serverId ?? user?.id ?? o.userId,
+      username: user?.username ?? `Usuario #${o.userId}`,
+      role: user?.role ?? 'seller',
+    },
+    items,
+    createdAt: o.createdAt ?? new Date().toISOString(),
+    updatedAt: o.updatedAt ?? new Date().toISOString(),
+    _isLocal: isPending,
+  } as any;
+}
+
 interface OrderState {
   orders: Order[];
   currentOrder: Order | null;
@@ -36,24 +113,7 @@ export const useOrderStore = create<OrderState>((set) => ({
     set({ loading: true, error: null });
     try {
       if (!navigator.onLine) {
-        // Offline: leer de IndexedDB
-        const localOrders = await db.orders
-          .filter(o => !o.deletedAt)
-          .reverse()
-          .toArray();
-
-        const mappedOrders: Order[] = localOrders.map(o => ({
-          id: o.serverId ?? o.id!,
-          orderNumber: o.orderNumber,
-          customerId: o.customerId,
-          userId: o.userId,
-          totalAmount: o.totalAmount,
-          status: o.status,
-          notes: o.notes,
-          createdAt: o.createdAt ?? new Date().toISOString(),
-          updatedAt: o.updatedAt ?? new Date().toISOString(),
-        }));
-
+        const mappedOrders = await loadOrdersFromLocal();
         set({
           orders: mappedOrders,
           pagination: { total: mappedOrders.length, page: 1, limit: mappedOrders.length, totalPages: 1 },
@@ -76,17 +136,33 @@ export const useOrderStore = create<OrderState>((set) => ({
         error: null,
       });
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Error al cargar órdenes';
-      set({ error: errorMessage, loading: false });
+      // Fallback a IndexedDB si la API falla
+      try {
+        const mappedOrders = await loadOrdersFromLocal();
+        set({ orders: mappedOrders, loading: false, error: null });
+      } catch {
+        const errorMessage = error instanceof Error ? error.message : 'Error al cargar órdenes';
+        set({ error: errorMessage, loading: false });
+      }
     }
   },
 
   getOrderById: async (id: number) => {
     set({ loading: true, error: null });
     try {
+      if (!navigator.onLine) {
+        const order = await loadOrderFromLocal(id);
+        if (order) { set({ currentOrder: order, loading: false }); return; }
+        throw new Error('Orden no disponible sin conexión');
+      }
       const order = await orderService.getOrderById(id);
       set({ currentOrder: order, loading: false });
     } catch (error: unknown) {
+      // Fallback: intentar cargar de IndexedDB (útil para órdenes pendientes de sync)
+      try {
+        const local = await loadOrderFromLocal(id);
+        if (local) { set({ currentOrder: local, loading: false }); return; }
+      } catch { /* ignorar */ }
       const errorMessage = error instanceof Error ? error.message : 'Error al cargar orden';
       set({ error: errorMessage, loading: false });
     }
