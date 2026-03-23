@@ -111,7 +111,12 @@ export class UserService {
   async deleteUser(id: number, transferToAdminId?: number): Promise<void> {
     const user = await User.findByPk(id, {
       paranoid: false,
-      include: [Order, Price],
+      // paranoid: false en los includes para detectar TODOS los registros,
+      // incluyendo soft-deleted, que aún referencian al usuario vía FK en MySQL.
+      include: [
+        { model: Order, paranoid: false },
+        { model: Price, paranoid: false },
+      ],
     });
 
     if (!user) {
@@ -123,10 +128,10 @@ export class UserService {
         if (!transferToAdminId) {
           throw new ConflictError("El usuario tiene precios asignados");
         }
-        // Reasignar precios al admin que elimina
+        // Reasignar precios al admin que elimina (incluye soft-deleted para liberar FK)
         await Price.update(
           { updatedByUserId: transferToAdminId },
-          { where: { updatedByUserId: id } }
+          { where: { updatedByUserId: id }, paranoid: false }
         );
       }
       if (user.orders?.length > 0) {
