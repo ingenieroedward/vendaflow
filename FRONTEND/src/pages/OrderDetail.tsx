@@ -13,6 +13,7 @@ import {
   Notebook,
   ChevronDown,
   Check,
+  WifiOff,
 } from "lucide-react";
 import { useOrderStore } from "../store/orderStore";
 import { useAuthStore } from "../store/authStore";
@@ -284,11 +285,23 @@ const OrderDetail: React.FC = () => {
     );
   }
 
+  const isLocalOrder = (currentOrder as any)._isLocal;
+
   return (
     <div className="bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto px-4 py-4 lg:py-8">
-        {/* Header */}
 
+        {/* Banner orden local */}
+        {isLocalOrder && (
+          <div className="mb-3 flex items-center gap-2 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-lg">
+            <WifiOff className="w-4 h-4 text-amber-500 flex-shrink-0" />
+            <p className="text-xs text-amber-700">
+              Esta orden está guardada localmente y se sincronizará cuando haya conexión a internet.
+            </p>
+          </div>
+        )}
+
+        {/* Header */}
         <div>
           <Button
             variant="ghost"

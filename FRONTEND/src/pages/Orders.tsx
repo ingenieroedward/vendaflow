@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Search, Eye, Edit, Trash2, Calendar, User } from "lucide-react";
+import { Plus, Search, Eye, Edit, Trash2, Calendar, User, WifiOff } from "lucide-react";
 import { useOrderStore } from "../store/orderStore";
 import { useAuthStore } from "../store/authStore";
 import { useUIStore } from "../store/uiStore";
@@ -43,11 +43,10 @@ const Orders: React.FC = () => {
 
   const filteredOrders = orders.filter((order) => {
     const searchLower = search.toLowerCase();
-
     return (
       order.orderNumber.toString().includes(searchLower) ||
-      order.customer.name.toLowerCase().includes(searchLower) ||
-      order.user.username.toLowerCase().includes(searchLower) ||
+      (order.customer?.name ?? '').toLowerCase().includes(searchLower) ||
+      (order.user?.username ?? '').toLowerCase().includes(searchLower) ||
       formatDate(order.createdAt).toLowerCase().includes(searchLower)
     );
   });
@@ -188,17 +187,26 @@ const Orders: React.FC = () => {
                   {filteredOrders.map((order) => {
                     const priceBreakdown = getPriceBreakdown(order);
 
+                    const isLocal = (order as any)._isLocal;
                     return (
                       <div
                         key={order.id}
-                        className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6 hover:shadow-md transition-shadow duration-200"
+                        className={`bg-white rounded-lg shadow-sm border p-4 sm:p-6 hover:shadow-md transition-shadow duration-200 ${isLocal ? 'border-amber-300' : 'border-gray-200'}`}
                       >
                         {/* Order Header */}
                         <div className="flex justify-between items-start mb-4">
                           <div>
-                            <h3 className="text-lg font-semibold text-gray-900">
-                              #{order.orderNumber}
-                            </h3>
+                            <div className="flex items-center gap-2">
+                              <h3 className="text-lg font-semibold text-gray-900">
+                                #{order.orderNumber}
+                              </h3>
+                              {isLocal && (
+                                <span className="flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-700">
+                                  <WifiOff className="w-3 h-3" />
+                                  Sin sincronizar
+                                </span>
+                              )}
+                            </div>
                             <p className="text-sm text-gray-500">
                               {formatDate(order.createdAt)}
                             </p>
@@ -287,12 +295,16 @@ const Orders: React.FC = () => {
                                 }
                                 size="sm"
                                 className="flex-1"
+                                disabled={isLocal}
+                                title={isLocal ? 'No disponible hasta sincronizar' : undefined}
                               >
                                 Editar
                               </Button>
                               <Button
                                 variant="ghost"
                                 icon={Trash2}
+                                disabled={isLocal}
+                                title={isLocal ? 'No disponible hasta sincronizar' : undefined}
                                 onClick={() => {
                                   setOrderToDelete(order.id);
                                   setShowDeleteModal(true);
