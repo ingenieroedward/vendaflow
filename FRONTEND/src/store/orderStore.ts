@@ -254,43 +254,92 @@ export const useOrderStore = create<OrderState>((set) => ({
   syncPendingOrders: async () => {
     if (!navigator.onLine) return { synced: 0, failed: 0 };
 
-    // Sin límite de attempts — reintentar siempre que haya conexión
-    const pendingItems = await db.syncQueue
-      .where('entityType').equals('order')
-      .filter(item => item.operation === 'create')
+    // Buscar DIRECTAMENTE órdenes pendientes por _syncStatus (más confiable que syncQueue)
+    const pendingOrders = await db.orders
+      .where('_syncStatus').equals(SyncStatus.PENDING_CREATE)
       .toArray();
 
     let synced = 0;
     let failed = 0;
 
-    for (const item of pendingItems) {
+    for (const localOrder of pendingOrders) {
       try {
-        const order = await orderService.createOrder(item.data);
+        // Buscar entrada de syncQueue (puede tener datos completos o vacíos)
+        const queueEntry = await db.syncQueue
+          .where('entityLocalId').equals(localOrder.id!)
+          .filter(item => item.entityType === 'order' && item.operation === 'create')
+          .first();
+
+        // Obtener items locales del order
+        const localItems = await db.orderItems
+          .where('orderId').equals(localOrder.id!)
+          .filter(i => !i.deletedAt)
+          .toArray();
+
+        if (localItems.length === 0) {
+          // Orden sin items — no se puede sincronizar
+          failed++;
+          continue;
+        }
+
+        // Construir datos del request: usar syncQueue si tiene items, si no reconstruir
+        const hasValidQueueData = queueEntry?.data?.items?.length > 0;
+        const requestData = hasValidQueueData
+          ? queueEntry!.data
+          : {
+              customerId: localOrder.customerId,
+              orderNumber: localOrder.orderNumber,
+              status: localOrder.status,
+              notes: localOrder.notes,
+              items: localItems.map(item => ({
+                productId: item.productId,
+                quantity: item.quantity,
+                unitPrice: item.unitPrice,
+                taxRate: item.taxRate,
+              })),
+            };
+
+        const order = await orderService.createOrder(requestData);
 
         // Actualizar orden local con ID del servidor
-        await db.orders.update(item.entityLocalId, {
+        await db.orders.update(localOrder.id!, {
           serverId: order.id,
           orderNumber: order.orderNumber,
           _syncStatus: SyncStatus.SYNCED,
-          updatedAt: order.updatedAt,
+          updatedAt: typeof order.updatedAt === 'string'
+            ? order.updatedAt
+            : new Date(order.updatedAt).toISOString(),
         });
 
-        // Eliminar de la cola
-        await db.syncQueue.delete(item.id!);
+        // Limpiar syncQueue si existía
+        if (queueEntry?.id) {
+          await db.syncQueue.delete(queueEntry.id);
+        }
+
         synced++;
       } catch (err) {
-        await db.syncQueue.update(item.id!, {
-          attempts: item.attempts + 1,
-          lastAttemptAt: Date.now(),
-          error: err instanceof Error ? err.message : 'Error desconocido',
-        });
+        // Registrar error en syncQueue
+        const queueEntry = await db.syncQueue
+          .where('entityLocalId').equals(localOrder.id!)
+          .filter(item => item.entityType === 'order')
+          .first();
+
+        if (queueEntry?.id) {
+          await db.syncQueue.update(queueEntry.id, {
+            attempts: queueEntry.attempts + 1,
+            lastAttemptAt: Date.now(),
+            error: err instanceof Error ? err.message : 'Error desconocido',
+          });
+        }
+
         failed++;
+        console.error(`[Sync] Falló sincronizar orden local #${localOrder.id}:`, err);
       }
     }
 
     const pendingSync = await db.syncQueue.count();
 
-    // Refrescar la lista de órdenes desde el servidor tras sincronizar
+    // Refrescar lista desde el servidor si se sincronizó algo
     if (synced > 0) {
       try {
         const response = await orderService.getOrders(1, 50);
