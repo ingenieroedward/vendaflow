@@ -420,7 +420,7 @@ const OrderDetail: React.FC = () => {
                 <div>
                   <p className="text-xs lg:text-sm text-gray-500">Creado por</p>
                   <p className="font-medium text-sm lg:text-base">
-                    {currentOrder.user.username}
+                    {currentOrder.user?.username ?? `Usuario #${currentOrder.userId}`}
                   </p>
                 </div>
               </div>
@@ -509,10 +509,10 @@ const OrderDetail: React.FC = () => {
               <div>
                 <p className="text-xs lg:text-sm text-gray-500">Nombre</p>
                 <p className="font-medium text-gray-900 text-sm lg:text-base">
-                  {currentOrder.customer.name}
+                  {currentOrder.customer?.name ?? `Cliente #${currentOrder.customerId}`}
                 </p>
               </div>
-              {currentOrder.customer.contact && (
+              {currentOrder.customer?.contact && (
                 <div>
                   <p className="text-xs lg:text-sm text-gray-500">Contacto</p>
                   <p className="text-gray-700 text-sm lg:text-base">
@@ -520,7 +520,7 @@ const OrderDetail: React.FC = () => {
                   </p>
                 </div>
               )}
-              {currentOrder.customer.address && (
+              {currentOrder.customer?.address && (
                 <div>
                   <p className="text-xs lg:text-sm text-gray-500">Dirección</p>
                   <p className="text-gray-700 text-sm lg:text-base">
@@ -528,7 +528,7 @@ const OrderDetail: React.FC = () => {
                   </p>
                 </div>
               )}
-              {currentOrder.customer.note && (
+              {currentOrder.customer?.note && (
                 <div>
                   <p className="text-xs lg:text-sm text-gray-500">Nota</p>
                   <p className="text-gray-700 italic text-sm lg:text-base">

@@ -116,19 +116,19 @@ const OrderPrintView = forwardRef<HTMLDivElement, OrderPrintViewProps>(
             </h3>
             <div className="bg-gray-50 p-3 rounded">
               <p className="font-semibold text-gray-900">
-                {order.customer.name}
+                {order.customer?.name ?? `Cliente #${order.customerId}`}
               </p>
-              {order.customer.contact && (
+              {order.customer?.contact && (
                 <p className="text-sm text-gray-700">
                   Contacto: {order.customer.contact}
                 </p>
               )}
-              {order.customer.address && (
+              {order.customer?.address && (
                 <p className="text-sm text-gray-700">
                   Dirección: {order.customer.address}
                 </p>
               )}
-              {order.customer.note && (
+              {order.customer?.note && (
                 <p className="text-sm text-gray-600 italic">
                   Nota: {order.customer.note}
                 </p>
@@ -141,10 +141,10 @@ const OrderPrintView = forwardRef<HTMLDivElement, OrderPrintViewProps>(
             </h3>
             <div className="bg-gray-50 p-3 rounded">
               <p className="font-semibold text-gray-900">
-                {order.user.username}
+                {order.user?.username ?? `Usuario #${order.userId}`}
               </p>
               <p className="text-sm text-gray-600">
-                Rol: {order.user.role.toUpperCase()}
+                Rol: {(order.user?.role ?? 'seller').toUpperCase()}
               </p>
             </div>
           </div>
