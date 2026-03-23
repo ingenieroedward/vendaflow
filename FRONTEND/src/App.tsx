@@ -72,7 +72,7 @@ const NotificationContainer: React.FC = () => {
 };
 
 function App() {
-  const { checkAuth } = useAuthStore();
+  const { checkAuth, isAuthenticated } = useAuthStore();
   const { addNotification } = useUIStore();
   const { syncPendingOrders } = useOrderStore();
 
@@ -80,6 +80,21 @@ function App() {
     checkAuth();
   }, [checkAuth]);
 
+  // Sincronizar al arrancar si ya hay conexión y el usuario está autenticado
+  useEffect(() => {
+    if (!isAuthenticated || !navigator.onLine) return;
+    syncPendingOrders().then(({ synced }) => {
+      if (synced > 0) {
+        addNotification({
+          type: 'success',
+          title: 'Sincronización completada',
+          message: `${synced} orden${synced > 1 ? 'es' : ''} sincronizada${synced > 1 ? 's' : ''} con el servidor`,
+        });
+      }
+    });
+  }, [isAuthenticated]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Sincronizar al recuperar conexión
   useEffect(() => {
     const handleOnline = async () => {
       const { synced } = await syncPendingOrders();
