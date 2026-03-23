@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import AppRouter from './routes/AppRouter';
 import { useAuthStore } from './store/authStore';
 import { useUIStore } from './store/uiStore';
+import { useOrderStore } from './store/orderStore';
 import ErrorBoundary from './components/ui/ErrorBoundary';
 
 const NotificationContainer: React.FC = () => {
@@ -72,10 +73,28 @@ const NotificationContainer: React.FC = () => {
 
 function App() {
   const { checkAuth } = useAuthStore();
+  const { addNotification } = useUIStore();
+  const { syncPendingOrders } = useOrderStore();
 
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
+
+  useEffect(() => {
+    const handleOnline = async () => {
+      const { synced } = await syncPendingOrders();
+      if (synced > 0) {
+        addNotification({
+          type: 'success',
+          title: 'Sincronización completada',
+          message: `${synced} orden${synced > 1 ? 'es' : ''} sincronizada${synced > 1 ? 's' : ''} con el servidor`,
+        });
+      }
+    };
+
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+  }, [syncPendingOrders, addNotification]);
 
   return (
     <ErrorBoundary>
