@@ -1,41 +1,35 @@
-# Use Node.js 18 Alpine as base image
-FROM node:18-alpine
+# ── Stage 1: Build ──────────────────────────────────────────────────────────
+FROM node:18-alpine AS builder
 
-# Set working directory
 WORKDIR /app
 
-# Install dependencies for native modules
+# python3/make/g++ requeridos para compilar módulos nativos de npm
 RUN apk add --no-cache python3 make g++
 
-# Copy package files
 COPY package*.json ./
+RUN npm ci
 
-# Install ALL dependencies (including devDeps needed for TypeScript build)
-RUN npm ci && npm cache clean --force
-
-# Copy source code
 COPY . .
-
-# Build the application
 RUN npm run build
 
-# Remove development dependencies
-RUN npm prune --production
+# ── Stage 2: Production ──────────────────────────────────────────────────────
+FROM node:18-alpine
 
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nodejs -u 1001
+WORKDIR /app
 
-# Change ownership of the app directory
-RUN chown -R nodejs:nodejs /app
+# Crear usuario no-root
+RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
+
+# Solo dependencias de producción
+COPY package*.json ./
+RUN npm ci --omit=dev && npm cache clean --force
+
+# Copiar build compilado
+COPY --from=builder /app/dist ./dist
+
+RUN mkdir -p logs && chown -R nodejs:nodejs /app
 USER nodejs
 
-# Create logs directory
-RUN mkdir -p logs
-
-# Expose port
 EXPOSE 3001
-# cache-bust: 2
 
-# Start the application
-CMD ["npm", "start"] 
+CMD ["npm", "start"]
