@@ -303,8 +303,6 @@ const Orders: React.FC = () => {
                               <Button
                                 variant="ghost"
                                 icon={Trash2}
-                                disabled={isLocal}
-                                title={isLocal ? 'No disponible hasta sincronizar' : undefined}
                                 onClick={() => {
                                   setOrderToDelete(order.id);
                                   setShowDeleteModal(true);
