@@ -6,6 +6,14 @@ import { db, SyncStatus, LocalOrder, LocalOrderItem } from '../database/LocalDat
 import { orderRepository } from '../repositories/OrderRepository';
 
 // ─── Helpers para cargar desde IndexedDB ────────────────────────────────────
+//
+// Arquitectura offline:
+//  - Las órdenes creadas sin conexión se guardan en IndexedDB con _syncStatus = PENDING_CREATE.
+//  - Se registra una entrada en db.syncQueue para facilitar el reintento.
+//  - Al recuperar conexión, syncPendingOrders() lee directamente por _syncStatus (más robusto
+//    que confiar sólo en syncQueue) y envía cada orden al servidor.
+//  - Si el servidor acepta la orden, se actualiza el registro local con el serverId y
+//    se marca como SYNCED. Si falla, se incrementa attempts en syncQueue para diagnóstico.
 
 async function loadOrdersFromLocal(): Promise<Order[]> {
   const localOrders = await db.orders.filter(o => !o.deletedAt).reverse().toArray();
@@ -251,6 +259,14 @@ export const useOrderStore = create<OrderState>((set) => ({
     }
   },
 
+  /**
+   * Sincroniza todas las órdenes pendientes con el servidor.
+   * Itera sobre órdenes con _syncStatus = PENDING_CREATE y las envía una por una.
+   * Para construir el payload prioriza los datos de syncQueue; si no están disponibles,
+   * reconstruye desde los items guardados en IndexedDB.
+   * Al terminar, refresca la lista desde el servidor si hubo al menos una sincronización exitosa.
+   * @returns Conteo de órdenes sincronizadas y fallidas.
+   */
   syncPendingOrders: async () => {
     if (!navigator.onLine) return { synced: 0, failed: 0 };
 

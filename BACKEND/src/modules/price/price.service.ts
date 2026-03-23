@@ -9,6 +9,12 @@ import { createPriceSchema, updatePriceSchema } from './price.dto';
 import { pushService } from '@/modules/push/push.service';
 
 export class PriceService {
+  /**
+   * Crea un precio para una combinación producto-proveedor.
+   * Solo puede existir un precio por par (productId, supplierId) — lanza ConflictError si ya existe.
+   * Al crear, dispara una notificación push a todos los suscriptores.
+   * El fallo de la notificación se suprime (.catch(() => {})) para no bloquear la respuesta.
+   */
   async createPrice(priceData: CreatePriceDto, userId: number): Promise<PriceResponseDto> {
     const validatedData = validateSchema(createPriceSchema, priceData);
 
@@ -95,6 +101,11 @@ export class PriceService {
     return this.mapToResponseDto(price);
   }
 
+  /**
+   * Actualiza el precio de un registro existente.
+   * Si el nuevo precio es igual al actual, retorna sin hacer ningún UPDATE (optimización).
+   * Si cambia, persiste el nuevo valor y envía notificación push (fallo suprimido).
+   */
   async updatePrice(id: number, updateData: UpdatePriceDto, userId: number): Promise<PriceResponseDto> {
     const validatedData = validatePartialSchema(updatePriceSchema, updateData) as Partial<UpdatePriceDto>;
 
