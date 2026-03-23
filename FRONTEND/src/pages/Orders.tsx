@@ -47,7 +47,6 @@ const Orders: React.FC = () => {
       setSyncing(false);
     }
   };
-  };
 
   const formatDate = (dateString: string) => {
     return format(new Date(dateString), "dd/MM/yyyy HH:mm", { locale: es });
