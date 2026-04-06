@@ -24,6 +24,7 @@ export interface Order {
   customer: {
     id: number;
     name: string;
+    nit?: string | null;
     contact?: string;
     address?: string;
     note?: string;

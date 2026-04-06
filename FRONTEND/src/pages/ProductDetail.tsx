@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Package, Tag, Calendar, Edit, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Package, Tag, Calendar, Edit, TrendingUp, Trash2 } from 'lucide-react';
 import { useProductStore } from '../store/productStore';
 import { useUIStore } from '../store/uiStore';
+import { useAuthStore } from '../store/authStore';
 import PriceTable from '../components/features/PriceTable';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import ErrorMessage from '../components/ui/ErrorMessage';
@@ -40,14 +41,18 @@ const ProductDetail: React.FC = () => {
     error,
     getProductById,
     getPricesByProduct,
+    deleteProduct,
     clearError,
     clearCurrentProduct
   } = useProductStore();
   const { addNotification } = useUIStore();
+  const { user } = useAuthStore();
 
   // Modal state
   const [showPriceModal, setShowPriceModal] = useState(false);
   const [showSupplierForm, setShowSupplierForm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   
   // Form data
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -103,6 +108,22 @@ const ProductDetail: React.FC = () => {
 
   const handleEdit = () => {
     navigate(`/products/${id}/edit`);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!id) return;
+    setDeleting(true);
+    try {
+      await deleteProduct(parseInt(id, 10));
+      addNotification({ type: 'success', title: 'Producto eliminado', message: 'El producto y sus precios fueron eliminados.' });
+      navigate('/');
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'Error al eliminar el producto';
+      addNotification({ type: 'error', title: 'Error', message: msg });
+    } finally {
+      setDeleting(false);
+      setShowDeleteConfirm(false);
+    }
   };
 
   const handleAddPrice = () => {
@@ -372,6 +393,17 @@ const ProductDetail: React.FC = () => {
                 >
                   <span className="sr-only">Editar</span>
                 </Button>
+                {user?.role === 'admin' && (
+                  <Button
+                    variant="danger"
+                    icon={Trash2}
+                    onClick={() => setShowDeleteConfirm(true)}
+                    size="sm"
+                    className="w-full sm:w-auto"
+                  >
+                    <span className="hidden md:inline">Eliminar</span>
+                  </Button>
+                )}
                 <Button
                   variant="primary"
                   icon={TrendingUp}
@@ -557,6 +589,28 @@ const ProductDetail: React.FC = () => {
               </Button>
               <Button variant="primary" onClick={handleCreatePrice}>
                 Guardar Precio
+              </Button>
+            </div>
+          </div>
+        </Modal>
+
+        {/* Delete Confirm Modal */}
+        <Modal
+          isOpen={showDeleteConfirm}
+          onClose={() => setShowDeleteConfirm(false)}
+          title="Eliminar producto"
+        >
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              ¿Estás seguro de que quieres eliminar <span className="font-semibold">{product?.name}</span>?
+              Esta acción eliminará el producto y <span className="font-semibold">todos sus precios</span> de forma permanente. No se puede deshacer.
+            </p>
+            <div className="flex justify-end space-x-3">
+              <Button variant="outline" onClick={() => setShowDeleteConfirm(false)} disabled={deleting}>
+                Cancelar
+              </Button>
+              <Button variant="danger" icon={Trash2} onClick={handleDeleteConfirm} disabled={deleting}>
+                {deleting ? 'Eliminando...' : 'Eliminar'}
               </Button>
             </div>
           </div>

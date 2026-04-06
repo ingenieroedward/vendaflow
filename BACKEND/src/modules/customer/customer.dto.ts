@@ -3,6 +3,7 @@ import { z } from 'zod';
 // Create Customer DTO
 export const createCustomerSchema = z.object({
   name: z.string().min(1, 'Name is required').max(255, 'Name too long'),
+  nit: z.string().min(1, 'NIT/Cédula is required').max(20, 'NIT too long'),
   contact: z.string().max(255, 'Contact too long').optional(),
   address: z.string().max(255, 'Address too long').optional(),
   note: z.string().max(255, 'Note too long').optional(),
@@ -13,6 +14,7 @@ export type CreateCustomerDto = z.infer<typeof createCustomerSchema>;
 // Update Customer DTO
 export const updateCustomerSchema = z.object({
   name: z.string().min(1, 'Name is required').max(255, 'Name too long').optional(),
+  nit: z.string().min(1, 'NIT/Cédula is required').max(20, 'NIT too long').optional(),
   contact: z.string().max(255, 'Contact too long').optional(),
   address: z.string().max(255, 'Address too long').optional(),
   note: z.string().max(255, 'Note too long').optional(),
@@ -31,6 +33,7 @@ export type SearchCustomerDto = z.infer<typeof searchCustomerSchema>;
 export interface CustomerResponseDto {
   id: number;
   name: string;
+  nit: string | null;
   contact: string | null;
   address: string | null;
   note: string | null;

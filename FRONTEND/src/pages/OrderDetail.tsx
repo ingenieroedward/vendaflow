@@ -394,6 +394,12 @@ const OrderDetail: React.FC = () => {
           <p className="font-semibold text-sm text-gray-900">
             {currentOrder.customer?.name ?? `Cliente #${currentOrder.customerId}`}
           </p>
+          {currentOrder.customer?.nit && (
+            <div className="flex items-center gap-1.5 mt-1 text-xs text-gray-600">
+              <span className="text-gray-400 font-medium">NIT/CC:</span>
+              <span>{currentOrder.customer.nit}</span>
+            </div>
+          )}
           {currentOrder.customer?.contact && (
             <div className="flex items-center gap-1.5 mt-1 text-xs text-gray-600">
               <Phone className="w-3 h-3 text-gray-400" />
