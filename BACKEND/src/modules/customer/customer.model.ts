@@ -11,6 +11,7 @@ import {
 export interface CustomerAttributes {
   id: number;
   name: string;
+  nit: string | null;
   contact: string;
   address: string;
   note: string;
@@ -50,6 +51,12 @@ export class Customer extends Model<
     },
   })
   name!: string;
+
+  @Column({
+    type: DataType.STRING(20),
+    allowNull: true,
+  })
+  nit!: string | null;
 
   @Column({
     type: DataType.STRING(255),

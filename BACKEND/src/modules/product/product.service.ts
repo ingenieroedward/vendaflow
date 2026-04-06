@@ -121,7 +121,9 @@ export class ProductService {
       throw new NotFoundError('Product not found');
     }
 
-    await product.destroy();
+    // Hard delete all associated prices (including soft-deleted ones) then the product
+    await Price.destroy({ where: { productId: id }, force: true });
+    await product.destroy({ force: true });
   }
 
   async searchProducts(searchData: SearchProductDto, required_prices:boolean = true): Promise<ProductResponseDto[]> {

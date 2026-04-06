@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, User, Phone, MapPin, Save } from 'lucide-react';
+import { X, User, Phone, MapPin, Save, Hash } from 'lucide-react';
 import { CreateCustomerRequest, Customer } from '../../types/customer';
 import { useCustomerStore } from '../../store/customerStore';
 import Button from './Button';
@@ -20,6 +20,7 @@ const CustomerModal: React.FC<CustomerModalProps> = ({
   const { createCustomer, loading, error, clearError } = useCustomerStore();
   const [formData, setFormData] = useState({
     name: '',
+    nit: '',
     contact: '',
     address: '',
     note: ''
@@ -35,13 +36,14 @@ const CustomerModal: React.FC<CustomerModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name.trim()) {
+    if (!formData.name.trim() || !formData.nit.trim()) {
       return;
     }
 
     try {
       const customerData: CreateCustomerRequest = {
         name: formData.name.trim(),
+        nit: formData.nit.trim(),
         contact: formData.contact.trim() || undefined,
         address: formData.address.trim() || undefined,
         note: formData.note.trim() || undefined
@@ -59,6 +61,7 @@ const CustomerModal: React.FC<CustomerModalProps> = ({
   const handleClose = () => {
     setFormData({
       name: '',
+      nit: '',
       contact: '',
       address: '',
       note: ''
@@ -107,6 +110,21 @@ const CustomerModal: React.FC<CustomerModalProps> = ({
               placeholder="Ingresa el nombre completo"
               required
               icon={User}
+            />
+          </div>
+
+          {/* NIT / Cédula */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              NIT / Cédula *
+            </label>
+            <Input
+              type="text"
+              value={formData.nit}
+              onChange={(e) => handleInputChange('nit', e.target.value)}
+              placeholder="Ej: 900123456-7 o 12345678"
+              required
+              icon={Hash}
             />
           </div>
 
@@ -168,7 +186,7 @@ const CustomerModal: React.FC<CustomerModalProps> = ({
               variant="primary"
               icon={Save}
               className="flex-1"
-              disabled={loading || !formData.name.trim()}
+              disabled={loading || !formData.name.trim() || !formData.nit.trim()}
             >
               {loading ? (
                 <div className="flex items-center">

@@ -118,6 +118,11 @@ const OrderPrintView = forwardRef<HTMLDivElement, OrderPrintViewProps>(
               <p className="font-semibold text-gray-900">
                 {order.customer?.name ?? `Cliente #${order.customerId}`}
               </p>
+              {order.customer?.nit && (
+                <p className="text-sm text-gray-700">
+                  NIT/CC: {order.customer.nit}
+                </p>
+              )}
               {order.customer?.contact && (
                 <p className="text-sm text-gray-700">
                   Contacto: {order.customer.contact}

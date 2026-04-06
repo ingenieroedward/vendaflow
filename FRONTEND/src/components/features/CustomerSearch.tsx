@@ -31,8 +31,9 @@ const CustomerSearch: React.FC<CustomerSearchProps> = ({
   }, [selectedCustomer]);
 
   // Filter customers based on query
-  const filteredCustomers = customers.filter(customer => 
+  const filteredCustomers = customers.filter(customer =>
     customer.name.toLowerCase().includes(query.toLowerCase()) ||
+    (customer.nit && customer.nit.toLowerCase().includes(query.toLowerCase())) ||
     (customer.contact && customer.contact.toLowerCase().includes(query.toLowerCase())) ||
     (customer.address && customer.address.toLowerCase().includes(query.toLowerCase()))
   );
@@ -143,6 +144,9 @@ const CustomerSearch: React.FC<CustomerSearchProps> = ({
                     <User className="h-4 w-4 text-gray-400 mr-3 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-gray-900 truncate">{customer.name}</div>
+                      {customer.nit && (
+                        <div className="text-xs text-gray-500 truncate">NIT/CC: {customer.nit}</div>
+                      )}
                       {customer.contact && (
                         <div className="text-xs text-gray-500 truncate">{customer.contact}</div>
                       )}

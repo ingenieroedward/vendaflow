@@ -15,6 +15,7 @@ const Orders: React.FC = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [syncing, setSyncing] = useState(false);
+  const [activeTab, setActiveTab] = useState<'active' | 'completed'>('active');
   const { user } = useAuthStore();
   const { addNotification } = useUIStore();
   const { orders, loading, error, pagination, getOrders, clearError, deleteOrder, syncPendingOrders } =
@@ -59,7 +60,11 @@ const Orders: React.FC = () => {
     }).format(amount);
   };
 
-  const filteredOrders = orders.filter((order) => {
+  const tabOrders = orders.filter((order) =>
+    activeTab === 'completed' ? order.status === 'completed' : order.status !== 'completed'
+  );
+
+  const filteredOrders = tabOrders.filter((order) => {
     const searchLower = search.toLowerCase();
     return (
       order.orderNumber.toString().includes(searchLower) ||
@@ -68,6 +73,9 @@ const Orders: React.FC = () => {
       formatDate(order.createdAt).toLowerCase().includes(searchLower)
     );
   });
+
+  const activeCount = orders.filter(o => o.status !== 'completed').length;
+  const completedCount = orders.filter(o => o.status === 'completed').length;
 
   // Función para mostrar el desglose de precios
   const getPriceBreakdown = (order: Order) => {
@@ -185,6 +193,40 @@ const Orders: React.FC = () => {
           />
         )}
 
+        {/* Tabs */}
+        <div className="flex border-b border-gray-200 mb-4">
+          <button
+            onClick={() => { setActiveTab('active'); setSearch(''); }}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'active'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Activas
+            {activeCount > 0 && (
+              <span className={`ml-2 px-1.5 py-0.5 rounded-full text-xs ${activeTab === 'active' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>
+                {activeCount}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => { setActiveTab('completed'); setSearch(''); }}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'completed'
+                ? 'border-green-600 text-green-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Entregadas
+            {completedCount > 0 && (
+              <span className={`ml-2 px-1.5 py-0.5 rounded-full text-xs ${activeTab === 'completed' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                {completedCount}
+              </span>
+            )}
+          </button>
+        </div>
+
         {/* Content */}
         <div className="space-y-4 sm:space-y-6">
           {loading ? (
@@ -194,12 +236,12 @@ const Orders: React.FC = () => {
           ) : (
             <>
               {/* Results Header */}
-              {orders.length > 0 && (
+              {tabOrders.length > 0 && (
                 <div className="flex gap-4 justify-between items-center px-1">
                   <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
-                    Órdenes
+                    {activeTab === 'completed' ? 'Entregadas' : 'Activas'}
                     <span className="text-gray-500 font-normal ml-2 text-sm sm:text-base">
-                      ({orders.length})
+                      ({tabOrders.length})
                     </span>
                   </h2>
                   <div className="flex items-center w-full sm:w-auto gap-2">
@@ -356,20 +398,22 @@ const Orders: React.FC = () => {
                 <div className="text-center py-12 sm:py-16 px-4">
                   <Calendar className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 mx-auto mb-4" />
                   <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">
-                    No hay órdenes
+                    {activeTab === 'completed' ? 'No hay órdenes entregadas' : 'No hay órdenes activas'}
                   </h3>
-                  <p className="text-sm sm:text-base text-gray-500 mb-6 max-w-sm mx-auto">
-                    Comienza creando tu primera orden
-                  </p>
-                  {(user?.role === "admin" || user?.role === "seller") && (
-                    <Button
-                      variant="primary"
-                      icon={Plus}
-                      onClick={() => navigate("/orders/new")}
-                      className="w-full sm:w-auto max-w-xs mx-auto"
-                    >
-                      Crear orden
-                    </Button>
+                  {activeTab === 'active' && (user?.role === "admin" || user?.role === "seller") && (
+                    <>
+                      <p className="text-sm sm:text-base text-gray-500 mb-6 max-w-sm mx-auto">
+                        Comienza creando tu primera orden
+                      </p>
+                      <Button
+                        variant="primary"
+                        icon={Plus}
+                        onClick={() => navigate("/orders/new")}
+                        className="w-full sm:w-auto max-w-xs mx-auto"
+                      >
+                        Crear orden
+                      </Button>
+                    </>
                   )}
                 </div>
               )}

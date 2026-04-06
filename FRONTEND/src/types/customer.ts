@@ -1,6 +1,7 @@
 export interface Customer {
   id: number;
   name: string;
+  nit?: string | null;
   contact?: string;
   address?: string;
   note?: string;
@@ -11,6 +12,7 @@ export interface Customer {
 
 export interface CreateCustomerRequest {
   name: string;
+  nit: string;
   contact?: string;
   address?: string;
   note?: string;
@@ -18,7 +20,8 @@ export interface CreateCustomerRequest {
 
 export interface UpdateCustomerRequest {
   name?: string;
+  nit?: string;
   contact?: string;
   address?: string;
   note?: string;
-} 
+}

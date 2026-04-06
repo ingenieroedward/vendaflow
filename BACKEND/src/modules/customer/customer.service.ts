@@ -82,6 +82,7 @@ export class CustomerService {
       where: {
         [Op.or]: [
           { name: { [Op.like]: `%${validatedData.q}%` } },
+          { nit: { [Op.like]: `%${validatedData.q}%` } },
           { contact: { [Op.like]: `%${validatedData.q}%` } },
           { address: { [Op.like]: `%${validatedData.q}%` } },
         ],
@@ -96,6 +97,7 @@ export class CustomerService {
     return {
       id: customer.id,
       name: customer.name,
+      nit: customer.nit,
       contact: customer.contact,
       address: customer.address,
       note: customer.note,
