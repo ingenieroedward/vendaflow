@@ -1,6 +1,19 @@
 import { create } from 'zustand';
 import { Product, Price, PaginationInfo } from '../types';
 import { productService } from '../services/products';
+import { db, LocalProduct } from '../database/LocalDatabase';
+
+const mapLocalToProduct = (p: LocalProduct): Product => ({
+  id: p.serverId ?? p.id!,
+  name: p.name,
+  code: p.code,
+  unit: p.unit,
+  salePrice: p.salePrice,
+  categoryId: p.categoryId ?? null,
+  createdAt: p.createdAt ?? new Date().toISOString(),
+  updatedAt: p.updatedAt ?? new Date().toISOString(),
+  prices: [],
+} as Product);
 
 interface PriceComparisonResult {
   productId: number;
@@ -105,18 +118,65 @@ export const useProductStore = create<ProductState>((set) => ({
     }
     set({ loading: true, error: null });
     try {
+      if (!navigator.onLine) {
+        const term = query.toLowerCase();
+        const local = await db.products
+          .filter(p => !p.deletedAt && (p.name.toLowerCase().includes(term) || p.code.toLowerCase().includes(term)))
+          .toArray();
+        set({ products: local.map(mapLocalToProduct), loading: false, error: null });
+        return;
+      }
       const serverProducts = await productService.searchProducts(query, includePrices);
       set({ products: serverProducts.map(mapServerProduct), loading: false, error: null });
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Error al buscar productos';
-      set({ error: errorMessage, loading: false });
+      try {
+        const term = query.toLowerCase();
+        const local = await db.products
+          .filter(p => !p.deletedAt && (p.name.toLowerCase().includes(term) || p.code.toLowerCase().includes(term)))
+          .toArray();
+        set({ products: local.map(mapLocalToProduct), loading: false, error: null });
+      } catch {
+        const errorMessage = error instanceof Error ? error.message : 'Error al buscar productos';
+        set({ error: errorMessage, loading: false });
+      }
     }
   },
 
   getProducts: async (page = 1, limit = 10, includePrices = false) => {
     set({ loading: true, error: null });
     try {
+      if (!navigator.onLine) {
+        const local = await db.products.filter(p => !p.deletedAt).toArray();
+        set({
+          products: local.map(mapLocalToProduct),
+          pagination: { total: local.length, page: 1, limit: local.length, totalPages: 1 },
+          loading: false, error: null,
+        });
+        return;
+      }
       const response = await productService.getProducts(page, limit, includePrices);
+      // Seed a Dexie para disponibilidad offline
+      if (response.data?.length) {
+        await db.transaction('rw', db.products, async () => {
+          for (const p of response.data) {
+            const existing = await db.products.where('serverId').equals(p.id).first();
+            if (existing?.id) {
+              await db.products.update(existing.id, {
+                name: p.name, code: p.code, unit: p.unit,
+                salePrice: p.salePrice, categoryId: p.categoryId ?? undefined,
+                updatedAt: p.updatedAt, _syncStatus: 'synced' as const,
+              });
+            } else {
+              await db.products.add({
+                serverId: p.id, name: p.name, code: p.code, unit: p.unit,
+                salePrice: p.salePrice, categoryId: p.categoryId ?? undefined,
+                createdAt: p.createdAt, updatedAt: p.updatedAt,
+                _syncStatus: 'synced' as const, _version: 1, _lastModifiedAt: Date.now(),
+              } as LocalProduct);
+            }
+          }
+        });
+      }
       set({
         products: response.data.map(mapServerProduct),
         pagination: {
@@ -129,6 +189,14 @@ export const useProductStore = create<ProductState>((set) => ({
         error: null,
       });
     } catch (error: unknown) {
+      // Fallback a Dexie si la API falla
+      try {
+        const local = await db.products.filter(p => !p.deletedAt).toArray();
+        if (local.length > 0) {
+          set({ products: local.map(mapLocalToProduct), loading: false, error: null });
+          return;
+        }
+      } catch { /* ignorar */ }
       const errorMessage = error instanceof Error ? error.message : 'Error al cargar productos';
       set({ error: errorMessage, loading: false });
     }
@@ -137,6 +205,11 @@ export const useProductStore = create<ProductState>((set) => ({
   getProductById: async (id: number) => {
     set({ loading: true, error: null, currentProduct: null });
     try {
+      if (!navigator.onLine) {
+        const local = await db.products.get(id) ?? await db.products.where('serverId').equals(id).first();
+        if (local) { set({ currentProduct: mapLocalToProduct(local), loading: false }); return; }
+        throw new Error('Producto no disponible sin conexión');
+      }
       const serverProduct = await productService.getProductById(id);
       set({ currentProduct: mapServerProduct(serverProduct), loading: false });
     } catch (error: unknown) {

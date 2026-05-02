@@ -4,6 +4,7 @@ import { useAuthStore } from './store/authStore';
 import { useUIStore } from './store/uiStore';
 import { useOrderStore } from './store/orderStore';
 import ErrorBoundary from './components/ui/ErrorBoundary';
+import { Network } from '@capacitor/network';
 
 const NotificationContainer: React.FC = () => {
   const { notifications, removeNotification } = useUIStore();
@@ -94,7 +95,7 @@ function App() {
     });
   }, [isAuthenticated]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Sincronizar al recuperar conexión
+  // Sincronizar al recuperar conexión (Capacitor Network — más confiable que window.online en Android)
   useEffect(() => {
     const handleOnline = async () => {
       const { synced } = await syncPendingOrders();
@@ -107,8 +108,18 @@ function App() {
       }
     };
 
+    // Listener nativo de Capacitor (funciona en Android WebView correctamente)
+    const listenerPromise = Network.addListener('networkStatusChange', (status) => {
+      if (status.connected) handleOnline();
+    });
+
+    // Fallback para web
     window.addEventListener('online', handleOnline);
-    return () => window.removeEventListener('online', handleOnline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      listenerPromise.then(l => l.remove());
+    };
   }, [syncPendingOrders, addNotification]);
 
   return (

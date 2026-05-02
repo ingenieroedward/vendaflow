@@ -7,4 +7,6 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['lucide-react'],
   },
+  // Base relativa requerida para Capacitor (WebView carga desde file://)
+  base: './',
 });

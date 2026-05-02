@@ -12,6 +12,10 @@
     "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
+    "@capacitor/android": "^8.3.1",
+    "@capacitor/cli": "^8.3.1",
+    "@capacitor/core": "^8.3.1",
+    "@capacitor/network": "^8.0.1",
     "@types/node": "^24.0.13",
     "axios": "^1.10.0",
     "date-fns": "^4.1.0",
