@@ -89,7 +89,11 @@ cd BACKEND && npm run docker:dev
 - **JWT** (jsonwebtoken) + **bcryptjs** para auth
 - **Winston** para logging (archivos en `BACKEND/logs/`)
 - **Soft deletes** en todos los modelos (`paranoid: true`)
-- **No hay migrations** — se usa `sequelize.sync()`. En producción se recomienda implementar Sequelize CLI migrations.
+- **No hay migrations** — se usa `sequelize.sync({ alter: false })`. Esto **solo crea tablas nuevas**, nunca agrega columnas a tablas existentes. Al agregar una columna a un modelo, hay que correrla manualmente en producción:
+  ```bash
+  docker exec -it <mysql-container> mysql -u root -p jjlm_db -e "ALTER TABLE <tabla> ADD COLUMN <col> <tipo> NULL AFTER <col_anterior>;"
+  # Ver nombre del contenedor: docker ps | grep mysql
+  ```
 
 ### Frontend
 - **Zustand** para estado global

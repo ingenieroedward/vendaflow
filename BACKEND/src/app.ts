@@ -20,6 +20,9 @@ import pushRoutes from '@/modules/push/push.routes';
 
 const app = express();
 
+// Confiar en el proxy de Traefik (necesario para rate-limit con X-Forwarded-For)
+app.set('trust proxy', 1);
+
 // Security middleware
 app.use(helmet());
 
