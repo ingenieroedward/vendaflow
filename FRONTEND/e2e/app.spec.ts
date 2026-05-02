@@ -210,6 +210,7 @@ test.describe('👥 API Backend - Clientes', () => {
       headers: { Authorization: `Bearer ${token}` },
       data: {
         name: uniqueClientName,
+        nit: '900123456',
         contact: '555-1234',
         address: 'Calle Test 456',
         note: 'Cliente creado por Playwright E2E'

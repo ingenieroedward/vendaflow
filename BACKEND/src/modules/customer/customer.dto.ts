@@ -3,7 +3,7 @@ import { z } from 'zod';
 // Create Customer DTO
 export const createCustomerSchema = z.object({
   name: z.string().min(1, 'Name is required').max(255, 'Name too long'),
-  nit: z.string().min(1, 'NIT/Cédula is required').max(20, 'NIT too long'),
+  nit: z.string().min(1, 'NIT/Cédula is required').max(20, 'NIT too long').optional().nullable(),
   contact: z.string().max(255, 'Contact too long').optional(),
   address: z.string().max(255, 'Address too long').optional(),
   note: z.string().max(255, 'Note too long').optional(),
