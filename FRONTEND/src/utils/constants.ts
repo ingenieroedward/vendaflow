@@ -1,4 +1,4 @@
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'https://jjlm.edwsystem.com/api';
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'https://api.jjlm.edwsystem.com/api';
 
 export const APP_CONFIG = {
   name: 'JJLM Sistema',
