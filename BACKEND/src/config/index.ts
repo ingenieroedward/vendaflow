@@ -32,9 +32,11 @@ export const config = {
     maxRequests: parseInt(process.env['RATE_LIMIT_MAX_REQUESTS'] || '100'),
   },
 
-  // CORS configuration
+  // CORS configuration — soporta múltiples orígenes separados por coma
   cors: {
-    origin: process.env['CORS_ORIGIN'] || 'http://localhost:3000',
+    origin: (process.env['CORS_ORIGIN'] || 'http://localhost:3000')
+      .split(',')
+      .map(o => o.trim()),
   },
 
   // Logging
