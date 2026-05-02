@@ -51,6 +51,7 @@ export const CustomerTransform = {
     return {
       serverId: serverCustomer.id,
       name: serverCustomer.name,
+      nit: (serverCustomer as any).nit ?? null,
       contact: serverCustomer.contact,
       address: serverCustomer.address,
       note: serverCustomer.note,
@@ -68,6 +69,7 @@ export const CustomerTransform = {
   toServer: (localCustomer: LocalCustomer): Partial<ServerCustomer> => {
     const serverData: any = {
       name: localCustomer.name,
+      nit: localCustomer.nit,
       contact: localCustomer.contact,
       address: localCustomer.address,
       note: localCustomer.note
@@ -99,6 +101,7 @@ export const CustomerQueries = {
     const term = searchTerm.toLowerCase();
     return (customer: LocalCustomer) =>
       customer.name.toLowerCase().includes(term) ||
+      (customer.nit?.toLowerCase().includes(term) ?? false) ||
       customer.contact.toLowerCase().includes(term) ||
       (customer.note?.toLowerCase().includes(term) ?? false);
   }
