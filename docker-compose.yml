@@ -46,13 +46,6 @@ services:
       VAPID_PUBLIC_KEY: BFs2khE7TREeTo_S95ob5C_JBfpjvhTsnw2eRezgJ2jH8_Jh9V8tC0Xtcj9sEkpjhxpmXD1_dYzpeWOBEN9-fVw
       VAPID_PRIVATE_KEY: 6kvoyQf61Kdif0a4n5kIWwbxirkf6BX8cF5Nv2gPQSQ
       VAPID_SUBJECT: mailto:admin@jjlm.com
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.jjlm-api.rule=Host(`api.jjlm.edwsystem.com`)"
-      - "traefik.http.routers.jjlm-api.entrypoints=websecure"
-      - "traefik.http.routers.jjlm-api.tls.certresolver=letsencrypt"
-      - "traefik.http.services.jjlm-api.loadbalancer.server.port=3001"
-      - "traefik.docker.network=dokploy-network"
     volumes:
       - backend_logs:/app/logs
     depends_on:
