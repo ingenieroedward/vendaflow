@@ -34,6 +34,7 @@ interface CustomerState {
   createCustomer: (customerData: CreateCustomerRequest) => Promise<Customer>;
   updateCustomer: (id: number, customerData: UpdateCustomerRequest) => Promise<void>;
   deleteCustomer: (id: number) => Promise<void>;
+  syncPendingCustomers: () => Promise<{ synced: number; failed: number }>;
   clearError: () => void;
   clearCurrentCustomer: () => void;
 }
@@ -217,6 +218,66 @@ export const useCustomerStore = create<CustomerState>((set) => ({
       set({ error: errorMessage, loading: false });
       throw error;
     }
+  },
+
+  syncPendingCustomers: async () => {
+    if (!navigator.onLine) return { synced: 0, failed: 0 };
+
+    const pendingCustomers = await db.customers
+      .where('_syncStatus').equals(SyncStatus.PENDING_CREATE)
+      .toArray();
+
+    let synced = 0;
+    let failed = 0;
+
+    for (const local of pendingCustomers) {
+      try {
+        const created = await customerService.createCustomer({
+          name: local.name,
+          nit: local.nit ?? undefined,
+          contact: local.contact ?? undefined,
+          address: local.address ?? undefined,
+          note: local.note,
+        });
+
+        await db.customers.update(local.id!, {
+          serverId: created.id,
+          _syncStatus: SyncStatus.SYNCED,
+          updatedAt: created.updatedAt,
+        });
+
+        const queueEntry = await db.syncQueue
+          .where('entityLocalId').equals(local.id!)
+          .filter(e => e.entityType === 'customer' && e.operation === 'create')
+          .first();
+        if (queueEntry?.id) await db.syncQueue.delete(queueEntry.id);
+
+        synced++;
+      } catch (err) {
+        const queueEntry = await db.syncQueue
+          .where('entityLocalId').equals(local.id!)
+          .filter(e => e.entityType === 'customer')
+          .first();
+        if (queueEntry?.id) {
+          await db.syncQueue.update(queueEntry.id, {
+            attempts: queueEntry.attempts + 1,
+            lastAttemptAt: Date.now(),
+            error: err instanceof Error ? err.message : 'Error desconocido',
+          });
+        }
+        failed++;
+      }
+    }
+
+    if (synced > 0) {
+      try {
+        const response = await customerService.getCustomers(1, 2000);
+        if (response.data?.length) await customerRepository.saveAllFromServer(response.data as any);
+        set(state => ({ customers: response.data ?? state.customers }));
+      } catch { /* keep local state */ }
+    }
+
+    return { synced, failed };
   },
 
   clearError: () => set({ error: null }),

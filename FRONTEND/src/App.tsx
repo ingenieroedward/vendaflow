@@ -3,6 +3,7 @@ import AppRouter from './routes/AppRouter';
 import { useAuthStore } from './store/authStore';
 import { useUIStore } from './store/uiStore';
 import { useOrderStore } from './store/orderStore';
+import { useCustomerStore } from './store/customerStore';
 import ErrorBoundary from './components/ui/ErrorBoundary';
 import { Network } from '@capacitor/network';
 
@@ -76,6 +77,7 @@ function App() {
   const { checkAuth, isAuthenticated } = useAuthStore();
   const { addNotification } = useUIStore();
   const { syncPendingOrders } = useOrderStore();
+  const { syncPendingCustomers } = useCustomerStore();
 
   useEffect(() => {
     checkAuth();
@@ -84,12 +86,16 @@ function App() {
   // Sincronizar al arrancar si ya hay conexión y el usuario está autenticado
   useEffect(() => {
     if (!isAuthenticated || !navigator.onLine) return;
-    syncPendingOrders().then(({ synced }) => {
-      if (synced > 0) {
+    Promise.all([syncPendingOrders(), syncPendingCustomers()]).then(([orders, customers]) => {
+      const total = orders.synced + customers.synced;
+      if (total > 0) {
+        const parts = [];
+        if (orders.synced > 0) parts.push(`${orders.synced} orden${orders.synced > 1 ? 'es' : ''}`);
+        if (customers.synced > 0) parts.push(`${customers.synced} cliente${customers.synced > 1 ? 's' : ''}`);
         addNotification({
           type: 'success',
           title: 'Sincronización completada',
-          message: `${synced} orden${synced > 1 ? 'es' : ''} sincronizada${synced > 1 ? 's' : ''} con el servidor`,
+          message: `${parts.join(' y ')} sincronizado${total > 1 ? 's' : ''} con el servidor`,
         });
       }
     });
@@ -98,29 +104,31 @@ function App() {
   // Sincronizar al recuperar conexión (Capacitor Network — más confiable que window.online en Android)
   useEffect(() => {
     const handleOnline = async () => {
-      const { synced } = await syncPendingOrders();
-      if (synced > 0) {
+      const [orders, customers] = await Promise.all([syncPendingOrders(), syncPendingCustomers()]);
+      const total = orders.synced + customers.synced;
+      if (total > 0) {
+        const parts = [];
+        if (orders.synced > 0) parts.push(`${orders.synced} orden${orders.synced > 1 ? 'es' : ''}`);
+        if (customers.synced > 0) parts.push(`${customers.synced} cliente${customers.synced > 1 ? 's' : ''}`);
         addNotification({
           type: 'success',
           title: 'Sincronización completada',
-          message: `${synced} orden${synced > 1 ? 'es' : ''} sincronizada${synced > 1 ? 's' : ''} con el servidor`,
+          message: `${parts.join(' y ')} sincronizado${total > 1 ? 's' : ''} con el servidor`,
         });
       }
     };
 
-    // Listener nativo de Capacitor (funciona en Android WebView correctamente)
     const listenerPromise = Network.addListener('networkStatusChange', (status) => {
       if (status.connected) handleOnline();
     });
 
-    // Fallback para web
     window.addEventListener('online', handleOnline);
 
     return () => {
       window.removeEventListener('online', handleOnline);
       listenerPromise.then(l => l.remove());
     };
-  }, [syncPendingOrders, addNotification]);
+  }, [syncPendingOrders, syncPendingCustomers, addNotification]);
 
   return (
     <ErrorBoundary>
