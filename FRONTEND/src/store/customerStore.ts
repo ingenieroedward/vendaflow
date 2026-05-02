@@ -20,6 +20,7 @@ interface CustomerState {
   currentCustomer: Customer | null;
   loading: boolean;
   error: string | null;
+  pendingSync: number;
   pagination: {
     page: number;
     limit: number;
@@ -44,6 +45,7 @@ export const useCustomerStore = create<CustomerState>((set) => ({
   currentCustomer: null,
   loading: false,
   error: null,
+  pendingSync: 0,
   pagination: { page: 1, limit: 10, total: 0, totalPages: 0 },
 
   getCustomers: async (page = 1, limit = 10) => {
@@ -55,12 +57,8 @@ export const useCustomerStore = create<CustomerState>((set) => ({
         set({ customers, pagination: { page: 1, limit: customers.length, total: customers.length, totalPages: 1 }, loading: false });
         return;
       }
-
       const response = await customerService.getCustomers(page, limit);
-      // Seed a Dexie para disponibilidad offline
-      if (response.data?.length) {
-        await customerRepository.saveAllFromServer(response.data as any);
-      }
+      if (response.data?.length) await customerRepository.saveAllFromServer(response.data as any);
       set({
         customers: response.data,
         pagination: {
@@ -72,14 +70,11 @@ export const useCustomerStore = create<CustomerState>((set) => ({
         loading: false,
       });
     } catch (error: unknown) {
-      // Fallback a Dexie si la API falla
       try {
         const local = await db.customers.filter(c => !c.deletedAt).toArray();
-        const customers = local.map(mapLocalToCustomer);
-        set({ customers, loading: false, error: null });
+        set({ customers: local.map(mapLocalToCustomer), loading: false, error: null });
       } catch {
-        const errorMessage = error instanceof Error ? error.message : 'Error al cargar clientes';
-        set({ error: errorMessage, loading: false });
+        set({ error: error instanceof Error ? error.message : 'Error al cargar clientes', loading: false });
       }
     }
   },
@@ -96,18 +91,15 @@ export const useCustomerStore = create<CustomerState>((set) => ({
           .toArray();
         return local.map(mapLocalToCustomer);
       }
-      const customers = await customerService.searchCustomers(query);
-      return customers;
+      return await customerService.searchCustomers(query);
     } catch (error: unknown) {
-      // Fallback offline
       try {
         const local = await db.customers
           .filter(c => !c.deletedAt && c.name.toLowerCase().includes(query.toLowerCase()))
           .toArray();
         return local.map(mapLocalToCustomer);
       } catch {
-        const errorMessage = error instanceof Error ? error.message : 'Error al buscar clientes';
-        set({ error: errorMessage });
+        set({ error: error instanceof Error ? error.message : 'Error al buscar clientes' });
         throw error;
       }
     }
@@ -122,11 +114,9 @@ export const useCustomerStore = create<CustomerState>((set) => ({
         if (local) { set({ currentCustomer: mapLocalToCustomer(local), loading: false }); return; }
         throw new Error('Cliente no disponible sin conexión');
       }
-      const customer = await customerService.getCustomerById(id);
-      set({ currentCustomer: customer, loading: false });
+      set({ currentCustomer: await customerService.getCustomerById(id), loading: false });
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Error al cargar cliente';
-      set({ error: errorMessage, loading: false });
+      set({ error: error instanceof Error ? error.message : 'Error al cargar cliente', loading: false });
     }
   },
 
@@ -134,7 +124,6 @@ export const useCustomerStore = create<CustomerState>((set) => ({
     set({ loading: true, error: null });
     try {
       if (!navigator.onLine) {
-        // Guardar en Dexie offline
         const localId = await db.customers.add({
           name: customerData.name,
           nit: customerData.nit ?? null,
@@ -148,24 +137,16 @@ export const useCustomerStore = create<CustomerState>((set) => ({
           updatedAt: new Date().toISOString(),
         } as LocalCustomer);
         await db.syncQueue.add({
-          entityType: 'customer',
-          entityLocalId: localId,
-          operation: 'create',
-          data: customerData,
-          attempts: 0,
-          createdAt: Date.now(),
+          entityType: 'customer', entityLocalId: localId,
+          operation: 'create', data: customerData,
+          attempts: 0, createdAt: Date.now(),
         });
-        const local = await db.customers.get(localId);
-        const customer = mapLocalToCustomer(local!);
-        set(state => ({
-          customers: [...state.customers, customer],
-          loading: false,
-        }));
+        const pendingSync = await db.syncQueue.count();
+        const customer = mapLocalToCustomer((await db.customers.get(localId))!);
+        set(state => ({ customers: [...state.customers, customer], loading: false, pendingSync }));
         return customer;
       }
-
       const customer = await customerService.createCustomer(customerData);
-      // Guardar en Dexie para disponibilidad offline futura
       await customerRepository.saveFromServer(customer as any);
       set(state => ({
         customers: [...state.customers, customer],
@@ -174,8 +155,7 @@ export const useCustomerStore = create<CustomerState>((set) => ({
       }));
       return customer;
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Error al crear cliente';
-      set({ error: errorMessage, loading: false });
+      set({ error: error instanceof Error ? error.message : 'Error al crear cliente', loading: false });
       throw error;
     }
   },
@@ -183,8 +163,39 @@ export const useCustomerStore = create<CustomerState>((set) => ({
   updateCustomer: async (id: number, customerData: UpdateCustomerRequest) => {
     set({ loading: true, error: null });
     try {
+      if (!navigator.onLine) {
+        const local = await db.customers.where('serverId').equals(id).first()
+          ?? await db.customers.get(id);
+        if (!local?.id) throw new Error('Cliente no disponible sin conexión');
+
+        await db.customers.update(local.id, {
+          ...customerData,
+          _syncStatus: SyncStatus.PENDING_UPDATE,
+          _lastModifiedAt: Date.now(),
+          updatedAt: new Date().toISOString(),
+        });
+        const existing = await db.syncQueue
+          .where('entityLocalId').equals(local.id)
+          .filter(e => e.entityType === 'customer' && e.operation === 'update')
+          .first();
+        if (existing?.id) {
+          await db.syncQueue.update(existing.id, { data: { ...customerData, serverId: id } });
+        } else {
+          await db.syncQueue.add({
+            entityType: 'customer', entityLocalId: local.id,
+            operation: 'update', data: { ...customerData, serverId: id },
+            attempts: 0, createdAt: Date.now(),
+          });
+        }
+        const pendingSync = await db.syncQueue.count();
+        set(state => ({
+          customers: state.customers.map(c => c.id === id ? { ...c, ...customerData } : c),
+          currentCustomer: state.currentCustomer?.id === id ? { ...state.currentCustomer, ...customerData } : state.currentCustomer,
+          loading: false, pendingSync,
+        }));
+        return;
+      }
       const updated = await customerService.updateCustomer(id, customerData);
-      // Actualizar en Dexie también
       const local = await db.customers.where('serverId').equals(id).first();
       if (local?.id) {
         await db.customers.update(local.id, { ...customerData, _syncStatus: SyncStatus.SYNCED, updatedAt: updated.updatedAt });
@@ -195,8 +206,7 @@ export const useCustomerStore = create<CustomerState>((set) => ({
         loading: false,
       }));
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Error al actualizar cliente';
-      set({ error: errorMessage, loading: false });
+      set({ error: error instanceof Error ? error.message : 'Error al actualizar cliente', loading: false });
       throw error;
     }
   },
@@ -205,7 +215,6 @@ export const useCustomerStore = create<CustomerState>((set) => ({
     set({ loading: true, error: null });
     try {
       await customerService.deleteCustomer(id);
-      // Eliminar de Dexie también
       const local = await db.customers.where('serverId').equals(id).first();
       if (local?.id) await db.customers.delete(local.id);
       set(state => ({
@@ -214,8 +223,7 @@ export const useCustomerStore = create<CustomerState>((set) => ({
         loading: false,
       }));
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Error al eliminar cliente';
-      set({ error: errorMessage, loading: false });
+      set({ error: error instanceof Error ? error.message : 'Error al eliminar cliente', loading: false });
       throw error;
     }
   },
@@ -223,51 +231,60 @@ export const useCustomerStore = create<CustomerState>((set) => ({
   syncPendingCustomers: async () => {
     if (!navigator.onLine) return { synced: 0, failed: 0 };
 
-    const pendingCustomers = await db.customers
-      .where('_syncStatus').equals(SyncStatus.PENDING_CREATE)
-      .toArray();
-
     let synced = 0;
     let failed = 0;
 
-    for (const local of pendingCustomers) {
+    // ── PENDING_CREATE ──────────────────────────────────────────────────────
+    const pendingCreates = await db.customers
+      .where('_syncStatus').equals(SyncStatus.PENDING_CREATE)
+      .toArray();
+
+    for (const local of pendingCreates) {
       try {
         const created = await customerService.createCustomer({
-          name: local.name,
-          nit: local.nit ?? undefined,
-          contact: local.contact ?? undefined,
-          address: local.address ?? undefined,
+          name: local.name, nit: local.nit ?? undefined,
+          contact: local.contact ?? undefined, address: local.address ?? undefined,
           note: local.note,
         });
-
-        await db.customers.update(local.id!, {
-          serverId: created.id,
-          _syncStatus: SyncStatus.SYNCED,
-          updatedAt: created.updatedAt,
-        });
-
-        const queueEntry = await db.syncQueue
-          .where('entityLocalId').equals(local.id!)
-          .filter(e => e.entityType === 'customer' && e.operation === 'create')
-          .first();
-        if (queueEntry?.id) await db.syncQueue.delete(queueEntry.id);
-
+        await db.customers.update(local.id!, { serverId: created.id, _syncStatus: SyncStatus.SYNCED, updatedAt: created.updatedAt });
+        const q = await db.syncQueue.where('entityLocalId').equals(local.id!)
+          .filter(e => e.entityType === 'customer' && e.operation === 'create').first();
+        if (q?.id) await db.syncQueue.delete(q.id);
         synced++;
       } catch (err) {
-        const queueEntry = await db.syncQueue
-          .where('entityLocalId').equals(local.id!)
-          .filter(e => e.entityType === 'customer')
-          .first();
-        if (queueEntry?.id) {
-          await db.syncQueue.update(queueEntry.id, {
-            attempts: queueEntry.attempts + 1,
-            lastAttemptAt: Date.now(),
-            error: err instanceof Error ? err.message : 'Error desconocido',
-          });
-        }
+        const q = await db.syncQueue.where('entityLocalId').equals(local.id!)
+          .filter(e => e.entityType === 'customer').first();
+        if (q?.id) await db.syncQueue.update(q.id, { attempts: q.attempts + 1, lastAttemptAt: Date.now(), error: err instanceof Error ? err.message : 'Error' });
         failed++;
       }
     }
+
+    // ── PENDING_UPDATE ──────────────────────────────────────────────────────
+    const pendingUpdates = await db.customers
+      .where('_syncStatus').equals(SyncStatus.PENDING_UPDATE)
+      .toArray();
+
+    for (const local of pendingUpdates) {
+      try {
+        const q = await db.syncQueue.where('entityLocalId').equals(local.id!)
+          .filter(e => e.entityType === 'customer' && e.operation === 'update').first();
+        if (!q?.data?.serverId) { failed++; continue; }
+        const { serverId, ...updateData } = q.data;
+        await customerService.updateCustomer(serverId, updateData);
+        await db.customers.update(local.id!, { _syncStatus: SyncStatus.SYNCED });
+        if (q.id) await db.syncQueue.delete(q.id);
+        synced++;
+      } catch (err) {
+        const q = await db.syncQueue.where('entityLocalId').equals(local.id!)
+          .filter(e => e.entityType === 'customer' && e.operation === 'update').first();
+        if (q?.id) await db.syncQueue.update(q.id, { attempts: q.attempts + 1, lastAttemptAt: Date.now(), error: err instanceof Error ? err.message : 'Error' });
+        failed++;
+      }
+    }
+
+    const pendingSync = await db.syncQueue
+      .filter(e => e.entityType === 'customer').count();
+    set({ pendingSync });
 
     if (synced > 0) {
       try {

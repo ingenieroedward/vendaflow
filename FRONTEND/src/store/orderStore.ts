@@ -353,6 +353,40 @@ export const useOrderStore = create<OrderState>((set) => ({
       }
     }
 
+    // ── PENDING_UPDATE ────────────────────────────────────────────────────────
+    const pendingUpdates = await db.orders
+      .where('_syncStatus').equals(SyncStatus.PENDING_UPDATE)
+      .toArray();
+
+    for (const localOrder of pendingUpdates) {
+      try {
+        const queueEntry = await db.syncQueue
+          .where('entityLocalId').equals(localOrder.id!)
+          .filter(e => e.entityType === 'order' && e.operation === 'update')
+          .first();
+        if (!queueEntry?.data?.serverId) { failed++; continue; }
+
+        const { serverId, ...updateData } = queueEntry.data;
+        await orderService.updateOrder(serverId, updateData);
+        await db.orders.update(localOrder.id!, { _syncStatus: SyncStatus.SYNCED });
+        if (queueEntry.id) await db.syncQueue.delete(queueEntry.id);
+        synced++;
+      } catch (err) {
+        const queueEntry = await db.syncQueue
+          .where('entityLocalId').equals(localOrder.id!)
+          .filter(e => e.entityType === 'order' && e.operation === 'update')
+          .first();
+        if (queueEntry?.id) {
+          await db.syncQueue.update(queueEntry.id, {
+            attempts: queueEntry.attempts + 1,
+            lastAttemptAt: Date.now(),
+            error: err instanceof Error ? err.message : 'Error desconocido',
+          });
+        }
+        failed++;
+      }
+    }
+
     const pendingSync = await db.syncQueue.count();
 
     // Refrescar lista desde el servidor si se sincronizó algo
@@ -382,6 +416,49 @@ export const useOrderStore = create<OrderState>((set) => ({
   updateOrder: async (id, data) => {
     set({ loading: true, error: null });
     try {
+      if (!navigator.onLine) {
+        const local = await db.orders.where('serverId').equals(id).first()
+          ?? await db.orders.get(id);
+        if (!local?.id) throw new Error('Orden no disponible sin conexión');
+
+        await db.orders.update(local.id, {
+          ...(data.status !== undefined && { status: data.status }),
+          ...(data.notes !== undefined && { notes: data.notes }),
+          ...(data.customerId !== undefined && { customerId: data.customerId }),
+          _syncStatus: SyncStatus.PENDING_UPDATE,
+          _lastModifiedAt: Date.now(),
+          updatedAt: new Date().toISOString(),
+        });
+
+        const existing = await db.syncQueue
+          .where('entityLocalId').equals(local.id)
+          .filter(e => e.entityType === 'order' && e.operation === 'update')
+          .first();
+        if (existing?.id) {
+          await db.syncQueue.update(existing.id, { data: { ...data, serverId: id } });
+        } else {
+          await db.syncQueue.add({
+            entityType: 'order', entityLocalId: local.id,
+            operation: 'update', data: { ...data, serverId: id },
+            attempts: 0, createdAt: Date.now(),
+          });
+        }
+
+        const pendingSync = await db.syncQueue.count();
+        let mergedOrder: Order | null = null;
+        set(state => {
+          const cur = state.orders.find(o => o.id === id) ?? state.currentOrder;
+          mergedOrder = cur ? { ...cur, ...data } as Order : null;
+          return {
+            orders: state.orders.map(o => o.id === id ? (mergedOrder ?? o) : o),
+            currentOrder: state.currentOrder?.id === id ? (mergedOrder ?? state.currentOrder) : state.currentOrder,
+            loading: false, pendingSync,
+          };
+        });
+        if (!mergedOrder) throw new Error('Orden no encontrada en caché');
+        return mergedOrder;
+      }
+
       const order = await orderService.updateOrder(id, data);
       set(state => ({
         orders: state.orders.map(o => o.id === id ? order : o),
