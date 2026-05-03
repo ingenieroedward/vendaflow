@@ -50,6 +50,7 @@ interface ProductState {
   bulkUpdatePrices: (prices: Array<{ id: number; price: number; updatedByUserId: number }>) => Promise<number>;
 
   // Utilities
+  seedAllProducts: () => Promise<void>;
   setSearchQuery: (query: string) => void;
   clearError: () => void;
   clearCurrentProduct: () => void;
@@ -367,6 +368,33 @@ export const useProductStore = create<ProductState>((set) => ({
       set({ error: errorMessage, loading: false });
       throw error;
     }
+  },
+
+  seedAllProducts: async () => {
+    if (!navigator.onLine) return;
+    try {
+      const response = await productService.getProducts(1, 2000, false);
+      if (!response.data?.length) return;
+      await db.transaction('rw', db.products, async () => {
+        for (const p of response.data) {
+          const existing = await db.products.where('serverId').equals(p.id).first();
+          if (existing?.id) {
+            await db.products.update(existing.id, {
+              name: p.name, code: p.code, unit: p.unit,
+              salePrice: p.salePrice, categoryId: p.categoryId ?? undefined,
+              updatedAt: p.updatedAt, _syncStatus: 'synced' as const,
+            });
+          } else {
+            await db.products.add({
+              serverId: p.id, name: p.name, code: p.code, unit: p.unit,
+              salePrice: p.salePrice, categoryId: p.categoryId ?? undefined,
+              createdAt: p.createdAt, updatedAt: p.updatedAt,
+              _syncStatus: 'synced' as const, _version: 1, _lastModifiedAt: Date.now(),
+            } as LocalProduct);
+          }
+        }
+      });
+    } catch { /* silent — solo seed de respaldo */ }
   },
 
   setSearchQuery: (query: string) => set({ searchQuery: query }),

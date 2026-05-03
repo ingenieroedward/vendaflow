@@ -1,4 +1,4 @@
-import { Package, ClipboardList, Users } from 'lucide-react';
+import { Package, ClipboardList, Users, DollarSign, Truck, Tag } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 
@@ -9,8 +9,14 @@ interface NavItem {
   roles: string[];
 }
 
+// buyer: Products, Prices, Suppliers, Categories (4)
+// seller: Products, Orders (2)
+// admin: Products, Prices, Orders, Users (4) — Suppliers/Categories via sidebar on desktop
 const NAV_ITEMS: NavItem[] = [
   { label: 'Productos', to: '/', icon: Package, roles: ['buyer', 'seller', 'admin'] },
+  { label: 'Precios', to: '/prices', icon: DollarSign, roles: ['buyer', 'admin'] },
+  { label: 'Proveedores', to: '/suppliers', icon: Truck, roles: ['buyer'] },
+  { label: 'Categorías', to: '/categories', icon: Tag, roles: ['buyer'] },
   { label: 'Órdenes', to: '/orders', icon: ClipboardList, roles: ['seller', 'admin'] },
   { label: 'Usuarios', to: '/users', icon: Users, roles: ['admin'] },
 ];

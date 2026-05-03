@@ -298,14 +298,12 @@ export const useOrderStore = create<OrderState>((set) => ({
           continue;
         }
 
-        // Construir datos del request: usar syncQueue si tiene items, si no reconstruir
+        // Construir datos del request: usar syncQueue si tiene items, si no reconstruir desde Dexie
         const hasValidQueueData = queueEntry?.data?.items?.length > 0;
-        const requestData = hasValidQueueData
+        const rawData = hasValidQueueData
           ? queueEntry!.data
           : {
               customerId: localOrder.customerId,
-              orderNumber: localOrder.orderNumber,
-              status: localOrder.status,
               notes: localOrder.notes,
               items: localItems.map(item => ({
                 productId: item.productId,
@@ -315,7 +313,19 @@ export const useOrderStore = create<OrderState>((set) => ({
               })),
             };
 
-        const order = await orderService.createOrder(requestData);
+        // Resolver customerId: puede ser un serverId ya existente o un ID local de cliente offline
+        let resolvedCustomerId = rawData.customerId;
+        const byServerId = await db.customers.where('serverId').equals(rawData.customerId).first();
+        if (!byServerId) {
+          const byLocalId = await db.customers.get(rawData.customerId);
+          if (byLocalId?.serverId) resolvedCustomerId = byLocalId.serverId;
+        }
+
+        // Limpiar campos que el servidor genera (orderNumber, totalAmount, status)
+        // para evitar conflicto de unique constraint con órdenes soft-deleted
+        const { orderNumber: _on, totalAmount: _ta, status: _st, ...cleanData } = rawData as any;
+
+        const order = await orderService.createOrder({ ...cleanData, customerId: resolvedCustomerId });
 
         // Actualizar orden local con ID del servidor
         await db.orders.update(localOrder.id!, {
@@ -382,6 +392,31 @@ export const useOrderStore = create<OrderState>((set) => ({
             lastAttemptAt: Date.now(),
             error: err instanceof Error ? err.message : 'Error desconocido',
           });
+        }
+        failed++;
+      }
+    }
+
+    // ── PENDING_DELETE ────────────────────────────────────────────────────────
+    const pendingDeletes = await db.orders
+      .where('_syncStatus').equals(SyncStatus.PENDING_DELETE)
+      .toArray();
+
+    for (const localOrder of pendingDeletes) {
+      try {
+        if (!localOrder.serverId) { failed++; continue; }
+        await orderService.deleteOrder(localOrder.serverId);
+        await db.orderItems.where('orderId').equals(localOrder.id!).delete();
+        await db.syncQueue.where('entityLocalId').equals(localOrder.id!).delete();
+        await db.orders.delete(localOrder.id!);
+        synced++;
+      } catch (err) {
+        const q = await db.syncQueue
+          .where('entityLocalId').equals(localOrder.id!)
+          .filter(e => e.entityType === 'order' && e.operation === 'delete')
+          .first();
+        if (q?.id) {
+          await db.syncQueue.update(q.id, { attempts: q.attempts + 1, lastAttemptAt: Date.now(), error: err instanceof Error ? err.message : 'Error' });
         }
         failed++;
       }
@@ -476,23 +511,54 @@ export const useOrderStore = create<OrderState>((set) => ({
   deleteOrder: async (id: number) => {
     set({ loading: true, error: null });
     try {
-      // Buscar en IndexedDB (por id local o serverId)
       const localOrder = await db.orders.get(id)
         ?? await db.orders.where('serverId').equals(id).first();
 
-      // Si tiene serverId, eliminar en servidor
+      if (!navigator.onLine) {
+        if (localOrder?.id) {
+          if (localOrder.serverId) {
+            // Has a server copy — queue deletion for when back online
+            await db.orders.update(localOrder.id, {
+              _syncStatus: SyncStatus.PENDING_DELETE,
+              _lastModifiedAt: Date.now(),
+              deletedAt: new Date().toISOString(),
+            });
+            const existing = await db.syncQueue
+              .where('entityLocalId').equals(localOrder.id)
+              .filter(e => e.entityType === 'order' && e.operation === 'delete')
+              .first();
+            if (!existing) {
+              await db.syncQueue.add({
+                entityType: 'order', entityLocalId: localOrder.id,
+                operation: 'delete', data: { serverId: localOrder.serverId },
+                attempts: 0, createdAt: Date.now(),
+              });
+            }
+          } else {
+            // Only local (never synced) — delete directly
+            await db.orderItems.where('orderId').equals(localOrder.id).delete();
+            await db.syncQueue.where('entityLocalId').equals(localOrder.id).delete();
+            await db.orders.delete(localOrder.id);
+          }
+        }
+        const pendingSync = await db.syncQueue.count();
+        set(state => ({
+          orders: state.orders.filter(o => o.id !== id),
+          currentOrder: state.currentOrder?.id === id ? null : state.currentOrder,
+          loading: false, pendingSync,
+        }));
+        return;
+      }
+
+      // Online: delete on server first, then locally
       if (localOrder?.serverId || (!localOrder && navigator.onLine)) {
         await orderService.deleteOrder(localOrder?.serverId ?? id);
       }
-
-      // Eliminar de IndexedDB
       if (localOrder?.id) {
         await db.orderItems.where('orderId').equals(localOrder.id).delete();
-        // Eliminar de syncQueue si estaba pendiente
         await db.syncQueue.where('entityLocalId').equals(localOrder.id).delete();
         await db.orders.delete(localOrder.id);
       }
-
       set(state => ({
         orders: state.orders.filter(o => o.id !== id),
         currentOrder: state.currentOrder?.id === id ? null : state.currentOrder,

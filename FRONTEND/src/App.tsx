@@ -4,6 +4,7 @@ import { useAuthStore } from './store/authStore';
 import { useUIStore } from './store/uiStore';
 import { useOrderStore } from './store/orderStore';
 import { useCustomerStore } from './store/customerStore';
+import { useProductStore } from './store/productStore';
 import ErrorBoundary from './components/ui/ErrorBoundary';
 import { Network } from '@capacitor/network';
 
@@ -78,6 +79,7 @@ function App() {
   const { addNotification } = useUIStore();
   const { syncPendingOrders } = useOrderStore();
   const { syncPendingCustomers } = useCustomerStore();
+  const { seedAllProducts } = useProductStore();
 
   useEffect(() => {
     checkAuth();
@@ -86,25 +88,33 @@ function App() {
   // Sincronizar al arrancar si ya hay conexión y el usuario está autenticado
   useEffect(() => {
     if (!isAuthenticated || !navigator.onLine) return;
-    Promise.all([syncPendingOrders(), syncPendingCustomers()]).then(([orders, customers]) => {
-      const total = orders.synced + customers.synced;
-      if (total > 0) {
-        const parts = [];
-        if (orders.synced > 0) parts.push(`${orders.synced} orden${orders.synced > 1 ? 'es' : ''}`);
-        if (customers.synced > 0) parts.push(`${customers.synced} cliente${customers.synced > 1 ? 's' : ''}`);
-        addNotification({
-          type: 'success',
-          title: 'Sincronización completada',
-          message: `${parts.join(' y ')} sincronizado${total > 1 ? 's' : ''} con el servidor`,
-        });
-      }
-    });
+    // Clientes primero — las órdenes pueden referenciar clientes recién creados offline
+    syncPendingCustomers().then(customers =>
+      syncPendingOrders().then(orders => {
+        const total = orders.synced + customers.synced;
+        if (total > 0) {
+          const parts = [];
+          if (orders.synced > 0) parts.push(`${orders.synced} orden${orders.synced > 1 ? 'es' : ''}`);
+          if (customers.synced > 0) parts.push(`${customers.synced} cliente${customers.synced > 1 ? 's' : ''}`);
+          addNotification({
+            type: 'success',
+            title: 'Sincronización completada',
+            message: `${parts.join(' y ')} sincronizado${total > 1 ? 's' : ''} con el servidor`,
+          });
+        }
+      })
+    );
+    // Seed silencioso de todos los productos para disponibilidad offline completa
+    seedAllProducts();
   }, [isAuthenticated]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sincronizar al recuperar conexión (Capacitor Network — más confiable que window.online en Android)
   useEffect(() => {
     const handleOnline = async () => {
-      const [orders, customers] = await Promise.all([syncPendingOrders(), syncPendingCustomers()]);
+      // Clientes primero, luego órdenes (pueden referenciar clientes recién sincronizados)
+      const customers = await syncPendingCustomers();
+      const orders = await syncPendingOrders();
+      seedAllProducts();
       const total = orders.synced + customers.synced;
       if (total > 0) {
         const parts = [];

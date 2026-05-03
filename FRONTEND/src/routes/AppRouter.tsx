@@ -14,6 +14,9 @@ import Users from '../pages/Users';
 import UserNew from '../pages/UserNew';
 import UserEdit from '../pages/UserEdit';
 import OrderEdit from '../pages/OrderEdit';
+import Suppliers from '../pages/Suppliers';
+import Categories from '../pages/Categories';
+import Prices from '../pages/Prices';
 
 // Protected Route Component
 interface RouteProps {
@@ -171,14 +174,40 @@ const AppRouter: React.FC = () => {
             } 
           />
 
+          {/* Buyer Routes - Precios, Proveedores, Categorías */}
+          <Route
+            path="/suppliers"
+            element={
+              <BuyerRoute>
+                <Suppliers />
+              </BuyerRoute>
+            }
+          />
+          <Route
+            path="/categories"
+            element={
+              <BuyerRoute>
+                <Categories />
+              </BuyerRoute>
+            }
+          />
+          <Route
+            path="/prices"
+            element={
+              <BuyerRoute>
+                <Prices />
+              </BuyerRoute>
+            }
+          />
+
           {/* Admin Routes - Solo admin */}
-          <Route 
-            path="/users" 
+          <Route
+            path="/users"
             element={
               <AdminRoute>
                 <Users />
               </AdminRoute>
-            } 
+            }
           />
           
           <Route 

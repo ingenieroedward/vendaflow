@@ -214,6 +214,43 @@ export const useCustomerStore = create<CustomerState>((set) => ({
   deleteCustomer: async (id: number) => {
     set({ loading: true, error: null });
     try {
+      if (!navigator.onLine) {
+        const local = await db.customers.where('serverId').equals(id).first()
+          ?? await db.customers.get(id);
+        if (local?.id) {
+          if (local.serverId) {
+            // Has server copy — queue deletion
+            await db.customers.update(local.id, {
+              _syncStatus: SyncStatus.PENDING_DELETE,
+              _lastModifiedAt: Date.now(),
+              deletedAt: new Date().toISOString(),
+            });
+            const existing = await db.syncQueue
+              .where('entityLocalId').equals(local.id)
+              .filter(e => e.entityType === 'customer' && e.operation === 'delete')
+              .first();
+            if (!existing) {
+              await db.syncQueue.add({
+                entityType: 'customer', entityLocalId: local.id,
+                operation: 'delete', data: { serverId: local.serverId },
+                attempts: 0, createdAt: Date.now(),
+              });
+            }
+          } else {
+            // Only local — delete directly
+            await db.syncQueue.where('entityLocalId').equals(local.id).delete();
+            await db.customers.delete(local.id);
+          }
+        }
+        const pendingSync = await db.syncQueue.count();
+        set(state => ({
+          customers: state.customers.filter(c => c.id !== id),
+          pagination: { ...state.pagination, total: Math.max(0, state.pagination.total - 1) },
+          loading: false, pendingSync,
+        }));
+        return;
+      }
+
       await customerService.deleteCustomer(id);
       const local = await db.customers.where('serverId').equals(id).first();
       if (local?.id) await db.customers.delete(local.id);
@@ -278,6 +315,30 @@ export const useCustomerStore = create<CustomerState>((set) => ({
         const q = await db.syncQueue.where('entityLocalId').equals(local.id!)
           .filter(e => e.entityType === 'customer' && e.operation === 'update').first();
         if (q?.id) await db.syncQueue.update(q.id, { attempts: q.attempts + 1, lastAttemptAt: Date.now(), error: err instanceof Error ? err.message : 'Error' });
+        failed++;
+      }
+    }
+
+    // ── PENDING_DELETE ──────────────────────────────────────────────────────
+    const pendingDeletes = await db.customers
+      .where('_syncStatus').equals(SyncStatus.PENDING_DELETE)
+      .toArray();
+
+    for (const local of pendingDeletes) {
+      try {
+        if (!local.serverId) { failed++; continue; }
+        await customerService.deleteCustomer(local.serverId);
+        await db.syncQueue.where('entityLocalId').equals(local.id!).delete();
+        await db.customers.delete(local.id!);
+        synced++;
+      } catch (err) {
+        const q = await db.syncQueue
+          .where('entityLocalId').equals(local.id!)
+          .filter(e => e.entityType === 'customer' && e.operation === 'delete')
+          .first();
+        if (q?.id) {
+          await db.syncQueue.update(q.id, { attempts: q.attempts + 1, lastAttemptAt: Date.now(), error: err instanceof Error ? err.message : 'Error' });
+        }
         failed++;
       }
     }
