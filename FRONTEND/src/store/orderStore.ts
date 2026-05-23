@@ -107,6 +107,7 @@ interface OrderState {
   updateOrder: (id: number, data: UpdateOrderRequest) => Promise<Order>;
   deleteOrder: (id: number) => Promise<void>;
   syncPendingOrders: () => Promise<{ synced: number; failed: number }>;
+  seedAllOrders: () => Promise<void>;
   clearError: () => void;
   clearCurrentOrder: () => void;
 }
@@ -596,6 +597,64 @@ export const useOrderStore = create<OrderState>((set) => ({
       set({ error: errorMessage, loading: false });
       throw error;
     }
+  },
+
+  seedAllOrders: async () => {
+    if (!navigator.onLine) return;
+    try {
+      const response = await orderService.getOrders(1, 200);
+      if (!response.data?.length) return;
+
+      for (const order of response.data) {
+        // Upsert order
+        const orderData = {
+          serverId: order.id,
+          orderNumber: order.orderNumber,
+          customerId: (order.customer as any)?.id ?? order.customerId,
+          userId: (order.user as any)?.id ?? order.userId,
+          totalAmount: order.totalAmount,
+          status: order.status,
+          notes: order.notes ?? null,
+          _syncStatus: SyncStatus.SYNCED,
+          _version: 1,
+          _lastModifiedAt: Date.now(),
+          createdAt: typeof order.createdAt === 'string' ? order.createdAt : new Date(order.createdAt).toISOString(),
+          updatedAt: typeof order.updatedAt === 'string' ? order.updatedAt : new Date(order.updatedAt).toISOString(),
+        };
+        const existing = await db.orders.where('serverId').equals(order.id).first();
+        let localId: number;
+        if (existing?.id) {
+          await db.orders.update(existing.id, orderData);
+          localId = existing.id;
+        } else {
+          localId = await db.orders.add(orderData as LocalOrder);
+        }
+
+        // Upsert items
+        const items: any[] = (order as any).items ?? [];
+        for (const item of items) {
+          const itemData = {
+            serverId: item.id,
+            orderId: localId,
+            productId: item.productId,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            taxRate: item.taxRate,
+            totalPrice: item.subtotal ?? item.totalPrice ?? item.quantity * item.unitPrice,
+            _syncStatus: SyncStatus.SYNCED,
+            _version: 1,
+            _lastModifiedAt: Date.now(),
+            createdAt: typeof item.createdAt === 'string' ? item.createdAt : new Date().toISOString(),
+            updatedAt: typeof item.updatedAt === 'string' ? item.updatedAt : new Date().toISOString(),
+          };
+          const existingItem = item.id
+            ? await db.orderItems.where('serverId').equals(item.id).first()
+            : null;
+          if (existingItem?.id) await db.orderItems.update(existingItem.id, itemData);
+          else await db.orderItems.add(itemData as LocalOrderItem);
+        }
+      }
+    } catch { /* silent */ }
   },
 
   clearError: () => set({ error: null }),

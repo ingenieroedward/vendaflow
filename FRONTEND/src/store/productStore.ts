@@ -51,6 +51,7 @@ interface ProductState {
 
   // Utilities
   seedAllProducts: () => Promise<void>;
+  seedPricesData: () => Promise<void>;
   setSearchQuery: (query: string) => void;
   clearError: () => void;
   clearCurrentProduct: () => void;
@@ -395,6 +396,52 @@ export const useProductStore = create<ProductState>((set) => ({
         }
       });
     } catch { /* silent — solo seed de respaldo */ }
+  },
+
+  seedPricesData: async () => {
+    if (!navigator.onLine) return;
+    try {
+      const [prodRes, supRes] = await Promise.all([
+        productService.getProducts(1, 2000, true),
+        productService.getSuppliers(1, 2000),
+      ]);
+
+      // Seed suppliers
+      const suppliers = supRes.data ?? [];
+      if (suppliers.length) {
+        await db.transaction('rw', db.suppliers, async () => {
+          for (const s of suppliers) {
+            const existing = await db.suppliers.where('serverId').equals(s.id).first();
+            const data = {
+              serverId: s.id, name: s.name,
+              contact: s.contact ?? '', location: s.location ?? '',
+              createdAt: s.createdAt, updatedAt: s.updatedAt,
+              _syncStatus: 'synced' as const, _version: 1, _lastModifiedAt: Date.now(),
+            };
+            if (existing?.id) await db.suppliers.update(existing.id, data);
+            else await db.suppliers.add(data as any);
+          }
+        });
+      }
+
+      // Seed prices extracted from products
+      const allPrices = (prodRes.data ?? []).flatMap(p => p.prices ?? []);
+      if (allPrices.length) {
+        await db.transaction('rw', db.prices, async () => {
+          for (const p of allPrices) {
+            const existing = await db.prices.where('serverId').equals(p.id).first();
+            const data = {
+              serverId: p.id, productId: p.productId, supplierId: p.supplierId,
+              price: p.price, updatedByUserId: p.updatedByUserId ?? 0,
+              createdAt: p.createdAt, updatedAt: p.updatedAt,
+              _syncStatus: 'synced' as const, _version: 1, _lastModifiedAt: Date.now(),
+            };
+            if (existing?.id) await db.prices.update(existing.id, data);
+            else await db.prices.add(data as any);
+          }
+        });
+      }
+    } catch { /* silent */ }
   },
 
   setSearchQuery: (query: string) => set({ searchQuery: query }),

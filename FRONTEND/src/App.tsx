@@ -77,9 +77,9 @@ const NotificationContainer: React.FC = () => {
 function App() {
   const { checkAuth, isAuthenticated } = useAuthStore();
   const { addNotification } = useUIStore();
-  const { syncPendingOrders } = useOrderStore();
+  const { syncPendingOrders, seedAllOrders } = useOrderStore();
   const { syncPendingCustomers, seedAllCustomers } = useCustomerStore();
-  const { seedAllProducts } = useProductStore();
+  const { seedAllProducts, seedPricesData } = useProductStore();
 
   useEffect(() => {
     checkAuth();
@@ -104,9 +104,11 @@ function App() {
         }
       })
     );
-    // Seed silencioso — productos y clientes para disponibilidad offline completa
+    // Seed silencioso — todos los datos para disponibilidad offline completa
     seedAllProducts();
     seedAllCustomers();
+    seedPricesData();
+    seedAllOrders();
   }, [isAuthenticated]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sincronizar al recuperar conexión (Capacitor Network — más confiable que window.online en Android)
@@ -117,6 +119,8 @@ function App() {
       const orders = await syncPendingOrders();
       seedAllProducts();
       seedAllCustomers();
+      seedPricesData();
+      seedAllOrders();
       const total = orders.synced + customers.synced;
       if (total > 0) {
         const parts = [];

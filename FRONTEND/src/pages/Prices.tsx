@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   ArrowLeft, Plus, Search, X, Edit, Trash2, DollarSign,
-  AlertTriangle, ChevronDown, ChevronUp, Truck
+  AlertTriangle, ChevronDown, ChevronUp, Truck, WifiOff
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { productService } from '../services/products';
 import { Product, Supplier, Price, CreatePriceRequest } from '../types';
 import { useUIStore } from '../store/uiStore';
+import { db } from '../database/LocalDatabase';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
@@ -30,12 +31,59 @@ const Prices: React.FC = () => {
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const [modal, setModal] = useState<PriceModal | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{ price: Price; productName: string } | null>(null);
+  const [isOffline, setIsOffline] = useState(false);
   const [priceInput, setPriceInput] = useState('');
   const [selectedSupplierId, setSelectedSupplierId] = useState<number | ''>('');
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
+      if (!navigator.onLine) {
+        setIsOffline(true);
+        const [localProds, localSups, localPrices] = await Promise.all([
+          db.products.filter(p => !p.deletedAt).toArray(),
+          db.suppliers.filter(s => !s.deletedAt).toArray(),
+          db.prices.filter(p => !p.deletedAt).toArray(),
+        ]);
+
+        const mappedSuppliers: Supplier[] = localSups.map(s => ({
+          id: s.serverId ?? s.id!,
+          name: s.name,
+          contact: s.contact,
+          location: s.location,
+          createdAt: s.createdAt ?? '',
+          updatedAt: s.updatedAt ?? '',
+        }));
+        const supplierMap = new Map(mappedSuppliers.map(s => [s.id, s]));
+
+        const mappedProducts: Product[] = localProds.map(p => {
+          const prodId = p.serverId ?? p.id!;
+          const productPrices: Price[] = localPrices
+            .filter(lp => lp.productId === prodId)
+            .map(lp => ({
+              id: lp.serverId ?? lp.id!,
+              productId: prodId,
+              supplierId: lp.supplierId,
+              price: lp.price,
+              updatedByUserId: lp.updatedByUserId,
+              createdAt: lp.createdAt ?? '',
+              updatedAt: lp.updatedAt ?? '',
+              supplier: supplierMap.get(lp.supplierId),
+            }));
+          return {
+            id: prodId, name: p.name, code: p.code, unit: p.unit,
+            salePrice: p.salePrice, categoryId: p.categoryId ?? null,
+            createdAt: p.createdAt ?? '', updatedAt: p.updatedAt ?? '',
+            prices: productPrices,
+          };
+        });
+
+        setProducts(mappedProducts);
+        setSuppliers(mappedSuppliers);
+        return;
+      }
+
+      setIsOffline(false);
       const [prodRes, supRes] = await Promise.all([
         productService.getProducts(1, 500, true),
         productService.getSuppliers(1, 500),
@@ -158,6 +206,14 @@ const Prices: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Offline banner */}
+      {isOffline && (
+        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-center gap-2 text-amber-700 text-sm">
+          <WifiOff className="w-4 h-4 flex-shrink-0" />
+          <span>Sin conexión — mostrando datos guardados localmente</span>
+        </div>
+      )}
 
       {/* Search */}
       {isSearchOpen && (
