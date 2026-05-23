@@ -210,9 +210,11 @@ export class ProductService {
           name: product.category.name,
         }
       }),
-      ...(product.prices && product.prices.length > 0 && {
+      ...(product.prices && {
         prices: product.prices.map(price => ({
           id: price.id,
+          productId: product.id,
+          supplierId: price.supplierId,
           price: Number(price.price),
           supplier: price.supplier
             ? {
@@ -222,6 +224,7 @@ export class ProductService {
                 location: price.supplier.location,
               }
             : undefined,
+          createdAt: price.createdAt,
           updatedAt: price.updatedAt,
         }))
       }),

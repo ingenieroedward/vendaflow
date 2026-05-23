@@ -3,7 +3,7 @@ import { Product, Price, PaginationInfo } from '../types';
 import { productService } from '../services/products';
 import { db, LocalProduct } from '../database/LocalDatabase';
 
-const mapLocalToProduct = (p: LocalProduct): Product => ({
+const mapLocalToProduct = (p: LocalProduct, prices: Price[] = []): Product => ({
   id: p.serverId ?? p.id!,
   name: p.name,
   code: p.code,
@@ -12,8 +12,32 @@ const mapLocalToProduct = (p: LocalProduct): Product => ({
   categoryId: p.categoryId ?? null,
   createdAt: p.createdAt ?? new Date().toISOString(),
   updatedAt: p.updatedAt ?? new Date().toISOString(),
-  prices: [],
+  prices,
 } as Product);
+
+async function mapLocalToProductWithPrices(p: LocalProduct): Promise<Product> {
+  const prodId = p.serverId ?? p.id!;
+  const localPrices = await db.prices.filter(lp => !lp.deletedAt && lp.productId === prodId).toArray();
+  const localSupplierIds = [...new Set(localPrices.map(lp => lp.supplierId))];
+  const suppliersArr = await Promise.all(
+    localSupplierIds.map(sid => db.suppliers.filter(s => !s.deletedAt && (s.serverId === sid || s.id === sid)).first())
+  );
+  const supplierMap = new Map(suppliersArr.filter(Boolean).map(s => [s!.serverId ?? s!.id!, s!]));
+  const prices: Price[] = localPrices.map(lp => ({
+    id: lp.serverId ?? lp.id!,
+    productId: prodId,
+    supplierId: lp.supplierId,
+    price: lp.price,
+    updatedByUserId: lp.updatedByUserId,
+    createdAt: lp.createdAt ?? '',
+    updatedAt: lp.updatedAt ?? '',
+    supplier: (() => {
+      const s = supplierMap.get(lp.supplierId);
+      return s ? { id: s.serverId ?? s.id!, name: s.name, contact: s.contact, location: s.location } : undefined;
+    })(),
+  }));
+  return mapLocalToProduct(p, prices);
+}
 
 interface PriceComparisonResult {
   productId: number;
@@ -125,7 +149,8 @@ export const useProductStore = create<ProductState>((set) => ({
         const local = await db.products
           .filter(p => !p.deletedAt && (p.name.toLowerCase().includes(term) || p.code.toLowerCase().includes(term)))
           .toArray();
-        set({ products: local.map(mapLocalToProduct), loading: false, error: null });
+        const products = await Promise.all(local.map(mapLocalToProductWithPrices));
+        set({ products, loading: false, error: null });
         return;
       }
       const serverProducts = await productService.searchProducts(query, includePrices);
@@ -136,7 +161,8 @@ export const useProductStore = create<ProductState>((set) => ({
         const local = await db.products
           .filter(p => !p.deletedAt && (p.name.toLowerCase().includes(term) || p.code.toLowerCase().includes(term)))
           .toArray();
-        set({ products: local.map(mapLocalToProduct), loading: false, error: null });
+        const products = await Promise.all(local.map(mapLocalToProductWithPrices));
+        set({ products, loading: false, error: null });
       } catch {
         const errorMessage = error instanceof Error ? error.message : 'Error al buscar productos';
         set({ error: errorMessage, loading: false });
@@ -149,8 +175,9 @@ export const useProductStore = create<ProductState>((set) => ({
     try {
       if (!navigator.onLine) {
         const local = await db.products.filter(p => !p.deletedAt).toArray();
+        const products = await Promise.all(local.map(mapLocalToProductWithPrices));
         set({
-          products: local.map(mapLocalToProduct),
+          products,
           pagination: { total: local.length, page: 1, limit: local.length, totalPages: 1 },
           loading: false, error: null,
         });
@@ -195,7 +222,8 @@ export const useProductStore = create<ProductState>((set) => ({
       try {
         const local = await db.products.filter(p => !p.deletedAt).toArray();
         if (local.length > 0) {
-          set({ products: local.map(mapLocalToProduct), loading: false, error: null });
+          const products = await Promise.all(local.map(mapLocalToProductWithPrices));
+          set({ products, loading: false, error: null });
           return;
         }
       } catch { /* ignorar */ }
@@ -209,7 +237,7 @@ export const useProductStore = create<ProductState>((set) => ({
     try {
       if (!navigator.onLine) {
         const local = await db.products.get(id) ?? await db.products.where('serverId').equals(id).first();
-        if (local) { set({ currentProduct: mapLocalToProduct(local), loading: false }); return; }
+        if (local) { set({ currentProduct: await mapLocalToProductWithPrices(local), loading: false }); return; }
         throw new Error('Producto no disponible sin conexión');
       }
       const serverProduct = await productService.getProductById(id);
@@ -424,16 +452,25 @@ export const useProductStore = create<ProductState>((set) => ({
         });
       }
 
-      // Seed prices extracted from products
-      const allPrices = (prodRes.data ?? []).flatMap(p => p.prices ?? []);
+      // Seed prices extracted from products — derive productId/supplierId from parent context
+      // because older backend responses may omit these fields
+      const allPrices = (prodRes.data as any[]).flatMap((product: any) =>
+        (product.prices ?? []).map((price: any) => ({
+          ...price,
+          productId: price.productId ?? product.id,
+          supplierId: price.supplierId ?? price.supplier?.id,
+        }))
+      );
       if (allPrices.length) {
         await db.transaction('rw', db.prices, async () => {
           for (const p of allPrices) {
+            if (!p.productId || !p.supplierId) continue; // skip incomplete records
             const existing = await db.prices.where('serverId').equals(p.id).first();
             const data = {
               serverId: p.id, productId: p.productId, supplierId: p.supplierId,
               price: p.price, updatedByUserId: p.updatedByUserId ?? 0,
-              createdAt: p.createdAt, updatedAt: p.updatedAt,
+              createdAt: p.createdAt ?? new Date().toISOString(),
+              updatedAt: p.updatedAt ?? new Date().toISOString(),
               _syncStatus: 'synced' as const, _version: 1, _lastModifiedAt: Date.now(),
             };
             if (existing?.id) await db.prices.update(existing.id, data);
