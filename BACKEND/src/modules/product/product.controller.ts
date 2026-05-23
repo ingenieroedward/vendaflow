@@ -30,7 +30,7 @@ export class ProductController {
   });
 
   getAllProductsPrices = asyncHandler(async (req: Request, res: Response) => {
-    const result = await this.productService.getAllProducts(req.query as any, true);
+    const result = await this.productService.getAllProducts(req.query as any, false);
     res.status(200).json({
       status: 'success',
       data: result.products,
