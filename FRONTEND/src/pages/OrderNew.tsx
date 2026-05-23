@@ -61,6 +61,7 @@ const OrderNew: React.FC = () => {
   );
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [includeProducts, setIncludeProducts] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
     getProducts(1, 2000, false);
@@ -91,12 +92,14 @@ const OrderNew: React.FC = () => {
   };
 
   const handleRemoveItem = (id: string) => {
+    if (confirmDeleteId !== id) {
+      setConfirmDeleteId(id);
+      return;
+    }
+    setConfirmDeleteId(null);
     setOrderItems((prev) => {
       const newItems = prev.filter((item) => item.id !== id);
-      // If no more items, hide the products section
-      if (newItems.length === 0) {
-        setIncludeProducts(false);
-      }
+      if (newItems.length === 0) setIncludeProducts(false);
       return newItems;
     });
   };
@@ -412,13 +415,33 @@ const OrderNew: React.FC = () => {
                             <span className="text-sm font-semibold text-blue-600 whitespace-nowrap">
                               {formatCurrency(item.quantity * item.unitPrice * (1 + item.taxRate / 100))}
                             </span>
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveItem(item.id)}
-                              className="text-gray-300 hover:text-red-500 transition-colors"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            {confirmDeleteId === item.id ? (
+                              <div className="flex items-center gap-1">
+                                <span className="text-xs text-red-500 whitespace-nowrap">¿Eliminar?</span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveItem(item.id)}
+                                  className="px-1.5 py-0.5 bg-red-500 text-white rounded text-xs font-medium hover:bg-red-600 transition-colors"
+                                >
+                                  Sí
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setConfirmDeleteId(null)}
+                                  className="px-1.5 py-0.5 bg-gray-200 text-gray-700 rounded text-xs font-medium hover:bg-gray-300 transition-colors"
+                                >
+                                  No
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveItem(item.id)}
+                                className="text-gray-300 hover:text-red-500 transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
                           </div>
                         </div>
 

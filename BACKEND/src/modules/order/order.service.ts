@@ -14,7 +14,7 @@ import { NotFoundError } from '@/core/errors/AppError';
 import logger from '@/core/logger';
 import { validateSchema, validatePartialSchema, paginationSchema, PaginationQuery } from '@/core/utils/validation';
 import { createOrderSchema, updateOrderSchema, searchOrderSchema } from './order.dto';
-import { Op } from 'sequelize';
+import { Op, UniqueConstraintError } from 'sequelize';
 import sequelize from '@/database';
 
 export class OrderService {
@@ -91,39 +91,46 @@ export class OrderService {
       return sum + (item.quantity * item.unitPrice);
     }, 0);
 
-    // Generate order number if not provided
-    let orderNumber: string;
-    if (validatedData.orderNumber) {
-      orderNumber = validatedData.orderNumber;
-    } else {
-      orderNumber = await this.generateOrderNumber();
+    // Create order + items inside a transaction, retrying up to 3 times on duplicate order number
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const orderNumber = validatedData.orderNumber ?? await this.generateOrderNumber();
+      const t = await sequelize.transaction();
+      try {
+        const order = await Order.create({
+          orderNumber,
+          customerId: validatedData.customerId,
+          userId,
+          totalAmount,
+          status: validatedData.status,
+          notes: validatedData.notes,
+        } as OrderAttributes, { transaction: t });
+
+        const orderItems = await Promise.all(
+          validatedData.items.map(item =>
+            OrderItem.create({
+              orderId: order.id,
+              taxRate: item.taxRate,
+              productId: item.productId,
+              quantity: item.quantity,
+              unitPrice: item.unitPrice,
+              totalPrice: item.quantity * item.unitPrice,
+            } as OrderItemAttributes, { transaction: t })
+          )
+        );
+
+        await t.commit();
+        return this.mapToResponseDto(order, orderItems);
+      } catch (err) {
+        await t.rollback();
+        // Retry only on duplicate order number; re-throw anything else immediately
+        if (err instanceof UniqueConstraintError && !validatedData.orderNumber && attempt < 2) {
+          logger.warn(`Order number collision on attempt ${attempt + 1}, retrying...`);
+          continue;
+        }
+        throw err;
+      }
     }
-
-    // Create order
-    const order = await Order.create({
-      orderNumber,
-      customerId: validatedData.customerId,
-      userId,
-      totalAmount,
-      status: validatedData.status,
-      notes: validatedData.notes,
-    } as OrderAttributes);
-
-    // Create order items
-    const orderItems = await Promise.all(
-      validatedData.items.map(item => 
-        OrderItem.create({
-          orderId: order.id,
-          taxRate: item.taxRate,
-          productId: item.productId,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          totalPrice: item.quantity * item.unitPrice,
-        } as OrderItemAttributes)
-      )
-    );
-
-    return this.mapToResponseDto(order, orderItems);
+    throw new Error('Failed to generate a unique order number after 3 attempts');
   }
 
   async getNextOrderNumber(): Promise<{ nextOrderNumber: string }> {

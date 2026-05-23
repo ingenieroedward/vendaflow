@@ -5,6 +5,8 @@ import { PaginationInfo } from '../types';
 import { db, SyncStatus, LocalOrder, LocalOrderItem } from '../database/LocalDatabase';
 import { orderRepository } from '../repositories/OrderRepository';
 
+const MAX_SYNC_ATTEMPTS = 5;
+
 // ─── Helpers para cargar desde IndexedDB ────────────────────────────────────
 //
 // Arquitectura offline:
@@ -298,6 +300,12 @@ export const useOrderStore = create<OrderState>((set) => ({
           continue;
         }
 
+        // Saltar si ya superó el límite de reintentos
+        if (queueEntry && queueEntry.attempts >= MAX_SYNC_ATTEMPTS) {
+          failed++;
+          continue;
+        }
+
         // Construir datos del request: usar syncQueue si tiene items, si no reconstruir desde Dexie
         const hasValidQueueData = queueEntry?.data?.items?.length > 0;
         const rawData = hasValidQueueData
@@ -321,11 +329,24 @@ export const useOrderStore = create<OrderState>((set) => ({
           if (byLocalId?.serverId) resolvedCustomerId = byLocalId.serverId;
         }
 
+        // Resolver productIds: pueden ser IDs locales de productos creados offline
+        const resolvedItems = await Promise.all(
+          ((rawData.items as any[]) || []).map(async (item: any) => {
+            let resolvedProductId = item.productId;
+            const prodByServerId = await db.products.where('serverId').equals(item.productId).first();
+            if (!prodByServerId) {
+              const prodByLocalId = await db.products.get(item.productId);
+              if (prodByLocalId?.serverId) resolvedProductId = prodByLocalId.serverId;
+            }
+            return { ...item, productId: resolvedProductId };
+          })
+        );
+
         // Limpiar campos que el servidor genera (orderNumber, totalAmount, status)
         // para evitar conflicto de unique constraint con órdenes soft-deleted
         const { orderNumber: _on, totalAmount: _ta, status: _st, ...cleanData } = rawData as any;
 
-        const order = await orderService.createOrder({ ...cleanData, customerId: resolvedCustomerId });
+        const order = await orderService.createOrder({ ...cleanData, customerId: resolvedCustomerId, items: resolvedItems });
 
         // Actualizar orden local con ID del servidor
         await db.orders.update(localOrder.id!, {
@@ -375,6 +396,7 @@ export const useOrderStore = create<OrderState>((set) => ({
           .filter(e => e.entityType === 'order' && e.operation === 'update')
           .first();
         if (!queueEntry?.data?.serverId) { failed++; continue; }
+        if (queueEntry.attempts >= MAX_SYNC_ATTEMPTS) { failed++; continue; }
 
         const { serverId, ...updateData } = queueEntry.data;
         await orderService.updateOrder(serverId, updateData);
@@ -405,6 +427,11 @@ export const useOrderStore = create<OrderState>((set) => ({
     for (const localOrder of pendingDeletes) {
       try {
         if (!localOrder.serverId) { failed++; continue; }
+        const deleteEntry = await db.syncQueue
+          .where('entityLocalId').equals(localOrder.id!)
+          .filter(e => e.entityType === 'order' && e.operation === 'delete')
+          .first();
+        if (deleteEntry && deleteEntry.attempts >= MAX_SYNC_ATTEMPTS) { failed++; continue; }
         await orderService.deleteOrder(localOrder.serverId);
         await db.orderItems.where('orderId').equals(localOrder.id!).delete();
         await db.syncQueue.where('entityLocalId').equals(localOrder.id!).delete();

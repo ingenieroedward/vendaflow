@@ -19,52 +19,26 @@ export function useNetworkStatus(): NetworkStatus {
   }>({});
 
   useEffect(() => {
-    // Handler for online event
-    const handleOnline = () => {
-      setIsOnline(true);
-      console.log('🌐 Connection restored - Online');
-    };
-
-    // Handler for offline event
-    const handleOffline = () => {
-      setIsOnline(false);
-      console.log('📴 Connection lost - Offline');
-    };
-
-    // Handler for connection change (if supported)
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
     const handleConnectionChange = () => {
-      const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
-
-      if (connection) {
-        setConnectionInfo({
-          effectiveType: connection.effectiveType,
-          downlink: connection.downlink,
-        });
-
-        console.log(`📶 Connection changed: ${connection.effectiveType}, ${connection.downlink}Mbps`);
-      }
+      const conn = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
+      if (conn) setConnectionInfo({ effectiveType: conn.effectiveType, downlink: conn.downlink });
     };
 
-    // Add event listeners
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    // Listen to connection changes (Network Information API - if available)
     const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
     if (connection) {
       connection.addEventListener('change', handleConnectionChange);
-      // Get initial connection info
       handleConnectionChange();
     }
 
-    // Cleanup
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
-
-      if (connection) {
-        connection.removeEventListener('change', handleConnectionChange);
-      }
+      if (connection) connection.removeEventListener('change', handleConnectionChange);
     };
   }, []);
 

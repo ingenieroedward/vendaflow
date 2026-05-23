@@ -4,6 +4,8 @@ import { Customer, CreateCustomerRequest, UpdateCustomerRequest } from '../types
 import { db, LocalCustomer, SyncStatus } from '../database/LocalDatabase';
 import { customerRepository } from '../repositories/CustomerRepository';
 
+const MAX_SYNC_ATTEMPTS = 5;
+
 const mapLocalToCustomer = (c: LocalCustomer): Customer => ({
   id: c.serverId ?? c.id!,
   name: c.name,
@@ -279,6 +281,9 @@ export const useCustomerStore = create<CustomerState>((set) => ({
 
     for (const local of pendingCreates) {
       try {
+        const createEntry = await db.syncQueue.where('entityLocalId').equals(local.id!)
+          .filter(e => e.entityType === 'customer' && e.operation === 'create').first();
+        if (createEntry && createEntry.attempts >= MAX_SYNC_ATTEMPTS) { failed++; continue; }
         const created = await customerService.createCustomer({
           name: local.name, nit: local.nit ?? undefined,
           contact: local.contact ?? undefined, address: local.address ?? undefined,
@@ -307,6 +312,7 @@ export const useCustomerStore = create<CustomerState>((set) => ({
         const q = await db.syncQueue.where('entityLocalId').equals(local.id!)
           .filter(e => e.entityType === 'customer' && e.operation === 'update').first();
         if (!q?.data?.serverId) { failed++; continue; }
+        if (q.attempts >= MAX_SYNC_ATTEMPTS) { failed++; continue; }
         const { serverId, ...updateData } = q.data;
         await customerService.updateCustomer(serverId, updateData);
         await db.customers.update(local.id!, { _syncStatus: SyncStatus.SYNCED });
@@ -328,6 +334,9 @@ export const useCustomerStore = create<CustomerState>((set) => ({
     for (const local of pendingDeletes) {
       try {
         if (!local.serverId) { failed++; continue; }
+        const deleteQ = await db.syncQueue.where('entityLocalId').equals(local.id!)
+          .filter(e => e.entityType === 'customer' && e.operation === 'delete').first();
+        if (deleteQ && deleteQ.attempts >= MAX_SYNC_ATTEMPTS) { failed++; continue; }
         await customerService.deleteCustomer(local.serverId);
         await db.syncQueue.where('entityLocalId').equals(local.id!).delete();
         await db.customers.delete(local.id!);

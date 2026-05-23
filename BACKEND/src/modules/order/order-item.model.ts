@@ -73,10 +73,11 @@ export class OrderItem extends Model<OrderItemAttributes, OrderItemCreationAttri
   unitPrice!: number;
 
   @Column({
-    type: DataType.INTEGER,
+    type: DataType.DECIMAL(5, 2),
     allowNull: false,
     validate: {
       min: 0,
+      max: 100,
     },
   })
   taxRate!: number;
