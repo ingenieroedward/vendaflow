@@ -7,6 +7,7 @@ import { orderRepository } from '../repositories/OrderRepository';
 import { useUIStore } from './uiStore';
 
 const MAX_SYNC_ATTEMPTS = 5;
+let isSyncingOrders = false;
 
 // ─── Helpers para cargar desde IndexedDB ────────────────────────────────────
 //
@@ -273,6 +274,9 @@ export const useOrderStore = create<OrderState>((set) => ({
    */
   syncPendingOrders: async () => {
     if (!navigator.onLine) return { synced: 0, failed: 0 };
+    if (isSyncingOrders) return { synced: 0, failed: 0 };
+    isSyncingOrders = true;
+    try {
 
     // Buscar DIRECTAMENTE órdenes pendientes por _syncStatus (más confiable que syncQueue)
     const pendingOrders = await db.orders
@@ -343,6 +347,13 @@ export const useOrderStore = create<OrderState>((set) => ({
             return { ...item, productId: resolvedProductId };
           })
         );
+
+        // Re-validar que siga pendiente (otro sync concurrente pudo haberla enviado ya)
+        const fresh = await db.orders.get(localOrder.id!);
+        if (!fresh || fresh._syncStatus !== SyncStatus.PENDING_CREATE) {
+          synced++;
+          continue;
+        }
 
         // Limpiar campos que el servidor genera (orderNumber, totalAmount, status)
         // para evitar conflicto de unique constraint con órdenes soft-deleted
@@ -475,6 +486,9 @@ export const useOrderStore = create<OrderState>((set) => ({
     }
 
     return { synced, failed };
+    } finally {
+      isSyncingOrders = false;
+    }
   },
 
   updateOrder: async (id, data) => {

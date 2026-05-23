@@ -148,14 +148,13 @@ function App() {
       }
     };
 
+    // Capacitor Network is more reliable than window.online on Android WebView —
+    // window.online is intentionally omitted to prevent double-sync on reconnect.
     const listenerPromise = Network.addListener('networkStatusChange', (status) => {
       if (status.connected) handleOnline();
     });
 
-    window.addEventListener('online', handleOnline);
-
     return () => {
-      window.removeEventListener('online', handleOnline);
       listenerPromise.then(l => l.remove());
     };
   }, [syncPendingOrders, syncPendingCustomers, addNotification]);

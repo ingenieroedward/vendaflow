@@ -6,6 +6,7 @@ import { customerRepository } from '../repositories/CustomerRepository';
 import { useUIStore } from './uiStore';
 
 const MAX_SYNC_ATTEMPTS = 5;
+let isSyncingCustomers = false;
 
 const mapLocalToCustomer = (c: LocalCustomer): Customer => ({
   id: c.serverId ?? c.id!,
@@ -271,6 +272,9 @@ export const useCustomerStore = create<CustomerState>((set) => ({
 
   syncPendingCustomers: async () => {
     if (!navigator.onLine) return { synced: 0, failed: 0 };
+    if (isSyncingCustomers) return { synced: 0, failed: 0 };
+    isSyncingCustomers = true;
+    try {
 
     let synced = 0;
     let failed = 0;
@@ -285,6 +289,9 @@ export const useCustomerStore = create<CustomerState>((set) => ({
         const createEntry = await db.syncQueue.where('entityLocalId').equals(local.id!)
           .filter(e => e.entityType === 'customer' && e.operation === 'create').first();
         if (createEntry && createEntry.attempts >= MAX_SYNC_ATTEMPTS) { failed++; continue; }
+        // Re-validar que siga pendiente antes de enviar al servidor
+        const fresh = await db.customers.get(local.id!);
+        if (!fresh || fresh._syncStatus !== SyncStatus.PENDING_CREATE) { synced++; continue; }
         const created = await customerService.createCustomer({
           name: local.name, nit: local.nit ?? undefined,
           contact: local.contact ?? undefined, address: local.address ?? undefined,
@@ -367,6 +374,9 @@ export const useCustomerStore = create<CustomerState>((set) => ({
     }
 
     return { synced, failed };
+    } finally {
+      isSyncingCustomers = false;
+    }
   },
 
   seedAllCustomers: async () => {
