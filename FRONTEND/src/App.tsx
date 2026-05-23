@@ -78,7 +78,7 @@ function App() {
   const { checkAuth, isAuthenticated } = useAuthStore();
   const { addNotification } = useUIStore();
   const { syncPendingOrders } = useOrderStore();
-  const { syncPendingCustomers } = useCustomerStore();
+  const { syncPendingCustomers, seedAllCustomers } = useCustomerStore();
   const { seedAllProducts } = useProductStore();
 
   useEffect(() => {
@@ -104,8 +104,9 @@ function App() {
         }
       })
     );
-    // Seed silencioso de todos los productos para disponibilidad offline completa
+    // Seed silencioso — productos y clientes para disponibilidad offline completa
     seedAllProducts();
+    seedAllCustomers();
   }, [isAuthenticated]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sincronizar al recuperar conexión (Capacitor Network — más confiable que window.online en Android)
@@ -115,6 +116,7 @@ function App() {
       const customers = await syncPendingCustomers();
       const orders = await syncPendingOrders();
       seedAllProducts();
+      seedAllCustomers();
       const total = orders.synced + customers.synced;
       if (total > 0) {
         const parts = [];

@@ -89,7 +89,7 @@ const Orders: React.FC = () => {
         addNotification({ type: 'success', title: 'Sincronizado', message: `${synced} orden${synced > 1 ? 'es' : ''} enviada${synced > 1 ? 's' : ''} al servidor` });
         getOrders();
       } else if (failed > 0) {
-        addNotification({ type: 'error', title: 'Error al sincronizar', message: `${failed} orden${failed > 1 ? 'es' : ''} fallaron. Ver tab Local para detalles.` });
+        addNotification({ type: 'error', title: 'Error al sincronizar', message: `${failed} orden${failed > 1 ? 'es' : ''} fallaron. Ver tab Pendientes para detalles.` });
       } else {
         addNotification({ type: 'info', title: 'Sin pendientes', message: 'No hay órdenes pendientes de sincronizar' });
       }
@@ -242,7 +242,7 @@ const Orders: React.FC = () => {
           >
             <span className="flex items-center gap-1.5">
               <CloudOff className="w-3.5 h-3.5" />
-              Local
+              Pendientes
               {pendingSync > 0 && (
                 <span className={`px-1.5 py-0.5 rounded-full text-xs ${activeTab === 'local' ? 'bg-orange-100 text-orange-700' : 'bg-orange-50 text-orange-600'}`}>
                   {pendingSync}

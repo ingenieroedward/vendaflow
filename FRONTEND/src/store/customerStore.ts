@@ -36,6 +36,7 @@ interface CustomerState {
   updateCustomer: (id: number, customerData: UpdateCustomerRequest) => Promise<void>;
   deleteCustomer: (id: number) => Promise<void>;
   syncPendingCustomers: () => Promise<{ synced: number; failed: number }>;
+  seedAllCustomers: () => Promise<void>;
   clearError: () => void;
   clearCurrentCustomer: () => void;
 }
@@ -356,6 +357,15 @@ export const useCustomerStore = create<CustomerState>((set) => ({
     }
 
     return { synced, failed };
+  },
+
+  seedAllCustomers: async () => {
+    if (!navigator.onLine) return;
+    try {
+      const response = await customerService.getCustomers(1, 2000);
+      if (!response.data?.length) return;
+      await customerRepository.saveAllFromServer(response.data as any);
+    } catch { /* silent */ }
   },
 
   clearError: () => set({ error: null }),
