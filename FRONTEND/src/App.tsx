@@ -88,6 +88,18 @@ const NotificationContainer: React.FC = () => {
   );
 };
 
+const SEED_INTERVAL_MS = 4 * 60 * 60 * 1000; // 4 horas
+
+function shouldReseed(): boolean {
+  const last = localStorage.getItem('lastSeedAt');
+  if (!last) return true;
+  return Date.now() - Number(last) > SEED_INTERVAL_MS;
+}
+
+function markSeeded() {
+  localStorage.setItem('lastSeedAt', String(Date.now()));
+}
+
 function App() {
   const { checkAuth, isAuthenticated } = useAuthStore();
   const { addNotification } = useUIStore();
@@ -118,11 +130,14 @@ function App() {
         }
       })
     );
-    // Seed silencioso — todos los datos para disponibilidad offline completa
-    seedAllProducts();
-    seedAllCustomers();
-    seedPricesData();
-    seedAllOrders();
+    // Seed silencioso — solo si no se hizo en las últimas 4 horas
+    if (shouldReseed()) {
+      seedAllProducts();
+      seedAllCustomers();
+      seedPricesData();
+      seedAllOrders();
+      markSeeded();
+    }
   }, [isAuthenticated]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sincronizar al recuperar conexión (Capacitor Network — más confiable que window.online en Android)
@@ -131,10 +146,12 @@ function App() {
       // Clientes primero, luego órdenes (pueden referenciar clientes recién sincronizados)
       const customers = await syncPendingCustomers();
       const orders = await syncPendingOrders();
+      // Al reconectar siempre refrescar datos — el usuario pudo estar offline mucho tiempo
       seedAllProducts();
       seedAllCustomers();
       seedPricesData();
       seedAllOrders();
+      markSeeded();
       const total = orders.synced + customers.synced;
       if (total > 0) {
         const parts = [];

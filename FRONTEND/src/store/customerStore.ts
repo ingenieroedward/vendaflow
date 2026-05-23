@@ -288,7 +288,19 @@ export const useCustomerStore = create<CustomerState>((set) => ({
       try {
         const createEntry = await db.syncQueue.where('entityLocalId').equals(local.id!)
           .filter(e => e.entityType === 'customer' && e.operation === 'create').first();
-        if (createEntry && createEntry.attempts >= MAX_SYNC_ATTEMPTS) { failed++; continue; }
+        if (createEntry && createEntry.attempts >= MAX_SYNC_ATTEMPTS) {
+          if (local._syncStatus !== SyncStatus.CONFLICT) {
+            await db.customers.update(local.id!, { _syncStatus: SyncStatus.CONFLICT });
+            useUIStore.getState().addNotification({
+              type: 'error',
+              title: 'Cliente no sincronizado',
+              message: `El cliente "${local.name}" no pudo guardarse en el servidor después de ${MAX_SYNC_ATTEMPTS} intentos.`,
+              duration: 0,
+            });
+          }
+          failed++;
+          continue;
+        }
         // Re-validar que siga pendiente antes de enviar al servidor
         const fresh = await db.customers.get(local.id!);
         if (!fresh || fresh._syncStatus !== SyncStatus.PENDING_CREATE) { synced++; continue; }
@@ -320,7 +332,19 @@ export const useCustomerStore = create<CustomerState>((set) => ({
         const q = await db.syncQueue.where('entityLocalId').equals(local.id!)
           .filter(e => e.entityType === 'customer' && e.operation === 'update').first();
         if (!q?.data?.serverId) { failed++; continue; }
-        if (q.attempts >= MAX_SYNC_ATTEMPTS) { failed++; continue; }
+        if (q.attempts >= MAX_SYNC_ATTEMPTS) {
+          if (local._syncStatus !== SyncStatus.CONFLICT) {
+            await db.customers.update(local.id!, { _syncStatus: SyncStatus.CONFLICT });
+            useUIStore.getState().addNotification({
+              type: 'error',
+              title: 'Edición no sincronizada',
+              message: `Cambios en cliente "${local.name}" no pudieron guardarse en el servidor.`,
+              duration: 0,
+            });
+          }
+          failed++;
+          continue;
+        }
         const { serverId, ...updateData } = q.data;
         await customerService.updateCustomer(serverId, updateData);
         await db.customers.update(local.id!, { _syncStatus: SyncStatus.SYNCED });
@@ -385,7 +409,25 @@ export const useCustomerStore = create<CustomerState>((set) => ({
     try {
       const response = await customerService.getCustomers(1, 2000);
       if (response.data?.length) {
-        await customerRepository.saveAllFromServer(response.data as any);
+        // Solo actualizar clientes que ya están sincronizados — no sobreescribir cambios pendientes
+        await db.transaction('rw', db.customers, async () => {
+          for (const c of response.data as any[]) {
+            const existing = await db.customers.where('serverId').equals(c.id).first();
+            const data = {
+              serverId: c.id, name: c.name, nit: c.nit ?? null,
+              contact: c.contact ?? '', address: c.address ?? '',
+              note: c.note ?? undefined,
+              createdAt: c.createdAt, updatedAt: c.updatedAt,
+              _syncStatus: SyncStatus.SYNCED, _version: 1, _lastModifiedAt: Date.now(),
+            };
+            if (existing?.id) {
+              if (existing._syncStatus !== SyncStatus.SYNCED) continue;
+              await db.customers.update(existing.id, data);
+            } else {
+              await db.customers.add(data as LocalCustomer);
+            }
+          }
+        });
       }
     } catch { /* silent */ }
     useUIStore.getState().finishSeedingStep('clientes');

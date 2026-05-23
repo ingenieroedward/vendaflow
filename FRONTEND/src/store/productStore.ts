@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { Product, Price, PaginationInfo } from '../types';
 import { productService } from '../services/products';
-import { db, LocalProduct } from '../database/LocalDatabase';
+import { db, LocalProduct, SyncStatus } from '../database/LocalDatabase';
 import { useUIStore } from './uiStore';
 
 import type { LocalPrice, LocalSupplier } from '../database/LocalDatabase';
@@ -439,6 +439,7 @@ export const useProductStore = create<ProductState>((set) => ({
         for (const p of response.data) {
           const existing = await db.products.where('serverId').equals(p.id).first();
           if (existing?.id) {
+            if (existing._syncStatus !== SyncStatus.SYNCED) continue; // no sobreescribir pendientes
             await db.products.update(existing.id, {
               name: p.name, code: p.code, unit: p.unit,
               salePrice: p.salePrice, categoryId: p.categoryId ?? undefined,

@@ -206,33 +206,35 @@ export const useOrderStore = create<OrderState>((set) => ({
           updatedAt: new Date().toISOString(),
         };
 
-        const localId = await db.orders.add(localOrderData as LocalOrder);
+        // Transacción atómica: orden + items + syncQueue en una sola operación
+        let localId!: number;
+        await db.transaction('rw', [db.orders, db.orderItems, db.syncQueue], async () => {
+          localId = await db.orders.add(localOrderData as LocalOrder);
 
-        // Guardar items
-        const localItems: Omit<LocalOrderItem, 'id'>[] = data.items.map(item => ({
-          orderId: localId,
-          productId: item.productId,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          taxRate: item.taxRate,
-          totalPrice: item.quantity * item.unitPrice * (1 + item.taxRate / 100),
-          _syncStatus: SyncStatus.PENDING_CREATE,
-          _version: 1,
-          _lastModifiedAt: Date.now(),
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        }));
+          const localItems: Omit<LocalOrderItem, 'id'>[] = data.items.map(item => ({
+            orderId: localId,
+            productId: item.productId,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            taxRate: item.taxRate,
+            totalPrice: item.quantity * item.unitPrice * (1 + item.taxRate / 100),
+            _syncStatus: SyncStatus.PENDING_CREATE,
+            _version: 1,
+            _lastModifiedAt: Date.now(),
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          }));
 
-        await db.orderItems.bulkAdd(localItems as LocalOrderItem[]);
+          await db.orderItems.bulkAdd(localItems as LocalOrderItem[]);
 
-        // Agregar a cola de sincronización
-        await db.syncQueue.add({
-          entityType: 'order',
-          entityLocalId: localId,
-          operation: 'create',
-          data: { ...data, orderNumber, totalAmount },
-          attempts: 0,
-          createdAt: Date.now(),
+          await db.syncQueue.add({
+            entityType: 'order',
+            entityLocalId: localId,
+            operation: 'create',
+            data: { ...data, orderNumber, totalAmount },
+            attempts: 0,
+            createdAt: Date.now(),
+          });
         });
 
         const pendingSync = await db.syncQueue.count();
@@ -306,8 +308,17 @@ export const useOrderStore = create<OrderState>((set) => ({
           continue;
         }
 
-        // Saltar si ya superó el límite de reintentos
+        // Saltar si ya superó el límite de reintentos — marcar como CONFLICT y notificar
         if (queueEntry && queueEntry.attempts >= MAX_SYNC_ATTEMPTS) {
+          if (localOrder._syncStatus !== SyncStatus.CONFLICT) {
+            await db.orders.update(localOrder.id!, { _syncStatus: SyncStatus.CONFLICT });
+            useUIStore.getState().addNotification({
+              type: 'error',
+              title: 'Orden no sincronizada',
+              message: `Orden #${localOrder.orderNumber} falló después de ${MAX_SYNC_ATTEMPTS} intentos. Revisa o recrea la orden.`,
+              duration: 0, // persistente hasta que el usuario la cierre
+            });
+          }
           failed++;
           continue;
         }
@@ -332,7 +343,20 @@ export const useOrderStore = create<OrderState>((set) => ({
         const byServerId = await db.customers.where('serverId').equals(rawData.customerId).first();
         if (!byServerId) {
           const byLocalId = await db.customers.get(rawData.customerId);
-          if (byLocalId?.serverId) resolvedCustomerId = byLocalId.serverId;
+          if (byLocalId?.serverId) {
+            resolvedCustomerId = byLocalId.serverId;
+          } else if (byLocalId && !byLocalId.serverId) {
+            // Cliente aún no sincronizado con el servidor — enviar la orden sería peligroso
+            if (queueEntry?.id) {
+              await db.syncQueue.update(queueEntry.id, {
+                attempts: (queueEntry.attempts ?? 0) + 1,
+                lastAttemptAt: Date.now(),
+                error: `Cliente local #${rawData.customerId} aún no sincronizado con el servidor`,
+              });
+            }
+            failed++;
+            continue;
+          }
         }
 
         // Resolver productIds: pueden ser IDs locales de productos creados offline
@@ -370,6 +394,11 @@ export const useOrderStore = create<OrderState>((set) => ({
             ? order.updatedAt
             : new Date(order.updatedAt).toISOString(),
         });
+
+        // Marcar items como SYNCED también
+        await db.orderItems
+          .where('orderId').equals(localOrder.id!)
+          .modify({ _syncStatus: SyncStatus.SYNCED });
 
         // Limpiar syncQueue si existía
         if (queueEntry?.id) {
@@ -409,7 +438,19 @@ export const useOrderStore = create<OrderState>((set) => ({
           .filter(e => e.entityType === 'order' && e.operation === 'update')
           .first();
         if (!queueEntry?.data?.serverId) { failed++; continue; }
-        if (queueEntry.attempts >= MAX_SYNC_ATTEMPTS) { failed++; continue; }
+        if (queueEntry.attempts >= MAX_SYNC_ATTEMPTS) {
+          if (localOrder._syncStatus !== SyncStatus.CONFLICT) {
+            await db.orders.update(localOrder.id!, { _syncStatus: SyncStatus.CONFLICT });
+            useUIStore.getState().addNotification({
+              type: 'error',
+              title: 'Edición no sincronizada',
+              message: `Cambios en orden #${localOrder.orderNumber} no pudieron guardarse en el servidor.`,
+              duration: 0,
+            });
+          }
+          failed++;
+          continue;
+        }
 
         const { serverId, ...updateData } = queueEntry.data;
         await orderService.updateOrder(serverId, updateData);
@@ -640,13 +681,18 @@ export const useOrderStore = create<OrderState>((set) => ({
         const existing = await db.orders.where('serverId').equals(order.id).first();
         let localId: number;
         if (existing?.id) {
-          await db.orders.update(existing.id, orderData);
-          localId = existing.id;
+          // Nunca sobreescribir cambios pendientes del usuario con datos del servidor
+          if (existing._syncStatus !== SyncStatus.SYNCED) {
+            localId = existing.id;
+          } else {
+            await db.orders.update(existing.id, orderData);
+            localId = existing.id;
+          }
         } else {
           localId = await db.orders.add(orderData as LocalOrder);
         }
 
-        // Upsert items
+        // Upsert items (solo para ordenes que no tienen cambios pendientes)
         const items: any[] = (order as any).items ?? [];
         for (const item of items) {
           const itemData = {
@@ -666,8 +712,13 @@ export const useOrderStore = create<OrderState>((set) => ({
           const existingItem = item.id
             ? await db.orderItems.where('serverId').equals(item.id).first()
             : null;
-          if (existingItem?.id) await db.orderItems.update(existingItem.id, itemData);
-          else await db.orderItems.add(itemData as LocalOrderItem);
+          if (existingItem?.id) {
+            if (existingItem._syncStatus === SyncStatus.SYNCED) {
+              await db.orderItems.update(existingItem.id, itemData);
+            }
+          } else {
+            await db.orderItems.add(itemData as LocalOrderItem);
+          }
         }
       }
     } catch { /* silent */ }
