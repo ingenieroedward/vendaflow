@@ -146,6 +146,9 @@ function App() {
   // Sincronizar al recuperar conexión (Capacitor Network — más confiable que window.online en Android)
   useEffect(() => {
     const handleOnline = async () => {
+      // Ignorar si el usuario no está autenticado — evita que markSeeded() envenene
+      // el shouldReseed() del startup effect antes de que el usuario haga login
+      if (!useAuthStore.getState().isAuthenticated) return;
       // Clientes primero, luego órdenes (pueden referenciar clientes recién sincronizados)
       const customers = await syncPendingCustomers();
       const orders = await syncPendingOrders();
@@ -154,7 +157,8 @@ function App() {
       seedAllCustomers();
       seedPricesData();
       seedAllOrders();
-      markSeeded();
+      // markSeeded no se llama aquí — el reconnect siempre seedea (no necesita throttle)
+      // así el startup effect del próximo arranque siempre re-verifica
       const total = orders.synced + customers.synced;
       if (total > 0) {
         const parts = [];
