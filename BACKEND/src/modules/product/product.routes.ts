@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { ProductController } from './product.controller';
-import { isAuth, isAdmin } from '@/core/middlewares/auth';
+import { isAuth, isAdmin, isBuyer } from '@/core/middlewares/auth';
 
 const router = Router();
 const productController = new ProductController();
@@ -14,9 +14,9 @@ router.get('/search/prices', productController.searchProductsPrices);
 router.get('/:id', productController.getProductById);
 router.get('/category/:categoryId', productController.getProductsByCategory);
 
-// Protected routes (admin only)
-router.post('/', isAuth, productController.createProduct);
-router.put('/:id', isAuth, productController.updateProduct);
+// Protected routes (buyer + admin for mutations, admin only for delete)
+router.post('/', isAuth, isBuyer, productController.createProduct);
+router.put('/:id', isAuth, isBuyer, productController.updateProduct);
 router.delete('/:id', isAuth, isAdmin, productController.deleteProduct);
 
 export default router; 

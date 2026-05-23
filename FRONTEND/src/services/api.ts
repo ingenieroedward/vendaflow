@@ -40,10 +40,11 @@ class ApiService {
           code: error.code,
         };
 
-        // Auto logout on 401
+        // Auto logout on 401 — lazy import avoids circular dep with authStore → authService → api
         if (error.response?.status === 401) {
-          localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
-          localStorage.removeItem(STORAGE_KEYS.USER_DATA);
+          import('../store/authStore').then(({ useAuthStore }) => {
+            useAuthStore.getState().logout();
+          });
           window.location.href = '/login';
         }
 

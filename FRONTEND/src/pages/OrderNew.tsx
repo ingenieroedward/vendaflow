@@ -54,7 +54,7 @@ const OrderNew: React.FC = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState<number>(1);
   const [unitPrice, setUnitPrice] = useState<number>(0);
-  const [taxRate, setTaxRate] = useState<number>(0); // Default 19% IVA
+  const [taxRate, setTaxRate] = useState<number>(19);
   const [notes, setNotes] = useState<string>("");
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
     null
@@ -86,7 +86,7 @@ const OrderNew: React.FC = () => {
     setSelectedProduct(null);
     setQuantity(1);
     setUnitPrice(0);
-    setTaxRate(0);
+    setTaxRate(19);
     setIncludeProducts(false); // cerrar panel al agregar
   };
 
@@ -369,8 +369,7 @@ const OrderNew: React.FC = () => {
                           onChange={(e) => setTaxRate(parseFloat(e.target.value) || 0)}
                           min="0"
                           max="100"
-                          readOnly
-                          className="w-full px-2 py-1.5 border border-gray-200 rounded text-sm bg-gray-100 cursor-not-allowed"
+                          className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
                         />
                       </div>
                       <div className="flex-none pt-5">

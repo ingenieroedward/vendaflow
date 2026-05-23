@@ -29,7 +29,13 @@ export class AuthService {
 
   getCurrentUser(): User | null {
     const userData = localStorage.getItem(STORAGE_KEYS.USER_DATA);
-    return userData ? JSON.parse(userData) : null;
+    if (!userData) return null;
+    try {
+      return JSON.parse(userData);
+    } catch {
+      localStorage.removeItem(STORAGE_KEYS.USER_DATA);
+      return null;
+    }
   }
 
   getToken(): string | null {

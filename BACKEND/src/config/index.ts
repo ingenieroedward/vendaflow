@@ -22,7 +22,16 @@ export const config = {
 
   // JWT configuration
   jwt: {
-    secret: process.env['JWT_SECRET'] || 'your_jwt_secret_key_here',
+    secret: (() => {
+      const secret = process.env['JWT_SECRET'];
+      if (!secret) {
+        if (process.env['NODE_ENV'] === 'production') {
+          throw new Error('JWT_SECRET environment variable must be set in production');
+        }
+        return 'dev_jwt_secret_change_in_production';
+      }
+      return secret;
+    })(),
     expiresIn: process.env['JWT_EXPIRES_IN'] || '24h',
   },
 
