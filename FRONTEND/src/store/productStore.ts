@@ -4,6 +4,8 @@ import { productService } from '../services/products';
 import { db, LocalProduct } from '../database/LocalDatabase';
 import { useUIStore } from './uiStore';
 
+import type { LocalPrice, LocalSupplier } from '../database/LocalDatabase';
+
 const mapLocalToProduct = (p: LocalProduct, prices: Price[] = []): Product => ({
   id: p.serverId ?? p.id!,
   name: p.name,
@@ -16,28 +18,55 @@ const mapLocalToProduct = (p: LocalProduct, prices: Price[] = []): Product => ({
   prices,
 } as Product);
 
-async function mapLocalToProductWithPrices(p: LocalProduct): Promise<Product> {
+// Batch-optimized: builds prices from pre-loaded maps (O(1) per product)
+function mapProductWithMaps(
+  p: LocalProduct,
+  pricesByProductId: Map<number, LocalPrice[]>,
+  supplierByServerId: Map<number, LocalSupplier>,
+): Product {
   const prodId = p.serverId ?? p.id!;
-  const localPrices = await db.prices.filter(lp => !lp.deletedAt && lp.productId === prodId).toArray();
-  const localSupplierIds = [...new Set(localPrices.map(lp => lp.supplierId))];
-  const suppliersArr = await Promise.all(
-    localSupplierIds.map(sid => db.suppliers.filter(s => !s.deletedAt && (s.serverId === sid || s.id === sid)).first())
-  );
-  const supplierMap = new Map(suppliersArr.filter(Boolean).map(s => [s!.serverId ?? s!.id!, s!]));
-  const prices: Price[] = localPrices.map(lp => ({
-    id: lp.serverId ?? lp.id!,
-    productId: prodId,
-    supplierId: lp.supplierId,
-    price: lp.price,
-    updatedByUserId: lp.updatedByUserId,
-    createdAt: lp.createdAt ?? '',
-    updatedAt: lp.updatedAt ?? '',
-    supplier: (() => {
-      const s = supplierMap.get(lp.supplierId);
-      return s ? { id: s.serverId ?? s.id!, name: s.name, contact: s.contact, location: s.location } : undefined;
-    })(),
-  }));
+  const localPrices = pricesByProductId.get(prodId) ?? [];
+  const prices: Price[] = localPrices.map(lp => {
+    const s = supplierByServerId.get(lp.supplierId);
+    return {
+      id: lp.serverId ?? lp.id!,
+      productId: prodId,
+      supplierId: lp.supplierId,
+      price: lp.price,
+      updatedByUserId: lp.updatedByUserId,
+      createdAt: lp.createdAt ?? '',
+      updatedAt: lp.updatedAt ?? '',
+      supplier: s ? { id: s.serverId ?? s.id!, name: s.name, contact: s.contact, location: s.location } : undefined,
+    };
+  });
   return mapLocalToProduct(p, prices);
+}
+
+// Loads all prices+suppliers once, then maps a list of products efficiently
+async function mapProductsBatch(locals: LocalProduct[]): Promise<Product[]> {
+  if (locals.length === 0) return [];
+  const [allPrices, allSuppliers] = await Promise.all([
+    db.prices.filter(lp => !lp.deletedAt).toArray(),
+    db.suppliers.filter(s => !s.deletedAt).toArray(),
+  ]);
+  const pricesByProductId = new Map<number, LocalPrice[]>();
+  for (const lp of allPrices) {
+    const pid = lp.productId;
+    if (pid == null) continue;
+    const arr = pricesByProductId.get(pid);
+    if (arr) arr.push(lp);
+    else pricesByProductId.set(pid, [lp]);
+  }
+  const supplierByServerId = new Map<number, LocalSupplier>(
+    allSuppliers.filter(s => s.serverId != null).map(s => [s.serverId!, s])
+  );
+  return locals.map(p => mapProductWithMaps(p, pricesByProductId, supplierByServerId));
+}
+
+// Single-product path (used by getProductById) — still async per-lookup, only 1 product
+async function mapLocalToProductWithPrices(p: LocalProduct): Promise<Product> {
+  const results = await mapProductsBatch([p]);
+  return results[0];
 }
 
 interface PriceComparisonResult {
@@ -150,7 +179,7 @@ export const useProductStore = create<ProductState>((set) => ({
         const local = await db.products
           .filter(p => !p.deletedAt && (p.name.toLowerCase().includes(term) || p.code.toLowerCase().includes(term)))
           .toArray();
-        const products = await Promise.all(local.map(mapLocalToProductWithPrices));
+        const products = await mapProductsBatch(local);
         set({ products, loading: false, error: null });
         return;
       }
@@ -162,7 +191,7 @@ export const useProductStore = create<ProductState>((set) => ({
         const local = await db.products
           .filter(p => !p.deletedAt && (p.name.toLowerCase().includes(term) || p.code.toLowerCase().includes(term)))
           .toArray();
-        const products = await Promise.all(local.map(mapLocalToProductWithPrices));
+        const products = await mapProductsBatch(local);
         set({ products, loading: false, error: null });
       } catch {
         const errorMessage = error instanceof Error ? error.message : 'Error al buscar productos';
@@ -176,7 +205,7 @@ export const useProductStore = create<ProductState>((set) => ({
     try {
       if (!navigator.onLine) {
         const local = await db.products.filter(p => !p.deletedAt).toArray();
-        const products = await Promise.all(local.map(mapLocalToProductWithPrices));
+        const products = await mapProductsBatch(local);
         set({
           products,
           pagination: { total: local.length, page: 1, limit: local.length, totalPages: 1 },
@@ -223,7 +252,7 @@ export const useProductStore = create<ProductState>((set) => ({
       try {
         const local = await db.products.filter(p => !p.deletedAt).toArray();
         if (local.length > 0) {
-          const products = await Promise.all(local.map(mapLocalToProductWithPrices));
+          const products = await mapProductsBatch(local);
           set({ products, loading: false, error: null });
           return;
         }
