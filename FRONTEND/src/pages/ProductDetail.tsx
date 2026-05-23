@@ -83,22 +83,24 @@ const ProductDetail: React.FC = () => {
 
   const loadSuppliers = async () => {
     try {
+      if (!navigator.onLine) {
+        // Cargar desde IndexedDB sin notificación de error
+        const { db } = await import('../database/LocalDatabase');
+        const local = await db.suppliers.filter(s => !s.deletedAt).toArray();
+        setSuppliers(local.map(s => ({
+          id: s.serverId ?? s.id!,
+          name: s.name,
+          contact: s.contact,
+          location: s.location,
+          createdAt: s.createdAt ?? '',
+          updatedAt: s.updatedAt ?? '',
+        })));
+        return;
+      }
       const response = await productService.getSuppliers(1, 100);
       setSuppliers(response.data);
-    } catch (error: unknown) {
-      let errorMessage = 'Error al cargar proveedores';
-      
-      if (error && typeof error === 'object' && 'message' in error) {
-        errorMessage = String(error.message);
-      } else if (error instanceof Error) {
-        errorMessage = error.message;
-      }
-      
-      addNotification({
-        type: 'error',
-        title: 'Error',
-        message: errorMessage,
-      });
+    } catch {
+      // Silencioso — no mostrar error por no poder cargar proveedores
     }
   };
 

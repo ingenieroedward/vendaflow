@@ -281,6 +281,29 @@ export const useProductStore = create<ProductState>((set) => ({
   getPricesByProduct: async (productId: number) => {
     set({ pricesLoading: true, prices: [], error: null });
     try {
+      if (!navigator.onLine) {
+        // Leer desde IndexedDB — productId puede ser serverId
+        const [allPrices, allSuppliers] = await Promise.all([
+          db.prices.filter(lp => !lp.deletedAt && lp.productId === productId).toArray(),
+          db.suppliers.filter(s => !s.deletedAt).toArray(),
+        ]);
+        const supplierMap = new Map(allSuppliers.map(s => [s.serverId ?? s.id!, s]));
+        const prices: Price[] = allPrices.map(lp => {
+          const s = supplierMap.get(lp.supplierId);
+          return {
+            id: lp.serverId ?? lp.id!,
+            productId,
+            supplierId: lp.supplierId,
+            price: lp.price,
+            updatedByUserId: lp.updatedByUserId,
+            createdAt: lp.createdAt ?? '',
+            updatedAt: lp.updatedAt ?? '',
+            supplier: s ? { id: s.serverId ?? s.id!, name: s.name, contact: s.contact, location: s.location } : undefined,
+          };
+        });
+        set({ prices, pricesLoading: false });
+        return;
+      }
       const serverPrices = await productService.getPricesByProduct(productId);
       set({ prices: serverPrices.map(mapServerPrice), pricesLoading: false });
     } catch (error: unknown) {

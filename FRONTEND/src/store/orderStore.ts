@@ -395,9 +395,22 @@ export const useOrderStore = create<OrderState>((set) => ({
             : new Date(order.updatedAt).toISOString(),
         });
 
-        // Marcar items como SYNCED también
+        // Actualizar items locales con serverId del servidor para evitar duplicados en seed
+        const serverItems: any[] = (order as any).items ?? [];
+        const localOrderItems = await db.orderItems
+          .where('orderId').equals(localOrder.id!)
+          .filter(i => !i.deletedAt)
+          .toArray();
+        for (const si of serverItems) {
+          const li = localOrderItems.find(l => l.productId === si.productId && !l.serverId);
+          if (li?.id) {
+            await db.orderItems.update(li.id, { serverId: si.id, _syncStatus: SyncStatus.SYNCED });
+          }
+        }
+        // Marcar cualquier item restante sin serverId también como SYNCED
         await db.orderItems
           .where('orderId').equals(localOrder.id!)
+          .filter(i => !i.serverId)
           .modify({ _syncStatus: SyncStatus.SYNCED });
 
         // Limpiar syncQueue si existía
@@ -719,15 +732,25 @@ export const useOrderStore = create<OrderState>((set) => ({
             createdAt: typeof item.createdAt === 'string' ? item.createdAt : new Date().toISOString(),
             updatedAt: typeof item.updatedAt === 'string' ? item.updatedAt : new Date().toISOString(),
           };
+          // Buscar primero por serverId; si no existe, buscar por orderId+productId
+          // para actualizar items offline que aún no tienen serverId (evita duplicados)
           const existingItem = item.id
-            ? await db.orderItems.where('serverId').equals(item.id).first()
+            ? (await db.orderItems.where('serverId').equals(item.id).first()
+               ?? await db.orderItems
+                    .where('orderId').equals(localId)
+                    .filter(i => i.productId === item.productId && !i.serverId)
+                    .first())
             : null;
           if (existingItem?.id) {
             if (existingItem._syncStatus === SyncStatus.SYNCED) {
               await db.orderItems.update(existingItem.id, itemData);
             }
           } else {
-            await db.orderItems.add(itemData as LocalOrderItem);
+            // Solo agregar si no existe ya un item SYNCED con el mismo serverId
+            const dupCheck = item.id
+              ? await db.orderItems.where('serverId').equals(item.id).count()
+              : 0;
+            if (dupCheck === 0) await db.orderItems.add(itemData as LocalOrderItem);
           }
         }
       }
