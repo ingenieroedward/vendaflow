@@ -115,6 +115,8 @@ function App() {
   useEffect(() => {
     if (!isAuthenticated || !navigator.onLine) return;
     // Clientes primero — las órdenes pueden referenciar clientes recién creados offline
+    // Sync primero, seed después — evita race condition donde seed crea duplicados
+    // de órdenes que aún no han sido enviadas al servidor
     syncPendingCustomers().then(customers =>
       syncPendingOrders().then(orders => {
         const total = orders.synced + customers.synced;
@@ -129,15 +131,16 @@ function App() {
           });
         }
       })
-    );
-    // Seed silencioso — solo si no se hizo en las últimas 4 horas
-    if (shouldReseed()) {
-      seedAllProducts();
-      seedAllCustomers();
-      seedPricesData();
-      seedAllOrders();
-      markSeeded();
-    }
+    ).finally(() => {
+      // Seed silencioso SIEMPRE después del sync — solo si no se hizo en las últimas 4 horas
+      if (shouldReseed()) {
+        seedAllProducts();
+        seedAllCustomers();
+        seedPricesData();
+        seedAllOrders();
+        markSeeded();
+      }
+    });
   }, [isAuthenticated]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sincronizar al recuperar conexión (Capacitor Network — más confiable que window.online en Android)

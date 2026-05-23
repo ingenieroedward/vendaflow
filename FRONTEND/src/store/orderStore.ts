@@ -8,6 +8,7 @@ import { useUIStore } from './uiStore';
 
 const MAX_SYNC_ATTEMPTS = 5;
 let isSyncingOrders = false;
+let isSeedingOrders = false;
 
 // ─── Helpers para cargar desde IndexedDB ────────────────────────────────────
 //
@@ -217,7 +218,7 @@ export const useOrderStore = create<OrderState>((set) => ({
             quantity: item.quantity,
             unitPrice: item.unitPrice,
             taxRate: item.taxRate,
-            totalPrice: item.quantity * item.unitPrice * (1 + item.taxRate / 100),
+            totalPrice: item.quantity * item.unitPrice, // pre-IVA, igual que el servidor
             _syncStatus: SyncStatus.PENDING_CREATE,
             _version: 1,
             _lastModifiedAt: Date.now(),
@@ -669,7 +670,8 @@ export const useOrderStore = create<OrderState>((set) => ({
   },
 
   seedAllOrders: async () => {
-    if (!navigator.onLine) return;
+    if (!navigator.onLine || isSeedingOrders) return;
+    isSeedingOrders = true;
     useUIStore.getState().startSeedingStep('órdenes');
     try {
       const response = await orderService.getOrders(1, 200);
@@ -686,7 +688,21 @@ export const useOrderStore = create<OrderState>((set) => ({
         const localUser = await db.users.where('serverId').equals(serverUserId).first();
         const resolvedUserId = localUser?.id ?? serverUserId;
 
-        // Upsert order
+        // Upsert order — deduplicar si hay múltiples registros locales con el mismo serverId
+        // (puede ocurrir si seed y sync corrieron concurrentemente en sesiones previas)
+        const existingAll = await db.orders.where('serverId').equals(order.id).toArray();
+        // Eliminar duplicados: conservar el primero (o el SYNCED), borrar el resto
+        if (existingAll.length > 1) {
+          const toKeep = existingAll.find(o => o._syncStatus === SyncStatus.SYNCED) ?? existingAll[0];
+          for (const dup of existingAll) {
+            if (dup.id !== toKeep.id) {
+              await db.orderItems.where('orderId').equals(dup.id!).delete();
+              await db.orders.delete(dup.id!);
+            }
+          }
+        }
+
+        const existing = existingAll.find(o => o._syncStatus === SyncStatus.SYNCED) ?? existingAll[0];
         const orderData = {
           serverId: order.id,
           orderNumber: order.orderNumber,
@@ -701,7 +717,7 @@ export const useOrderStore = create<OrderState>((set) => ({
           createdAt: typeof order.createdAt === 'string' ? order.createdAt : new Date(order.createdAt).toISOString(),
           updatedAt: typeof order.updatedAt === 'string' ? order.updatedAt : new Date(order.updatedAt).toISOString(),
         };
-        const existing = await db.orders.where('serverId').equals(order.id).first();
+
         let localId: number;
         if (existing?.id) {
           // Nunca sobreescribir cambios pendientes del usuario con datos del servidor
@@ -716,6 +732,9 @@ export const useOrderStore = create<OrderState>((set) => ({
         }
 
         // Upsert items (solo para ordenes que no tienen cambios pendientes)
+        const existingOrder = await db.orders.get(localId);
+        if (existingOrder?._syncStatus !== SyncStatus.SYNCED) continue;
+
         const items: any[] = (order as any).items ?? [];
         for (const item of items) {
           const itemData = {
@@ -746,16 +765,25 @@ export const useOrderStore = create<OrderState>((set) => ({
               await db.orderItems.update(existingItem.id, itemData);
             }
           } else {
-            // Solo agregar si no existe ya un item SYNCED con el mismo serverId
+            // Solo agregar si no existe ya un item con el mismo serverId
             const dupCheck = item.id
               ? await db.orderItems.where('serverId').equals(item.id).count()
               : 0;
             if (dupCheck === 0) await db.orderItems.add(itemData as LocalOrderItem);
           }
         }
+
+        // Eliminar items huérfanos sin serverId — copias offline reemplazadas por los del servidor
+        await db.orderItems
+          .where('orderId').equals(localId)
+          .filter(i => !i.serverId)
+          .delete();
       }
     } catch { /* silent */ }
-    useUIStore.getState().finishSeedingStep('órdenes');
+    finally {
+      isSeedingOrders = false;
+      useUIStore.getState().finishSeedingStep('órdenes');
+    }
   },
 
   clearError: () => set({ error: null }),

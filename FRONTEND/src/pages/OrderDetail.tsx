@@ -233,9 +233,7 @@ const OrderDetail: React.FC = () => {
     let totalTax = 0;
 
     currentOrder.items.forEach((item) => {
-      const itemBase =
-        Number(item.totalPrice) ||
-        Number(item.quantity) * Number(item.unitPrice);
+      const itemBase = Number(item.unitPrice) * Number(item.quantity);
       const itemTax = itemBase * ((Number(item.taxRate) || 0) / 100);
       subtotal += itemBase;
       totalTax += itemTax;
@@ -435,7 +433,7 @@ const OrderDetail: React.FC = () => {
           {/* Lista de items - filas compactas en móvil */}
           <div className="space-y-0 divide-y divide-gray-100">
             {(currentOrder.items || []).map((item, index) => {
-              const itemSubtotal = Number(item.totalPrice) || Number(item.quantity) * Number(item.unitPrice);
+              const itemSubtotal = Number(item.unitPrice) * Number(item.quantity);
               const itemTax = itemSubtotal * ((Number(item.taxRate) || 0) / 100);
               const itemTotal = itemSubtotal + itemTax;
               return (

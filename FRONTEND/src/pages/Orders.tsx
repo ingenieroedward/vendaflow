@@ -134,8 +134,9 @@ const Orders: React.FC = () => {
     if (!order.items || order.items.length === 0) return { subtotal: order.totalAmount, tax: 0, total: order.totalAmount };
     let subtotal = 0, totalTax = 0;
     order.items.forEach((item: OrderItem) => {
-      subtotal += item.totalPrice;
-      totalTax += (item.totalPrice * item.taxRate) / 100;
+      const base = Number(item.unitPrice) * Number(item.quantity);
+      subtotal += base;
+      totalTax += base * (Number(item.taxRate) / 100);
     });
     return { subtotal, tax: totalTax, total: subtotal + totalTax };
   };
