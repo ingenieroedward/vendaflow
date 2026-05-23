@@ -4,13 +4,16 @@ interface UIState {
   sidebarOpen: boolean;
   theme: 'light' | 'dark';
   notifications: Notification[];
-  
+  seedingSteps: string[];
+
   // Actions
   toggleSidebar: () => void;
   setSidebarOpen: (open: boolean) => void;
   toggleTheme: () => void;
   addNotification: (notification: Omit<Notification, 'id'>) => void;
   removeNotification: (id: string) => void;
+  startSeedingStep: (step: string) => void;
+  finishSeedingStep: (step: string) => void;
 }
 
 interface Notification {
@@ -25,6 +28,7 @@ export const useUIStore = create<UIState>((set, get) => ({
   sidebarOpen: false,
   theme: 'light',
   notifications: [],
+  seedingSteps: [],
 
   toggleSidebar: () => {
     set((state) => ({ sidebarOpen: !state.sidebarOpen }));
@@ -58,5 +62,13 @@ export const useUIStore = create<UIState>((set, get) => ({
     set((state) => ({
       notifications: state.notifications.filter((n) => n.id !== id),
     }));
+  },
+
+  startSeedingStep: (step: string) => {
+    set((state) => ({ seedingSteps: [...state.seedingSteps.filter(s => s !== step), step] }));
+  },
+
+  finishSeedingStep: (step: string) => {
+    set((state) => ({ seedingSteps: state.seedingSteps.filter(s => s !== step) }));
   },
 }));

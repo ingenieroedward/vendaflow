@@ -4,6 +4,7 @@ import { orderService } from '../services/orders';
 import { PaginationInfo } from '../types';
 import { db, SyncStatus, LocalOrder, LocalOrderItem } from '../database/LocalDatabase';
 import { orderRepository } from '../repositories/OrderRepository';
+import { useUIStore } from './uiStore';
 
 const MAX_SYNC_ATTEMPTS = 5;
 
@@ -601,6 +602,7 @@ export const useOrderStore = create<OrderState>((set) => ({
 
   seedAllOrders: async () => {
     if (!navigator.onLine) return;
+    useUIStore.getState().startSeedingStep('órdenes');
     try {
       const response = await orderService.getOrders(1, 200);
       if (!response.data?.length) return;
@@ -655,6 +657,7 @@ export const useOrderStore = create<OrderState>((set) => ({
         }
       }
     } catch { /* silent */ }
+    useUIStore.getState().finishSeedingStep('órdenes');
   },
 
   clearError: () => set({ error: null }),

@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { Product, Price, PaginationInfo } from '../types';
 import { productService } from '../services/products';
 import { db, LocalProduct } from '../database/LocalDatabase';
+import { useUIStore } from './uiStore';
 
 const mapLocalToProduct = (p: LocalProduct, prices: Price[] = []): Product => ({
   id: p.serverId ?? p.id!,
@@ -401,6 +402,7 @@ export const useProductStore = create<ProductState>((set) => ({
 
   seedAllProducts: async () => {
     if (!navigator.onLine) return;
+    useUIStore.getState().startSeedingStep('productos');
     try {
       const response = await productService.getProducts(1, 2000, false);
       if (!response.data?.length) return;
@@ -424,10 +426,12 @@ export const useProductStore = create<ProductState>((set) => ({
         }
       });
     } catch { /* silent — solo seed de respaldo */ }
+    useUIStore.getState().finishSeedingStep('productos');
   },
 
   seedPricesData: async () => {
     if (!navigator.onLine) return;
+    useUIStore.getState().startSeedingStep('precios y proveedores');
     try {
       const [prodRes, supRes] = await Promise.all([
         productService.getProducts(1, 2000, true),
@@ -479,6 +483,7 @@ export const useProductStore = create<ProductState>((set) => ({
         });
       }
     } catch { /* silent */ }
+    useUIStore.getState().finishSeedingStep('precios y proveedores');
   },
 
   setSearchQuery: (query: string) => set({ searchQuery: query }),

@@ -3,6 +3,7 @@ import { customerService } from '../services/customers';
 import { Customer, CreateCustomerRequest, UpdateCustomerRequest } from '../types/customer';
 import { db, LocalCustomer, SyncStatus } from '../database/LocalDatabase';
 import { customerRepository } from '../repositories/CustomerRepository';
+import { useUIStore } from './uiStore';
 
 const MAX_SYNC_ATTEMPTS = 5;
 
@@ -370,11 +371,14 @@ export const useCustomerStore = create<CustomerState>((set) => ({
 
   seedAllCustomers: async () => {
     if (!navigator.onLine) return;
+    useUIStore.getState().startSeedingStep('clientes');
     try {
       const response = await customerService.getCustomers(1, 2000);
-      if (!response.data?.length) return;
-      await customerRepository.saveAllFromServer(response.data as any);
+      if (response.data?.length) {
+        await customerRepository.saveAllFromServer(response.data as any);
+      }
     } catch { /* silent */ }
+    useUIStore.getState().finishSeedingStep('clientes');
   },
 
   clearError: () => set({ error: null }),

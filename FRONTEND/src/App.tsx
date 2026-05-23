@@ -7,6 +7,20 @@ import { useCustomerStore } from './store/customerStore';
 import { useProductStore } from './store/productStore';
 import ErrorBoundary from './components/ui/ErrorBoundary';
 import { Network } from '@capacitor/network';
+import { Download } from 'lucide-react';
+
+const SeedingProgressBanner: React.FC = () => {
+  const { seedingSteps } = useUIStore();
+  if (seedingSteps.length === 0) return null;
+  return (
+    <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-40 pointer-events-none">
+      <div className="flex items-center gap-2 bg-gray-800/90 text-white text-xs px-3 py-1.5 rounded-full shadow-lg backdrop-blur-sm">
+        <Download className="w-3 h-3 animate-bounce flex-shrink-0" />
+        <span>Descargando {seedingSteps.join(', ')}…</span>
+      </div>
+    </div>
+  );
+};
 
 const NotificationContainer: React.FC = () => {
   const { notifications, removeNotification } = useUIStore();
@@ -150,6 +164,7 @@ function App() {
     <ErrorBoundary>
       <div className="App min-h-screen">
         <AppRouter />
+        <SeedingProgressBanner />
         <NotificationContainer />
       </div>
     </ErrorBoundary>
