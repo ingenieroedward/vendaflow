@@ -33,11 +33,11 @@ async function loadOrderFromLocal(id: number): Promise<Order | null> {
 }
 
 async function mapLocalOrder(o: LocalOrder): Promise<Order> {
-  // Cargar cliente desde IndexedDB
+  // customerId siempre es el ID LOCAL de Dexie (normalizado en seedAllOrders).
+  // Para órdenes creadas offline antes de esa normalización, intentamos también por serverId.
   const customer = await db.customers.get(o.customerId)
     ?? await db.customers.where('serverId').equals(o.customerId).first();
 
-  // Cargar usuario desde IndexedDB
   const user = await db.users.get(o.userId)
     ?? await db.users.where('serverId').equals(o.userId).first();
 
@@ -663,16 +663,26 @@ export const useOrderStore = create<OrderState>((set) => ({
       if (!response.data?.length) return;
 
       for (const order of response.data) {
+        // Resolver customerId del servidor al ID LOCAL de Dexie para que mapLocalOrder
+        // siempre encuentre el cliente correcto con db.customers.get(customerId)
+        const serverCustomerId = (order.customer as any)?.id ?? order.customerId;
+        const localCustomer = await db.customers.where('serverId').equals(serverCustomerId).first();
+        const resolvedCustomerId = localCustomer?.id ?? serverCustomerId;
+
+        const serverUserId = (order.user as any)?.id ?? order.userId;
+        const localUser = await db.users.where('serverId').equals(serverUserId).first();
+        const resolvedUserId = localUser?.id ?? serverUserId;
+
         // Upsert order
         const orderData = {
           serverId: order.id,
           orderNumber: order.orderNumber,
-          customerId: (order.customer as any)?.id ?? order.customerId,
-          userId: (order.user as any)?.id ?? order.userId,
+          customerId: resolvedCustomerId,
+          userId: resolvedUserId,
           totalAmount: order.totalAmount,
           status: order.status,
           notes: order.notes ?? null,
-          _syncStatus: SyncStatus.SYNCED,
+          _syncStatus: SyncStatus.SYNCED as const,
           _version: 1,
           _lastModifiedAt: Date.now(),
           createdAt: typeof order.createdAt === 'string' ? order.createdAt : new Date(order.createdAt).toISOString(),
