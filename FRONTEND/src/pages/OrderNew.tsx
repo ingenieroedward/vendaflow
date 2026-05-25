@@ -54,7 +54,7 @@ const OrderNew: React.FC = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState<number>(1);
   const [unitPrice, setUnitPrice] = useState<number>(0);
-  const [taxRate, setTaxRate] = useState<number>(19);
+  const [taxRate, setTaxRate] = useState<number>(0);
   const [notes, setNotes] = useState<string>("");
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
     null
