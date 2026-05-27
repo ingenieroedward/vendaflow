@@ -349,10 +349,28 @@ export const useOrderStore = create<OrderState>((set) => ({
           } else if (byLocalId && !byLocalId.serverId) {
             // Cliente aún no sincronizado con el servidor — enviar la orden sería peligroso
             if (queueEntry?.id) {
+              const nextAttempts = (queueEntry.attempts ?? 0) + 1;
+              const errorMsg = `Cliente de la orden aún no está sincronizado. Primero sincroniza clientes y reintenta.`;
               await db.syncQueue.update(queueEntry.id, {
-                attempts: (queueEntry.attempts ?? 0) + 1,
+                attempts: nextAttempts,
                 lastAttemptAt: Date.now(),
-                error: `Cliente local #${rawData.customerId} aún no sincronizado con el servidor`,
+                error: errorMsg,
+              });
+              if (nextAttempts >= MAX_SYNC_ATTEMPTS) {
+                await db.orders.update(localOrder.id!, { _syncStatus: SyncStatus.CONFLICT });
+                useUIStore.getState().addNotification({
+                  type: 'error',
+                  title: 'Orden no sincronizada',
+                  message: `Orden #${localOrder.orderNumber}: ${errorMsg}`,
+                  duration: 0,
+                });
+              }
+            } else {
+              useUIStore.getState().addNotification({
+                type: 'warning',
+                title: 'Orden en espera',
+                message: `Orden #${localOrder.orderNumber}: el cliente aún no está sincronizado.`,
+                duration: 8000,
               });
             }
             failed++;
@@ -428,15 +446,31 @@ export const useOrderStore = create<OrderState>((set) => ({
           .first();
 
         if (queueEntry?.id) {
+          const nextAttempts = (queueEntry.attempts ?? 0) + 1;
           await db.syncQueue.update(queueEntry.id, {
-            attempts: queueEntry.attempts + 1,
+            attempts: nextAttempts,
             lastAttemptAt: Date.now(),
             error: err instanceof Error ? err.message : 'Error desconocido',
+          });
+          if (nextAttempts >= MAX_SYNC_ATTEMPTS) {
+            await db.orders.update(localOrder.id!, { _syncStatus: SyncStatus.CONFLICT });
+            useUIStore.getState().addNotification({
+              type: 'error',
+              title: 'Orden no sincronizada',
+              message: `Orden #${localOrder.orderNumber}: ${err instanceof Error ? err.message : 'Error desconocido'}`,
+              duration: 0,
+            });
+          }
+        } else {
+          useUIStore.getState().addNotification({
+            type: 'error',
+            title: 'Error de sincronización',
+            message: `Orden #${localOrder.orderNumber}: ${err instanceof Error ? err.message : 'Error desconocido'}`,
+            duration: 8000,
           });
         }
 
         failed++;
-        console.error(`[Sync] Falló sincronizar orden local #${localOrder.id}:`, err);
       }
     }
 
