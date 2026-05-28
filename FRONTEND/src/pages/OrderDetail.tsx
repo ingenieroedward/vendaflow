@@ -6,14 +6,17 @@ import {
   Trash2,
   User,
   Calendar,
-  Printer,
+  Download,
   Package,
   ChevronDown,
   Check,
   WifiOff,
   Phone,
   MapPin,
+  Loader2,
 } from "lucide-react";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 import { useOrderStore } from "../store/orderStore";
 import { useAuthStore } from "../store/authStore";
 import { useUIStore } from "../store/uiStore";
@@ -35,6 +38,7 @@ const OrderDetail: React.FC = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
 
   const statusOptions = [
     { value: 'pending', label: 'Pendiente', color: 'bg-yellow-100 text-yellow-800' },
@@ -66,135 +70,48 @@ const OrderDetail: React.FC = () => {
   };
 
   const handlePrint = async () => {
-    if (!currentOrder) return;
+    if (!currentOrder || generatingPdf) return;
     if (currentOrder.status === 'pending') {
       await updateOrder(currentOrder.id, { status: 'processing' });
-      await getOrderById(currentOrder.id); // refresca la orden
+      await getOrderById(currentOrder.id);
     }
-    if (printRef.current) {
-      const printWindow = window.open("", "_blank");
-      if (printWindow) {
-        printWindow.document.write(`
-          <html>
-            <head>
-              <title>Orden ${currentOrder?.orderNumber}</title>
-              <style>
-                @page {
-                  size: A4;
-                  margin: 1cm;
-                }
-                body { 
-                  font-family: Arial, sans-serif; 
-                  margin: 0; 
-                  padding: 0;
-                  line-height: 1.4;
-                  color: #000;
-                  font-size: 12px;
-                }
-                .print-container {
-                  max-width: 100%;
-                  margin: 0 auto;
-                }
-                table {
-                  width: 100%;
-                  border-collapse: collapse;
-                  margin: 10px 0;
-                  font-size: 11px;
-                }
-                th, td {
-                  border: 1px solid #ccc;
-                  padding: 6px;
-                  text-align: left;
-                }
-                th {
-                  background-color: #f5f5f5;
-                  font-weight: bold;
-                  font-size: 10px;
-                }
-                .header {
-                  border-bottom: 2px solid #333;
-                  padding-bottom: 20px;
-                  margin-bottom: 20px;
-                  text-align: center;
-                }
-                .header h1 {
-                  font-size: 20px;
-                  margin: 0;
-                  color: #333;
-                }
-                .section {
-                  margin-bottom: 15px;
-                }
-                .section-title {
-                  font-size: 14px;
-                  font-weight: bold;
-                  border-bottom: 1px solid #ccc;
-                  padding-bottom: 5px;
-                  margin-bottom: 10px;
-                }
-                .customer-info, .user-info {
-                  background-color: #f9f9f9;
-                  padding: 10px;
-                  border-radius: 4px;
-                  margin-bottom: 10px;
-                }
-                .info-grid {
-                  display: grid;
-                  grid-template-columns: 1fr 1fr;
-                  gap: 20px;
-                  margin-bottom: 20px;
-                }
-                .totals {
-                  text-align: right;
-                  margin-top: 15px;
-                  font-size: 12px;
-                }
-                .total-row {
-                  border-top: 2px solid #333;
-                  padding-top: 8px;
-                  margin-top: 8px;
-                  font-weight: bold;
-                  font-size: 14px;
-                }
-                .notes {
-                  background-color: #fff3cd;
-                  border-left: 4px solid #ffc107;
-                  padding: 10px;
-                  margin: 15px 0;
-                  font-size: 11px;
-                }
-                .footer {
-                  border-top: 1px solid #333;
-                  padding-top: 15px;
-                  margin-top: 30px;
-                  text-align: center;
-                  font-size: 10px;
-                  color: #666;
-                }
-                .tax-detail {
-                  font-size: 10px;
-                  color: #666;
-                  font-style: italic;
-                }
-                @media print {
-                  body { margin: 0; }
-                  .no-print { display: none; }
-                }
-              </style>
-            </head>
-            <body>
-              <div class="print-container">
-                ${printRef.current.innerHTML}
-              </div>
-            </body>
-          </html>
-        `);
-        printWindow.document.close();
-        printWindow.focus();
-        setTimeout(() => {
-          printWindow.print();
-        }, 500);
+    if (!printRef.current) return;
+
+    setGeneratingPdf(true);
+    try {
+      const canvas = await html2canvas(printRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+      });
+
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = pageWidth;
+      const imgHeight = (canvas.height * pageWidth) / canvas.width;
+
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
       }
+
+      pdf.save(`${currentOrder.orderNumber}.pdf`);
+    } catch {
+      addNotification({ type: 'error', title: 'Error', message: 'No se pudo generar el PDF' });
+    } finally {
+      setGeneratingPdf(false);
     }
   };
 
@@ -345,10 +262,14 @@ const OrderDetail: React.FC = () => {
           {/* Action icons */}
           <button
             onClick={handlePrint}
-            className="p-1.5 rounded-md hover:bg-gray-200 text-gray-600"
-            title="Imprimir"
+            disabled={generatingPdf}
+            className="p-1.5 rounded-md hover:bg-gray-200 text-gray-600 disabled:opacity-50"
+            title="Descargar PDF"
           >
-            <Printer className="w-4 h-4" />
+            {generatingPdf
+              ? <Loader2 className="w-4 h-4 animate-spin" />
+              : <Download className="w-4 h-4" />
+            }
           </button>
           {canEdit && (
             <button
@@ -469,8 +390,8 @@ const OrderDetail: React.FC = () => {
           </div>
         </div>
 
-        {/* Hidden print view */}
-        <div className="hidden">
+        {/* Off-screen render for PDF capture */}
+        <div style={{ position: 'absolute', left: '-9999px', top: 0, width: '794px', pointerEvents: 'none' }}>
           <OrderPrintView ref={printRef} order={currentOrder} />
         </div>
 
