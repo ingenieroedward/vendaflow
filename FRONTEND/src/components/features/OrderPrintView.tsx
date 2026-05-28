@@ -19,8 +19,8 @@ const S = {
 
   // ── Header ──────────────────────────────────────────────
   headerBand: {
-    background: "linear-gradient(135deg, #1e40af 0%, #2563eb 100%)",
-    padding: "24px 32px 20px",
+    background: "#111827",
+    padding: "22px 32px 18px",
     display: "flex",
     justifyContent: "space-between",
     alignItems: "flex-start",
@@ -35,7 +35,7 @@ const S = {
   } as React.CSSProperties,
 
   companySubtitle: {
-    color: "#bfdbfe",
+    color: "#9ca3af",
     fontSize: "10px",
     margin: "0",
     letterSpacing: "0.5px",
@@ -54,15 +54,15 @@ const S = {
   } as React.CSSProperties,
 
   orderDate: {
-    color: "#bfdbfe",
+    color: "#9ca3af",
     fontSize: "11px",
     margin: "0",
   } as React.CSSProperties,
 
   // ── Sub-header strip ────────────────────────────────────
   subHeader: {
-    background: "#f0f7ff",
-    borderBottom: "1px solid #bfdbfe",
+    background: "#f9fafb",
+    borderBottom: "1px solid #e5e7eb",
     padding: "10px 32px",
     display: "flex",
     alignItems: "center",
@@ -126,12 +126,12 @@ const S = {
   sectionTitle: {
     fontSize: "9px",
     fontWeight: "700",
-    color: "#6b7280",
+    color: "#374151",
     letterSpacing: "0.8px",
     textTransform: "uppercase" as const,
     marginBottom: "10px",
     paddingBottom: "6px",
-    borderBottom: "2px solid #2563eb",
+    borderBottom: "2px solid #111827",
     display: "inline-block",
   } as React.CSSProperties,
 
@@ -144,7 +144,7 @@ const S = {
   } as React.CSSProperties,
 
   th: {
-    background: "#1e40af",
+    background: "#1f2937",
     color: "#ffffff",
     fontWeight: "700",
     padding: "8px 10px",
@@ -154,7 +154,7 @@ const S = {
   } as React.CSSProperties,
 
   thRight: {
-    background: "#1e40af",
+    background: "#1f2937",
     color: "#ffffff",
     fontWeight: "700",
     padding: "8px 10px",
@@ -164,7 +164,7 @@ const S = {
   } as React.CSSProperties,
 
   thCenter: {
-    background: "#1e40af",
+    background: "#1f2937",
     color: "#ffffff",
     fontWeight: "700",
     padding: "8px 10px",
@@ -248,7 +248,7 @@ const S = {
     justifyContent: "space-between",
     alignItems: "center",
     padding: "8px 14px",
-    background: "#1e40af",
+    background: "#111827",
     fontSize: "14px",
     fontWeight: "800",
     color: "#ffffff",
@@ -309,10 +309,10 @@ const OrderPrintView = forwardRef<HTMLDivElement, OrderPrintViewProps>(
       new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP" }).format(amount);
 
     const statusConfig: Record<string, { label: string; bg: string; color: string }> = {
-      pending:    { label: "Pendiente",   bg: "#fef3c7", color: "#92400e" },
-      processing: { label: "En Proceso",  bg: "#dbeafe", color: "#1e40af" },
-      completed:  { label: "Completada",  bg: "#d1fae5", color: "#065f46" },
-      cancelled:  { label: "Cancelada",   bg: "#fee2e2", color: "#991b1b" },
+      pending:    { label: "Pendiente",   bg: "#f3f4f6", color: "#374151" },
+      processing: { label: "En Proceso",  bg: "#f3f4f6", color: "#111827" },
+      completed:  { label: "Completada",  bg: "#f0fdf4", color: "#166534" },
+      cancelled:  { label: "Cancelada",   bg: "#fef2f2", color: "#991b1b" },
     };
 
     const status = statusConfig[order.status] ?? { label: order.status, bg: "#f3f4f6", color: "#374151" };
@@ -444,7 +444,7 @@ const OrderPrintView = forwardRef<HTMLDivElement, OrderPrintViewProps>(
                     <td style={td}>{item.product.name}</td>
                     <td style={{ ...td, ...S.tdCenter }}>{item.quantity}</td>
                     <td style={{ ...td, ...S.tdRight }}>{formatCurrency(item.unitPrice)}</td>
-                    <td style={{ ...td, ...S.tdCenter, color: item.taxRate ? "#1e40af" : "#9ca3af" }}>
+                    <td style={{ ...td, ...S.tdCenter, color: item.taxRate ? "#374151" : "#9ca3af" }}>
                       {item.taxRate || 0}%
                     </td>
                     <td style={{ ...td, ...S.tdRight }}>{formatCurrency(base)}</td>
@@ -477,13 +477,13 @@ const OrderPrintView = forwardRef<HTMLDivElement, OrderPrintViewProps>(
                 {taxBreakdown.map((g, i) => (
                   <div key={i} style={S.totalsRow}>
                     <span>IVA {g.rate}%</span>
-                    <span style={{ fontWeight: "600", color: "#1e40af" }}>{formatCurrency(g.tax)}</span>
+                    <span style={{ fontWeight: "600", color: "#374151" }}>{formatCurrency(g.tax)}</span>
                   </div>
                 ))}
                 {taxBreakdown.length > 1 && (
                   <div style={{ ...S.totalsRow, borderTop: "1px solid #e5e7eb", paddingTop: "6px", marginTop: "4px" }}>
                     <span style={{ fontWeight: "600" }}>Total IVA</span>
-                    <span style={{ fontWeight: "700", color: "#1e40af" }}>{formatCurrency(totals.totalTax)}</span>
+                    <span style={{ fontWeight: "700", color: "#111827" }}>{formatCurrency(totals.totalTax)}</span>
                   </div>
                 )}
               </div>
@@ -508,7 +508,7 @@ const OrderPrintView = forwardRef<HTMLDivElement, OrderPrintViewProps>(
           </div>
           <div style={S.footerRight}>
             <p style={{ margin: "0 0 2px 0" }}>{order.orderNumber}</p>
-            <p style={{ margin: 0, color: "#bfdbfe", background: "#1e40af", padding: "1px 6px", borderRadius: "4px", display: "inline-block" }}>
+            <p style={{ margin: 0, color: "#ffffff", background: "#374151", padding: "1px 6px", borderRadius: "4px", display: "inline-block" }}>
               {status.label}
             </p>
           </div>
