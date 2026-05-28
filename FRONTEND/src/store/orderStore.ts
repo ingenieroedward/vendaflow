@@ -10,6 +10,80 @@ const MAX_SYNC_ATTEMPTS = 5;
 let isSyncingOrders = false;
 let isSeedingOrders = false;
 
+// Detecta error de red (sin respuesta del servidor) vs error de validación (400/422/etc.)
+function isNetworkError(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false;
+  const e = err as any;
+  if (e.isAxiosError && !e.response) return true; // Axios sin respuesta = red caída
+  if (err instanceof TypeError) return true;       // Fetch: network failure
+  return false;
+}
+
+// Guarda una orden localmente con PENDING_CREATE (offline o fallback de red)
+async function saveOrderLocal(data: CreateOrderRequest): Promise<Order> {
+  const orderNumber = await orderRepository.getNextOrderNumber();
+  const totalAmount = data.items.reduce(
+    (sum, item) => sum + item.quantity * item.unitPrice * (1 + item.taxRate / 100), 0
+  );
+
+  const localOrderData: Omit<LocalOrder, 'id'> = {
+    orderNumber,
+    customerId: data.customerId,
+    userId: data.userId ?? 0,
+    totalAmount,
+    status: 'pending',
+    notes: data.notes,
+    _syncStatus: SyncStatus.PENDING_CREATE,
+    _version: 1,
+    _lastModifiedAt: Date.now(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  let localId!: number;
+  await db.transaction('rw', [db.orders, db.orderItems, db.syncQueue], async () => {
+    localId = await db.orders.add(localOrderData as LocalOrder);
+
+    const localItems: Omit<LocalOrderItem, 'id'>[] = data.items.map(item => ({
+      orderId: localId,
+      productId: item.productId,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      taxRate: item.taxRate,
+      totalPrice: item.quantity * item.unitPrice,
+      _syncStatus: SyncStatus.PENDING_CREATE,
+      _version: 1,
+      _lastModifiedAt: Date.now(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }));
+
+    await db.orderItems.bulkAdd(localItems as LocalOrderItem[]);
+
+    await db.syncQueue.add({
+      entityType: 'order',
+      entityLocalId: localId,
+      operation: 'create',
+      data: { ...data, orderNumber, totalAmount },
+      attempts: 0,
+      createdAt: Date.now(),
+    });
+  });
+
+  return {
+    id: localId,
+    orderNumber,
+    customerId: data.customerId,
+    userId: data.userId ?? 0,
+    totalAmount,
+    status: 'pending',
+    notes: data.notes,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    _isLocal: true,
+  } as unknown as Order;
+}
+
 // ─── Helpers para cargar desde IndexedDB ────────────────────────────────────
 //
 // Arquitectura offline:
@@ -187,80 +261,26 @@ export const useOrderStore = create<OrderState>((set) => ({
     set({ loading: true, error: null });
     try {
       if (!navigator.onLine) {
-        // === OFFLINE: guardar en IndexedDB ===
-        const orderNumber = await orderRepository.getNextOrderNumber();
-
-        const totalAmount = data.items.reduce((sum, item) => {
-          return sum + item.quantity * item.unitPrice * (1 + item.taxRate / 100);
-        }, 0);
-
-        const localOrderData: Omit<LocalOrder, 'id'> = {
-          orderNumber,
-          customerId: data.customerId,
-          userId: data.userId ?? 0,
-          totalAmount,
-          status: 'pending',
-          notes: data.notes,
-          _syncStatus: SyncStatus.PENDING_CREATE,
-          _version: 1,
-          _lastModifiedAt: Date.now(),
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-
-        // Transacción atómica: orden + items + syncQueue en una sola operación
-        let localId!: number;
-        await db.transaction('rw', [db.orders, db.orderItems, db.syncQueue], async () => {
-          localId = await db.orders.add(localOrderData as LocalOrder);
-
-          const localItems: Omit<LocalOrderItem, 'id'>[] = data.items.map(item => ({
-            orderId: localId,
-            productId: item.productId,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            taxRate: item.taxRate,
-            totalPrice: item.quantity * item.unitPrice, // pre-IVA, igual que el servidor
-            _syncStatus: SyncStatus.PENDING_CREATE,
-            _version: 1,
-            _lastModifiedAt: Date.now(),
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          }));
-
-          await db.orderItems.bulkAdd(localItems as LocalOrderItem[]);
-
-          await db.syncQueue.add({
-            entityType: 'order',
-            entityLocalId: localId,
-            operation: 'create',
-            data: { ...data, orderNumber, totalAmount },
-            attempts: 0,
-            createdAt: Date.now(),
-          });
-        });
-
+        // === OFFLINE CONFIRMADO: guardar en IndexedDB ===
+        const order = await saveOrderLocal(data);
         const pendingSync = await db.syncQueue.count();
         set({ loading: false, pendingSync });
-
-        // Retornar orden local como si fuera del servidor
-        return {
-          id: localId,
-          orderNumber,
-          customerId: data.customerId,
-          userId: data.userId ?? 0,
-          totalAmount,
-          status: 'pending',
-          notes: data.notes,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          _isLocal: true, // flag para saber que es local
-        } as unknown as Order;
+        return order;
       }
 
-      // === ONLINE: flujo normal ===
-      const order = await orderService.createOrder(data);
-      set({ loading: false });
-      return order;
+      // === ONLINE: intentar servidor, fallback a local si falla la red ===
+      try {
+        const order = await orderService.createOrder(data);
+        set({ loading: false });
+        return order;
+      } catch (apiError: unknown) {
+        if (!isNetworkError(apiError)) throw apiError; // 400/422/etc → propagar al usuario
+        // Sin respuesta del servidor (señal débil, servidor caído) → guardar localmente
+        const order = await saveOrderLocal(data);
+        const pendingSync = await db.syncQueue.count();
+        set({ loading: false, pendingSync });
+        return order;
+      }
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Error al crear orden';
       set({ error: errorMessage, loading: false });
