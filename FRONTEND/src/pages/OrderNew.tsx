@@ -11,6 +11,7 @@ import {
   FileText,
   WifiOff,
   RefreshCw,
+  Eraser,
 } from "lucide-react";
 import { useNetworkStatus } from "../hooks/useNetworkStatus";
 import { useOrderStore } from "../store/orderStore";
@@ -241,6 +242,20 @@ const OrderNew: React.FC = () => {
     setShowCustomerModal(false);
   };
 
+  const handleClearDraft = () => {
+    localStorage.removeItem(DRAFT_KEY);
+    setOrderItems([]);
+    setSelectedCustomer(null);
+    setNotes('');
+    setSelectedProduct(null);
+    setQuantity(1);
+    setUnitPrice(0);
+    setTaxRate(0);
+    setIncludeProducts(false);
+  };
+
+  const hasDraft = orderItems.length > 0 || !!selectedCustomer || !!notes;
+
   const handleBack = () => {
     navigate("/orders");
   };
@@ -261,6 +276,17 @@ const OrderNew: React.FC = () => {
             <ShoppingCart className="w-5 h-5 text-blue-600 flex-shrink-0" />
             <h1 className="text-lg font-semibold text-gray-900 truncate">Nueva orden</h1>
           </div>
+          {hasDraft && (
+            <button
+              type="button"
+              onClick={handleClearDraft}
+              className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded-lg transition-colors flex-shrink-0"
+              title="Limpiar borrador"
+            >
+              <Eraser className="w-3.5 h-3.5" />
+              Limpiar
+            </button>
+          )}
           <span className="text-xs text-gray-400 flex-shrink-0">{user?.username}</span>
         </div>
 
