@@ -190,7 +190,7 @@ const CustomerModal: React.FC<CustomerModalProps> = ({
                   <LoadingSpinner size="sm" />
                   <span className="ml-2">{isEdit ? 'Guardando...' : 'Creando...'}</span>
                 </div>
-              ) : isEdit ? 'Guardar cambios' : 'Crear'}
+              ) : isEdit ? 'Actualizar' : 'Crear'}
             </Button>
           </div>
         </form>
