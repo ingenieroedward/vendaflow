@@ -28,6 +28,7 @@ import CustomerModal from "../components/ui/CustomerModal";
 import { CreateOrderRequest } from "../types/order";
 import { Product } from "../types";
 import { Customer } from "../types/customer";
+import { productService } from "../services/products";
 
 interface OrderItem {
   id: string;
@@ -38,8 +39,11 @@ interface OrderItem {
   product: Product;
 }
 
+const DRAFT_KEY = 'orderNewDraft';
+
 const OrderNew: React.FC = () => {
   const navigate = useNavigate();
+  const { isOffline } = useNetworkStatus();
   const { user } = useAuthStore();
   const { createOrder, loading, error, clearError } = useOrderStore();
   const { products, getProducts, loading: productsLoading } = useProductStore();
@@ -65,9 +69,28 @@ const OrderNew: React.FC = () => {
 
   useEffect(() => {
     getProducts(1, 2000, false);
-
     getCustomers(1, 2000);
+
+    // Restore draft from previous session
+    const saved = localStorage.getItem(DRAFT_KEY);
+    if (saved) {
+      try {
+        const draft = JSON.parse(saved);
+        if (draft.orderItems?.length > 0) setOrderItems(draft.orderItems);
+        if (draft.selectedCustomer) setSelectedCustomer(draft.selectedCustomer);
+        if (draft.notes) setNotes(draft.notes);
+      } catch { /* ignore corrupt draft */ }
+    }
   }, [getProducts, getCustomers]);
+
+  // Auto-save draft on every change
+  useEffect(() => {
+    if (orderItems.length === 0 && !selectedCustomer && !notes) {
+      localStorage.removeItem(DRAFT_KEY);
+      return;
+    }
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({ orderItems, selectedCustomer, notes }));
+  }, [orderItems, selectedCustomer, notes]);
 
   const handleAddItem = () => {
     if (!selectedProduct || quantity <= 0 || unitPrice <= 0) {
@@ -87,7 +110,7 @@ const OrderNew: React.FC = () => {
     setSelectedProduct(null);
     setQuantity(1);
     setUnitPrice(0);
-    setTaxRate(19);
+    setTaxRate(0);
     setIncludeProducts(false); // cerrar panel al agregar
   };
 
@@ -178,6 +201,7 @@ const OrderNew: React.FC = () => {
 
     try {
       const newOrder = await createOrder(orderData);
+      localStorage.removeItem(DRAFT_KEY);
       const isLocalOrder = (newOrder as any)._isLocal;
 
       if (isLocalOrder) {
@@ -216,8 +240,6 @@ const OrderNew: React.FC = () => {
     setSelectedCustomer(newCustomer);
     setShowCustomerModal(false);
   };
-
-  const { isOffline } = useNetworkStatus();
 
   const handleBack = () => {
     navigate("/orders");
@@ -336,6 +358,7 @@ const OrderNew: React.FC = () => {
                       selectedProduct={selectedProduct}
                       products={products}
                       placeholder="Buscar producto..."
+                      searchFn={!isOffline ? (q) => productService.searchProducts(q, false) : undefined}
                     />
                   )}
 

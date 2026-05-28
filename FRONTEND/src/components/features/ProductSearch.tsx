@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Package, X } from 'lucide-react';
+import { Search, Package, X, Loader2 } from 'lucide-react';
 import { Product } from '../../types';
 
 interface ProductSearchProps {
@@ -8,6 +8,8 @@ interface ProductSearchProps {
   products: Product[];
   placeholder?: string;
   className?: string;
+  /** When provided and online, called instead of filtering the local `products` array */
+  searchFn?: (query: string) => Promise<Product[]>;
 }
 
 const ProductSearch: React.FC<ProductSearchProps> = ({
@@ -15,10 +17,14 @@ const ProductSearch: React.FC<ProductSearchProps> = ({
   selectedProduct,
   products,
   placeholder = "Buscar producto...",
-  className = ""
+  className = "",
+  searchFn,
 }) => {
   const [query, setQuery] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
+  const [apiResults, setApiResults] = useState<Product[] | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Sync query with selected product
@@ -30,22 +36,28 @@ const ProductSearch: React.FC<ProductSearchProps> = ({
     }
   }, [selectedProduct]);
 
-  // Filter products based on query
-  const filteredProducts = products.filter(product => 
+  // Local filter (offline fallback)
+  const filteredProducts = products.filter(product =>
     product.name.toLowerCase().includes(query.toLowerCase()) ||
     product.code.toLowerCase().includes(query.toLowerCase())
   );
+
+  // Displayed list: API results when searchFn provided, otherwise local filter
+  const displayedProducts = searchFn ? (apiResults ?? []) : filteredProducts;
 
   const handleProductSelect = (product: Product) => {
     onProductSelect(product);
     setQuery(product.name);
     setShowDropdown(false);
+    setApiResults(null);
   };
 
   const handleClear = () => {
     setQuery('');
     onProductSelect(null);
     setShowDropdown(false);
+    setApiResults(null);
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
     if (inputRef.current) {
       inputRef.current.focus();
     }
@@ -54,13 +66,34 @@ const ProductSearch: React.FC<ProductSearchProps> = ({
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setQuery(value);
-    
-    // Clear selection if user is typing and it doesn't match selected product
+
     if (selectedProduct && value !== selectedProduct.name) {
       onProductSelect(null);
     }
-    
-    setShowDropdown(value.length >= 2);
+
+    if (value.length < 2) {
+      setShowDropdown(false);
+      setApiResults(null);
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+      return;
+    }
+
+    setShowDropdown(true);
+
+    if (searchFn) {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+      debounceTimer.current = setTimeout(async () => {
+        setIsSearching(true);
+        try {
+          const results = await searchFn(value);
+          setApiResults(results);
+        } catch {
+          setApiResults([]);
+        } finally {
+          setIsSearching(false);
+        }
+      }, 300);
+    }
   };
 
   const handleInputFocus = () => {
@@ -68,6 +101,11 @@ const ProductSearch: React.FC<ProductSearchProps> = ({
       setShowDropdown(true);
     }
   };
+
+  // Clear debounce on unmount
+  useEffect(() => {
+    return () => { if (debounceTimer.current) clearTimeout(debounceTimer.current); };
+  }, []);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -111,7 +149,11 @@ const ProductSearch: React.FC<ProductSearchProps> = ({
           }`}
           placeholder={placeholder}
         />
-        {(query || selectedProduct) && (
+        {isSearching ? (
+          <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+            <Loader2 className="h-4 w-4 text-gray-400 animate-spin" />
+          </div>
+        ) : (query || selectedProduct) ? (
           <button
             onClick={handleClear}
             className="absolute inset-y-0 right-0 pr-3 flex items-center"
@@ -119,25 +161,27 @@ const ProductSearch: React.FC<ProductSearchProps> = ({
           >
             <X className="h-5 w-5 text-gray-400 hover:text-gray-600" />
           </button>
-        )}
+        ) : null}
       </div>
 
       {/* Dropdown */}
       {showDropdown && !selectedProduct && (
         <div className="absolute z-50 w-full mt-1 bg-white shadow-lg max-h-60 rounded-md py-1 text-base overflow-auto border border-gray-200">
-          {filteredProducts.length === 0 ? (
+          {isSearching ? (
+            <div className="px-4 py-3 text-sm text-gray-500 flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Buscando...
+            </div>
+          ) : displayedProducts.length === 0 ? (
             <div className="px-4 py-3 text-sm text-gray-500">
-              {query.length < 2 
-                ? 'Escribe al menos 2 caracteres para buscar'
-                : `No se encontraron productos con "${query}"`
-              }
+              {`No se encontraron productos con "${query}"`}
             </div>
           ) : (
             <>
               <div className="px-3 py-2 text-xs font-medium text-gray-500 border-b border-gray-100">
-                {filteredProducts.length} producto{filteredProducts.length !== 1 ? 's' : ''} encontrado{filteredProducts.length !== 1 ? 's' : ''}
+                {displayedProducts.length} producto{displayedProducts.length !== 1 ? 's' : ''} encontrado{displayedProducts.length !== 1 ? 's' : ''}
               </div>
-              {filteredProducts.map((product) => (
+              {displayedProducts.map((product) => (
                 <button
                   key={product.id}
                   onClick={() => handleProductSelect(product)}
@@ -149,11 +193,9 @@ const ProductSearch: React.FC<ProductSearchProps> = ({
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-gray-900 truncate">{product.name}</div>
                       <div className="text-xs text-gray-500">Código: {product.code}</div>
-                     
-                        <div className="text-xs text-green-600 font-medium">
-                          Precio: {formatCurrency(product.salePrice)}
-                        </div>
-                      
+                      <div className="text-xs text-green-600 font-medium">
+                        Precio: {formatCurrency(product.salePrice)}
+                      </div>
                     </div>
                   </div>
                 </button>
