@@ -10,6 +10,7 @@ let isSyncingCustomers = false;
 
 const mapLocalToCustomer = (c: LocalCustomer): Customer => ({
   id: c.serverId ?? c.id!,
+  code: c.code ?? null,
   name: c.name,
   nit: c.nit ?? null,
   contact: c.contact,
@@ -130,6 +131,7 @@ export const useCustomerStore = create<CustomerState>((set) => ({
     try {
       if (!navigator.onLine) {
         const localId = await db.customers.add({
+          code: customerData.code ?? null,
           name: customerData.name,
           nit: customerData.nit ?? null,
           contact: customerData.contact ?? '',
@@ -305,6 +307,7 @@ export const useCustomerStore = create<CustomerState>((set) => ({
         const fresh = await db.customers.get(local.id!);
         if (!fresh || fresh._syncStatus !== SyncStatus.PENDING_CREATE) { synced++; continue; }
         const created = await customerService.createCustomer({
+          code: local.code ?? undefined,
           name: local.name, nit: local.nit ?? undefined,
           contact: local.contact ?? undefined, address: local.address ?? undefined,
           note: local.note,
@@ -414,7 +417,7 @@ export const useCustomerStore = create<CustomerState>((set) => ({
           for (const c of response.data as any[]) {
             const existing = await db.customers.where('serverId').equals(c.id).first();
             const data = {
-              serverId: c.id, name: c.name, nit: c.nit ?? null,
+              serverId: c.id, code: c.code ?? null, name: c.name, nit: c.nit ?? null,
               contact: c.contact ?? '', address: c.address ?? '',
               note: c.note ?? undefined,
               createdAt: c.createdAt, updatedAt: c.updatedAt,

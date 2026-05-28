@@ -54,6 +54,7 @@ export interface LocalPrice extends BaseLocalModel {
 }
 
 export interface LocalCustomer extends BaseLocalModel {
+  code?: string | null;
   name: string;
   nit?: string | null;
   contact: string;
@@ -124,6 +125,11 @@ class LocalDatabase extends Dexie {
     // Version 2: nit index en customers
     this.version(2).stores({
       customers: '++id, serverId, name, nit, _syncStatus, _lastModifiedAt',
+    });
+
+    // Version 3: code index en customers
+    this.version(3).stores({
+      customers: '++id, serverId, code, name, nit, _syncStatus, _lastModifiedAt',
     });
 
     // Hooks globales

@@ -81,6 +81,7 @@ export class CustomerService {
     const customers = await Customer.findAll({
       where: {
         [Op.or]: [
+          { code: { [Op.like]: `%${validatedData.q}%` } },
           { name: { [Op.like]: `%${validatedData.q}%` } },
           { nit: { [Op.like]: `%${validatedData.q}%` } },
           { contact: { [Op.like]: `%${validatedData.q}%` } },
@@ -96,6 +97,7 @@ export class CustomerService {
   private mapToResponseDto(customer: Customer): CustomerResponseDto {
     return {
       id: customer.id,
+      code: customer.code ?? null,
       name: customer.name,
       nit: customer.nit,
       contact: customer.contact,

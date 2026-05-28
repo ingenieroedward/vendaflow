@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { X, User, Phone, MapPin, Save, Hash } from 'lucide-react';
-import { CreateCustomerRequest, Customer } from '../../types/customer';
+import { X, User, Phone, MapPin, Save, Hash, Tag } from 'lucide-react';
+import { CreateCustomerRequest, Customer, UpdateCustomerRequest } from '../../types/customer';
 import { useCustomerStore } from '../../store/customerStore';
 import Button from './Button';
 import Input from './Input';
@@ -8,64 +8,70 @@ import LoadingSpinner from './LoadingSpinner';
 import ErrorMessage from './ErrorMessage';
 
 interface CustomerModalProps {
-    onClose: () => void;
-  onCustomerCreated: (customer: Customer) => void;
+  onClose: () => void;
+  onCustomerCreated?: (customer: Customer) => void;
+  onCustomerUpdated?: (customer: Customer) => void;
+  editCustomer?: Customer;
 }
 
 const CustomerModal: React.FC<CustomerModalProps> = ({
-  
   onClose,
-  onCustomerCreated
+  onCustomerCreated,
+  onCustomerUpdated,
+  editCustomer,
 }) => {
-  const { createCustomer, loading, error, clearError } = useCustomerStore();
+  const { createCustomer, updateCustomer, loading, error, clearError } = useCustomerStore();
+  const isEdit = !!editCustomer;
+
   const [formData, setFormData] = useState({
-    name: '',
-    nit: '',
-    contact: '',
-    address: '',
-    note: ''
+    code: editCustomer?.code ?? '',
+    name: editCustomer?.name ?? '',
+    nit: editCustomer?.nit ?? '',
+    contact: editCustomer?.contact ?? '',
+    address: editCustomer?.address ?? '',
+    note: editCustomer?.note ?? '',
   });
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!formData.name.trim() || !formData.nit.trim()) {
-      return;
-    }
+    if (!formData.name.trim()) return;
 
     try {
-      const customerData: CreateCustomerRequest = {
-        name: formData.name.trim(),
-        nit: formData.nit.trim(),
-        contact: formData.contact.trim() || undefined,
-        address: formData.address.trim() || undefined,
-        note: formData.note.trim() || undefined
-      };
-
-      const newCustomer = await createCustomer(customerData);
-      onCustomerCreated(newCustomer);
+      if (isEdit && editCustomer) {
+        const updateData: UpdateCustomerRequest = {
+          code: formData.code.trim() || null,
+          name: formData.name.trim(),
+          nit: formData.nit.trim() || undefined,
+          contact: formData.contact.trim() || undefined,
+          address: formData.address.trim() || undefined,
+          note: formData.note.trim() || undefined,
+        };
+        await updateCustomer(editCustomer.id, updateData);
+        onCustomerUpdated?.({ ...editCustomer, ...updateData });
+      } else {
+        const customerData: CreateCustomerRequest = {
+          code: formData.code.trim() || null,
+          name: formData.name.trim(),
+          nit: formData.nit.trim(),
+          contact: formData.contact.trim() || undefined,
+          address: formData.address.trim() || undefined,
+          note: formData.note.trim() || undefined,
+        };
+        const newCustomer = await createCustomer(customerData);
+        onCustomerCreated?.(newCustomer);
+      }
       handleClose();
-    } catch (error) {
-      // Error is handled by the store
-      console.error('Error al crear el cliente:', error);
+    } catch {
+      // Error handled by store
     }
   };
 
   const handleClose = () => {
-    setFormData({
-      name: '',
-      nit: '',
-      contact: '',
-      address: '',
-      note: ''
-    });
+    setFormData({ code: '', name: '', nit: '', contact: '', address: '', note: '' });
     clearError();
     onClose();
   };
@@ -73,30 +79,34 @@ const CustomerModal: React.FC<CustomerModalProps> = ({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-        {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center">
             <User className="h-5 w-5 text-blue-600 mr-2" />
             <h2 className="text-lg font-semibold text-gray-900">
-              Registrar nuevo cliente
+              {isEdit ? 'Editar cliente' : 'Registrar nuevo cliente'}
             </h2>
           </div>
-          <button
-            onClick={handleClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
+          <button onClick={handleClose} className="text-gray-400 hover:text-gray-600 transition-colors">
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {error && (
-            <ErrorMessage
-              message={error}
-              onDismiss={clearError}
+          {error && <ErrorMessage message={error} onDismiss={clearError} />}
+
+          {/* Code */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Código <span className="text-gray-400 font-normal">(opcional, único)</span>
+            </label>
+            <Input
+              type="text"
+              value={formData.code}
+              onChange={(e) => handleInputChange('code', e.target.value)}
+              placeholder="Ej: CLI-001, EMPRESA-A"
+              icon={Tag}
             />
-          )}
+          </div>
 
           {/* Name */}
           <div>
@@ -113,26 +123,24 @@ const CustomerModal: React.FC<CustomerModalProps> = ({
             />
           </div>
 
-          {/* NIT / Cédula */}
+          {/* NIT */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              NIT / Cédula *
+              NIT / Cédula {!isEdit && '*'}
             </label>
             <Input
               type="text"
               value={formData.nit}
               onChange={(e) => handleInputChange('nit', e.target.value)}
               placeholder="Ej: 900123456-7 o 12345678"
-              required
+              required={!isEdit}
               icon={Hash}
             />
           </div>
 
           {/* Contact */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Contacto
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Contacto</label>
             <Input
               type="text"
               value={formData.contact}
@@ -144,9 +152,7 @@ const CustomerModal: React.FC<CustomerModalProps> = ({
 
           {/* Address */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Dirección
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Dirección</label>
             <Input
               type="text"
               value={formData.address}
@@ -158,9 +164,7 @@ const CustomerModal: React.FC<CustomerModalProps> = ({
 
           {/* Note */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Nota
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Nota</label>
             <textarea
               value={formData.note}
               onChange={(e) => handleInputChange('note', e.target.value)}
@@ -170,15 +174,8 @@ const CustomerModal: React.FC<CustomerModalProps> = ({
             />
           </div>
 
-          {/* Actions */}
           <div className="flex space-x-3 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleClose}
-              className="flex-1"
-              disabled={loading}
-            >
+            <Button type="button" variant="outline" onClick={handleClose} className="flex-1" disabled={loading}>
               Cancelar
             </Button>
             <Button
@@ -186,16 +183,14 @@ const CustomerModal: React.FC<CustomerModalProps> = ({
               variant="primary"
               icon={Save}
               className="flex-1"
-              disabled={loading || !formData.name.trim() || !formData.nit.trim()}
+              disabled={loading || !formData.name.trim()}
             >
               {loading ? (
                 <div className="flex items-center">
                   <LoadingSpinner size="sm" />
-                  <span className="ml-2">Creando...</span>
+                  <span className="ml-2">{isEdit ? 'Guardando...' : 'Creando...'}</span>
                 </div>
-              ) : (
-                'Crear'
-              )}
+              ) : isEdit ? 'Guardar cambios' : 'Crear'}
             </Button>
           </div>
         </form>
@@ -204,4 +199,4 @@ const CustomerModal: React.FC<CustomerModalProps> = ({
   );
 };
 
-export default CustomerModal; 
+export default CustomerModal;

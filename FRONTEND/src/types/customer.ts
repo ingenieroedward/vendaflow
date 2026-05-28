@@ -1,5 +1,6 @@
 export interface Customer {
   id: number;
+  code?: string | null;
   name: string;
   nit?: string | null;
   contact?: string;
@@ -11,6 +12,7 @@ export interface Customer {
 }
 
 export interface CreateCustomerRequest {
+  code?: string | null;
   name: string;
   nit: string;
   contact?: string;
@@ -19,6 +21,7 @@ export interface CreateCustomerRequest {
 }
 
 export interface UpdateCustomerRequest {
+  code?: string | null;
   name?: string;
   nit?: string;
   contact?: string;

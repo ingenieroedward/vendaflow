@@ -10,6 +10,7 @@ import {
 
 export interface CustomerAttributes {
   id: number;
+  code: string | null;
   name: string;
   nit: string | null;
   contact: string;
@@ -41,6 +42,13 @@ export class Customer extends Model<
     autoIncrement: true,
   })
   override id!: number;
+
+  @Column({
+    type: DataType.STRING(50),
+    allowNull: true,
+    unique: true,
+  })
+  code!: string | null;
 
   @Column({
     type: DataType.STRING(255),
