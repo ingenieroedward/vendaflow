@@ -7,367 +7,509 @@ interface OrderPrintViewProps {
   order: Order;
 }
 
+const S = {
+  page: {
+    fontFamily: "'Arial', 'Helvetica', sans-serif",
+    background: "#ffffff",
+    color: "#111827",
+    fontSize: "12px",
+    lineHeight: "1.5",
+    padding: "0",
+  } as React.CSSProperties,
+
+  // ── Header ──────────────────────────────────────────────
+  headerBand: {
+    background: "linear-gradient(135deg, #1e40af 0%, #2563eb 100%)",
+    padding: "24px 32px 20px",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  } as React.CSSProperties,
+
+  companyName: {
+    color: "#ffffff",
+    fontSize: "22px",
+    fontWeight: "800",
+    letterSpacing: "-0.5px",
+    margin: "0 0 2px 0",
+  } as React.CSSProperties,
+
+  companySubtitle: {
+    color: "#bfdbfe",
+    fontSize: "10px",
+    margin: "0",
+    letterSpacing: "0.5px",
+    textTransform: "uppercase" as const,
+  } as React.CSSProperties,
+
+  orderNumberBox: {
+    textAlign: "right" as const,
+  } as React.CSSProperties,
+
+  orderNumber: {
+    color: "#ffffff",
+    fontSize: "20px",
+    fontWeight: "800",
+    margin: "0 0 4px 0",
+  } as React.CSSProperties,
+
+  orderDate: {
+    color: "#bfdbfe",
+    fontSize: "11px",
+    margin: "0",
+  } as React.CSSProperties,
+
+  // ── Sub-header strip ────────────────────────────────────
+  subHeader: {
+    background: "#f0f7ff",
+    borderBottom: "1px solid #bfdbfe",
+    padding: "10px 32px",
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+  } as React.CSSProperties,
+
+  // ── Body ────────────────────────────────────────────────
+  body: {
+    padding: "24px 32px",
+  } as React.CSSProperties,
+
+  // ── Info cards ──────────────────────────────────────────
+  infoGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: "16px",
+    marginBottom: "24px",
+  } as React.CSSProperties,
+
+  infoCard: {
+    border: "1px solid #e5e7eb",
+    borderRadius: "8px",
+    overflow: "hidden",
+  } as React.CSSProperties,
+
+  infoCardHeader: {
+    background: "#f8fafc",
+    borderBottom: "1px solid #e5e7eb",
+    padding: "6px 12px",
+    fontSize: "9px",
+    fontWeight: "700",
+    color: "#6b7280",
+    letterSpacing: "0.8px",
+    textTransform: "uppercase" as const,
+  } as React.CSSProperties,
+
+  infoCardBody: {
+    padding: "10px 12px",
+  } as React.CSSProperties,
+
+  infoName: {
+    fontWeight: "700",
+    fontSize: "13px",
+    color: "#111827",
+    margin: "0 0 4px 0",
+  } as React.CSSProperties,
+
+  infoRow: {
+    fontSize: "11px",
+    color: "#4b5563",
+    margin: "0 0 2px 0",
+  } as React.CSSProperties,
+
+  infoLabel: {
+    color: "#9ca3af",
+    fontWeight: "600",
+    marginRight: "4px",
+  } as React.CSSProperties,
+
+  // ── Section title ───────────────────────────────────────
+  sectionTitle: {
+    fontSize: "9px",
+    fontWeight: "700",
+    color: "#6b7280",
+    letterSpacing: "0.8px",
+    textTransform: "uppercase" as const,
+    marginBottom: "10px",
+    paddingBottom: "6px",
+    borderBottom: "2px solid #2563eb",
+    display: "inline-block",
+  } as React.CSSProperties,
+
+  // ── Table ───────────────────────────────────────────────
+  table: {
+    width: "100%",
+    borderCollapse: "collapse" as const,
+    marginBottom: "24px",
+    fontSize: "11px",
+  } as React.CSSProperties,
+
+  th: {
+    background: "#1e40af",
+    color: "#ffffff",
+    fontWeight: "700",
+    padding: "8px 10px",
+    textAlign: "left" as const,
+    fontSize: "10px",
+    letterSpacing: "0.3px",
+  } as React.CSSProperties,
+
+  thRight: {
+    background: "#1e40af",
+    color: "#ffffff",
+    fontWeight: "700",
+    padding: "8px 10px",
+    textAlign: "right" as const,
+    fontSize: "10px",
+    letterSpacing: "0.3px",
+  } as React.CSSProperties,
+
+  thCenter: {
+    background: "#1e40af",
+    color: "#ffffff",
+    fontWeight: "700",
+    padding: "8px 10px",
+    textAlign: "center" as const,
+    fontSize: "10px",
+    letterSpacing: "0.3px",
+  } as React.CSSProperties,
+
+  tdEven: {
+    padding: "7px 10px",
+    borderBottom: "1px solid #e5e7eb",
+    color: "#374151",
+    background: "#ffffff",
+  } as React.CSSProperties,
+
+  tdOdd: {
+    padding: "7px 10px",
+    borderBottom: "1px solid #e5e7eb",
+    color: "#374151",
+    background: "#f9fafb",
+  } as React.CSSProperties,
+
+  tdRight: {
+    textAlign: "right" as const,
+  } as React.CSSProperties,
+
+  tdCenter: {
+    textAlign: "center" as const,
+  } as React.CSSProperties,
+
+  productCode: {
+    fontSize: "10px",
+    color: "#6b7280",
+    fontFamily: "monospace",
+  } as React.CSSProperties,
+
+  // ── Totals ──────────────────────────────────────────────
+  totalsWrapper: {
+    display: "flex",
+    justifyContent: "flex-end",
+    marginBottom: "24px",
+  } as React.CSSProperties,
+
+  totalsBox: {
+    width: "280px",
+    border: "1px solid #e5e7eb",
+    borderRadius: "8px",
+    overflow: "hidden",
+  } as React.CSSProperties,
+
+  totalsHeader: {
+    background: "#f8fafc",
+    borderBottom: "1px solid #e5e7eb",
+    padding: "6px 14px",
+    fontSize: "9px",
+    fontWeight: "700",
+    color: "#6b7280",
+    letterSpacing: "0.8px",
+    textTransform: "uppercase" as const,
+  } as React.CSSProperties,
+
+  totalsBody: {
+    padding: "10px 14px",
+  } as React.CSSProperties,
+
+  totalsRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "3px 0",
+    fontSize: "12px",
+    color: "#4b5563",
+  } as React.CSSProperties,
+
+  totalsFinalRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "8px 14px",
+    background: "#1e40af",
+    fontSize: "14px",
+    fontWeight: "800",
+    color: "#ffffff",
+  } as React.CSSProperties,
+
+  // ── Notes ───────────────────────────────────────────────
+  notesBox: {
+    border: "1px solid #fde68a",
+    borderLeft: "4px solid #f59e0b",
+    borderRadius: "0 6px 6px 0",
+    background: "#fffbeb",
+    padding: "10px 14px",
+    marginBottom: "24px",
+    fontSize: "11px",
+    color: "#78350f",
+  } as React.CSSProperties,
+
+  notesLabel: {
+    fontWeight: "700",
+    fontSize: "9px",
+    color: "#b45309",
+    letterSpacing: "0.8px",
+    textTransform: "uppercase" as const,
+    marginBottom: "4px",
+  } as React.CSSProperties,
+
+  // ── Footer ──────────────────────────────────────────────
+  footer: {
+    borderTop: "1px solid #e5e7eb",
+    padding: "12px 32px",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    background: "#f8fafc",
+  } as React.CSSProperties,
+
+  footerLeft: {
+    fontSize: "9px",
+    color: "#9ca3af",
+  } as React.CSSProperties,
+
+  footerRight: {
+    fontSize: "9px",
+    color: "#9ca3af",
+    textAlign: "right" as const,
+  } as React.CSSProperties,
+};
+
 const OrderPrintView = forwardRef<HTMLDivElement, OrderPrintViewProps>(
   ({ order }, ref) => {
-    const formatDate = (dateString: string) => {
-      return format(new Date(dateString), "dd/MM/yyyy HH:mm", { locale: es });
+    const formatDate = (dateString: string) =>
+      format(new Date(dateString), "dd/MM/yyyy HH:mm", { locale: es });
+
+    const formatDateShort = (dateString: string) =>
+      format(new Date(dateString), "dd 'de' MMMM 'de' yyyy", { locale: es });
+
+    const formatCurrency = (amount: number) =>
+      new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP" }).format(amount);
+
+    const statusConfig: Record<string, { label: string; bg: string; color: string }> = {
+      pending:    { label: "Pendiente",   bg: "#fef3c7", color: "#92400e" },
+      processing: { label: "En Proceso",  bg: "#dbeafe", color: "#1e40af" },
+      completed:  { label: "Completada",  bg: "#d1fae5", color: "#065f46" },
+      cancelled:  { label: "Cancelada",   bg: "#fee2e2", color: "#991b1b" },
     };
 
-    const formatCurrency = (amount: number) => {
-      return new Intl.NumberFormat("es-CO", {
-        style: "currency",
-        currency: "COP",
-      }).format(amount);
-    };
+    const status = statusConfig[order.status] ?? { label: order.status, bg: "#f3f4f6", color: "#374151" };
 
-    const getStatusText = (status: string) => {
-      switch (status) {
-        case "pending":
-          return "PENDIENTE";
-        case "completed":
-          return "COMPLETADA";
-        case "cancelled":
-          return "CANCELADA";
-        default:
-          return status.toUpperCase();
-      }
-    };
-
-    // Función mejorada para calcular totales con IVA dinámico
-    const calculateOrderTotals = () => {
+    const calculateTotals = () => {
       let subtotal = 0;
       let totalTax = 0;
-
       order.items.forEach((item) => {
-        const itemSubtotal = item.quantity * item.unitPrice;
-        const itemTax = itemSubtotal * ((item.taxRate || 0) / 100);
-
-        subtotal += itemSubtotal;
-        totalTax += itemTax;
+        const base = item.quantity * item.unitPrice;
+        subtotal += base;
+        totalTax += base * ((item.taxRate || 0) / 100);
       });
-
-      return {
-        subtotal,
-        totalTax,
-        total: subtotal + totalTax,
-      };
+      return { subtotal, totalTax, total: subtotal + totalTax };
     };
 
-    // Función para agrupar productos por tasa de IVA (para el resumen)
     const getTaxBreakdown = () => {
-      const taxGroups: {
-        [key: number]: { subtotal: number; tax: number; rate: number };
-      } = {};
-
+      const groups: Record<number, { subtotal: number; tax: number; rate: number }> = {};
       order.items.forEach((item) => {
         const rate = item.taxRate || 0;
-        const itemSubtotal = item.quantity * item.unitPrice;
-        const itemTax = itemSubtotal * (rate / 100);
-
-        if (!taxGroups[rate]) {
-          taxGroups[rate] = { subtotal: 0, tax: 0, rate };
-        }
-
-        taxGroups[rate].subtotal += itemSubtotal;
-        taxGroups[rate].tax += itemTax;
+        const base = item.quantity * item.unitPrice;
+        if (!groups[rate]) groups[rate] = { subtotal: 0, tax: 0, rate };
+        groups[rate].subtotal += base;
+        groups[rate].tax += base * (rate / 100);
       });
-
-      return Object.values(taxGroups).sort((a, b) => a.rate - b.rate);
+      return Object.values(groups).sort((a, b) => a.rate - b.rate);
     };
 
-    const totals = calculateOrderTotals();
+    const totals = calculateTotals();
     const taxBreakdown = getTaxBreakdown();
 
     return (
-      <div
-        ref={ref}
-        className="p-8 bg-white text-black"
-        style={{ fontFamily: "Arial, sans-serif" }}
-      >
-        {/* Header */}
-        <div className="border-b-2 border-gray-800 pb-4 mb-6">
-          <div className="flex justify-between items-start">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-800">JJLM Sistema</h1>
-              <p className="text-gray-600">
-                Sistema de Gestión de Productos y Precios
-              </p>
-              <p className="text-sm text-gray-500">Bogotá, Colombia</p>
-            </div>
-            <div className="text-right">
-              <h2 className="text-2xl font-bold text-blue-600">
-                ORDEN #{order.orderNumber}
-              </h2>
-              <p className="text-sm text-gray-600">
-                Fecha: {formatDate(order.createdAt)}
-              </p>
-              <p className="text-sm text-gray-600">
-                Estado: {getStatusText(order.status)}
-              </p>
-            </div>
+      <div ref={ref} style={S.page}>
+
+        {/* ── Header band ─────────────────────────────────── */}
+        <div style={S.headerBand}>
+          <div>
+            <p style={S.companyName}>JJLM</p>
+            <p style={S.companySubtitle}>Sistema de Gestión de Ventas</p>
+          </div>
+          <div style={S.orderNumberBox}>
+            <p style={S.orderNumber}>{order.orderNumber}</p>
+            <p style={S.orderDate}>{formatDateShort(order.createdAt)}</p>
           </div>
         </div>
 
-        {/* Customer and User Info */}
-        <div className="grid grid-cols-2 gap-8 mb-6">
-          <div>
-            <h3 className="text-lg font-bold text-gray-800 mb-2 border-b border-gray-300 pb-1">
-              DATOS DEL CLIENTE
-            </h3>
-            <div className="bg-gray-50 p-3 rounded">
-              <p className="font-semibold text-gray-900">
-                {order.customer?.name ?? `Cliente #${order.customerId}`}
-              </p>
-              {order.customer?.nit && (
-                <p className="text-sm text-gray-700">
-                  NIT/CC: {order.customer.nit}
-                </p>
-              )}
-              {order.customer?.contact && (
-                <p className="text-sm text-gray-700">
-                  Contacto: {order.customer.contact}
-                </p>
-              )}
-              {order.customer?.address && (
-                <p className="text-sm text-gray-700">
-                  Dirección: {order.customer.address}
-                </p>
-              )}
-              {order.customer?.note && (
-                <p className="text-sm text-gray-600 italic">
-                  Nota: {order.customer.note}
-                </p>
-              )}
-            </div>
-          </div>
-          <div>
-            <h3 className="text-lg font-bold text-gray-800 mb-2 border-b border-gray-300 pb-1">
-              USUARIO CREADOR
-            </h3>
-            <div className="bg-gray-50 p-3 rounded">
-              <p className="font-semibold text-gray-900">
-                {order.user?.username ?? `Usuario #${order.userId}`}
-              </p>
-              <p className="text-sm text-gray-600">
-                Rol: {(order.user?.role ?? 'seller').toUpperCase()}
-              </p>
-            </div>
-          </div>
+        {/* ── Sub-header: status ──────────────────────────── */}
+        <div style={S.subHeader}>
+          <span style={{ fontSize: "10px", color: "#6b7280", fontWeight: "600" }}>ESTADO:</span>
+          <span style={{
+            background: status.bg,
+            color: status.color,
+            fontWeight: "700",
+            fontSize: "10px",
+            padding: "2px 10px",
+            borderRadius: "99px",
+            letterSpacing: "0.5px",
+          }}>
+            {status.label.toUpperCase()}
+          </span>
+          <span style={{ marginLeft: "auto", fontSize: "10px", color: "#9ca3af" }}>
+            Generado: {formatDate(new Date().toISOString())}
+          </span>
         </div>
 
-        {/* Products Table */}
-        <div className="mb-6">
-          <h3 className="text-lg font-bold text-gray-800 mb-3 border-b border-gray-300 pb-1">
-            PRODUCTOS
-          </h3>
-          <table className="w-full border-collapse border border-gray-300">
+        {/* ── Body ────────────────────────────────────────── */}
+        <div style={S.body}>
+
+          {/* Info cards */}
+          <div style={S.infoGrid}>
+            {/* Cliente */}
+            <div style={S.infoCard}>
+              <div style={S.infoCardHeader}>Cliente</div>
+              <div style={S.infoCardBody}>
+                <p style={S.infoName}>{order.customer?.name ?? `Cliente #${order.customerId}`}</p>
+                {order.customer?.nit && (
+                  <p style={S.infoRow}><span style={S.infoLabel}>NIT/CC:</span>{order.customer.nit}</p>
+                )}
+                {order.customer?.contact && (
+                  <p style={S.infoRow}><span style={S.infoLabel}>Contacto:</span>{order.customer.contact}</p>
+                )}
+                {order.customer?.address && (
+                  <p style={S.infoRow}><span style={S.infoLabel}>Dirección:</span>{order.customer.address}</p>
+                )}
+                {(order.customer as any)?.code && (
+                  <p style={S.infoRow}><span style={S.infoLabel}>Código:</span>{(order.customer as any).code}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Vendedor */}
+            <div style={S.infoCard}>
+              <div style={S.infoCardHeader}>Vendedor</div>
+              <div style={S.infoCardBody}>
+                <p style={S.infoName}>{order.user?.username ?? `Usuario #${order.userId}`}</p>
+                <p style={S.infoRow}>
+                  <span style={S.infoLabel}>Rol:</span>
+                  {(order.user?.role ?? "seller").charAt(0).toUpperCase() + (order.user?.role ?? "seller").slice(1)}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Products table */}
+          <div>
+            <span style={S.sectionTitle}>Detalle de productos</span>
+          </div>
+          <table style={S.table}>
             <thead>
-              <tr className="bg-gray-100">
-                <th className="border border-gray-300 px-3 py-2 text-left font-bold text-sm">
-                  Código
-                </th>
-                <th className="border border-gray-300 px-3 py-2 text-left font-bold text-sm">
-                  Producto
-                </th>
-                <th className="border border-gray-300 px-3 py-2 text-center font-bold text-sm">
-                  Cantidad
-                </th>
-                <th className="border border-gray-300 px-3 py-2 text-right font-bold text-sm">
-                  Precio Unit.
-                </th>
-                <th className="border border-gray-300 px-3 py-2 text-center font-bold text-sm">
-                  IVA
-                </th>
-                <th className="border border-gray-300 px-3 py-2 text-right font-bold text-sm">
-                  Subtotal
-                </th>
-                <th className="border border-gray-300 px-3 py-2 text-right font-bold text-sm">
-                  IVA
-                </th>
-                <th className="border border-gray-300 px-3 py-2 text-right font-bold text-sm">
-                  Total
-                </th>
+              <tr>
+                <th style={S.th}>Código</th>
+                <th style={{ ...S.th, width: "35%" }}>Producto</th>
+                <th style={S.thCenter}>Cant.</th>
+                <th style={S.thRight}>Precio Unit.</th>
+                <th style={S.thCenter}>IVA</th>
+                <th style={S.thRight}>Subtotal</th>
+                <th style={S.thRight}>Total</th>
               </tr>
             </thead>
             <tbody>
-              {order.items.map((item, index) => {
-                const itemSubtotal = item.quantity * item.unitPrice;
-                const itemTax = itemSubtotal * ((item.taxRate || 0) / 100);
-                const itemTotal = itemSubtotal + itemTax;
-
+              {order.items.map((item, i) => {
+                const base = item.quantity * item.unitPrice;
+                const tax = base * ((item.taxRate || 0) / 100);
+                const td = i % 2 === 0 ? S.tdEven : S.tdOdd;
                 return (
-                  <tr
-                    key={index}
-                    className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}
-                  >
-                    <td className="border border-gray-300 px-3 py-2 text-sm">
-                      {item.product.code}
+                  <tr key={i}>
+                    <td style={td}>
+                      <span style={S.productCode}>{item.product.code}</span>
                     </td>
-                    <td className="border border-gray-300 px-3 py-2 text-sm">
-                      {item.product.name}
-                    </td>
-                    <td className="border border-gray-300 px-3 py-2 text-center text-sm">
-                      {item.quantity}
-                    </td>
-                    <td className="border border-gray-300 px-3 py-2 text-right text-sm">
-                      {formatCurrency(item.unitPrice)}
-                    </td>
-                    <td className="border border-gray-300 px-3 py-2 text-center text-sm">
+                    <td style={td}>{item.product.name}</td>
+                    <td style={{ ...td, ...S.tdCenter }}>{item.quantity}</td>
+                    <td style={{ ...td, ...S.tdRight }}>{formatCurrency(item.unitPrice)}</td>
+                    <td style={{ ...td, ...S.tdCenter, color: item.taxRate ? "#1e40af" : "#9ca3af" }}>
                       {item.taxRate || 0}%
                     </td>
-                    <td className="border border-gray-300 px-3 py-2 text-right text-sm">
-                      {formatCurrency(itemSubtotal)}
-                    </td>
-                    <td className="border border-gray-300 px-3 py-2 text-right text-sm">
-                      {formatCurrency(itemTax)}
-                    </td>
-                    <td className="border border-gray-300 px-3 py-2 text-right text-sm font-semibold">
-                      {formatCurrency(itemTotal)}
+                    <td style={{ ...td, ...S.tdRight }}>{formatCurrency(base)}</td>
+                    <td style={{ ...td, ...S.tdRight, fontWeight: "700", color: "#111827" }}>
+                      {formatCurrency(base + tax)}
                     </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
-        </div>
 
-        {/* Totals */}
-        <div className="flex justify-end mb-6">
-          <div className="w-80">
-            <div className="border-t-2 border-gray-800 pt-3">
-              <div className="flex justify-between text-sm text-gray-600 mb-1">
-                <span>Subtotal (sin IVA):</span>
-                <span>{formatCurrency(totals.subtotal)}</span>
-              </div>
+          {/* Notes */}
+          {order.notes && (
+            <div style={S.notesBox}>
+              <p style={S.notesLabel}>Notas</p>
+              <p style={{ margin: 0 }}>{order.notes}</p>
+            </div>
+          )}
 
-              {/* Desglose de IVA por tasa */}
-              {taxBreakdown.map((taxGroup, index) => (
-                <div
-                  key={index}
-                  className="flex justify-between text-sm text-gray-600 mb-1"
-                >
-                  <span>IVA ({taxGroup.rate}%):</span>
-                  <span>{formatCurrency(taxGroup.tax)}</span>
+          {/* Totals */}
+          <div style={S.totalsWrapper}>
+            <div style={S.totalsBox}>
+              <div style={S.totalsHeader}>Resumen</div>
+              <div style={S.totalsBody}>
+                <div style={S.totalsRow}>
+                  <span>Subtotal (sin IVA)</span>
+                  <span style={{ fontWeight: "600", color: "#111827" }}>{formatCurrency(totals.subtotal)}</span>
                 </div>
-              ))}
-
-              <div className="flex justify-between text-sm text-gray-600 mb-2 font-medium">
-                <span>Total IVA:</span>
-                <span>{formatCurrency(totals.totalTax)}</span>
+                {taxBreakdown.map((g, i) => (
+                  <div key={i} style={S.totalsRow}>
+                    <span>IVA {g.rate}%</span>
+                    <span style={{ fontWeight: "600", color: "#1e40af" }}>{formatCurrency(g.tax)}</span>
+                  </div>
+                ))}
+                {taxBreakdown.length > 1 && (
+                  <div style={{ ...S.totalsRow, borderTop: "1px solid #e5e7eb", paddingTop: "6px", marginTop: "4px" }}>
+                    <span style={{ fontWeight: "600" }}>Total IVA</span>
+                    <span style={{ fontWeight: "700", color: "#1e40af" }}>{formatCurrency(totals.totalTax)}</span>
+                  </div>
+                )}
               </div>
-
-              <div className="flex justify-between text-lg font-bold border-t border-gray-300 pt-2">
-                <span>TOTAL:</span>
-                <span className="text-blue-600">
-                  {formatCurrency(totals.total)}
-                </span>
+              <div style={S.totalsFinalRow}>
+                <span>TOTAL</span>
+                <span>{formatCurrency(totals.total)}</span>
               </div>
-
-              {/* Verificación de consistencia */}
-              {Math.abs(totals.total - order.totalAmount) > 0.01 && (
-                <div className="mt-2 p-2 bg-yellow-50 border border-yellow-300 rounded text-xs">
-                  <p className="text-yellow-700">
-                    Nota: El total calculado ({formatCurrency(totals.total)})
-                    difiere del total almacenado (
-                    {formatCurrency(order.totalAmount)})
-                  </p>
-                </div>
-              )}
             </div>
           </div>
+
+          {/* Items count */}
+          <p style={{ fontSize: "10px", color: "#9ca3af", margin: "0 0 8px 0" }}>
+            {order.items.length} producto{order.items.length !== 1 ? "s" : ""} en esta orden
+          </p>
         </div>
 
-        {/* Tax Summary Table */}
-        {taxBreakdown.length > 1 && (
-          <div className="mb-6">
-            <h3 className="text-lg font-bold text-gray-800 mb-3 border-b border-gray-300 pb-1">
-              RESUMEN DE IMPUESTOS
-            </h3>
-            <table className="w-full border-collapse border border-gray-300">
-              <thead>
-                <tr className="bg-gray-100">
-                  <th className="border border-gray-300 px-3 py-2 text-left font-bold text-sm">
-                    Tasa IVA
-                  </th>
-                  <th className="border border-gray-300 px-3 py-2 text-right font-bold text-sm">
-                    Base Gravable
-                  </th>
-                  <th className="border border-gray-300 px-3 py-2 text-right font-bold text-sm">
-                    Valor IVA
-                  </th>
-                  <th className="border border-gray-300 px-3 py-2 text-right font-bold text-sm">
-                    Total
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {taxBreakdown.map((taxGroup, index) => (
-                  <tr
-                    key={index}
-                    className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}
-                  >
-                    <td className="border border-gray-300 px-3 py-2 text-sm">
-                      {taxGroup.rate}%
-                    </td>
-                    <td className="border border-gray-300 px-3 py-2 text-right text-sm">
-                      {formatCurrency(taxGroup.subtotal)}
-                    </td>
-                    <td className="border border-gray-300 px-3 py-2 text-right text-sm">
-                      {formatCurrency(taxGroup.tax)}
-                    </td>
-                    <td className="border border-gray-300 px-3 py-2 text-right text-sm font-semibold">
-                      {formatCurrency(taxGroup.subtotal + taxGroup.tax)}
-                    </td>
-                  </tr>
-                ))}
-                <tr className="bg-gray-200 font-bold">
-                  <td className="border border-gray-300 px-3 py-2 text-sm">
-                    TOTALES
-                  </td>
-                  <td className="border border-gray-300 px-3 py-2 text-right text-sm">
-                    {formatCurrency(totals.subtotal)}
-                  </td>
-                  <td className="border border-gray-300 px-3 py-2 text-right text-sm">
-                    {formatCurrency(totals.totalTax)}
-                  </td>
-                  <td className="border border-gray-300 px-3 py-2 text-right text-sm text-blue-600">
-                    {formatCurrency(totals.total)}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+        {/* ── Footer ──────────────────────────────────────── */}
+        <div style={S.footer}>
+          <div style={S.footerLeft}>
+            <p style={{ margin: "0 0 2px 0", fontWeight: "600" }}>JJLM · Sistema de Gestión de Ventas</p>
+            <p style={{ margin: 0 }}>Documento generado automáticamente · {formatDate(new Date().toISOString())}</p>
           </div>
-        )}
-
-        {/* Notes */}
-        {order.notes && (
-          <div className="mb-6">
-            <h3 className="text-lg font-bold text-gray-800 mb-2 border-b border-gray-300 pb-1">
-              NOTAS DE LA ORDEN
-            </h3>
-            <div className="bg-yellow-50 p-3 rounded border-l-4 border-yellow-500">
-              <p className="text-sm text-gray-700">
-                {order.notes.split("\n").map((line, index) => (
-                  <React.Fragment key={index}>
-                    {line}
-                    <br />
-                  </React.Fragment>
-                ))}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Footer */}
-        <div className="border-t-2 border-gray-800 pt-4 mt-8">
-          <div className="text-center text-sm text-gray-600">
-            <p>Documento generado el {formatDate(new Date().toISOString())}</p>
-            <p>JJLM Sistema - Sistema de Gestión de Productos y Precios</p>
-            <p className="text-xs mt-1">
-              Este documento es generado automáticamente por el sistema
+          <div style={S.footerRight}>
+            <p style={{ margin: "0 0 2px 0" }}>{order.orderNumber}</p>
+            <p style={{ margin: 0, color: "#bfdbfe", background: "#1e40af", padding: "1px 6px", borderRadius: "4px", display: "inline-block" }}>
+              {status.label}
             </p>
           </div>
         </div>
+
       </div>
     );
   }
