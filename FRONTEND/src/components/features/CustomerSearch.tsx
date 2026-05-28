@@ -31,12 +31,16 @@ const CustomerSearch: React.FC<CustomerSearchProps> = ({
   }, [selectedCustomer]);
 
   // Filter customers based on query
-  const filteredCustomers = customers.filter(customer =>
-    customer.name.toLowerCase().includes(query.toLowerCase()) ||
-    (customer.nit && customer.nit.toLowerCase().includes(query.toLowerCase())) ||
-    (customer.contact && customer.contact.toLowerCase().includes(query.toLowerCase())) ||
-    (customer.address && customer.address.toLowerCase().includes(query.toLowerCase()))
-  );
+  const filteredCustomers = customers.filter(customer => {
+    const q = query.toLowerCase();
+    return (
+      customer.name.toLowerCase().includes(q) ||
+      (customer.code && customer.code.toLowerCase().includes(q)) ||
+      (customer.nit && customer.nit.toLowerCase().includes(q)) ||
+      (customer.contact && customer.contact.toLowerCase().includes(q)) ||
+      (customer.address && customer.address.toLowerCase().includes(q))
+    );
+  });
 
   const handleCustomerSelect = (customer: Customer) => {
     console.log('Customer selected:', customer);
@@ -143,15 +147,17 @@ const CustomerSearch: React.FC<CustomerSearchProps> = ({
                   <div className="flex items-center">
                     <User className="h-4 w-4 text-gray-400 mr-3 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium text-gray-900 truncate">{customer.name}</div>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-medium text-gray-900 truncate">{customer.name}</span>
+                        {customer.code && (
+                          <span className="text-xs font-mono bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded flex-shrink-0">{customer.code}</span>
+                        )}
+                      </div>
                       {customer.nit && (
                         <div className="text-xs text-gray-500 truncate">NIT/CC: {customer.nit}</div>
                       )}
                       {customer.contact && (
                         <div className="text-xs text-gray-500 truncate">{customer.contact}</div>
-                      )}
-                      {customer.address && (
-                        <div className="text-xs text-gray-500 truncate">{customer.address}</div>
                       )}
                     </div>
                   </div>
