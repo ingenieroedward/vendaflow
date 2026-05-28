@@ -17,6 +17,9 @@ import {
 } from "lucide-react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import { Capacitor } from "@capacitor/core";
+import { Filesystem, Directory } from "@capacitor/filesystem";
+import { Share } from "@capacitor/share";
 import { useOrderStore } from "../store/orderStore";
 import { useAuthStore } from "../store/authStore";
 import { useUIStore } from "../store/uiStore";
@@ -148,7 +151,24 @@ const OrderDetail: React.FC = () => {
         sourceY = cutY;
       }
 
-      pdf.save(`${currentOrder.orderNumber}.pdf`);
+      const fileName = `${currentOrder.orderNumber}.pdf`;
+
+      if (Capacitor.isNativePlatform()) {
+        // Android/iOS: write to cache dir then open share sheet
+        const base64 = pdf.output('datauristring').split(',')[1];
+        await Filesystem.writeFile({
+          path: fileName,
+          data: base64,
+          directory: Directory.Cache,
+        });
+        const { uri } = await Filesystem.getUri({
+          path: fileName,
+          directory: Directory.Cache,
+        });
+        await Share.share({ title: `Orden ${fileName}`, url: uri });
+      } else {
+        pdf.save(fileName);
+      }
     } catch {
       addNotification({ type: 'error', title: 'Error', message: 'No se pudo generar el PDF' });
     } finally {
