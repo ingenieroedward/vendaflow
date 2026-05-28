@@ -178,6 +178,8 @@ const S = {
     borderBottom: "1px solid #e5e7eb",
     color: "#374151",
     background: "#ffffff",
+    pageBreakInside: "avoid",
+    breakInside: "avoid",
   } as React.CSSProperties,
 
   tdOdd: {
@@ -185,6 +187,8 @@ const S = {
     borderBottom: "1px solid #e5e7eb",
     color: "#374151",
     background: "#f9fafb",
+    pageBreakInside: "avoid",
+    breakInside: "avoid",
   } as React.CSSProperties,
 
   tdRight: {
@@ -433,7 +437,7 @@ const OrderPrintView = forwardRef<HTMLDivElement, OrderPrintViewProps>(
                 const tax = base * ((item.taxRate || 0) / 100);
                 const td = i % 2 === 0 ? S.tdEven : S.tdOdd;
                 return (
-                  <tr key={i}>
+                  <tr key={i} style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                     <td style={td}>
                       <span style={S.productCode}>{item.product.code}</span>
                     </td>
