@@ -105,14 +105,8 @@ export class OrderRepository extends BaseRepository<
    * Format: ORD-001, ORD-002, etc.
    */
   async getNextOrderNumber(): Promise<string> {
-    // Get all orders (including deleted to avoid number reuse)
     const allOrders = await db.orders.toArray();
 
-    if (allOrders.length === 0) {
-      return 'ORD-001';
-    }
-
-    // Extract numbers from order numbers
     const numbers = allOrders
       .map(order => {
         const match = order.orderNumber.match(/ORD-(\d+)/);
@@ -120,13 +114,12 @@ export class OrderRepository extends BaseRepository<
       })
       .filter(num => num > 0);
 
-    // Get max number
-    const maxNumber = Math.max(...numbers, 0);
+    // También considerar el máximo del servidor guardado en seed
+    // para que limpiar datos locales no reinicie la numeración a ORD-001
+    const serverMax = parseInt(localStorage.getItem('serverMaxOrderNumber') ?? '0', 10);
 
-    // Next number
+    const maxNumber = Math.max(...numbers, serverMax, 0);
     const nextNumber = maxNumber + 1;
-
-    // Format with leading zeros (minimum 3 digits)
     return `ORD-${nextNumber.toString().padStart(3, '0')}`;
   }
 

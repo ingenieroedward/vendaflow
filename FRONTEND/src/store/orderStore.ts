@@ -110,6 +110,7 @@ interface OrderState {
   updateOrder: (id: number, data: UpdateOrderRequest) => Promise<Order>;
   deleteOrder: (id: number) => Promise<void>;
   syncPendingOrders: () => Promise<{ synced: number; failed: number }>;
+  retryConflictOrder: (localId: number) => Promise<void>;
   seedAllOrders: () => Promise<void>;
   clearError: () => void;
   clearCurrentOrder: () => void;
@@ -711,6 +712,15 @@ export const useOrderStore = create<OrderState>((set) => ({
       const response = await orderService.getOrders(1, 200);
       if (!response.data?.length) return;
 
+      // Guardar el número máximo del servidor para que getNextOrderNumber()
+      // no reinicie a ORD-001 si el usuario borra los datos locales
+      const serverMax = response.data.reduce((max, o) => {
+        const match = o.orderNumber?.match(/ORD-(\d+)/);
+        const n = match ? parseInt(match[1], 10) : 0;
+        return Math.max(max, n);
+      }, 0);
+      if (serverMax > 0) localStorage.setItem('serverMaxOrderNumber', String(serverMax));
+
       for (const order of response.data) {
         // Resolver customerId del servidor al ID LOCAL de Dexie para que mapLocalOrder
         // siempre encuentre el cliente correcto con db.customers.get(customerId)
@@ -820,6 +830,22 @@ export const useOrderStore = create<OrderState>((set) => ({
     }
   },
 
+  retryConflictOrder: async (localId: number) => {
+    // Resetear estado CONFLICT → PENDING_CREATE y limpiar intentos fallidos
+    await db.orders.update(localId, {
+      _syncStatus: SyncStatus.PENDING_CREATE,
+      _lastModifiedAt: Date.now(),
+    });
+    const queueEntry = await db.syncQueue
+      .where('entityLocalId').equals(localId)
+      .filter(e => e.entityType === 'order')
+      .first();
+    if (queueEntry?.id) {
+      await db.syncQueue.update(queueEntry.id, { attempts: 0, error: undefined, lastAttemptAt: undefined });
+    }
+  },
+
   clearError: () => set({ error: null }),
   clearCurrentOrder: () => set({ currentOrder: null }),
 }));
+

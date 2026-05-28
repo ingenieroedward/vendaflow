@@ -32,7 +32,7 @@ const Orders: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('active');
   const { user } = useAuthStore();
   const { addNotification } = useUIStore();
-  const { orders, loading, error, pagination, getOrders, clearError, deleteOrder, syncPendingOrders, pendingSync } =
+  const { orders, loading, error, pagination, getOrders, clearError, deleteOrder, syncPendingOrders, retryConflictOrder, pendingSync } =
     useOrderStore();
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -94,6 +94,23 @@ const Orders: React.FC = () => {
         addNotification({ type: 'info', title: 'Sin pendientes', message: 'No hay órdenes pendientes de sincronizar' });
       }
       if (activeTab === 'local') loadLocalOrders();
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const handleRetryConflict = async (localId: number) => {
+    setSyncing(true);
+    try {
+      await retryConflictOrder(localId);
+      if (navigator.onLine) {
+        await syncPendingOrders();
+        loadLocalOrders();
+        getOrders();
+      } else {
+        loadLocalOrders();
+      }
+      addNotification({ type: 'info', title: 'Reintentando', message: 'Orden reseteada. Se enviará al reconectar.' });
     } finally {
       setSyncing(false);
     }
@@ -295,10 +312,17 @@ const Orders: React.FC = () => {
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-base font-semibold text-gray-900">#{order.orderNumber}</span>
-                          <span className="flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-700">
-                            <WifiOff className="w-3 h-3" />
-                            Local
-                          </span>
+                          {order._syncStatus === SyncStatus.CONFLICT ? (
+                            <span className="flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">
+                              <AlertCircle className="w-3 h-3" />
+                              Conflicto
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-700">
+                              <WifiOff className="w-3 h-3" />
+                              Local
+                            </span>
+                          )}
                         </div>
                         <p className="text-xs text-gray-400 mt-0.5">{order.createdAt ? formatDate(order.createdAt) : '—'}</p>
                       </div>
@@ -337,12 +361,16 @@ const Orders: React.FC = () => {
                         <Button
                           variant="outline"
                           icon={RefreshCw}
-                          onClick={handleManualSync}
+                          onClick={() =>
+                            order._syncStatus === SyncStatus.CONFLICT
+                              ? handleRetryConflict(order.id!)
+                              : handleManualSync()
+                          }
                           disabled={syncing}
                           size="sm"
-                          className="flex-1 text-xs"
+                          className={`flex-1 text-xs ${order._syncStatus === SyncStatus.CONFLICT ? 'border-red-300 text-red-700 hover:bg-red-50' : ''}`}
                         >
-                          Reintentar
+                          {order._syncStatus === SyncStatus.CONFLICT ? 'Forzar reintento' : 'Reintentar'}
                         </Button>
                       )}
                       <Button
