@@ -48,13 +48,13 @@ const OrderPrintViewCarta = forwardRef<HTMLDivElement, Props>(({ order }, ref) =
         fontSize: "12px",
         color: "#1f2937",
         background: "#fff",
-        padding: "48px 56px",
+        padding: "32px 56px 48px",
         boxSizing: "border-box",
         position: "relative",
       }}
     >
       {/* ── Header ── */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "32px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "14px" }}>
         {/* Left: company */}
         <div>
           <div style={{ fontSize: "28px", fontWeight: "900", letterSpacing: "-1px", color: "#111827" }}>JJLM</div>
@@ -84,10 +84,10 @@ const OrderPrintViewCarta = forwardRef<HTMLDivElement, Props>(({ order }, ref) =
       </div>
 
       {/* ── Divider ── */}
-      <div style={{ borderTop: "2px solid #111827", marginBottom: "24px" }} />
+      <div style={{ borderTop: "2px solid #111827", marginBottom: "12px" }} />
 
       {/* ── Meta row: fecha + vendedor ── */}
-      <div style={{ display: "flex", gap: "32px", marginBottom: "24px", fontSize: "11px", color: "#6b7280" }}>
+      <div style={{ display: "flex", gap: "32px", marginBottom: "12px", fontSize: "11px", color: "#6b7280" }}>
         <div>
           <div style={{ fontWeight: "600", color: "#374151", marginBottom: "2px" }}>Fecha</div>
           <div>{fmtDate(order.createdAt)}</div>
@@ -108,9 +108,9 @@ const OrderPrintViewCarta = forwardRef<HTMLDivElement, Props>(({ order }, ref) =
       <div style={{
         background: "#f9fafb",
         border: "1px solid #e5e7eb",
-        borderRadius: "8px",
-        padding: "16px 20px",
-        marginBottom: "28px",
+        borderRadius: "6px",
+        padding: "10px 16px",
+        marginBottom: "16px",
       }}>
         <div style={{ fontSize: "10px", fontWeight: "700", color: "#6b7280", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "8px" }}>
           Cliente
