@@ -5,6 +5,7 @@ import { useUIStore } from './store/uiStore';
 import { useOrderStore } from './store/orderStore';
 import { useCustomerStore } from './store/customerStore';
 import { useProductStore } from './store/productStore';
+import { useUserStore } from './store/userStore';
 import ErrorBoundary from './components/ui/ErrorBoundary';
 import { Network } from '@capacitor/network';
 import { Download } from 'lucide-react';
@@ -106,6 +107,7 @@ function App() {
   const { syncPendingOrders, seedAllOrders } = useOrderStore();
   const { syncPendingCustomers, seedAllCustomers } = useCustomerStore();
   const { seedAllProducts, seedPricesData } = useProductStore();
+  const { getUsers } = useUserStore();
 
   useEffect(() => {
     checkAuth();
@@ -138,6 +140,7 @@ function App() {
         seedAllCustomers();
         seedPricesData();
         seedAllOrders();
+        getUsers().catch(() => {}); // seed users for offline display; fails silently for non-admin
         markSeeded();
       }
     });
@@ -157,6 +160,7 @@ function App() {
       seedAllCustomers();
       seedPricesData();
       seedAllOrders();
+      getUsers().catch(() => {});
       // markSeeded no se llama aquí — el reconnect siempre seedea (no necesita throttle)
       // así el startup effect del próximo arranque siempre re-verifica
       const total = orders.synced + customers.synced;

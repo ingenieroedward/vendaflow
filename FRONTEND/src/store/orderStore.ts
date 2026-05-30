@@ -5,6 +5,7 @@ import { PaginationInfo } from '../types';
 import { db, SyncStatus, LocalOrder, LocalOrderItem } from '../database/LocalDatabase';
 import { orderRepository } from '../repositories/OrderRepository';
 import { useUIStore } from './uiStore';
+import { useAuthStore } from './authStore';
 
 const MAX_SYNC_ATTEMPTS = 5;
 let isSyncingOrders = false;
@@ -113,8 +114,16 @@ async function mapLocalOrder(o: LocalOrder): Promise<Order> {
   const customer = await db.customers.get(o.customerId)
     ?? await db.customers.where('serverId').equals(o.customerId).first();
 
-  const user = await db.users.get(o.userId)
+  let user = await db.users.get(o.userId)
     ?? await db.users.where('serverId').equals(o.userId).first();
+
+  // Fallback: if user not in IndexedDB, use the currently authenticated user
+  if (!user) {
+    const authUser = useAuthStore.getState().user;
+    if (authUser && authUser.id === o.userId) {
+      user = { username: authUser.username, role: authUser.role } as any;
+    }
+  }
 
   // Cargar items
   const localItems = await db.orderItems

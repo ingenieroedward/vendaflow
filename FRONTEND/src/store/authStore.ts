@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { AuthState, LoginRequest, RegisterRequest } from '../types/auth';
 import { authService } from '../services/auth';
+import { db } from '../database/LocalDatabase';
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: authService.getCurrentUser(),
@@ -12,12 +13,10 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ isLoading: true });
     try {
       const response = await authService.login(credentials);
-      set({
-        user: response.data.user,
-        token: response.data.token,
-        isAuthenticated: true,
-        isLoading: false,
-      });
+      const user = response.data.user;
+      set({ user, token: response.data.token, isAuthenticated: true, isLoading: false });
+      // Persist current user in IndexedDB so offline orders can resolve the username
+      cacheUserLocally(user).catch(() => {});
     } catch (error) {
       set({ isLoading: false });
       throw error;
@@ -53,7 +52,26 @@ export const useAuthStore = create<AuthState>((set) => ({
     const user = authService.getCurrentUser();
     const token = authService.getToken();
     const isAuthenticated = authService.isAuthenticated();
-    
     set({ user, token, isAuthenticated });
+    if (user) cacheUserLocally(user).catch(() => {});
   },
 }));
+
+async function cacheUserLocally(user: { id: number; username: string; role: string }) {
+  const userData = {
+    serverId: user.id,
+    username: user.username,
+    role: user.role,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    _syncStatus: 'SYNCED' as const,
+    _version: 1,
+    _lastModifiedAt: Date.now(),
+  };
+  const existing = await db.users.where('serverId').equals(user.id).first();
+  if (existing?.id) {
+    await db.users.update(existing.id, userData);
+  } else {
+    await db.users.add(userData as any);
+  }
+}
