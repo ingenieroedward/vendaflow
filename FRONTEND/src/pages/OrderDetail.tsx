@@ -81,6 +81,7 @@ const OrderDetail: React.FC = () => {
 
     setGeneratingPdf(true);
     try {
+      // Render ticket at 80mm width (302px) — single tall page, no pagination
       const canvas = await html2canvas(printRef.current, {
         scale: 2,
         useCORS: true,
@@ -88,68 +89,20 @@ const OrderDetail: React.FC = () => {
         backgroundColor: '#ffffff',
       });
 
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-      const pageW = pdf.internal.pageSize.getWidth();   // 210 mm
-      const pageH = pdf.internal.pageSize.getHeight();  // 297 mm
+      // 80mm wide, height proportional to content
+      const ticketWidthMm = 80;
+      const ticketHeightMm = (canvas.height / canvas.width) * ticketWidthMm;
 
-      // canvas.width → pageW mm, so scale factor:
-      const pxPerMm = canvas.width / pageW;
-      const pageHeightPx = pageH * pxPerMm;
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: [ticketWidthMm, ticketHeightMm],
+      });
 
-      const ctx = canvas.getContext('2d')!;
-
-      // Find a safe cut point near idealY scanning upward for a gap row
-      // (gap = row whose pixels are all very light, i.e. padding/background)
-      const findCutY = (idealY: number): number => {
-        const lookback = Math.min(160, pageHeightPx * 0.1);
-        const fromY = Math.max(0, Math.floor(idealY - lookback));
-        const h = Math.floor(idealY) - fromY;
-        if (h <= 0) return idealY;
-
-        const { data } = ctx.getImageData(0, fromY, canvas.width, h);
-        const w = canvas.width;
-
-        // Scan from closest-to-ideal downward → upward to find first gap row
-        for (let row = h - 1; row >= 0; row--) {
-          let dark = 0;
-          for (let col = 0; col < w; col++) {
-            const i = (row * w + col) * 4;
-            // Threshold 225: catches real content (text, icons, borders≥229 pass)
-            if (data[i] < 225 || data[i + 1] < 225 || data[i + 2] < 225) {
-              if (++dark > 4) break; // allow up to 4 anti-aliasing pixels
-            }
-          }
-          if (dark <= 4) return fromY + row;
-        }
-        return idealY; // fallback
-      };
-
-      let sourceY = 0;
-      let firstPage = true;
-
-      while (sourceY < canvas.height) {
-        if (!firstPage) pdf.addPage();
-        firstPage = false;
-
-        const idealEnd = sourceY + pageHeightPx;
-        const cutY = idealEnd >= canvas.height
-          ? canvas.height
-          : findCutY(idealEnd);
-
-        const slicePx = cutY - sourceY;
-
-        // Render this slice onto a full-page canvas (white background)
-        const pg = document.createElement('canvas');
-        pg.width = canvas.width;
-        pg.height = Math.round(pageHeightPx);
-        const pgCtx = pg.getContext('2d')!;
-        pgCtx.fillStyle = '#ffffff';
-        pgCtx.fillRect(0, 0, pg.width, pg.height);
-        pgCtx.drawImage(canvas, 0, sourceY, canvas.width, slicePx, 0, 0, canvas.width, slicePx);
-
-        pdf.addImage(pg.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, pageW, pageH);
-        sourceY = cutY;
-      }
+      pdf.addImage(
+        canvas.toDataURL('image/jpeg', 0.95),
+        'JPEG', 0, 0, ticketWidthMm, ticketHeightMm
+      );
 
       const fileName = `${currentOrder.orderNumber}.pdf`;
 
@@ -451,8 +404,8 @@ const OrderDetail: React.FC = () => {
           </div>
         </div>
 
-        {/* Off-screen render for PDF capture */}
-        <div style={{ position: 'absolute', left: '-9999px', top: 0, width: '794px', pointerEvents: 'none' }}>
+        {/* Off-screen render for PDF capture — 80mm ticket width (302px @ 96dpi) */}
+        <div style={{ position: 'absolute', left: '-9999px', top: 0, width: '302px', pointerEvents: 'none' }}>
           <OrderPrintView ref={printRef} order={currentOrder} />
         </div>
 

@@ -18,6 +18,7 @@ import Suppliers from '../pages/Suppliers';
 import Categories from '../pages/Categories';
 import Prices from '../pages/Prices';
 import Customers from '../pages/Customers';
+import Reports from '../pages/Reports';
 
 // Protected Route Component
 interface RouteProps {
@@ -207,6 +208,16 @@ const AppRouter: React.FC = () => {
             element={
               <SellerRoute>
                 <Customers />
+              </SellerRoute>
+            }
+          />
+
+          {/* Reports - seller y admin */}
+          <Route
+            path="/reports"
+            element={
+              <SellerRoute>
+                <Reports />
               </SellerRoute>
             }
           />
