@@ -61,14 +61,10 @@ const OrderPrintViewCarta = forwardRef<HTMLDivElement, Props>(({ order }, ref) =
           <span style={{ fontSize: "15px", fontWeight: "800", color: "#111827" }}>#{order.orderNumber}</span>
           <span style={{
             marginLeft: "8px",
-            padding: "1px 7px",
-            borderRadius: "99px",
             fontSize: "9px",
             fontWeight: "700",
             textTransform: "uppercase",
-            background: statusColor[status] + "18",
             color: statusColor[status] ?? "#374151",
-            border: `1px solid ${statusColor[status] ?? "#d1d5db"}`,
           }}>
             {statusLabel[status] ?? status}
           </span>
@@ -134,20 +130,22 @@ const OrderPrintViewCarta = forwardRef<HTMLDivElement, Props>(({ order }, ref) =
       </table>
 
       {/* ── Totals ── */}
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "28px" }}>
-        <div style={{ width: "240px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", fontSize: "11px", color: "#4b5563", borderBottom: "1px solid #f3f4f6" }}>
-            <span>Subtotal (sin IVA)</span>
-            <span>{cop(subtotal)}</span>
-          </div>
+      <div style={{ borderTop: "2px solid #111827", marginTop: "4px", paddingTop: "10px", display: "flex", justifyContent: "flex-end", marginBottom: "20px" }}>
+        <div style={{ width: "280px" }}>
+          {subtotal !== total && (
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: "11px", color: "#4b5563" }}>
+              <span>Subtotal (sin IVA)</span>
+              <span>{cop(subtotal)}</span>
+            </div>
+          )}
           {totalTax > 0 && (
-            <div style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", fontSize: "11px", color: "#4b5563", borderBottom: "1px solid #f3f4f6" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: "11px", color: "#4b5563", borderBottom: "1px solid #e5e7eb", paddingBottom: "6px", marginBottom: "4px" }}>
               <span>IVA</span>
               <span>{cop(totalTax)}</span>
             </div>
           )}
-          <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 10px", marginTop: "4px", background: "#111827", color: "#fff", borderRadius: "6px", fontWeight: "700", fontSize: "13px" }}>
-            <span>TOTAL</span>
+          <div style={{ display: "flex", justifyContent: "space-between", padding: "7px 12px", background: "#111827", color: "#fff", borderRadius: "4px", fontWeight: "800", fontSize: "14px" }}>
+            <span>TOTAL FACTURA</span>
             <span>{cop(total)}</span>
           </div>
         </div>
