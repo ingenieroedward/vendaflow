@@ -55,6 +55,7 @@ export interface UpdateOrderRequest {
   customerId?: number;
   userId?: number;
   items?: {
+    id?: number;
     productId: number;
     quantity: number;
     unitPrice: number;

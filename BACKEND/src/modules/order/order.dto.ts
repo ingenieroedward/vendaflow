@@ -23,6 +23,7 @@ export type CreateOrderDto = z.infer<typeof createOrderSchema>;
 
 // Update Order DTO
 export const updateOrderSchema = z.object({
+  customerId: z.number().positive('Customer ID must be positive').optional(),
   status: z.enum(['pending', 'processing', 'completed', 'cancelled']).optional(),
   notes: z.string().optional(),
   items: z.array(orderItemSchema.partial().extend({ id: z.number().optional() })).optional(),

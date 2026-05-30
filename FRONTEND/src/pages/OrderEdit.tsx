@@ -22,8 +22,9 @@ interface OrderItem {
   productId: number;
   quantity: number;
   unitPrice: number;
-  taxRate: number; // IVA rate (0-100)
+  taxRate: number;
   product: Product;
+  _isNew?: boolean;
 }
 
 function getProductUnit(product: Record<string, unknown>): string {
@@ -116,10 +117,11 @@ const OrderEdit: React.FC = () => {
         return {
           id: item.id,
           productId: item.product.id,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          taxRate: item.taxRate,
-          product: baseProduct
+          quantity: Number(item.quantity),
+          unitPrice: Number(item.unitPrice),
+          taxRate: Number(item.taxRate),
+          product: baseProduct,
+          _isNew: false,
         };
       });
       
@@ -140,12 +142,13 @@ const OrderEdit: React.FC = () => {
     }
 
     const newItem: OrderItem = {
-      id: Date.now(), // number
+      id: Date.now(),
       productId: selectedProduct.id,
       quantity,
       unitPrice,
       taxRate,
-      product: selectedProduct
+      product: selectedProduct,
+      _isNew: true,
     };
 
     setOrderItems([...orderItems, newItem]);
@@ -232,15 +235,16 @@ const OrderEdit: React.FC = () => {
     }
 
     const orderData: UpdateOrderRequest = {
-      customerId: selectedCustomer.id,
+      customerId: Number(selectedCustomer.id),
       userId: user?.id,
       items: orderItems.map(item => ({
-        productId: item.productId,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        taxRate: item.taxRate
+        ...(!item._isNew && { id: item.id }),
+        productId: Number(item.productId),
+        quantity: Number(item.quantity),
+        unitPrice: Number(item.unitPrice),
+        taxRate: Number(item.taxRate),
       })),
-      notes: notes.trim() || undefined
+      notes: notes.trim() || undefined,
     };
 
     try {
