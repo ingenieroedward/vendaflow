@@ -27,6 +27,7 @@ import LoadingSpinner from "../components/ui/LoadingSpinner";
 import ErrorMessage from "../components/ui/ErrorMessage";
 import Button from "../components/ui/Button";
 import OrderPrintView from "../components/features/OrderPrintView";
+import OrderPrintViewCarta from "../components/features/OrderPrintViewCarta";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -38,8 +39,10 @@ const OrderDetail: React.FC = () => {
   const { currentOrder, loading, error, getOrderById, clearError, updateOrder, deleteOrder } =
     useOrderStore();
   const printRef = useRef<HTMLDivElement>(null);
+  const printRefCarta = useRef<HTMLDivElement>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
+  const [showPdfMenu, setShowPdfMenu] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [generatingPdf, setGeneratingPdf] = useState(false);
 
@@ -124,6 +127,63 @@ const OrderDetail: React.FC = () => {
       }
     } catch {
       addNotification({ type: 'error', title: 'Error', message: 'No se pudo generar el PDF' });
+    } finally {
+      setGeneratingPdf(false);
+    }
+  };
+
+  const handlePrintCarta = async () => {
+    if (!currentOrder || generatingPdf || !printRefCarta.current) return;
+    if (currentOrder.status === 'pending') {
+      await updateOrder(currentOrder.id, { status: 'processing' });
+      await getOrderById(currentOrder.id);
+    }
+
+    setGeneratingPdf(true);
+    setShowPdfMenu(false);
+    try {
+      const canvas = await html2canvas(printRefCarta.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+      });
+
+      // Letter: 215.9 × 279.4 mm
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const imgRatio = canvas.height / canvas.width;
+      const imgH = pageW * imgRatio;
+
+      if (imgH <= pageH) {
+        pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, pageW, imgH);
+      } else {
+        // Multi-page if content overflows
+        let yOffset = 0;
+        while (yOffset < canvas.height) {
+          const sliceH = Math.min((pageH / pageW) * canvas.width, canvas.height - yOffset);
+          const sliceCanvas = document.createElement('canvas');
+          sliceCanvas.width = canvas.width;
+          sliceCanvas.height = sliceH;
+          sliceCanvas.getContext('2d')!.drawImage(canvas, 0, -yOffset);
+          pdf.addImage(sliceCanvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, pageW, (sliceH / canvas.width) * pageW);
+          yOffset += sliceH;
+          if (yOffset < canvas.height) pdf.addPage();
+        }
+      }
+
+      const fileName = `${currentOrder.orderNumber}-carta.pdf`;
+      if (Capacitor.isNativePlatform()) {
+        const base64 = pdf.output('datauristring').split(',')[1];
+        await Filesystem.writeFile({ path: fileName, data: base64, directory: Directory.Cache });
+        const { uri } = await Filesystem.getUri({ path: fileName, directory: Directory.Cache });
+        await Share.share({ title: `Orden ${fileName}`, url: uri });
+      } else {
+        pdf.save(fileName);
+      }
+    } catch {
+      addNotification({ type: 'error', title: 'Error', message: 'No se pudo generar el PDF carta' });
     } finally {
       setGeneratingPdf(false);
     }
@@ -273,18 +333,38 @@ const OrderDetail: React.FC = () => {
             )}
           </div>
 
-          {/* Action icons */}
-          <button
-            onClick={handlePrint}
-            disabled={generatingPdf}
-            className="p-1.5 rounded-md hover:bg-gray-200 text-gray-600 disabled:opacity-50"
-            title="Descargar PDF"
-          >
-            {generatingPdf
-              ? <Loader2 className="w-4 h-4 animate-spin" />
-              : <Download className="w-4 h-4" />
-            }
-          </button>
+          {/* PDF download dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setShowPdfMenu(v => !v)}
+              disabled={generatingPdf}
+              className="p-1.5 rounded-md hover:bg-gray-200 text-gray-600 disabled:opacity-50"
+              title="Descargar PDF"
+            >
+              {generatingPdf
+                ? <Loader2 className="w-4 h-4 animate-spin" />
+                : <Download className="w-4 h-4" />
+              }
+            </button>
+            {showPdfMenu && (
+              <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-20 min-w-[160px] py-1">
+                <button
+                  onClick={() => { setShowPdfMenu(false); handlePrint(); }}
+                  className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                >
+                  <Download className="w-3.5 h-3.5 text-gray-400" />
+                  Ticket 80mm
+                </button>
+                <button
+                  onClick={() => handlePrintCarta()}
+                  className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                >
+                  <Download className="w-3.5 h-3.5 text-gray-400" />
+                  Hoja carta
+                </button>
+              </div>
+            )}
+          </div>
           {canEdit && (
             <button
               onClick={() => navigate(`/orders/${currentOrder.id}/edit`)}
@@ -404,14 +484,20 @@ const OrderDetail: React.FC = () => {
           </div>
         </div>
 
-        {/* Off-screen render for PDF capture — 80mm ticket width (302px @ 96dpi) */}
+        {/* Off-screen renders for PDF capture */}
         <div style={{ position: 'absolute', left: '-9999px', top: 0, width: '302px', pointerEvents: 'none' }}>
           <OrderPrintView ref={printRef} order={currentOrder} />
         </div>
+        <div style={{ position: 'absolute', left: '-9999px', top: 0, width: '794px', pointerEvents: 'none' }}>
+          <OrderPrintViewCarta ref={printRefCarta} order={currentOrder} />
+        </div>
 
-        {/* Click outside status dropdown */}
+        {/* Click outside overlays */}
         {showStatusDropdown && (
           <div className="fixed inset-0 z-5" onClick={() => setShowStatusDropdown(false)} />
+        )}
+        {showPdfMenu && (
+          <div className="fixed inset-0 z-10" onClick={() => setShowPdfMenu(false)} />
         )}
 
         {/* Modal eliminar */}
