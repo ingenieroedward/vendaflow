@@ -1,4 +1,4 @@
-import { Package, ClipboardList, Users, LogOut, User, Shield, Truck, Tag, DollarSign } from 'lucide-react';
+import { Package, ClipboardList, Users, LogOut, User, Shield, Truck, Tag, DollarSign, UserCheck, BarChart2 } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 
@@ -14,7 +14,9 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Precios', to: '/prices', icon: DollarSign, roles: ['buyer', 'admin'] },
   { label: 'Proveedores', to: '/suppliers', icon: Truck, roles: ['buyer', 'admin'] },
   { label: 'Categorías', to: '/categories', icon: Tag, roles: ['buyer', 'admin'] },
+  { label: 'Clientes', to: '/customers', icon: UserCheck, roles: ['seller', 'admin'] },
   { label: 'Órdenes', to: '/orders', icon: ClipboardList, roles: ['seller', 'admin'] },
+  { label: 'Informes', to: '/reports', icon: BarChart2, roles: ['seller', 'admin'] },
   { label: 'Usuarios', to: '/users', icon: Users, roles: ['admin'] },
 ];
 
