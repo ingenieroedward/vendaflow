@@ -89,4 +89,21 @@ export class OrderController {
       pagination: result.pagination,
     });
   });
+
+  getDeletedOrders = asyncHandler(async (_req: Request, res: Response) => {
+    const orders = await this.orderService.getDeletedOrders();
+    res.status(200).json({ status: 'success', data: orders });
+  });
+
+  restoreOrder = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const order = await this.orderService.restoreOrder(Number(id));
+    res.status(200).json({ status: 'success', data: order });
+  });
+
+  hardDeleteOrder = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    await this.orderService.hardDeleteOrder(Number(id));
+    res.status(204).send();
+  });
 } 

@@ -9,11 +9,14 @@ const orderController = new OrderController();
 router.get('/', isAuth, orderController.getAllOrders);
 router.get('/search', isAuth, orderController.searchOrders);
 router.get('/next-number', isAuth, orderController.getNextOrderNumber);
-router.get('/:id', isAuth, orderController.getOrderById);
+router.get('/trash', isAuth, isAdmin, orderController.getDeletedOrders);
 router.get('/customer/:customerId', isAuth, orderController.getOrdersByCustomer);
+router.get('/:id', isAuth, orderController.getOrderById);
 
 router.post('/', isAuth, isSeller, orderController.createOrder);
+router.post('/:id/restore', isAuth, isAdmin, orderController.restoreOrder);
 router.put('/:id', isAuth, orderController.updateOrder);
+router.delete('/:id/permanent', isAuth, isAdmin, orderController.hardDeleteOrder);
 router.delete('/:id', isAuth, isAdmin, orderController.deleteOrder);
 
 export default router; 

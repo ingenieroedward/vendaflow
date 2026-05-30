@@ -2,11 +2,13 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Plus, Search, Eye, Edit, Trash2, Calendar, User,
-  WifiOff, RefreshCw, AlertCircle, CloudOff, CheckCircle2, Clock
+  WifiOff, RefreshCw, AlertCircle, CloudOff, CheckCircle2, Clock,
+  RotateCcw, AlertTriangle
 } from "lucide-react";
 import { useOrderStore } from "../store/orderStore";
 import { useAuthStore } from "../store/authStore";
 import { useUIStore } from "../store/uiStore";
+import { orderService } from "../services/orders";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
 import ErrorMessage from "../components/ui/ErrorMessage";
 import Button from "../components/ui/Button";
@@ -15,7 +17,7 @@ import { es } from "date-fns/locale";
 import { Order, OrderItem } from "../types";
 import { db, SyncStatus, LocalOrder } from "../database/LocalDatabase";
 
-type TabType = 'active' | 'completed' | 'local';
+type TabType = 'active' | 'completed' | 'local' | 'trash';
 
 interface LocalOrderMeta {
   order: LocalOrder;
@@ -42,6 +44,11 @@ const Orders: React.FC = () => {
   const [localOrders, setLocalOrders] = useState<LocalOrderMeta[]>([]);
   const [loadingLocal, setLoadingLocal] = useState(false);
   const [localDeleteConfirm, setLocalDeleteConfirm] = useState<number | null>(null);
+
+  // Trash tab state
+  const [trashList, setTrashList] = useState<Order[]>([]);
+  const [trashLoading, setTrashLoading] = useState(false);
+  const [hardDeleteConfirm, setHardDeleteConfirm] = useState<number | null>(null);
 
   useEffect(() => { getOrders(); }, [getOrders]);
 
@@ -78,6 +85,42 @@ const Orders: React.FC = () => {
   useEffect(() => {
     if (activeTab === 'local') loadLocalOrders();
   }, [activeTab, loadLocalOrders]);
+
+  const loadTrash = useCallback(async () => {
+    setTrashLoading(true);
+    try {
+      const deleted = await orderService.getDeletedOrders();
+      setTrashList(deleted);
+    } finally {
+      setTrashLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'trash') loadTrash();
+  }, [activeTab, loadTrash]);
+
+  const handleRestore = async (id: number) => {
+    try {
+      await orderService.restoreOrder(id);
+      addNotification({ type: 'success', title: 'Orden restaurada', message: 'La orden volvió a la lista activa.' });
+      loadTrash();
+      getOrders();
+    } catch {
+      addNotification({ type: 'error', title: 'Error', message: 'No se pudo restaurar la orden.' });
+    }
+  };
+
+  const handleHardDelete = async (id: number) => {
+    try {
+      await orderService.hardDeleteOrder(id);
+      addNotification({ type: 'success', title: 'Eliminada definitivamente', message: 'La orden fue eliminada de forma permanente.' });
+      setHardDeleteConfirm(null);
+      loadTrash();
+    } catch {
+      addNotification({ type: 'error', title: 'Error', message: 'No se pudo eliminar la orden.' });
+    }
+  };
 
   const handleRefresh = () => getOrders(pagination.page);
 
@@ -268,7 +311,72 @@ const Orders: React.FC = () => {
               )}
             </span>
           </button>
+          {user?.role === 'admin' && (
+            <button
+              onClick={() => setActiveTab('trash')}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'trash' ? 'border-red-500 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+            >
+              <span className="flex items-center gap-1.5">
+                <Trash2 className="w-3.5 h-3.5" />
+                Papelera
+                {trashList.length > 0 && activeTab === 'trash' && (
+                  <span className="px-1.5 py-0.5 rounded-full text-xs bg-red-100 text-red-700">{trashList.length}</span>
+                )}
+              </span>
+            </button>
+          )}
         </div>
+
+        {/* ── TRASH TAB ────────────────────────────────────────────────── */}
+        {activeTab === 'trash' && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 px-1">
+              <Trash2 className="w-4 h-4 text-red-500" />
+              <span className="text-sm font-medium text-red-700">Órdenes eliminadas</span>
+              <span className="text-xs text-gray-400">— Solo admins pueden restaurar o eliminar definitivamente</span>
+            </div>
+
+            {trashLoading ? (
+              <div className="flex justify-center py-16"><LoadingSpinner size="lg" /></div>
+            ) : trashList.length === 0 ? (
+              <div className="text-center py-16">
+                <Trash2 className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+                <p className="text-gray-400 text-sm">La papelera está vacía</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {trashList.map((order) => (
+                  <div key={order.id} className="bg-white rounded-xl border border-red-100 shadow-sm p-4 opacity-75">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-700 line-through">#{order.orderNumber}</p>
+                        <p className="text-xs text-gray-500 truncate">{order.customer?.name ?? `Cliente #${order.customerId}`}</p>
+                        <p className="text-xs text-gray-400">{formatCurrency(order.totalAmount)}</p>
+                      </div>
+                      <div className="flex gap-1 ml-2">
+                        <button
+                          onClick={() => handleRestore(order.id)}
+                          className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                          title="Restaurar"
+                        >
+                          <RotateCcw className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => setHardDeleteConfirm(order.id)}
+                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Eliminar definitivamente"
+                        >
+                          <AlertTriangle className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                    <p className="text-xs text-red-400 mt-1">Eliminado: {formatDate((order as any).deletedAt ?? order.updatedAt)}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* ── LOCAL TAB ────────────────────────────────────────────────── */}
         {activeTab === 'local' && (
@@ -514,6 +622,27 @@ const Orders: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Modal: hard delete orden de papelera */}
+      {hardDeleteConfirm !== null && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900">Eliminar definitivamente</h3>
+                <p className="text-sm text-gray-500">Esta acción es irreversible. La orden se borrará para siempre.</p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={() => setHardDeleteConfirm(null)} className="flex-1">Cancelar</Button>
+              <Button variant="danger" onClick={() => handleHardDelete(hardDeleteConfirm)} className="flex-1">Eliminar para siempre</Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal: eliminar orden del servidor */}
       {showDeleteModal && orderToDelete !== null && (

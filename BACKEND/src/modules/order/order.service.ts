@@ -347,6 +347,39 @@ export class OrderService {
     await order.destroy();
   }
 
+  async getDeletedOrders(): Promise<OrderResponseDto[]> {
+    const orders = await Order.findAll({
+      where: { deletedAt: { [Op.ne]: null } } as any,
+      paranoid: false,
+      order: [['deletedAt', 'DESC']],
+      include: [
+        { model: Customer, as: 'customer', attributes: ['id', 'name', 'contact', 'address'] },
+        { model: User, as: 'user', attributes: ['id', 'username', 'role'] },
+      ],
+    });
+    return orders.map(o => this.mapToResponseDto(o, []));
+  }
+
+  async restoreOrder(id: number): Promise<OrderResponseDto> {
+    const order = await Order.findOne({
+      where: { id, deletedAt: { [Op.ne]: null } } as any,
+      paranoid: false,
+    });
+    if (!order) throw new NotFoundError('Order not found in trash');
+    await order.restore();
+    return this.mapToResponseDto(order, []);
+  }
+
+  async hardDeleteOrder(id: number): Promise<void> {
+    const order = await Order.findOne({
+      where: { id, deletedAt: { [Op.ne]: null } } as any,
+      paranoid: false,
+    });
+    if (!order) throw new NotFoundError('Order not found in trash');
+    await OrderItem.destroy({ where: { orderId: id }, force: true });
+    await order.destroy({ force: true });
+  }
+
   async searchOrders(searchData: SearchOrderDto): Promise<OrderResponseDto[]> {
     const validatedData = validateSchema(searchOrderSchema, searchData) as SearchOrderDto;
 

@@ -31,6 +31,20 @@ export class OrderService {
     const response = await apiService.get<ApiResponse<Order[]>>(`/orders/customer/${customerId}`);
     return response.data;
   }
+
+  async getDeletedOrders(): Promise<Order[]> {
+    const response = await apiService.get<ApiResponse<Order[]>>('/orders/trash');
+    return response.data;
+  }
+
+  async restoreOrder(id: number): Promise<Order> {
+    const response = await apiService.post<ApiResponse<Order>>(`/orders/${id}/restore`, {});
+    return response.data;
+  }
+
+  async hardDeleteOrder(id: number): Promise<void> {
+    await apiService.delete(`/orders/${id}/permanent`);
+  }
 }
 
 export const orderService = new OrderService(); 
