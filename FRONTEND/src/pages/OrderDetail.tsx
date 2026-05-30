@@ -157,45 +157,46 @@ const OrderDetail: React.FC = () => {
       const domW = container.offsetWidth;                  // 794 px
       const canvasScale = canvas.width / domW;             // ≈2
 
-      // Page height in canvas pixels
+      // Page height in canvas pixels (letter: 279.4 / 215.9 ratio)
       const pageHcanvas = (pageHmm / pageWmm) * domW * canvasScale;
+      // Top margin for pages 2+ (32px DOM → canvas px)
+      const topPadCanvas = Math.round(28 * canvasScale);
 
-      // Find page-break points aligned to table row boundaries
-      const getRowOffsetTop = (el: HTMLElement): number => {
-        let offset = 0;
-        let curr: HTMLElement | null = el;
-        while (curr && curr !== container) {
-          offset += curr.offsetTop;
-          curr = curr.offsetParent as HTMLElement | null;
-        }
-        return offset;
-      };
+      // Use getBoundingClientRect — reliable for <tr> inside tables
+      const containerTop = container.getBoundingClientRect().top;
+      const rows = Array.from(
+        container.querySelectorAll('tbody tr, tfoot tr')
+      ) as HTMLElement[];
 
-      const rows = Array.from(container.querySelectorAll('tbody tr')) as HTMLElement[];
-      const breakPoints: number[] = []; // canvas-px y positions to start each new page
+      const breakPoints: number[] = [];
       let pageBottom = pageHcanvas;
 
       for (const row of rows) {
-        const rowTop    = getRowOffsetTop(row) * canvasScale;
-        const rowBottom = rowTop + row.offsetHeight * canvasScale;
+        const rect = row.getBoundingClientRect();
+        const rowTop    = (rect.top  - containerTop) * canvasScale;
+        const rowBottom = (rect.bottom - containerTop) * canvasScale;
         if (rowBottom > pageBottom) {
-          // Row would be clipped — break BEFORE this row
           breakPoints.push(rowTop);
           pageBottom = rowTop + pageHcanvas;
         }
       }
-      breakPoints.push(canvas.height); // sentinel
+      breakPoints.push(canvas.height);
 
-      // Render one PDF page per segment
+      // Render one PDF page per segment, with top-margin whitespace on pages 2+
       let sliceY = 0;
       for (let i = 0; i < breakPoints.length; i++) {
-        const sliceH = breakPoints[i] - sliceY;
-        const sliceCanvas = document.createElement('canvas');
-        sliceCanvas.width  = canvas.width;
-        sliceCanvas.height = sliceH;
-        sliceCanvas.getContext('2d')!.drawImage(canvas, 0, -sliceY);
-        const sliceHmm = (sliceH / canvas.width) * pageWmm;
-        pdf.addImage(sliceCanvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, pageWmm, sliceHmm);
+        const sliceH   = breakPoints[i] - sliceY;
+        const padTop   = i > 0 ? topPadCanvas : 0;
+        const pageCanvas = document.createElement('canvas');
+        pageCanvas.width  = canvas.width;
+        pageCanvas.height = sliceH + padTop;
+        const ctx = pageCanvas.getContext('2d')!;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+        ctx.drawImage(canvas, 0, padTop - sliceY, canvas.width, sliceH,
+                              0, padTop,           canvas.width, sliceH);
+        const pageHmm2 = (pageCanvas.height / canvas.width) * pageWmm;
+        pdf.addImage(pageCanvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, pageWmm, pageHmm2);
         sliceY = breakPoints[i];
         if (i < breakPoints.length - 1) pdf.addPage();
       }

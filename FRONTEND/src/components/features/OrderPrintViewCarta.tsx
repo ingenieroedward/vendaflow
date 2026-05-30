@@ -95,16 +95,16 @@ const OrderPrintViewCarta = forwardRef<HTMLDivElement, Props>(({ order }, ref) =
       </div>
 
       {/* ── Products table ── */}
-      <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "24px", fontSize: "11px" }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10px" }}>
         <thead>
           <tr style={{ background: "#111827", color: "#fff" }}>
-            <th style={{ padding: "8px 10px", textAlign: "left", fontWeight: "600", borderRadius: "4px 0 0 0" }}>#</th>
-            <th style={{ padding: "8px 10px", textAlign: "left", fontWeight: "600" }}>Producto</th>
-            <th style={{ padding: "8px 10px", textAlign: "left", fontWeight: "600" }}>Código</th>
-            <th style={{ padding: "8px 10px", textAlign: "center", fontWeight: "600" }}>Cant.</th>
-            <th style={{ padding: "8px 10px", textAlign: "right", fontWeight: "600" }}>Precio Unit.</th>
-            <th style={{ padding: "8px 10px", textAlign: "right", fontWeight: "600" }}>IVA</th>
-            <th style={{ padding: "8px 10px", textAlign: "right", fontWeight: "600", borderRadius: "0 4px 0 0" }}>Total</th>
+            <th style={{ padding: "5px 7px", textAlign: "left", fontWeight: "600" }}>#</th>
+            <th style={{ padding: "5px 7px", textAlign: "left", fontWeight: "600" }}>Producto</th>
+            <th style={{ padding: "5px 7px", textAlign: "left", fontWeight: "600" }}>Código</th>
+            <th style={{ padding: "5px 7px", textAlign: "center", fontWeight: "600" }}>Cant.</th>
+            <th style={{ padding: "5px 7px", textAlign: "right", fontWeight: "600" }}>Precio Unit.</th>
+            <th style={{ padding: "5px 7px", textAlign: "right", fontWeight: "600" }}>IVA</th>
+            <th style={{ padding: "5px 7px", textAlign: "right", fontWeight: "600" }}>Total</th>
           </tr>
         </thead>
         <tbody>
@@ -113,16 +113,16 @@ const OrderPrintViewCarta = forwardRef<HTMLDivElement, Props>(({ order }, ref) =
             const tax = base * ((item.taxRate || 0) / 100);
             const rowBg = i % 2 === 0 ? "#fff" : "#f9fafb";
             return (
-              <tr key={i} style={{ background: rowBg, borderBottom: "1px solid #e5e7eb" }}>
-                <td style={{ padding: "9px 10px", color: "#9ca3af" }}>{i + 1}</td>
-                <td style={{ padding: "9px 10px", fontWeight: "500", color: "#111827" }}>{item.product.name}</td>
-                <td style={{ padding: "9px 10px", color: "#6b7280", fontFamily: "monospace" }}>{item.product.code}</td>
-                <td style={{ padding: "9px 10px", textAlign: "center" }}>{item.quantity}</td>
-                <td style={{ padding: "9px 10px", textAlign: "right" }}>{cop(item.unitPrice)}</td>
-                <td style={{ padding: "9px 10px", textAlign: "right", color: "#6b7280" }}>
+              <tr key={i} style={{ background: rowBg, borderBottom: "1px solid #f0f0f0" }}>
+                <td style={{ padding: "5px 7px", color: "#9ca3af" }}>{i + 1}</td>
+                <td style={{ padding: "5px 7px", fontWeight: "500", color: "#111827" }}>{item.product.name}</td>
+                <td style={{ padding: "5px 7px", color: "#6b7280", fontFamily: "monospace" }}>{item.product.code}</td>
+                <td style={{ padding: "5px 7px", textAlign: "center" }}>{item.quantity}</td>
+                <td style={{ padding: "5px 7px", textAlign: "right" }}>{cop(item.unitPrice)}</td>
+                <td style={{ padding: "5px 7px", textAlign: "right", color: "#6b7280" }}>
                   {item.taxRate ? `${item.taxRate}%` : "—"}
                 </td>
-                <td style={{ padding: "9px 10px", textAlign: "right", fontWeight: "600" }}>{cop(base + tax)}</td>
+                <td style={{ padding: "5px 7px", textAlign: "right", fontWeight: "600" }}>{cop(base + tax)}</td>
               </tr>
             );
           })}
@@ -131,23 +131,23 @@ const OrderPrintViewCarta = forwardRef<HTMLDivElement, Props>(({ order }, ref) =
           {subtotal !== total && (
             <tr style={{ borderTop: "1px solid #e5e7eb" }}>
               <td colSpan={5} />
-              <td style={{ padding: "5px 10px", fontSize: "11px", color: "#6b7280", textAlign: "right" }}>Subtotal</td>
-              <td style={{ padding: "5px 10px", fontSize: "11px", color: "#4b5563", textAlign: "right", fontWeight: "600" }}>{cop(subtotal)}</td>
+              <td style={{ padding: "4px 7px", color: "#6b7280", textAlign: "right" }}>Subtotal</td>
+              <td style={{ padding: "4px 7px", color: "#4b5563", textAlign: "right", fontWeight: "600" }}>{cop(subtotal)}</td>
             </tr>
           )}
           {totalTax > 0 && (
             <tr>
               <td colSpan={5} />
-              <td style={{ padding: "5px 10px", fontSize: "11px", color: "#6b7280", textAlign: "right" }}>IVA</td>
-              <td style={{ padding: "5px 10px", fontSize: "11px", color: "#4b5563", textAlign: "right", fontWeight: "600" }}>{cop(totalTax)}</td>
+              <td style={{ padding: "4px 7px", color: "#6b7280", textAlign: "right" }}>IVA</td>
+              <td style={{ padding: "4px 7px", color: "#4b5563", textAlign: "right", fontWeight: "600" }}>{cop(totalTax)}</td>
             </tr>
           )}
           <tr style={{ background: "#111827" }}>
-            <td colSpan={5} style={{ padding: "8px 10px", color: "#9ca3af", fontSize: "10px" }}>
+            <td colSpan={5} style={{ padding: "6px 7px", color: "#9ca3af" }}>
               {order.items.length} producto{order.items.length !== 1 ? "s" : ""}
             </td>
-            <td style={{ padding: "8px 10px", color: "#fff", fontSize: "12px", fontWeight: "700", textAlign: "right", whiteSpace: "nowrap" }}>TOTAL FACTURA</td>
-            <td style={{ padding: "8px 10px", color: "#fff", fontSize: "13px", fontWeight: "800", textAlign: "right", whiteSpace: "nowrap" }}>{cop(total)}</td>
+            <td style={{ padding: "6px 7px", color: "#fff", fontWeight: "700", textAlign: "right", whiteSpace: "nowrap" }}>TOTAL FACTURA</td>
+            <td style={{ padding: "6px 7px", color: "#fff", fontSize: "12px", fontWeight: "800", textAlign: "right", whiteSpace: "nowrap" }}>{cop(total)}</td>
           </tr>
         </tfoot>
       </table>
