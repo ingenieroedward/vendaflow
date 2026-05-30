@@ -53,76 +53,48 @@ const OrderPrintViewCarta = forwardRef<HTMLDivElement, Props>(({ order }, ref) =
         position: "relative",
       }}
     >
-      {/* ── Header ── */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "14px" }}>
-        {/* Left: company */}
-        <div>
-          <div style={{ fontSize: "28px", fontWeight: "900", letterSpacing: "-1px", color: "#111827" }}>JJLM</div>
-          <div style={{ fontSize: "11px", color: "#6b7280", marginTop: "2px" }}>Sistema de Gestión de Ventas</div>
-        </div>
-        {/* Right: order id + status */}
+      {/* ── Header: una sola línea compacta ── */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+        <div style={{ fontSize: "18px", fontWeight: "900", letterSpacing: "-0.5px", color: "#111827" }}>JJLM</div>
         <div style={{ textAlign: "right" }}>
-          <div style={{ fontSize: "11px", color: "#6b7280", textTransform: "uppercase", letterSpacing: "1px" }}>Orden de Venta</div>
-          <div style={{ fontSize: "22px", fontWeight: "800", color: "#111827", marginTop: "2px" }}>#{order.orderNumber}</div>
-          <div style={{ marginTop: "6px" }}>
-            <span style={{
-              display: "inline-block",
-              padding: "2px 10px",
-              borderRadius: "99px",
-              fontSize: "10px",
-              fontWeight: "700",
-              letterSpacing: "0.5px",
-              textTransform: "uppercase",
-              background: statusColor[status] + "18",
-              color: statusColor[status] ?? "#374151",
-              border: `1px solid ${statusColor[status] ?? "#d1d5db"}`,
-            }}>
-              {statusLabel[status] ?? status}
-            </span>
-          </div>
+          <span style={{ fontSize: "10px", color: "#9ca3af", textTransform: "uppercase", letterSpacing: "1px", marginRight: "8px" }}>Orden de Venta</span>
+          <span style={{ fontSize: "15px", fontWeight: "800", color: "#111827" }}>#{order.orderNumber}</span>
+          <span style={{
+            marginLeft: "8px",
+            padding: "1px 7px",
+            borderRadius: "99px",
+            fontSize: "9px",
+            fontWeight: "700",
+            textTransform: "uppercase",
+            background: statusColor[status] + "18",
+            color: statusColor[status] ?? "#374151",
+            border: `1px solid ${statusColor[status] ?? "#d1d5db"}`,
+          }}>
+            {statusLabel[status] ?? status}
+          </span>
         </div>
       </div>
 
       {/* ── Divider ── */}
-      <div style={{ borderTop: "2px solid #111827", marginBottom: "12px" }} />
+      <div style={{ borderTop: "1.5px solid #111827", marginBottom: "8px" }} />
 
-      {/* ── Meta row: fecha + vendedor ── */}
-      <div style={{ display: "flex", gap: "32px", marginBottom: "12px", fontSize: "11px", color: "#6b7280" }}>
+      {/* ── Meta + Cliente en una sola línea ── */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "12px", fontSize: "10px", color: "#6b7280" }}>
+        {/* Cliente */}
         <div>
-          <div style={{ fontWeight: "600", color: "#374151", marginBottom: "2px" }}>Fecha</div>
-          <div>{fmtDate(order.createdAt)}</div>
-        </div>
-        {order.user?.username && (
-          <div>
-            <div style={{ fontWeight: "600", color: "#374151", marginBottom: "2px" }}>Vendedor</div>
-            <div>{order.user.username}</div>
-          </div>
-        )}
-        <div>
-          <div style={{ fontWeight: "600", color: "#374151", marginBottom: "2px" }}>Generado</div>
-          <div>{fmt(new Date().toISOString())}</div>
-        </div>
-      </div>
-
-      {/* ── Customer box ── */}
-      <div style={{
-        background: "#f9fafb",
-        border: "1px solid #e5e7eb",
-        borderRadius: "6px",
-        padding: "10px 16px",
-        marginBottom: "16px",
-      }}>
-        <div style={{ fontSize: "10px", fontWeight: "700", color: "#6b7280", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "8px" }}>
-          Cliente
-        </div>
-        <div style={{ fontSize: "15px", fontWeight: "700", color: "#111827", marginBottom: "4px" }}>
-          {order.customer?.name ?? `Cliente #${order.customerId}`}
-        </div>
-        <div style={{ display: "flex", gap: "24px", flexWrap: "wrap", fontSize: "11px", color: "#4b5563" }}>
-          {(order.customer as any)?.nit && <span>NIT: {(order.customer as any).nit}</span>}
-          {order.customer?.contact && <span>Tel: {order.customer.contact}</span>}
-          {order.customer?.address && <span>{order.customer.address}</span>}
+          <span style={{ fontWeight: "700", color: "#111827", fontSize: "12px" }}>
+            {order.customer?.name ?? `Cliente #${order.customerId}`}
+          </span>
+          <span style={{ color: "#9ca3af", margin: "0 6px" }}>·</span>
+          {(order.customer as any)?.nit && <span style={{ marginRight: "8px" }}>NIT: {(order.customer as any).nit}</span>}
+          {order.customer?.contact && <span style={{ marginRight: "8px" }}>Tel: {order.customer.contact}</span>}
+          {order.customer?.address && <span style={{ marginRight: "8px" }}>{order.customer.address}</span>}
           {(order.customer as any)?.code && <span>Cód: {(order.customer as any).code}</span>}
+        </div>
+        {/* Fecha / vendedor */}
+        <div style={{ textAlign: "right", whiteSpace: "nowrap", flexShrink: 0, marginLeft: "16px" }}>
+          <span>{fmtDate(order.createdAt)}</span>
+          {order.user?.username && <span style={{ marginLeft: "12px" }}>Vendedor: <strong>{order.user.username}</strong></span>}
         </div>
       </div>
 
