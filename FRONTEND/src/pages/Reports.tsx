@@ -309,7 +309,7 @@ const Reports: React.FC = () => {
                         tickLine={false}
                         width={30}
                       />
-                      <Tooltip content={<CustomTooltip />} />
+                      <Tooltip content={<CustomTooltip />} isAnimationActive={false} />
                       <Line
                         dataKey="ordenes"
                         name="ordenes"
@@ -317,6 +317,7 @@ const Reports: React.FC = () => {
                         strokeWidth={2}
                         dot={{ r: 3, fill: '#111827', strokeWidth: 0 }}
                         activeDot={{ r: 5, fill: '#111827' }}
+                        isAnimationActive={false}
                       />
                     </LineChart>
                   </ResponsiveContainer>

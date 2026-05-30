@@ -43,7 +43,6 @@ const CustomerSearch: React.FC<CustomerSearchProps> = ({
   });
 
   const handleCustomerSelect = (customer: Customer) => {
-    console.log('Customer selected:', customer);
     onCustomerSelect(customer);
     setQuery(customer.name);
     setShowDropdown(false);
