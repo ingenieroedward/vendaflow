@@ -127,29 +127,30 @@ const OrderPrintViewCarta = forwardRef<HTMLDivElement, Props>(({ order }, ref) =
             );
           })}
         </tbody>
-      </table>
-
-      {/* ── Totals ── */}
-      <div style={{ borderTop: "2px solid #111827", marginTop: "4px", paddingTop: "10px", display: "flex", justifyContent: "flex-end", marginBottom: "20px" }}>
-        <div style={{ width: "280px" }}>
+        <tfoot>
           {subtotal !== total && (
-            <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: "11px", color: "#4b5563" }}>
-              <span>Subtotal (sin IVA)</span>
-              <span>{cop(subtotal)}</span>
-            </div>
+            <tr style={{ borderTop: "1px solid #e5e7eb" }}>
+              <td colSpan={5} />
+              <td style={{ padding: "5px 10px", fontSize: "11px", color: "#6b7280", textAlign: "right" }}>Subtotal</td>
+              <td style={{ padding: "5px 10px", fontSize: "11px", color: "#4b5563", textAlign: "right", fontWeight: "600" }}>{cop(subtotal)}</td>
+            </tr>
           )}
           {totalTax > 0 && (
-            <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: "11px", color: "#4b5563", borderBottom: "1px solid #e5e7eb", paddingBottom: "6px", marginBottom: "4px" }}>
-              <span>IVA</span>
-              <span>{cop(totalTax)}</span>
-            </div>
+            <tr>
+              <td colSpan={5} />
+              <td style={{ padding: "5px 10px", fontSize: "11px", color: "#6b7280", textAlign: "right" }}>IVA</td>
+              <td style={{ padding: "5px 10px", fontSize: "11px", color: "#4b5563", textAlign: "right", fontWeight: "600" }}>{cop(totalTax)}</td>
+            </tr>
           )}
-          <div style={{ display: "flex", justifyContent: "space-between", padding: "7px 12px", background: "#111827", color: "#fff", borderRadius: "4px", fontWeight: "800", fontSize: "14px" }}>
-            <span>TOTAL FACTURA</span>
-            <span>{cop(total)}</span>
-          </div>
-        </div>
-      </div>
+          <tr style={{ background: "#111827" }}>
+            <td colSpan={5} style={{ padding: "8px 10px", color: "#9ca3af", fontSize: "10px" }}>
+              {order.items.length} producto{order.items.length !== 1 ? "s" : ""}
+            </td>
+            <td style={{ padding: "8px 10px", color: "#fff", fontSize: "12px", fontWeight: "700", textAlign: "right", whiteSpace: "nowrap" }}>TOTAL FACTURA</td>
+            <td style={{ padding: "8px 10px", color: "#fff", fontSize: "13px", fontWeight: "800", textAlign: "right", whiteSpace: "nowrap" }}>{cop(total)}</td>
+          </tr>
+        </tfoot>
+      </table>
 
       {/* ── Notes ── */}
       {order.notes && (
