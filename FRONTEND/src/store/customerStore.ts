@@ -64,9 +64,18 @@ export const useCustomerStore = create<CustomerState>((set) => ({
         return;
       }
       const response = await customerService.getCustomers(page, limit);
-      if (response.data?.length) await customerRepository.saveAllFromServer(response.data as any);
+      const serverData = (response.data ?? []) as any[];
+      if (serverData.length) await customerRepository.saveAllFromServer(serverData);
+      // Marcar como eliminados los clientes locales SYNCED que ya no vienen del servidor
+      const serverIds = new Set(serverData.map((c: any) => c.id));
+      const localSynced = await db.customers.filter(c => !!c.serverId && !c.deletedAt && c._syncStatus === SyncStatus.SYNCED).toArray();
+      for (const local of localSynced) {
+        if (local.serverId && !serverIds.has(local.serverId)) {
+          await db.customers.update(local.id!, { deletedAt: new Date().toISOString() });
+        }
+      }
       set({
-        customers: response.data,
+        customers: serverData,
         pagination: {
           page: response.pagination?.page || page,
           limit: response.pagination?.limit || limit,
@@ -411,27 +420,38 @@ export const useCustomerStore = create<CustomerState>((set) => ({
     useUIStore.getState().startSeedingStep('clientes');
     try {
       const response = await customerService.getCustomers(1, 2000);
-      if (response.data?.length) {
-        // Solo actualizar clientes que ya están sincronizados — no sobreescribir cambios pendientes
-        await db.transaction('rw', db.customers, async () => {
-          for (const c of response.data as any[]) {
-            const existing = await db.customers.where('serverId').equals(c.id).first();
-            const data = {
-              serverId: c.id, code: c.code ?? null, name: c.name, nit: c.nit ?? null,
-              contact: c.contact ?? '', address: c.address ?? '',
-              note: c.note ?? undefined,
-              createdAt: c.createdAt, updatedAt: c.updatedAt,
-              _syncStatus: SyncStatus.SYNCED, _version: 1, _lastModifiedAt: Date.now(),
-            };
-            if (existing?.id) {
-              if (existing._syncStatus !== SyncStatus.SYNCED) continue;
-              await db.customers.update(existing.id, data);
-            } else {
-              await db.customers.add(data as LocalCustomer);
-            }
+      const serverData = (response.data ?? []) as any[];
+      const serverIds = new Set(serverData.map((c: any) => c.id));
+
+      await db.transaction('rw', db.customers, async () => {
+        // Upsert clientes del servidor
+        for (const c of serverData) {
+          const existing = await db.customers.where('serverId').equals(c.id).first();
+          const data = {
+            serverId: c.id, code: c.code ?? null, name: c.name, nit: c.nit ?? null,
+            contact: c.contact ?? '', address: c.address ?? '',
+            note: c.note ?? undefined,
+            createdAt: c.createdAt, updatedAt: c.updatedAt,
+            _syncStatus: SyncStatus.SYNCED, _version: 1, _lastModifiedAt: Date.now(),
+            deletedAt: undefined,
+          };
+          if (existing?.id) {
+            if (existing._syncStatus !== SyncStatus.SYNCED) continue;
+            await db.customers.update(existing.id, data);
+          } else {
+            await db.customers.add(data as LocalCustomer);
           }
-        });
-      }
+        }
+        // Marcar como eliminados los SYNCED locales que ya no existen en el servidor
+        const localSynced = await db.customers
+          .filter(c => !!c.serverId && !c.deletedAt && c._syncStatus === SyncStatus.SYNCED)
+          .toArray();
+        for (const local of localSynced) {
+          if (local.serverId && !serverIds.has(local.serverId)) {
+            await db.customers.update(local.id!, { deletedAt: new Date().toISOString() });
+          }
+        }
+      });
     } catch { /* silent */ }
     useUIStore.getState().finishSeedingStep('clientes');
   },
