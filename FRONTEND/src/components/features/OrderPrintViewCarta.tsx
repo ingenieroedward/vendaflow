@@ -129,7 +129,7 @@ const OrderPrintViewCarta = forwardRef<HTMLDivElement, Props>(({ order }, ref) =
         </tbody>
         <tfoot>
           {subtotal !== total && (
-            <tr style={{ borderTop: "1px solid #e5e7eb" }}>
+            <tr style={{ borderTop: "6px solid #fff" }}>
               <td colSpan={5} />
               <td style={{ padding: "4px 7px", color: "#6b7280", textAlign: "right" }}>Subtotal</td>
               <td style={{ padding: "4px 7px", color: "#4b5563", textAlign: "right", fontWeight: "600" }}>{cop(subtotal)}</td>
@@ -142,7 +142,7 @@ const OrderPrintViewCarta = forwardRef<HTMLDivElement, Props>(({ order }, ref) =
               <td style={{ padding: "4px 7px", color: "#4b5563", textAlign: "right", fontWeight: "600" }}>{cop(totalTax)}</td>
             </tr>
           )}
-          <tr style={{ background: "#111827" }}>
+          <tr style={{ background: "#111827", borderTop: subtotal === total ? "6px solid #fff" : undefined }}>
             <td colSpan={5} style={{ padding: "6px 7px", color: "#9ca3af" }}>
               {order.items.length} producto{order.items.length !== 1 ? "s" : ""}
             </td>
