@@ -72,6 +72,11 @@ export class CustomerService {
       throw new NotFoundError('Customer not found');
     }
 
+    // Liberar el código único antes del soft delete para que otro cliente pueda reutilizarlo
+    if (customer.code) {
+      await customer.update({ code: null });
+    }
+
     await customer.destroy();
   }
 
