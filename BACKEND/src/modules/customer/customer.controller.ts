@@ -58,6 +58,23 @@ export class CustomerController {
     res.status(204).send();
   });
 
+  getDeletedCustomers = asyncHandler(async (_req: Request, res: Response) => {
+    const customers = await this.customerService.getDeletedCustomers();
+    res.status(200).json({ status: 'success', data: customers });
+  });
+
+  restoreCustomer = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const customer = await this.customerService.restoreCustomer(Number(id));
+    res.status(200).json({ status: 'success', data: customer });
+  });
+
+  hardDeleteCustomer = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    await this.customerService.hardDeleteCustomer(Number(id));
+    res.status(204).send();
+  });
+
   searchCustomers = asyncHandler(async (req: Request, res: Response) => {
     const searchData: SearchCustomerDto = req.query as any;
     const customers = await this.customerService.searchCustomers(searchData);

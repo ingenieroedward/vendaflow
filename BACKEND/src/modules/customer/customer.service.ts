@@ -80,6 +80,34 @@ export class CustomerService {
     await customer.destroy();
   }
 
+  async getDeletedCustomers(): Promise<CustomerResponseDto[]> {
+    const customers = await Customer.findAll({
+      where: { deletedAt: { [Op.ne]: null } } as any,
+      paranoid: false,
+      order: [['deletedAt', 'DESC']],
+    });
+    return customers.map(c => this.mapToResponseDto(c));
+  }
+
+  async restoreCustomer(id: number): Promise<CustomerResponseDto> {
+    const customer = await Customer.findOne({
+      where: { id, deletedAt: { [Op.ne]: null } } as any,
+      paranoid: false,
+    });
+    if (!customer) throw new NotFoundError('Customer not found in trash');
+    await customer.restore();
+    return this.mapToResponseDto(customer);
+  }
+
+  async hardDeleteCustomer(id: number): Promise<void> {
+    const customer = await Customer.findOne({
+      where: { id, deletedAt: { [Op.ne]: null } } as any,
+      paranoid: false,
+    });
+    if (!customer) throw new NotFoundError('Customer not found in trash');
+    await customer.destroy({ force: true });
+  }
+
   async searchCustomers(searchData: SearchCustomerDto): Promise<CustomerResponseDto[]> {
     const validatedData = validateSchema(searchCustomerSchema, searchData) as SearchCustomerDto;
 

@@ -31,6 +31,20 @@ export class CustomerService {
   async deleteCustomer(id: number): Promise<void> {
     await apiService.delete(`/customers/${id}`);
   }
+
+  async getDeletedCustomers(): Promise<Customer[]> {
+    const response = await apiService.get<ApiResponse<Customer[]>>('/customers/trash');
+    return response.data;
+  }
+
+  async restoreCustomer(id: number): Promise<Customer> {
+    const response = await apiService.post<ApiResponse<Customer>>(`/customers/${id}/restore`, {});
+    return response.data;
+  }
+
+  async hardDeleteCustomer(id: number): Promise<void> {
+    await apiService.delete(`/customers/${id}/permanent`);
+  }
 }
 
 export const customerService = new CustomerService(); 

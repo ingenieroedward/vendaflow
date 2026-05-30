@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Plus, Search, Edit, Trash2, User, Phone, MapPin, Hash, Tag, RefreshCw } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, User, Phone, MapPin, Hash, Tag, RefreshCw, RotateCcw, AlertTriangle } from 'lucide-react';
 import { useCustomerStore } from '../store/customerStore';
 import { useAuthStore } from '../store/authStore';
 import { useUIStore } from '../store/uiStore';
 import { Customer } from '../types/customer';
+import { customerService } from '../services/customers';
 import Button from '../components/ui/Button';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import ErrorMessage from '../components/ui/ErrorMessage';
@@ -23,8 +24,46 @@ const Customers: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [editCustomer, setEditCustomer] = useState<Customer | undefined>(undefined);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+  const [showTrash, setShowTrash] = useState(false);
+  const [trashList, setTrashList] = useState<Customer[]>([]);
+  const [trashLoading, setTrashLoading] = useState(false);
+  const [hardDeleteConfirm, setHardDeleteConfirm] = useState<number | null>(null);
 
   useEffect(() => { getCustomers(1, 50); }, [getCustomers]);
+
+  const loadTrash = useCallback(async () => {
+    setTrashLoading(true);
+    try {
+      const deleted = await customerService.getDeletedCustomers();
+      setTrashList(deleted);
+    } finally {
+      setTrashLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { if (showTrash) loadTrash(); }, [showTrash, loadTrash]);
+
+  const handleRestore = async (id: number) => {
+    try {
+      await customerService.restoreCustomer(id);
+      addNotification({ type: 'success', title: 'Cliente restaurado', message: 'El cliente volvió a la lista activa.' });
+      loadTrash();
+      getCustomers(1, 50);
+    } catch {
+      addNotification({ type: 'error', title: 'Error', message: 'No se pudo restaurar el cliente.' });
+    }
+  };
+
+  const handleHardDelete = async (id: number) => {
+    try {
+      await customerService.hardDeleteCustomer(id);
+      addNotification({ type: 'success', title: 'Eliminado definitivamente', message: 'El cliente fue eliminado de forma permanente.' });
+      setHardDeleteConfirm(null);
+      loadTrash();
+    } catch {
+      addNotification({ type: 'error', title: 'Error', message: 'No se pudo eliminar el cliente.' });
+    }
+  };
 
   const handleSearch = useCallback(async (q: string) => {
     setSearch(q);
@@ -78,10 +117,25 @@ const Customers: React.FC = () => {
           </div>
 
           <div className="flex justify-between items-center gap-2">
-            <Button variant="outline" icon={RefreshCw} onClick={() => getCustomers(1, 50)} size="sm" className="text-xs sm:text-sm">
-              Actualizar
-            </Button>
-            {canManage && (
+            <div className="flex gap-2">
+              <Button variant="outline" icon={RefreshCw} onClick={() => showTrash ? loadTrash() : getCustomers(1, 50)} size="sm" className="text-xs sm:text-sm">
+                Actualizar
+              </Button>
+              {canDelete && (
+                <button
+                  onClick={() => { setShowTrash(!showTrash); setSearch(''); setSearchResults(null); }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                    showTrash
+                      ? 'bg-red-50 border-red-200 text-red-700'
+                      : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Papelera {trashList.length > 0 && showTrash ? `(${trashList.length})` : ''}
+                </button>
+              )}
+            </div>
+            {canManage && !showTrash && (
               <Button variant="primary" icon={Plus} onClick={() => { setEditCustomer(undefined); setShowModal(true); }} size="sm">
                 Nuevo cliente
               </Button>
@@ -91,6 +145,57 @@ const Customers: React.FC = () => {
 
         {error && <ErrorMessage message={error} onDismiss={clearError} className="mb-4" />}
 
+        {/* ── PAPELERA ─────────────────────────────────────────────────── */}
+        {showTrash ? (
+          <>
+            <div className="flex items-center gap-2 mb-4 px-1">
+              <Trash2 className="w-4 h-4 text-red-500" />
+              <span className="text-sm font-medium text-red-700">Clientes eliminados</span>
+              <span className="text-xs text-gray-400">— Solo admins pueden restaurar o eliminar definitivamente</span>
+            </div>
+
+            {trashLoading ? (
+              <div className="flex justify-center py-16"><LoadingSpinner size="lg" /></div>
+            ) : trashList.length === 0 ? (
+              <div className="text-center py-16">
+                <Trash2 className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+                <p className="text-gray-400 text-sm">La papelera está vacía</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {trashList.map((customer) => (
+                  <div key={customer.id} className="bg-white rounded-xl border border-red-100 shadow-sm p-4 opacity-75">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-sm font-semibold text-gray-700 truncate line-through">{customer.name}</h3>
+                        {customer.nit && <p className="text-xs text-gray-400">NIT: {customer.nit}</p>}
+                        {customer.contact && <p className="text-xs text-gray-400">{customer.contact}</p>}
+                      </div>
+                      <div className="flex gap-1 ml-2">
+                        <button
+                          onClick={() => handleRestore(customer.id)}
+                          className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                          title="Restaurar"
+                        >
+                          <RotateCcw className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => setHardDeleteConfirm(customer.id)}
+                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Eliminar definitivamente"
+                        >
+                          <AlertTriangle className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                    <p className="text-xs text-red-400 mt-1">Eliminado: {formatDate((customer as any).deletedAt ?? customer.updatedAt)}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        ) : (
+        <>
         {/* Search */}
         <div className="relative mb-5">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
@@ -199,26 +304,12 @@ const Customers: React.FC = () => {
         {/* Pagination */}
         {!search && pagination.totalPages > 1 && (
           <div className="flex justify-center items-center gap-2 mt-6">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => getCustomers(pagination.page - 1, 50)}
-              disabled={pagination.page <= 1 || loading}
-            >
-              Anterior
-            </Button>
-            <span className="text-sm text-gray-600">
-              {pagination.page} / {pagination.totalPages}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => getCustomers(pagination.page + 1, 50)}
-              disabled={pagination.page >= pagination.totalPages || loading}
-            >
-              Siguiente
-            </Button>
+            <Button variant="outline" size="sm" onClick={() => getCustomers(pagination.page - 1, 50)} disabled={pagination.page <= 1 || loading}>Anterior</Button>
+            <span className="text-sm text-gray-600">{pagination.page} / {pagination.totalPages}</span>
+            <Button variant="outline" size="sm" onClick={() => getCustomers(pagination.page + 1, 50)} disabled={pagination.page >= pagination.totalPages || loading}>Siguiente</Button>
           </div>
+        )}
+        </> /* end of non-trash view */
         )}
       </div>
 
@@ -230,6 +321,27 @@ const Customers: React.FC = () => {
           onCustomerUpdated={handleCustomerSaved}
           editCustomer={editCustomer}
         />
+      )}
+
+      {/* Hard Delete Confirm */}
+      {hardDeleteConfirm !== null && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900">Eliminar definitivamente</h3>
+                <p className="text-sm text-gray-500">Esta acción es irreversible. El cliente se borrará para siempre.</p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={() => setHardDeleteConfirm(null)} className="flex-1">Cancelar</Button>
+              <Button variant="danger" onClick={() => handleHardDelete(hardDeleteConfirm)} className="flex-1">Eliminar para siempre</Button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Delete Confirm */}
