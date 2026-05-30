@@ -142,35 +142,62 @@ const OrderDetail: React.FC = () => {
     setGeneratingPdf(true);
     setShowPdfMenu(false);
     try {
-      const canvas = await html2canvas(printRefCarta.current, {
+      const container = printRefCarta.current;
+      const canvas = await html2canvas(container, {
         scale: 2,
         useCORS: true,
         logging: false,
         backgroundColor: '#ffffff',
       });
 
-      // Letter: 215.9 × 279.4 mm
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
-      const pageW = pdf.internal.pageSize.getWidth();
-      const pageH = pdf.internal.pageSize.getHeight();
-      const imgRatio = canvas.height / canvas.width;
-      const imgH = pageW * imgRatio;
+      const pageWmm = pdf.internal.pageSize.getWidth();   // 215.9 mm
+      const pageHmm = pdf.internal.pageSize.getHeight();  // 279.4 mm
 
-      if (imgH <= pageH) {
-        pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, pageW, imgH);
-      } else {
-        // Multi-page if content overflows
-        let yOffset = 0;
-        while (yOffset < canvas.height) {
-          const sliceH = Math.min((pageH / pageW) * canvas.width, canvas.height - yOffset);
-          const sliceCanvas = document.createElement('canvas');
-          sliceCanvas.width = canvas.width;
-          sliceCanvas.height = sliceH;
-          sliceCanvas.getContext('2d')!.drawImage(canvas, 0, -yOffset);
-          pdf.addImage(sliceCanvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, pageW, (sliceH / canvas.width) * pageW);
-          yOffset += sliceH;
-          if (yOffset < canvas.height) pdf.addPage();
+      const domW = container.offsetWidth;                  // 794 px
+      const canvasScale = canvas.width / domW;             // ≈2
+
+      // Page height in canvas pixels
+      const pageHcanvas = (pageHmm / pageWmm) * domW * canvasScale;
+
+      // Find page-break points aligned to table row boundaries
+      const getRowOffsetTop = (el: HTMLElement): number => {
+        let offset = 0;
+        let curr: HTMLElement | null = el;
+        while (curr && curr !== container) {
+          offset += curr.offsetTop;
+          curr = curr.offsetParent as HTMLElement | null;
         }
+        return offset;
+      };
+
+      const rows = Array.from(container.querySelectorAll('tbody tr')) as HTMLElement[];
+      const breakPoints: number[] = []; // canvas-px y positions to start each new page
+      let pageBottom = pageHcanvas;
+
+      for (const row of rows) {
+        const rowTop    = getRowOffsetTop(row) * canvasScale;
+        const rowBottom = rowTop + row.offsetHeight * canvasScale;
+        if (rowBottom > pageBottom) {
+          // Row would be clipped — break BEFORE this row
+          breakPoints.push(rowTop);
+          pageBottom = rowTop + pageHcanvas;
+        }
+      }
+      breakPoints.push(canvas.height); // sentinel
+
+      // Render one PDF page per segment
+      let sliceY = 0;
+      for (let i = 0; i < breakPoints.length; i++) {
+        const sliceH = breakPoints[i] - sliceY;
+        const sliceCanvas = document.createElement('canvas');
+        sliceCanvas.width  = canvas.width;
+        sliceCanvas.height = sliceH;
+        sliceCanvas.getContext('2d')!.drawImage(canvas, 0, -sliceY);
+        const sliceHmm = (sliceH / canvas.width) * pageWmm;
+        pdf.addImage(sliceCanvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, pageWmm, sliceHmm);
+        sliceY = breakPoints[i];
+        if (i < breakPoints.length - 1) pdf.addPage();
       }
 
       const fileName = `${currentOrder.orderNumber}-carta.pdf`;
