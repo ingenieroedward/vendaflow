@@ -19,9 +19,9 @@ import sequelize from '@/database';
 
 export class OrderService {
   /**
-   * Genera el siguiente número de orden en formato ORD-XXXX.
+   * Genera el siguiente número de orden en formato ORD-XX (ej: ORD-01, ORD-11).
    * Busca la última orden existente (incluyendo soft-deleted) y suma 1.
-   * El contador empieza en 2000. Si ocurre algún error usa el timestamp como fallback.
+   * El contador empieza en 1. Si ocurre algún error usa el timestamp como fallback.
    */
   private async generateOrderNumber(): Promise<string> {
     try {
@@ -37,17 +37,16 @@ export class OrderService {
         paranoid:false
       });
 
-      let nextNumber = 2000; // Empezar en 2000
+      let nextNumber = 1;
 
       if (lastOrder) {
-        // Extraer el número de la última orden (ej: "ORD-2005" -> 2005)
         const match = lastOrder.orderNumber.match(/ORD-(\d+)/);
         if (match && match[1]) {
           nextNumber = parseInt(match[1]) + 1;
         }
       }
 
-      return `ORD-${nextNumber.toString().padStart(4, '0')}`;
+      return `ORD-${nextNumber.toString().padStart(2, '0')}`;
     } catch (error) {
       logger.error('Error generating order number:', error as Error);
       // Fallback: usar timestamp como número de orden
