@@ -2,10 +2,10 @@ import { z } from 'zod';
 
 // Order Item DTO
 export const orderItemSchema = z.object({
-  productId: z.number().positive('Product ID must be positive'),
-  quantity: z.number().min(1, 'Quantity must be at least 1'),
-  taxRate: z.number().min(0, 'Tax rate must must be positive'),
-  unitPrice: z.number().min(0, 'Unit price must be positive'),
+  productId: z.coerce.number().positive('Product ID must be positive'),
+  quantity: z.coerce.number().min(1, 'Quantity must be at least 1'),
+  taxRate: z.coerce.number().min(0, 'Tax rate must be non-negative'),
+  unitPrice: z.coerce.number().min(0, 'Unit price must be non-negative'),
 });
 
 export type OrderItemDto = z.infer<typeof orderItemSchema>;
