@@ -5,10 +5,7 @@ import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Cell,
 } from 'recharts';
-import {
-  format, subDays, subMonths, subYears, startOfDay, startOfMonth,
-  startOfYear, endOfDay,
-} from 'date-fns';
+import { format, subDays, subMonths, subYears } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
   TrendingUp, ShoppingCart, DollarSign, RefreshCw,
@@ -49,6 +46,31 @@ const CustomTooltip = ({ active, payload, label }: any) => {
       ))}
     </div>
   );
+};
+
+// Colombia is UTC-5 (no DST). All date bucketing uses Bogota local dates.
+const COL_TZ = 'America/Bogota';
+
+// Returns "YYYY-MM-DD" for any UTC ISO string, in Colombia timezone
+const colDay = (isoStr: string): string =>
+  new Date(isoStr).toLocaleDateString('en-CA', { timeZone: COL_TZ });
+
+// Returns "YYYY-MM" (year-month) for a Date, in Colombia timezone
+const colMonth = (d: Date): string =>
+  colDay(d.toISOString()).substring(0, 7);
+
+// Returns "YYYY" (year) for a Date, in Colombia timezone
+const colYear = (d: Date): string =>
+  colDay(d.toISOString()).substring(0, 4);
+
+// Start of a Colombia calendar day as UTC Date (Colombia midnight = UTC 05:00)
+const colStartOfDay = (d: Date): Date =>
+  new Date(`${colDay(d.toISOString())}T05:00:00.000Z`);
+
+// Start of a Colombia calendar month as UTC Date
+const colStartOfMonth = (d: Date): Date => {
+  const [y, m] = colDay(d.toISOString()).split('-');
+  return new Date(`${y}-${m}-01T05:00:00.000Z`);
 };
 
 // Blue palette: empty → light gray, low → blue-300, high → blue-700
@@ -104,18 +126,17 @@ const Reports: React.FC = () => {
 
   useEffect(() => { loadOrders(); }, [loadOrders]);
 
-  // ── Chart data ───────────────────────────────────────────────────────────
+  // ── Chart data (buckets in Colombia timezone) ────────────────────────────
   const chartData = useMemo(() => {
     const now = new Date();
 
     if (period === 'daily') {
       return Array.from({ length: 30 }, (_, i) => {
         const day = subDays(now, 29 - i);
-        const start = startOfDay(day).toISOString();
-        const end = endOfDay(day).toISOString();
-        const slice = orders.filter(o => o.createdAt >= start && o.createdAt <= end);
+        const dayStr = colDay(day.toISOString()); // "YYYY-MM-DD" in Colombia
+        const slice = orders.filter(o => colDay(o.createdAt) === dayStr);
         return {
-          label: format(day, 'dd/MM', { locale: es }),
+          label: format(colStartOfDay(day), 'dd/MM', { locale: es }),
           ventas: slice.reduce((s, o) => s + o.totalAmount, 0),
           ordenes: slice.length,
         };
@@ -125,11 +146,10 @@ const Reports: React.FC = () => {
     if (period === 'monthly') {
       return Array.from({ length: 12 }, (_, i) => {
         const month = subMonths(now, 11 - i);
-        const start = startOfMonth(month).toISOString();
-        const end = startOfMonth(subMonths(month, -1)).toISOString();
-        const slice = orders.filter(o => o.createdAt >= start && o.createdAt < end);
+        const monthStr = colMonth(month); // "YYYY-MM" in Colombia
+        const slice = orders.filter(o => colDay(o.createdAt).startsWith(monthStr));
         return {
-          label: format(month, 'MMM yy', { locale: es }),
+          label: format(colStartOfMonth(month), 'MMM yy', { locale: es }),
           ventas: slice.reduce((s, o) => s + o.totalAmount, 0),
           ordenes: slice.length,
         };
@@ -137,10 +157,8 @@ const Reports: React.FC = () => {
     }
 
     return Array.from({ length: 5 }, (_, i) => {
-      const year = now.getFullYear() - 4 + i;
-      const start = startOfYear(new Date(year, 0, 1)).toISOString();
-      const end = startOfYear(new Date(year + 1, 0, 1)).toISOString();
-      const slice = orders.filter(o => o.createdAt >= start && o.createdAt < end);
+      const year = parseInt(colYear(now)) - 4 + i;
+      const slice = orders.filter(o => colDay(o.createdAt).startsWith(String(year)));
       return {
         label: String(year),
         ventas: slice.reduce((s, o) => s + o.totalAmount, 0),
@@ -149,34 +167,36 @@ const Reports: React.FC = () => {
     });
   }, [orders, period]);
 
-  // ── KPIs ─────────────────────────────────────────────────────────────────
+  // ── KPIs (boundaries in Colombia timezone) ───────────────────────────────
   const kpis = useMemo(() => {
-    const now = new Date();
-    const todayStart   = startOfDay(now).toISOString();
-    const monthStart   = startOfMonth(now).toISOString();
-    const prevMonthStart = startOfMonth(subMonths(now, 1)).toISOString();
+    const now    = new Date();
+    const todayStr    = colDay(now.toISOString());               // "YYYY-MM-DD"
+    const monthStr    = todayStr.substring(0, 7);               // "YYYY-MM"
+    const yearStr     = todayStr.substring(0, 4);               // "YYYY"
+    const prevMonthStr = colMonth(subMonths(now, 1));            // "YYYY-MM" prev month
 
-    const sum = (from: string, to?: string) =>
-      orders.filter(o => o.createdAt >= from && (!to || o.createdAt < to))
-            .reduce((s, o) => s + o.totalAmount, 0);
-    const cnt = (from: string, to?: string) =>
-      orders.filter(o => o.createdAt >= from && (!to || o.createdAt < to)).length;
+    const sumBy  = (pred: (o: OrderRow) => boolean) => orders.filter(pred).reduce((s, o) => s + o.totalAmount, 0);
+    const cntBy  = (pred: (o: OrderRow) => boolean) => orders.filter(pred).length;
 
-    const monthVentas    = sum(monthStart);
-    const prevMonthVentas = sum(prevMonthStart, monthStart);
+    const isToday  = (o: OrderRow) => colDay(o.createdAt) === todayStr;
+    const isMonth  = (o: OrderRow) => colDay(o.createdAt).startsWith(monthStr);
+    const isPrevM  = (o: OrderRow) => colDay(o.createdAt).startsWith(prevMonthStr);
+
+    const monthVentas    = sumBy(isMonth);
+    const prevMonthVentas = sumBy(isPrevM);
     const monthPct = prevMonthVentas > 0
       ? Math.round(((monthVentas - prevMonthVentas) / prevMonthVentas) * 100)
       : null;
 
-    const allVentas = sum('');
-    const allCount  = cnt('');
-    const avgTicket = allCount > 0 ? Math.round(allVentas / allCount) : 0;
+    const allVentas = sumBy(() => true);
+    const allCount  = cntBy(() => true);
 
     return {
-      today:    { ventas: sum(todayStart), ordenes: cnt(todayStart) },
-      month:    { ventas: monthVentas, ordenes: cnt(monthStart), clientes: new Set(orders.filter(o => o.createdAt >= monthStart).map(o => o.customerId)).size, pct: monthPct },
-      avgTicket,
-      all:      { ventas: allVentas, ordenes: allCount },
+      today: { ventas: sumBy(isToday), ordenes: cntBy(isToday) },
+      month: { ventas: monthVentas, ordenes: cntBy(isMonth), clientes: new Set(orders.filter(isMonth).map(o => o.customerId)).size, pct: monthPct },
+      avgTicket: allCount > 0 ? Math.round(allVentas / allCount) : 0,
+      all: { ventas: allVentas, ordenes: allCount },
+      _yearStr: yearStr, // for periodOrders
     };
   }, [orders]);
 
@@ -187,8 +207,8 @@ const Reports: React.FC = () => {
     if (period === 'daily')   from = subDays(now, 29);
     else if (period === 'monthly') from = subMonths(now, 11);
     else from = subYears(now, 4);
-    const fromIso = startOfDay(from).toISOString();
-    return orders.filter(o => o.createdAt >= fromIso);
+    const fromDayStr = colDay(colStartOfDay(from).toISOString());
+    return orders.filter(o => colDay(o.createdAt) >= fromDayStr);
   }, [orders, period]);
 
   const topClients = useMemo(() => {

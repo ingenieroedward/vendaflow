@@ -50,7 +50,7 @@ const Orders: React.FC = () => {
   const [trashLoading, setTrashLoading] = useState(false);
   const [hardDeleteConfirm, setHardDeleteConfirm] = useState<number | null>(null);
 
-  useEffect(() => { getOrders(); }, [getOrders]);
+  useEffect(() => { getOrders(1, 50); }, [getOrders]);
 
   const loadLocalOrders = useCallback(async () => {
     setLoadingLocal(true);
@@ -122,7 +122,7 @@ const Orders: React.FC = () => {
     }
   };
 
-  const handleRefresh = () => getOrders(pagination.page);
+  const handleRefresh = () => getOrders(pagination.page, 50);
 
   const handleManualSync = async () => {
     setSyncing(true);
@@ -618,6 +618,30 @@ const Orders: React.FC = () => {
                   </div>
                 )}
               </>
+            )}
+
+            {/* Paginación */}
+            {activeTab !== 'local' && activeTab !== 'trash' && !loading && pagination.totalPages > 1 && (
+              <div className="flex justify-center items-center gap-3 mt-6">
+                <Button
+                  variant="outline" size="sm"
+                  onClick={() => getOrders(pagination.page - 1, 50)}
+                  disabled={pagination.page <= 1 || loading}
+                >
+                  Anterior
+                </Button>
+                <span className="text-sm text-gray-600">
+                  Página {pagination.page} de {pagination.totalPages}
+                  <span className="text-gray-400 ml-1">({pagination.total} órdenes)</span>
+                </span>
+                <Button
+                  variant="outline" size="sm"
+                  onClick={() => getOrders(pagination.page + 1, 50)}
+                  disabled={pagination.page >= pagination.totalPages || loading}
+                >
+                  Siguiente
+                </Button>
+              </div>
             )}
           </div>
         )}
