@@ -134,13 +134,14 @@ function App() {
         }
       })
     ).finally(() => {
-      // Seed silencioso SIEMPRE después del sync — solo si no se hizo en las últimas 4 horas
+      // Usuarios: siempre refrescar (no throttle) — crítico para mostrar nombres en órdenes offline
+      getUsers().catch(() => {});
+      // Resto del seed: solo si no se hizo en las últimas 4 horas
       if (shouldReseed()) {
         seedAllProducts();
         seedAllCustomers();
         seedPricesData();
         seedAllOrders();
-        getUsers().catch(() => {}); // seed users for offline display; fails silently for non-admin
         markSeeded();
       }
     });
