@@ -144,6 +144,7 @@ export class OrderService {
     const offset = (validatedPage - 1) * validatedLimit;
 
     const { count, rows } = await Order.findAndCountAll({
+      distinct: true, // prevents inflated count from 1-to-many JOIN with orderItems
       include: [
         {
           model: Customer,
@@ -425,6 +426,7 @@ export class OrderService {
     const offset = (validatedPage - 1) * validatedLimit;
 
     const { count, rows } = await Order.findAndCountAll({
+      distinct: true,
       where: { customerId },
       include: [
         {
