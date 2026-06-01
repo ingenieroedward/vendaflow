@@ -102,9 +102,9 @@ const OrderPrintView = forwardRef<HTMLDivElement, OrderPrintViewProps>(
           paddingBottom: "2px",
           borderBottom: "1px solid #aaa",
         }}>
-          <span style={{ flex: 3 }}>Producto</span>
-          <span style={{ flex: 1, textAlign: "center" }}>Cant</span>
-          <span style={{ flex: 2, textAlign: "right" }}>Total</span>
+          <span style={{ flex: 1 }}>Producto</span>
+          <span style={{ width: "28px", textAlign: "center", flexShrink: 0 }}>Cant</span>
+          <span style={{ width: "90px", textAlign: "right", flexShrink: 0 }}>Total</span>
         </div>
 
         {/* Items */}
@@ -123,15 +123,15 @@ const OrderPrintView = forwardRef<HTMLDivElement, OrderPrintViewProps>(
               }}
             >
               <div style={{ display: "flex", alignItems: "flex-start" }}>
-                <span style={{ flex: 3, paddingRight: "4px", wordBreak: "break-word" as const }}>
+                <span style={{ flex: 1, paddingRight: "4px", wordBreak: "break-word" as const }}>
                   {item.product.name}
                 </span>
-                <span style={{ flex: 1, textAlign: "center" }}>{item.quantity}</span>
-                <span style={{ flex: 2, textAlign: "right", fontWeight: "bold" }}>
+                <span style={{ width: "28px", textAlign: "center", flexShrink: 0 }}>{item.quantity}</span>
+                <span style={{ width: "90px", textAlign: "right", flexShrink: 0, fontWeight: "bold" }}>
                   {formatCurrency(base + tax)}
                 </span>
               </div>
-              <div style={{ fontSize: "9px", color: "#666", marginLeft: "0" }}>
+              <div style={{ fontSize: "9px", color: "#666" }}>
                 {item.product.code} · {formatCurrency(item.unitPrice)} c/u
                 {item.taxRate ? ` · IVA ${item.taxRate}%` : ""}
               </div>
@@ -142,24 +142,26 @@ const OrderPrintView = forwardRef<HTMLDivElement, OrderPrintViewProps>(
         {line}
 
         {/* Totales */}
-        <div style={{ marginBottom: "4px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", marginBottom: "2px" }}>
-            <span>Subtotal (sin IVA)</span>
-            <span>{formatCurrency(totals.subtotal)}</span>
-          </div>
+        <div style={{ marginBottom: "8px" }}>
+          {totals.subtotal !== totals.total && (
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", marginBottom: "2px" }}>
+              <span>Subtotal</span>
+              <span style={{ flexShrink: 0 }}>{formatCurrency(totals.subtotal)}</span>
+            </div>
+          )}
           {totals.totalTax > 0 && (
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", marginBottom: "2px" }}>
               <span>IVA</span>
-              <span>{formatCurrency(totals.totalTax)}</span>
+              <span style={{ flexShrink: 0 }}>{formatCurrency(totals.totalTax)}</span>
             </div>
           )}
           <div style={{
             display: "flex", justifyContent: "space-between",
-            fontWeight: "bold", fontSize: "13px",
-            borderTop: "1px solid #000", paddingTop: "4px", marginTop: "2px",
+            fontWeight: "bold", fontSize: "14px",
+            borderTop: "2px solid #000", paddingTop: "5px", marginTop: "4px",
           }}>
-            <span>TOTAL</span>
-            <span>{formatCurrency(totals.total)}</span>
+            <span>TOTAL FACTURA</span>
+            <span style={{ flexShrink: 0 }}>{formatCurrency(totals.total)}</span>
           </div>
         </div>
 
