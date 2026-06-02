@@ -9,18 +9,18 @@ interface NavItem {
   roles: string[];
 }
 
-// buyer: Products, Prices, Suppliers, Categories (4)
-// seller: Products, Orders (2)
-// admin: Products, Prices, Orders, Users (4) — Suppliers/Categories via sidebar on desktop
+// buyer:  Productos, Precios, Proveedores, Categorías (4)
+// seller: Productos, Clientes, Órdenes, Informes (4)
+// admin:  Productos, Clientes, Órdenes, Informes, Usuarios (5)
 const NAV_ITEMS: NavItem[] = [
-  { label: 'Productos', to: '/', icon: Package, roles: ['buyer', 'seller', 'admin'] },
-  { label: 'Precios', to: '/prices', icon: DollarSign, roles: ['buyer', 'admin'] },
-  { label: 'Proveedores', to: '/suppliers', icon: Truck, roles: ['buyer'] },
-  { label: 'Categorías', to: '/categories', icon: Tag, roles: ['buyer'] },
-  { label: 'Clientes', to: '/customers', icon: UserCheck, roles: ['seller', 'admin'] },
-  { label: 'Órdenes', to: '/orders', icon: ClipboardList, roles: ['seller', 'admin'] },
-  { label: 'Informes', to: '/reports', icon: BarChart2, roles: ['seller', 'admin'] },
-  { label: 'Usuarios', to: '/users', icon: Users, roles: ['admin'] },
+  { label: 'Productos',   to: '/',           icon: Package,      roles: ['buyer', 'seller', 'admin'] },
+  { label: 'Precios',     to: '/prices',     icon: DollarSign,   roles: ['buyer'] },
+  { label: 'Proveedores', to: '/suppliers',  icon: Truck,        roles: ['buyer'] },
+  { label: 'Categorías',  to: '/categories', icon: Tag,          roles: ['buyer'] },
+  { label: 'Clientes',    to: '/customers',  icon: UserCheck,    roles: ['seller', 'admin'] },
+  { label: 'Órdenes',     to: '/orders',     icon: ClipboardList, roles: ['seller', 'admin'] },
+  { label: 'Informes',    to: '/reports',    icon: BarChart2,    roles: ['seller', 'admin'] },
+  { label: 'Usuarios',    to: '/users',      icon: Users,        roles: ['admin'] },
 ];
 
 const BottomNav = () => {

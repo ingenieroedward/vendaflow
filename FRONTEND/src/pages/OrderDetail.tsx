@@ -85,11 +85,16 @@ const OrderDetail: React.FC = () => {
     setGeneratingPdf(true);
     try {
       // Render ticket at 80mm width (302px) — single tall page, no pagination
-      const canvas = await html2canvas(printRef.current, {
+      const el = printRef.current;
+      const canvas = await html2canvas(el, {
         scale: 2,
         useCORS: true,
         logging: false,
         backgroundColor: '#ffffff',
+        windowWidth: el.scrollWidth,
+        windowHeight: el.scrollHeight,
+        scrollX: 0,
+        scrollY: 0,
       });
 
       // 80mm wide, height proportional to content
@@ -148,6 +153,10 @@ const OrderDetail: React.FC = () => {
         useCORS: true,
         logging: false,
         backgroundColor: '#ffffff',
+        windowWidth: container.scrollWidth,
+        windowHeight: container.scrollHeight,
+        scrollX: 0,
+        scrollY: 0,
       });
 
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
@@ -193,8 +202,8 @@ const OrderDetail: React.FC = () => {
         const ctx = pageCanvas.getContext('2d')!;
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
-        ctx.drawImage(canvas, 0, padTop - sliceY, canvas.width, sliceH,
-                              0, padTop,           canvas.width, sliceH);
+        ctx.drawImage(canvas, 0, sliceY, canvas.width, sliceH,
+                              0, padTop, canvas.width, sliceH);
         const pageHmm2 = (pageCanvas.height / canvas.width) * pageWmm;
         pdf.addImage(pageCanvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, pageWmm, pageHmm2);
         sliceY = breakPoints[i];

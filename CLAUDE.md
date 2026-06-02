@@ -26,7 +26,7 @@ JJLM/
 
 **Backend:** patrón MSC (Model-Service-Controller). Cada módulo tiene: `*.model.ts` → `*.service.ts` → `*.controller.ts` → `*.routes.ts` → `*.dto.ts`.
 
-**Frontend:** Component-Based con estado global Zustand. `pages/` componen `components/`, `services/` llaman la API REST, `store/` mantiene estado global.
+**Frontend:** Component-Based con estado global Zustand. `pages/` componen `components/` (organizados en `ui/`, `layout/`, `features/`), `services/` llaman la API REST, `store/` mantiene estado global, `repositories/` abstrae acceso a datos local+remoto (patrón Repository para offline-first).
 
 **Path alias backend:** `@/` apunta a `src/` (e.g., `import logger from '@/core/logger'`).
 
@@ -40,15 +40,9 @@ JJLM/
 npm run dev          # Nodemon + TypeScript watch (puerto 3000)
 npm run build        # Compila TypeScript → dist/
 npm start            # Ejecuta dist/server.js (producción)
-npm test             # Jest (todos los tests)
-npm run test:watch   # Jest en modo watch
+npm test             # Jest (infraestructura lista, sin tests implementados aún)
+npm run test:watch
 npm run test:coverage
-npm run test:unit    # Solo tests unitarios
-npm run test:integration  # Solo tests de integración
-
-# Un solo test/suite:
-npx jest --testPathPattern=auth       # Todos los tests que coincidan
-npx jest src/modules/auth/auth.test.ts  # Archivo específico
 
 npm run lint
 npm run lint:fix
@@ -65,6 +59,8 @@ npm run preview      # Preview del build
 npm run lint
 npm run test:e2e     # Playwright e2e tests
 npm run test:e2e:ui  # Playwright con UI interactiva
+# Tests unitarios (solo offline-first): vitest sobre LocalDatabase, ProductRepository, OrderRepository
+npx vitest run
 ```
 
 ### Docker
@@ -129,8 +125,10 @@ Documentado en `PROGRESO-OFFLINE-FIRST.md`. Implementa capacidad offline con sin
 - `src/database/LocalDatabase.ts` — Dexie.js con 9 tablas locales
 - `src/database/schemas/index.ts` — Esquemas Dexie
 - `src/database/types/index.ts` — Tipos utilitarios: `ServerModel<T>`, `CreateModel<T>`, `SyncMetadata`
+- `src/repositories/` — Patrón Repository: `BaseRepository` + repos por entidad (Product, Order, Customer, Price, Supplier, User). Abstrae leer/escribir en IndexedDB vs API según conectividad. Ver `src/repositories/README.md`.
 - `src/store/syncStore.ts` — Estado de sincronización
 - `src/services/pushNotifications.ts` — Notificaciones push
+- `src/hooks/` — `useNetworkStatus`, `useAuth`, `useLocalStorage`, `usePushNotifications`
 
 **Campos de sincronización** en modelos locales: `_syncStatus` (synced | pending_create | pending_update | pending_delete | conflict), `_version`, `_lastModifiedAt`, `_lastModifiedBy`.
 
@@ -166,7 +164,7 @@ CORS_ORIGIN
 
 ## PATRONES IMPORTANTES
 
-- **Errores:** usar `AppError` de `@/core/errors/AppError.ts` con `(mensaje, statusCode)`. El middleware global en `errorHandler.ts` los captura.
+- **Errores:** usar las clases de `@/core/errors/AppError.ts` — `BadRequestError` (400), `UnauthorizedError` (401), `ForbiddenError` (403), `NotFoundError` (404), `ConflictError` (409), `ValidationError` (422), `InternalServerError` (500). Para casos custom: `new AppError(mensaje, statusCode)`. El middleware global en `errorHandler.ts` los captura.
 - **Async controllers:** wrappear con `asyncHandler` de `@/core/utils/asyncHandler.ts`.
 - **Transacciones:** las operaciones multi-tabla (ej. crear orden + items) deben usar `sequelize.transaction()`.
 - **DTOs:** Zod schema + `z.infer<>` en cada módulo. Validar con `.parse(req.body)` en el controller.

@@ -49,7 +49,7 @@ const OrderPrintView = forwardRef<HTMLDivElement, OrderPrintViewProps>(
           fontSize: "11px",
           color: "#000",
           background: "#fff",
-          padding: "12px 8px",
+          padding: "12px 24px 12px 10px",
           boxSizing: "border-box",
         }}
       >
