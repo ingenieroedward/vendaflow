@@ -49,7 +49,7 @@ const OrderPrintView = forwardRef<HTMLDivElement, OrderPrintViewProps>(
           fontSize: "11px",
           color: "#000",
           background: "#fff",
-          padding: "12px 24px 12px 10px",
+          padding: "12px 15px",
           boxSizing: "border-box",
         }}
       >
@@ -124,6 +124,9 @@ const OrderPrintView = forwardRef<HTMLDivElement, OrderPrintViewProps>(
             >
               <div style={{ display: "flex", alignItems: "flex-start" }}>
                 <span style={{ flex: 1, paddingRight: "4px", wordBreak: "break-word" as const }}>
+                  <span style={{ fontWeight: "bold", color: "#111", marginRight: "4px" }}>
+                    {item.product.code}
+                  </span>
                   {item.product.name}
                 </span>
                 <span style={{ width: "28px", textAlign: "center", flexShrink: 0 }}>{item.quantity}</span>
@@ -131,8 +134,8 @@ const OrderPrintView = forwardRef<HTMLDivElement, OrderPrintViewProps>(
                   {formatCurrency(base + tax)}
                 </span>
               </div>
-              <div style={{ fontSize: "9px", color: "#666" }}>
-                {item.product.code} · {formatCurrency(item.unitPrice)} c/u
+              <div style={{ fontSize: "9px", color: "#555", paddingLeft: "2px" }}>
+                {formatCurrency(item.unitPrice)} c/u
                 {item.taxRate ? ` · IVA ${item.taxRate}%` : ""}
               </div>
             </div>
