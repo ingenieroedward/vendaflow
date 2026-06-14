@@ -16,6 +16,8 @@ import CustomerModal from '../components/ui/CustomerModal';
 import { UpdateOrderRequest } from '../types/order';
 import { Product } from '../types';
 import { Customer } from '../types/customer';
+import { productService } from '../services/products';
+import { useNetworkStatus } from '../hooks/useNetworkStatus';
 
 interface OrderItem {
   id: number;
@@ -35,7 +37,8 @@ const OrderEdit: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { user } = useAuthStore();
-  const { 
+  const { isOffline } = useNetworkStatus();
+  const {
     currentOrder, 
     getOrderById, 
     updateOrder, 
@@ -448,6 +451,7 @@ const OrderEdit: React.FC = () => {
                           selectedProduct={selectedProduct}
                           products={products}
                           placeholder="Buscar producto..."
+                          searchFn={!isOffline ? (q) => productService.searchProducts(q, false) : undefined}
                         />
                       )}
                       
