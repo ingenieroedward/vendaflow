@@ -71,7 +71,7 @@ const OrderEdit: React.FC = () => {
     if (id) {
       getOrderById(parseInt(id));
     }
-    getProducts(1, 100);
+    getProducts(1, 2000, false);
     getCustomers(1, 100);
   }, [id, getOrderById, getProducts, getCustomers]);
 
