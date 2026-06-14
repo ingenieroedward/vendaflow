@@ -451,7 +451,7 @@ const OrderEdit: React.FC = () => {
                           selectedProduct={selectedProduct}
                           products={products}
                           placeholder="Buscar producto..."
-                          searchFn={!isOffline ? (q) => productService.searchProducts(q, false) : undefined}
+                          searchFn={!isOffline ? (q) => productService.searchProducts(q, true) : undefined}
                         />
                       )}
                       
