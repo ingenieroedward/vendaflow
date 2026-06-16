@@ -384,7 +384,7 @@ const OrderNew: React.FC = () => {
                       selectedProduct={selectedProduct}
                       products={products}
                       placeholder="Buscar producto..."
-                      searchFn={!isOffline ? (q) => productService.searchProducts(q, true) : undefined}
+                      searchFn={!isOffline ? (q) => productService.searchProducts(q, false) : undefined}
                     />
                   )}
 

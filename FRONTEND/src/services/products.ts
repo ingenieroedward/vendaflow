@@ -23,9 +23,10 @@ export class ProductService {
       return response.data;
     } catch (error) {
       // Fallback: obtener todos los productos del servidor y filtrar en el cliente
-      const response = await apiService.get<PaginatedResponse<Product>>('/products/prices', {
+      const fallbackEndpoint = includePrices ? '/products/prices' : '/products';
+      const response = await apiService.get<PaginatedResponse<Product>>(fallbackEndpoint, {
         page: 1,
-        limit: 500, // Aumentado para no perder productos con el fallback
+        limit: 500,
       });
 
       const allProducts = response.data;
