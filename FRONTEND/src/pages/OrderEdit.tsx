@@ -54,7 +54,7 @@ const OrderEdit: React.FC = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState<number>(1);
   const [unitPrice, setUnitPrice] = useState<number>(0);
-  const [taxRate, setTaxRate] = useState<number>(19); // Default 19% IVA
+  const [taxRate, setTaxRate] = useState<number>(0);
   const [notes, setNotes] = useState<string>('');
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [showCustomerModal, setShowCustomerModal] = useState(false);
@@ -158,7 +158,7 @@ const OrderEdit: React.FC = () => {
     setSelectedProduct(null);
     setQuantity(1);
     setUnitPrice(0);
-    setTaxRate(19);
+    setTaxRate(0);
   };
 
   const handleRemoveItem = (id: number) => {
@@ -175,11 +175,7 @@ const OrderEdit: React.FC = () => {
   const handleProductSelect = (product: Product | null) => {
     if (product) {
       setSelectedProduct(product);
-      if (product.prices && product.prices.length > 0) {
-        setUnitPrice(product.prices[0].price);
-      } else {
-        setUnitPrice(0);
-      }
+      setUnitPrice(product.salePrice ?? 0);
     } else {
       setSelectedProduct(null);
       setUnitPrice(0);
