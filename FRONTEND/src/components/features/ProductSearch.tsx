@@ -214,9 +214,9 @@ const ProductSearch: React.FC<ProductSearchProps> = ({
               <div>
                 <div className="font-medium text-green-900">{selectedProduct.name}</div>
                 <div className="text-xs text-green-700">Código: {selectedProduct.code}</div>
-                {selectedProduct.prices && selectedProduct.prices.length > 0 && (
+                {selectedProduct.salePrice > 0 && (
                   <div className="text-xs text-green-700 font-medium">
-                    Precio: {formatCurrency(selectedProduct.prices[0].price)}
+                    Precio venta: {formatCurrency(selectedProduct.salePrice)}
                   </div>
                 )}
               </div>
