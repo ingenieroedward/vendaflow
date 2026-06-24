@@ -97,4 +97,15 @@ export class ProductController {
       pagination: result.pagination,
     });
   });
+
+  getStockAlerts = asyncHandler(async (_req: Request, res: Response) => {
+    const products = await this.productService.getStockAlerts();
+    res.status(200).json({ status: 'success', data: products });
+  });
+
+  adjustStock = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const product = await this.productService.adjustStock(Number(id), req.body);
+    res.status(200).json({ status: 'success', data: product });
+  });
 } 

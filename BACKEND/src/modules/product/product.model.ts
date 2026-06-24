@@ -19,6 +19,8 @@ export interface ProductAttributes {
   code: string;
   unit: string;
   salePrice: number;
+  stock: number;
+  minStock: number;
   categoryId: number | null;
   createdAt: Date;
   updatedAt: Date;
@@ -80,6 +82,23 @@ export class Product extends Model<ProductAttributes, ProductCreationAttributes>
     },
   })
   salePrice!: number;
+
+  @Column({
+    type: DataType.DECIMAL(10, 2),
+    allowNull: false,
+    defaultValue: 0,
+  })
+  stock!: number;
+
+  @Column({
+    type: DataType.DECIMAL(10, 2),
+    allowNull: false,
+    defaultValue: 0,
+    validate: {
+      min: 0,
+    },
+  })
+  minStock!: number;
 
   @ForeignKey(() => Category)
   @Column({

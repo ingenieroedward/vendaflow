@@ -19,6 +19,10 @@ import Categories from '../pages/Categories';
 import Prices from '../pages/Prices';
 import Customers from '../pages/Customers';
 import Reports from '../pages/Reports';
+import Inventory from '../pages/Inventory';
+import PurchaseOrders from '../pages/PurchaseOrders';
+import PurchaseOrderNew from '../pages/PurchaseOrderNew';
+import PurchaseOrderDetail from '../pages/PurchaseOrderDetail';
 
 // Protected Route Component
 interface RouteProps {
@@ -248,6 +252,40 @@ const AppRouter: React.FC = () => {
                 <UserEdit />
               </AdminRoute>
             } 
+          />
+
+          {/* Inventory & Purchase Orders - seller y admin */}
+          <Route
+            path="/inventory"
+            element={
+              <SellerRoute>
+                <Inventory />
+              </SellerRoute>
+            }
+          />
+          <Route
+            path="/purchase-orders"
+            element={
+              <SellerRoute>
+                <PurchaseOrders />
+              </SellerRoute>
+            }
+          />
+          <Route
+            path="/purchase-orders/new"
+            element={
+              <SellerRoute>
+                <PurchaseOrderNew />
+              </SellerRoute>
+            }
+          />
+          <Route
+            path="/purchase-orders/:id"
+            element={
+              <SellerRoute>
+                <PurchaseOrderDetail />
+              </SellerRoute>
+            }
           />
 
           {/* Redirect any unknown routes to home */}

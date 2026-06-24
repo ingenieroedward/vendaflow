@@ -16,8 +16,10 @@ import { validateSchema, validatePartialSchema, paginationSchema, PaginationQuer
 import { createOrderSchema, updateOrderSchema, searchOrderSchema } from './order.dto';
 import { Op, UniqueConstraintError } from 'sequelize';
 import sequelize from '@/database';
+import { StockMovementService } from '@/modules/stock-movement/stock-movement.service';
 
 export class OrderService {
+  private stockMovementService = new StockMovementService();
   /**
    * Genera el siguiente número de orden en formato ORD-XX (ej: ORD-01, ORD-11).
    * Busca la última orden existente (incluyendo soft-deleted) y suma 1.
@@ -116,6 +118,20 @@ export class OrderService {
             } as OrderItemAttributes, { transaction: t })
           )
         );
+
+        // Descontar stock (permite negativo)
+        for (const item of validatedData.items) {
+          await this.stockMovementService.createMovement({
+            productId: item.productId,
+            type: 'sale',
+            quantity: -item.quantity,
+            referenceId: order.id,
+            referenceType: 'order',
+            userId,
+            notes: `Orden de venta ${order.orderNumber}`,
+            transaction: t,
+          });
+        }
 
         await t.commit();
         return this.mapToResponseDto(order, orderItems);

@@ -17,6 +17,8 @@ import priceRoutes from '@/modules/price/price.routes';
 import customerRoutes from '@/modules/customer/customer.routes';
 import orderRoutes from '@/modules/order/order.routes';
 import pushRoutes from '@/modules/push/push.routes';
+import purchaseOrderRoutes from '@/modules/purchase-order/purchase-order.routes';
+import stockMovementRoutes from '@/modules/stock-movement/stock-movement.routes';
 
 const app = express();
 
@@ -74,6 +76,8 @@ app.use('/api/suppliers', supplierRoutes);
 app.use('/api/prices', priceRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/purchase-orders', purchaseOrderRoutes);
+app.use('/api/stock-movements', stockMovementRoutes);
 app.use('/api/push', pushRoutes);
 
 // 404 handler

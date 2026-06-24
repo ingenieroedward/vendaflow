@@ -6,6 +6,8 @@ export const createProductSchema = z.object({
   code: z.string().min(1, 'Code is required').max(50, 'Code too long'),
   unit: z.string().min(1, 'Unit is required').max(50, 'Unit too long'),
   salePrice: z.number().min(0, 'Sale price must be positive'),
+  stock: z.number().default(0),
+  minStock: z.number().min(0).default(0),
   categoryId: z.number().nullable().optional(),
 });
 
@@ -17,10 +19,20 @@ export const updateProductSchema = z.object({
   code: z.string().min(1, 'Code is required').max(50, 'Code too long').optional(),
   unit: z.string().min(1, 'Unit is required').max(50, 'Unit too long').optional(),
   salePrice: z.number().min(0, 'Sale price must be positive').optional(),
+  stock: z.number().optional(),
+  minStock: z.number().min(0).optional(),
   categoryId: z.number().nullable().optional(),
 });
 
 export type UpdateProductDto = z.infer<typeof updateProductSchema>;
+
+// Stock Adjustment DTO
+export const adjustStockSchema = z.object({
+  quantity: z.number(),
+  notes: z.string().optional(),
+});
+
+export type AdjustStockDto = z.infer<typeof adjustStockSchema>;
 
 // Search Product DTO
 export const searchProductSchema = z.object({
@@ -36,6 +48,8 @@ export interface ProductResponseDto {
   code: string;
   unit: string;
   salePrice: number;
+  stock: number;
+  minStock: number;
   categoryId: number | null;
   category?: {
     id: number;

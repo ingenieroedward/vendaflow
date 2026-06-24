@@ -1,4 +1,4 @@
-import { Package, ClipboardList, Users, DollarSign, Truck, Tag, UserCheck, BarChart2 } from 'lucide-react';
+import { Package, ClipboardList, Users, DollarSign, Truck, Tag, UserCheck, BarChart2, Warehouse, ShoppingCart } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 
@@ -17,9 +17,11 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Precios',     to: '/prices',     icon: DollarSign,    roles: ['buyer'] },
   { label: 'Proveedores', to: '/suppliers',  icon: Truck,         roles: ['buyer'] },
   { label: 'Categorías',  to: '/categories', icon: Tag,           roles: ['buyer'] },
-  { label: 'Clientes',    to: '/customers',  icon: UserCheck,     roles: ['seller', 'admin'] },
-  { label: 'Órdenes',     to: '/orders',     icon: ClipboardList, roles: ['seller', 'admin'] },
-  { label: 'Informes',    to: '/reports',    icon: BarChart2,     roles: ['seller', 'admin'] },
+  { label: 'Clientes',    to: '/customers',       icon: UserCheck,     roles: ['seller', 'admin'] },
+  { label: 'Órdenes',     to: '/orders',          icon: ClipboardList, roles: ['seller', 'admin'] },
+  { label: 'Inventario',  to: '/inventory',       icon: Warehouse,     roles: ['seller', 'admin'] },
+  { label: 'Compras',     to: '/purchase-orders', icon: ShoppingCart,  roles: ['seller', 'admin'] },
+  { label: 'Informes',    to: '/reports',         icon: BarChart2,     roles: ['seller', 'admin'] },
   { label: 'Usuarios',    to: '/users',      icon: Users,         roles: ['admin'] },
 ];
 

@@ -2,17 +2,18 @@ import { Product, ProductAttributes } from './product.model';
 import { Category } from '@/modules/category/category.model';
 import { Price } from '@/modules/price/price.model';
 import { Supplier } from '@/modules/supplier/supplier.model';
-import { 
-  CreateProductDto, 
-  UpdateProductDto, 
-  ProductResponseDto, 
+import {
+  CreateProductDto,
+  UpdateProductDto,
+  AdjustStockDto,
+  ProductResponseDto,
   ProductsListResponseDto,
   SearchProductDto
 } from './product.dto';
 import { NotFoundError } from '@/core/errors/AppError';
 import { validateSchema, validatePartialSchema, paginationSchema, PaginationQuery } from '@/core/utils/validation';
-import { createProductSchema, updateProductSchema, searchProductSchema } from './product.dto';
-import { Op } from 'sequelize';
+import { createProductSchema, updateProductSchema, searchProductSchema, adjustStockSchema } from './product.dto';
+import { Op, literal } from 'sequelize';
 
 export class ProductService {
   async createProduct(productData: CreateProductDto): Promise<ProductResponseDto> {
@@ -196,6 +197,28 @@ export class ProductService {
     };
   }
 
+  async getStockAlerts(): Promise<ProductResponseDto[]> {
+    const products = await Product.findAll({
+      where: {
+        [Op.or]: [
+          { stock: { [Op.lte]: literal('minStock') } },
+          { stock: { [Op.lte]: 0 } },
+        ],
+      },
+      include: [{ model: Category, as: 'category', attributes: ['id', 'name'] }],
+      order: [['stock', 'ASC']],
+    });
+    return products.map(p => this.mapToResponseDto(p));
+  }
+
+  async adjustStock(id: number, data: AdjustStockDto): Promise<ProductResponseDto> {
+    const validatedData = validateSchema(adjustStockSchema, data);
+    const product = await Product.findByPk(id);
+    if (!product) throw new NotFoundError('Product not found');
+    await product.update({ stock: Number(product.stock) + validatedData.quantity });
+    return this.mapToResponseDto(product);
+  }
+
   private mapToResponseDto(product: Product): ProductResponseDto {
     return {
       id: product.id,
@@ -203,6 +226,8 @@ export class ProductService {
       code: product.code,
       unit: product.unit,
       salePrice: Number(product.salePrice),
+      stock: Number(product.stock),
+      minStock: Number(product.minStock),
       categoryId: product.categoryId,
       ...(product.category && {
         category: {
