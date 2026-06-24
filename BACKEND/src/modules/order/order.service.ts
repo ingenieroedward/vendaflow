@@ -119,18 +119,23 @@ export class OrderService {
           )
         );
 
-        // Descontar stock (permite negativo)
-        for (const item of validatedData.items) {
-          await this.stockMovementService.createMovement({
-            productId: item.productId,
-            type: 'sale',
-            quantity: -item.quantity,
-            referenceId: order.id,
-            referenceType: 'order',
-            userId,
-            notes: `Orden de venta ${order.orderNumber}`,
-            transaction: t,
-          });
+        // Descontar stock (permite negativo). Tolerante a fallos: si la tabla
+        // stock_movements aún no existe en producción, la orden igual se crea.
+        try {
+          for (const item of validatedData.items) {
+            await this.stockMovementService.createMovement({
+              productId: item.productId,
+              type: 'sale',
+              quantity: -item.quantity,
+              referenceId: order.id,
+              referenceType: 'order',
+              userId,
+              notes: `Orden de venta ${order.orderNumber}`,
+              transaction: t,
+            });
+          }
+        } catch (stockErr) {
+          logger.warn('Stock movement skipped (table may not exist yet):', stockErr);
         }
 
         await t.commit();
