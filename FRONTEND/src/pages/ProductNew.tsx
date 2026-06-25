@@ -5,7 +5,7 @@ import { useUIStore } from '../store/uiStore';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import { productService } from '../services/products';
-import { Supplier, CreateSupplierRequest, CreatePriceRequest } from '../types/product';
+import { Supplier, CreateSupplierRequest, CreatePriceRequest, Category } from '../types/product';
 
 interface ProductFormData {
   name: string;
@@ -49,6 +49,7 @@ const ProductNew: React.FC = () => {
   const [errors, setErrors] = useState<ProductFormErrors>({});
   
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [showSupplierForm, setShowSupplierForm] = useState(false);
   const [supplierForm, setSupplierForm] = useState<SupplierFormData>({
     name: '',
@@ -61,12 +62,16 @@ const ProductNew: React.FC = () => {
   
   const [includePrice, setIncludePrice] = useState(false);
 
-  // Load suppliers on component mount
+  // Load suppliers and categories on mount
   useEffect(() => {
     const loadSuppliers = async () => {
       try {
-        const response = await productService.getSuppliers(1, 100);
-        setSuppliers(response.data);
+        const [suppliersResponse, categoriesResponse] = await Promise.all([
+          productService.getSuppliers(1, 100),
+          productService.getCategories(),
+        ]);
+        setSuppliers(suppliersResponse.data);
+        setCategories(categoriesResponse);
       } catch {
         // Fallo silencioso: los proveedores son opcionales en la creación
       }
@@ -334,6 +339,23 @@ const ProductNew: React.FC = () => {
                   placeholder="Ej: kg, litros, unidades"
                   required
                 />
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Categoría <span className="text-gray-400 font-normal">(opcional)</span>
+                  </label>
+                  <select
+                    value={formData.categoryId ?? ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, categoryId: e.target.value ? Number(e.target.value) : null }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Sin categoría</option>
+                    {categories.map(cat => (
+                      <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    ))}
+                  </select>
+                </div>
+
                 <Input
                   label="Precio de venta"
                   name="salePrice"

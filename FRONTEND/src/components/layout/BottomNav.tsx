@@ -12,12 +12,12 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { label: 'Productos',   to: '/',                icon: Package,       roles: ['buyer', 'seller', 'admin'] },
-  { label: 'Precios',     to: '/prices',          icon: DollarSign,    roles: ['buyer', 'admin'] },
-  { label: 'Proveedores', to: '/suppliers',       icon: Truck,         roles: ['buyer', 'admin'] },
-  { label: 'Categorías',  to: '/categories',      icon: Tag,           roles: ['buyer', 'admin'] },
   { label: 'Clientes',    to: '/customers',       icon: UserCheck,     roles: ['seller', 'admin'] },
   { label: 'Órdenes',     to: '/orders',          icon: ClipboardList, roles: ['seller', 'admin'] },
   { label: 'Inventario',  to: '/inventory',       icon: Warehouse,     roles: ['seller', 'admin'] },
+  { label: 'Precios',     to: '/prices',          icon: DollarSign,    roles: ['buyer', 'admin'] },
+  { label: 'Proveedores', to: '/suppliers',       icon: Truck,         roles: ['buyer', 'admin'] },
+  { label: 'Categorías',  to: '/categories',      icon: Tag,           roles: ['buyer', 'admin'] },
   { label: 'Compras',     to: '/purchase-orders', icon: ShoppingCart,  roles: ['seller', 'admin'] },
   { label: 'Informes',    to: '/reports',         icon: BarChart2,     roles: ['seller', 'admin'] },
   { label: 'Usuarios',    to: '/users',           icon: Users,         roles: ['admin'] },
