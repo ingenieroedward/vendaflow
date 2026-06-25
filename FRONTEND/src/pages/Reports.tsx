@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { db } from '../database/LocalDatabase';
 import { orderService } from '../services/orders';
+import { purchaseOrderService } from '../services/purchaseOrders';
+import { useProductStore } from '../store/productStore';
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Cell,
@@ -9,11 +11,13 @@ import { format, subDays, subMonths, subYears } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
   TrendingUp, ShoppingCart, DollarSign, RefreshCw,
-  WifiOff, Package, Users,
+  WifiOff, Package, Users, Warehouse, AlertTriangle, TrendingDown,
+  CheckCircle, Clock, FileText,
 } from 'lucide-react';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 
 type Period = 'daily' | 'monthly' | 'annual';
+type Tab = 'ventas' | 'inventario' | 'compras';
 
 interface OrderRow {
   totalAmount: number;
@@ -21,6 +25,16 @@ interface OrderRow {
   customerId: number;
   customerName: string;
   status: string;
+}
+
+interface PORow {
+  id: number;
+  poNumber: string;
+  supplierId: number;
+  supplierName: string;
+  totalAmount: number;
+  status: string;
+  createdAt: string;
 }
 
 const COP = (n: number) =>
@@ -41,43 +55,27 @@ const CustomTooltip = ({ active, payload, label }: any) => {
       <p className="font-semibold text-gray-700 mb-1">{label}</p>
       {payload.map((p: any, i: number) => (
         <p key={i} style={{ color: p.color }} className="text-xs">
-          {p.name === 'ventas' ? COP(p.value) : `${p.value} órden${p.value !== 1 ? 'es' : ''}`}
+          {p.name === 'ventas' || p.name === 'compras' ? COP(p.value) : `${p.value}`}
         </p>
       ))}
     </div>
   );
 };
 
-// Colombia is UTC-5 (no DST). All date bucketing uses Bogota local dates.
 const COL_TZ = 'America/Bogota';
-
-// Returns "YYYY-MM-DD" for any UTC ISO string, in Colombia timezone
 const colDay = (isoStr: string): string =>
   new Date(isoStr).toLocaleDateString('en-CA', { timeZone: COL_TZ });
-
-// Returns "YYYY-MM" (year-month) for a Date, in Colombia timezone
-const colMonth = (d: Date): string =>
-  colDay(d.toISOString()).substring(0, 7);
-
-// Returns "YYYY" (year) for a Date, in Colombia timezone
-const colYear = (d: Date): string =>
-  colDay(d.toISOString()).substring(0, 4);
-
-// Start of a Colombia calendar day as UTC Date (Colombia midnight = UTC 05:00)
-const colStartOfDay = (d: Date): Date =>
-  new Date(`${colDay(d.toISOString())}T05:00:00.000Z`);
-
-// Start of a Colombia calendar month as UTC Date
+const colMonth = (d: Date): string => colDay(d.toISOString()).substring(0, 7);
+const colYear = (d: Date): string => colDay(d.toISOString()).substring(0, 4);
+const colStartOfDay = (d: Date): Date => new Date(`${colDay(d.toISOString())}T05:00:00.000Z`);
 const colStartOfMonth = (d: Date): Date => {
   const [y, m] = colDay(d.toISOString()).split('-');
   return new Date(`${y}-${m}-01T05:00:00.000Z`);
 };
 
-// Blue palette: empty → light gray, low → blue-300, high → blue-700
 const barColor = (value: number, max: number) => {
   if (value === 0 || max === 0) return '#e5e7eb';
   const t = value / max;
-  // interpolate from #93c5fd (blue-300) to #1d4ed8 (blue-700)
   const r = Math.round(147 + (29 - 147) * t);
   const g = Math.round(197 + (78 - 197) * t);
   const b = Math.round(253 + (216 - 253) * t);
@@ -85,19 +83,26 @@ const barColor = (value: number, max: number) => {
 };
 
 const Reports: React.FC = () => {
+  const [tab, setTab] = useState<Tab>('ventas');
   const [period, setPeriod] = useState<Period>('daily');
   const [orders, setOrders] = useState<OrderRow[]>([]);
+  const [purchaseOrders, setPurchaseOrders] = useState<PORow[]>([]);
   const [loading, setLoading] = useState(true);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
 
-  const loadOrders = useCallback(async () => {
+  const { products, getProducts } = useProductStore();
+
+  const loadData = useCallback(async () => {
     setLoading(true);
     setIsOffline(!navigator.onLine);
     try {
       if (navigator.onLine) {
-        const response = await orderService.getOrders(1, 2000);
+        const [ordersRes, poRes] = await Promise.all([
+          orderService.getOrders(1, 2000),
+          purchaseOrderService.getAll(1, 500),
+        ]);
         setOrders(
-          (response.data ?? [])
+          (ordersRes.data ?? [])
             .filter((o: any) => o.status !== 'cancelled')
             .map((o: any) => ({
               totalAmount: Number(o.totalAmount),
@@ -106,6 +111,17 @@ const Reports: React.FC = () => {
               customerName: o.customer?.name ?? `Cliente #${o.customerId}`,
               status: o.status,
             }))
+        );
+        setPurchaseOrders(
+          (poRes.data ?? []).map((po: any) => ({
+            id: po.id,
+            poNumber: po.poNumber,
+            supplierId: po.supplierId,
+            supplierName: po.supplier?.name ?? `Proveedor #${po.supplierId}`,
+            totalAmount: Number(po.totalAmount),
+            status: po.status,
+            createdAt: po.createdAt,
+          }))
         );
       } else {
         const all = await db.orders
@@ -119,21 +135,21 @@ const Reports: React.FC = () => {
           status: o.status,
         })));
       }
+      await getProducts(1, 2000, false);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [getProducts]);
 
-  useEffect(() => { loadOrders(); }, [loadOrders]);
+  useEffect(() => { loadData(); }, [loadData]);
 
-  // ── Chart data (buckets in Colombia timezone) ────────────────────────────
+  // ── VENTAS: Chart data ───────────────────────────────────────────────────
   const chartData = useMemo(() => {
     const now = new Date();
-
     if (period === 'daily') {
       return Array.from({ length: 30 }, (_, i) => {
         const day = subDays(now, 29 - i);
-        const dayStr = colDay(day.toISOString()); // "YYYY-MM-DD" in Colombia
+        const dayStr = colDay(day.toISOString());
         const slice = orders.filter(o => colDay(o.createdAt) === dayStr);
         return {
           label: format(colStartOfDay(day), 'dd/MM', { locale: es }),
@@ -142,11 +158,10 @@ const Reports: React.FC = () => {
         };
       });
     }
-
     if (period === 'monthly') {
       return Array.from({ length: 12 }, (_, i) => {
         const month = subMonths(now, 11 - i);
-        const monthStr = colMonth(month); // "YYYY-MM" in Colombia
+        const monthStr = colMonth(month);
         const slice = orders.filter(o => colDay(o.createdAt).startsWith(monthStr));
         return {
           label: format(colStartOfMonth(month), 'MMM yy', { locale: es }),
@@ -155,7 +170,6 @@ const Reports: React.FC = () => {
         };
       });
     }
-
     return Array.from({ length: 5 }, (_, i) => {
       const year = parseInt(colYear(now)) - 4 + i;
       const slice = orders.filter(o => colDay(o.createdAt).startsWith(String(year)));
@@ -167,44 +181,35 @@ const Reports: React.FC = () => {
     });
   }, [orders, period]);
 
-  // ── KPIs (boundaries in Colombia timezone) ───────────────────────────────
   const kpis = useMemo(() => {
-    const now    = new Date();
-    const todayStr    = colDay(now.toISOString());               // "YYYY-MM-DD"
-    const monthStr    = todayStr.substring(0, 7);               // "YYYY-MM"
-    const yearStr     = todayStr.substring(0, 4);               // "YYYY"
-    const prevMonthStr = colMonth(subMonths(now, 1));            // "YYYY-MM" prev month
-
-    const sumBy  = (pred: (o: OrderRow) => boolean) => orders.filter(pred).reduce((s, o) => s + o.totalAmount, 0);
-    const cntBy  = (pred: (o: OrderRow) => boolean) => orders.filter(pred).length;
-
-    const isToday  = (o: OrderRow) => colDay(o.createdAt) === todayStr;
-    const isMonth  = (o: OrderRow) => colDay(o.createdAt).startsWith(monthStr);
-    const isPrevM  = (o: OrderRow) => colDay(o.createdAt).startsWith(prevMonthStr);
-
-    const monthVentas    = sumBy(isMonth);
+    const now = new Date();
+    const todayStr = colDay(now.toISOString());
+    const monthStr = todayStr.substring(0, 7);
+    const prevMonthStr = colMonth(subMonths(now, 1));
+    const sumBy = (pred: (o: OrderRow) => boolean) => orders.filter(pred).reduce((s, o) => s + o.totalAmount, 0);
+    const cntBy = (pred: (o: OrderRow) => boolean) => orders.filter(pred).length;
+    const isToday = (o: OrderRow) => colDay(o.createdAt) === todayStr;
+    const isMonth = (o: OrderRow) => colDay(o.createdAt).startsWith(monthStr);
+    const isPrevM = (o: OrderRow) => colDay(o.createdAt).startsWith(prevMonthStr);
+    const monthVentas = sumBy(isMonth);
     const prevMonthVentas = sumBy(isPrevM);
     const monthPct = prevMonthVentas > 0
       ? Math.round(((monthVentas - prevMonthVentas) / prevMonthVentas) * 100)
       : null;
-
     const allVentas = sumBy(() => true);
-    const allCount  = cntBy(() => true);
-
+    const allCount = cntBy(() => true);
     return {
       today: { ventas: sumBy(isToday), ordenes: cntBy(isToday) },
       month: { ventas: monthVentas, ordenes: cntBy(isMonth), clientes: new Set(orders.filter(isMonth).map(o => o.customerId)).size, pct: monthPct },
       avgTicket: allCount > 0 ? Math.round(allVentas / allCount) : 0,
       all: { ventas: allVentas, ordenes: allCount },
-      _yearStr: yearStr, // for periodOrders
     };
   }, [orders]);
 
-  // ── Period-scoped analytics ───────────────────────────────────────────────
   const periodOrders = useMemo(() => {
     const now = new Date();
     let from: Date;
-    if (period === 'daily')   from = subDays(now, 29);
+    if (period === 'daily') from = subDays(now, 29);
     else if (period === 'monthly') from = subMonths(now, 11);
     else from = subYears(now, 4);
     const fromDayStr = colDay(colStartOfDay(from).toISOString());
@@ -224,38 +229,103 @@ const Reports: React.FC = () => {
     const total = periodOrders.length;
     if (total === 0) return null;
     const completed = periodOrders.filter(o => o.status === 'completed').length;
-    const pending   = periodOrders.filter(o => o.status === 'pending').length;
+    const pending = periodOrders.filter(o => o.status === 'pending').length;
     return {
       completed, pending, total,
       pctCompleted: Math.round((completed / total) * 100),
-      pctPending:   Math.round((pending   / total) * 100),
+      pctPending: Math.round((pending / total) * 100),
     };
   }, [periodOrders]);
 
-  const maxVentas  = useMemo(() => Math.max(...chartData.map(d => d.ventas), 1), [chartData]);
-  const hasData    = orders.length > 0;
+  const maxVentas = useMemo(() => Math.max(...chartData.map(d => d.ventas), 1), [chartData]);
+
+  // ── INVENTARIO: Stats ────────────────────────────────────────────────────
+  const invStats = useMemo(() => {
+    const negative = products.filter(p => p.stock < 0);
+    const outOfStock = products.filter(p => p.stock === 0);
+    const lowStock = products.filter(p => p.stock > 0 && p.stock <= p.minStock);
+    const ok = products.filter(p => p.stock > p.minStock);
+    const totalValue = products.reduce((s, p) => s + (p.stock > 0 ? p.stock * p.salePrice : 0), 0);
+    const topStock = [...products]
+      .filter(p => p.stock > 0)
+      .sort((a, b) => b.stock * b.salePrice - a.stock * a.salePrice)
+      .slice(0, 8);
+    return { negative, outOfStock, lowStock, ok, totalValue, topStock };
+  }, [products]);
+
+  const invChartData = useMemo(() => [
+    { label: 'Negativo', value: invStats.negative.length, fill: '#ef4444' },
+    { label: 'Sin stock', value: invStats.outOfStock.length, fill: '#f97316' },
+    { label: 'Stock bajo', value: invStats.lowStock.length, fill: '#f59e0b' },
+    { label: 'OK', value: invStats.ok.length, fill: '#22c55e' },
+  ], [invStats]);
+
+  // ── COMPRAS: Stats ───────────────────────────────────────────────────────
+  const poStats = useMemo(() => {
+    const now = new Date();
+    const monthStr = colDay(now.toISOString()).substring(0, 7);
+    const received = purchaseOrders.filter(p => p.status === 'received');
+    const ordered = purchaseOrders.filter(p => p.status === 'ordered');
+    const draft = purchaseOrders.filter(p => p.status === 'draft');
+    const totalInvested = received.reduce((s, p) => s + p.totalAmount, 0);
+    const monthInvested = received
+      .filter(p => colDay(p.createdAt).startsWith(monthStr))
+      .reduce((s, p) => s + p.totalAmount, 0);
+
+    // Top proveedores por monto
+    const supplierMap = new Map<string, { name: string; total: number; count: number }>();
+    purchaseOrders.forEach(po => {
+      const cur = supplierMap.get(po.supplierName) ?? { name: po.supplierName, total: 0, count: 0 };
+      supplierMap.set(po.supplierName, { ...cur, total: cur.total + po.totalAmount, count: cur.count + 1 });
+    });
+    const topSuppliers = [...supplierMap.values()].sort((a, b) => b.total - a.total).slice(0, 5);
+
+    // Compras por mes (últimos 6)
+    const monthlyChart = Array.from({ length: 6 }, (_, i) => {
+      const month = subMonths(now, 5 - i);
+      const ms = colMonth(month);
+      const slice = purchaseOrders.filter(p => colDay(p.createdAt).startsWith(ms));
+      return {
+        label: format(colStartOfMonth(month), 'MMM yy', { locale: es }),
+        compras: slice.reduce((s, p) => s + p.totalAmount, 0),
+        ordenes: slice.length,
+      };
+    });
+
+    return { received, ordered, draft, totalInvested, monthInvested, topSuppliers, monthlyChart };
+  }, [purchaseOrders]);
+
+  const maxCompras = useMemo(() => Math.max(...poStats.monthlyChart.map(d => d.compras), 1), [poStats]);
+
+  const hasData = orders.length > 0;
 
   const periods: { key: Period; label: string }[] = [
-    { key: 'daily',   label: '30 días'  },
+    { key: 'daily', label: '30 días' },
     { key: 'monthly', label: '12 meses' },
-    { key: 'annual',  label: '5 años'   },
+    { key: 'annual', label: '5 años' },
   ];
   const periodLabel = periods.find(p => p.key === period)?.label ?? '';
+
+  const tabs: { key: Tab; label: string; icon: React.FC<any> }[] = [
+    { key: 'ventas', label: 'Ventas', icon: TrendingUp },
+    { key: 'inventario', label: 'Inventario', icon: Warehouse },
+    { key: 'compras', label: 'Compras', icon: ShoppingCart },
+  ];
 
   return (
     <div className="bg-gray-50 min-h-screen">
       <div className="max-w-5xl mx-auto px-3 sm:px-6 py-4 sm:py-8">
 
         {/* Header */}
-        <div className="flex items-start justify-between mb-6">
+        <div className="flex items-start justify-between mb-5">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Informes de Ventas</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Informes</h1>
             <p className="text-sm text-gray-400 mt-0.5">
               {isOffline ? 'Datos locales (sin conexión)' : 'Datos en tiempo real del servidor'}
             </p>
           </div>
           <button
-            onClick={loadOrders}
+            onClick={loadData}
             disabled={loading}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-500 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 transition-colors disabled:opacity-50"
           >
@@ -271,193 +341,333 @@ const Reports: React.FC = () => {
           </div>
         )}
 
+        {/* Tabs */}
+        <div className="flex gap-1 mb-6 bg-white border border-gray-100 rounded-xl p-1 w-fit shadow-sm">
+          {tabs.map(t => (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                tab === t.key ? 'bg-gray-900 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              <t.icon className="w-3.5 h-3.5" />
+              {t.label}
+            </button>
+          ))}
+        </div>
+
         {loading ? (
           <div className="flex justify-center py-24"><LoadingSpinner size="lg" /></div>
         ) : (
           <>
-            {/* KPI Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-              {/* Hoy */}
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-7 h-7 bg-emerald-50 rounded-lg flex items-center justify-center">
-                    <TrendingUp className="w-4 h-4 text-emerald-500" />
-                  </div>
-                  <span className="text-xs font-medium text-gray-500">Hoy</span>
-                </div>
-                <p className={`text-lg font-bold ${kpis.today.ventas > 0 ? 'text-gray-900' : 'text-gray-300'}`}>
-                  {COPShort(kpis.today.ventas)}
-                </p>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  {kpis.today.ordenes} órden{kpis.today.ordenes !== 1 ? 'es' : ''}
-                </p>
-              </div>
-
-              {/* Este mes + % variación */}
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-7 h-7 bg-blue-50 rounded-lg flex items-center justify-center">
-                    <ShoppingCart className="w-4 h-4 text-blue-500" />
-                  </div>
-                  <span className="text-xs font-medium text-gray-500">Este mes</span>
-                </div>
-                <div className="flex items-end gap-2">
-                  <p className={`text-lg font-bold ${kpis.month.ventas > 0 ? 'text-gray-900' : 'text-gray-300'}`}>
-                    {COPShort(kpis.month.ventas)}
-                  </p>
-                  {kpis.month.pct !== null && (
-                    <span className={`mb-0.5 text-xs font-semibold px-1.5 py-0.5 rounded-full leading-none ${
-                      kpis.month.pct >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'
-                    }`}>
-                      {kpis.month.pct >= 0 ? '+' : ''}{kpis.month.pct}%
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  {kpis.month.ordenes} órd · {kpis.month.clientes} cliente{kpis.month.clientes !== 1 ? 's' : ''}
-                </p>
-              </div>
-
-              {/* Ticket promedio */}
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-7 h-7 bg-violet-50 rounded-lg flex items-center justify-center">
-                    <DollarSign className="w-4 h-4 text-violet-500" />
-                  </div>
-                  <span className="text-xs font-medium text-gray-500">Ticket promedio</span>
-                </div>
-                <p className={`text-lg font-bold ${kpis.avgTicket > 0 ? 'text-gray-900' : 'text-gray-300'}`}>
-                  {COPShort(kpis.avgTicket)}
-                </p>
-                <p className="text-xs text-gray-400 mt-0.5">por orden</p>
-              </div>
-
-              {/* Total */}
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-7 h-7 bg-orange-50 rounded-lg flex items-center justify-center">
-                    <Package className="w-4 h-4 text-orange-500" />
-                  </div>
-                  <span className="text-xs font-medium text-gray-500">Total</span>
-                </div>
-                <p className={`text-lg font-bold ${kpis.all.ventas > 0 ? 'text-gray-900' : 'text-gray-300'}`}>
-                  {COPShort(kpis.all.ventas)}
-                </p>
-                <p className="text-xs text-gray-400 mt-0.5">{kpis.all.ordenes} órdenes</p>
-              </div>
-            </div>
-
-            {/* Period selector */}
-            <div className="flex gap-1 mb-5 bg-white border border-gray-100 rounded-xl p-1 w-fit shadow-sm">
-              {periods.map(p => (
-                <button
-                  key={p.key}
-                  onClick={() => setPeriod(p.key)}
-                  className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                    period === p.key
-                      ? 'bg-gray-900 text-white shadow-sm'
-                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  {p.label}
-                </button>
-              ))}
-            </div>
-
-            {!hasData ? (
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 text-center">
-                <Users className="w-12 h-12 text-gray-200 mx-auto mb-3" />
-                <p className="text-gray-400 font-medium">Sin datos de ventas</p>
-                <p className="text-gray-300 text-sm mt-1">Crea órdenes para ver los informes</p>
-              </div>
-            ) : (
+            {/* ════════════════ TAB: VENTAS ════════════════ */}
+            {tab === 'ventas' && (
               <>
-                {/* Bar chart — ventas */}
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-4">
-                  <div className="flex items-center justify-between mb-1">
-                    <h2 className="text-sm font-semibold text-gray-700">Ventas</h2>
-                    <span className="text-xs text-gray-400">{periodLabel}</span>
-                  </div>
-                  <p className="text-xs text-gray-400 mb-4">
-                    Total período: <span className="font-semibold text-gray-700">{COP(periodOrders.reduce((s, o) => s + o.totalAmount, 0))}</span>
-                  </p>
-                  <ResponsiveContainer width="100%" height={220}>
-                    <BarChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 4 }} barCategoryGap="30%">
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
-                      <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-                      <YAxis tickFormatter={COPShort} tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={60} domain={[0, maxVentas * 1.15]} />
-                      <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f9fafb' }} />
-                      <Bar dataKey="ventas" name="ventas" radius={[4, 4, 0, 0]} maxBarSize={40}>
-                        {chartData.map((entry, i) => (
-                          <Cell key={i} fill={barColor(entry.ventas, maxVentas)} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-
-                {/* Line chart — órdenes */}
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-4">
-                  <div className="flex items-center justify-between mb-1">
-                    <h2 className="text-sm font-semibold text-gray-700">Número de órdenes</h2>
-                    <span className="text-xs text-gray-400">{periodLabel}</span>
-                  </div>
-                  <p className="text-xs text-gray-400 mb-4">
-                    Total período: <span className="font-semibold text-gray-700">{periodOrders.length} órden{periodOrders.length !== 1 ? 'es' : ''}</span>
-                  </p>
-                  <ResponsiveContainer width="100%" height={180}>
-                    <LineChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 4 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
-                      <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-                      <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={30} />
-                      <Tooltip content={<CustomTooltip />} isAnimationActive={false} />
-                      <Line
-                        dataKey="ordenes"
-                        name="ordenes"
-                        stroke="#3b82f6"
-                        strokeWidth={2}
-                        dot={{ r: 3, fill: '#3b82f6', strokeWidth: 0 }}
-                        activeDot={{ r: 5, fill: '#1d4ed8' }}
-                        isAnimationActive={false}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-
-                {/* Bottom row: Top clientes + Distribución estados */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-
-                  {/* Top clientes */}
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                    <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-sm font-semibold text-gray-700">Top clientes</h2>
-                      <span className="text-xs text-gray-400">{periodLabel}</span>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-7 h-7 bg-emerald-50 rounded-lg flex items-center justify-center">
+                        <TrendingUp className="w-4 h-4 text-emerald-500" />
+                      </div>
+                      <span className="text-xs font-medium text-gray-500">Hoy</span>
                     </div>
-                    {topClients.length === 0 ? (
-                      <p className="text-xs text-gray-300 text-center py-6">Sin datos en el período</p>
+                    <p className={`text-lg font-bold ${kpis.today.ventas > 0 ? 'text-gray-900' : 'text-gray-300'}`}>
+                      {COPShort(kpis.today.ventas)}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-0.5">{kpis.today.ordenes} órden{kpis.today.ordenes !== 1 ? 'es' : ''}</p>
+                  </div>
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-7 h-7 bg-blue-50 rounded-lg flex items-center justify-center">
+                        <ShoppingCart className="w-4 h-4 text-blue-500" />
+                      </div>
+                      <span className="text-xs font-medium text-gray-500">Este mes</span>
+                    </div>
+                    <div className="flex items-end gap-2">
+                      <p className={`text-lg font-bold ${kpis.month.ventas > 0 ? 'text-gray-900' : 'text-gray-300'}`}>
+                        {COPShort(kpis.month.ventas)}
+                      </p>
+                      {kpis.month.pct !== null && (
+                        <span className={`mb-0.5 text-xs font-semibold px-1.5 py-0.5 rounded-full leading-none ${
+                          kpis.month.pct >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'
+                        }`}>
+                          {kpis.month.pct >= 0 ? '+' : ''}{kpis.month.pct}%
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {kpis.month.ordenes} órd · {kpis.month.clientes} cliente{kpis.month.clientes !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-7 h-7 bg-violet-50 rounded-lg flex items-center justify-center">
+                        <DollarSign className="w-4 h-4 text-violet-500" />
+                      </div>
+                      <span className="text-xs font-medium text-gray-500">Ticket promedio</span>
+                    </div>
+                    <p className={`text-lg font-bold ${kpis.avgTicket > 0 ? 'text-gray-900' : 'text-gray-300'}`}>
+                      {COPShort(kpis.avgTicket)}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-0.5">por orden</p>
+                  </div>
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-7 h-7 bg-orange-50 rounded-lg flex items-center justify-center">
+                        <Package className="w-4 h-4 text-orange-500" />
+                      </div>
+                      <span className="text-xs font-medium text-gray-500">Total histórico</span>
+                    </div>
+                    <p className={`text-lg font-bold ${kpis.all.ventas > 0 ? 'text-gray-900' : 'text-gray-300'}`}>
+                      {COPShort(kpis.all.ventas)}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-0.5">{kpis.all.ordenes} órdenes</p>
+                  </div>
+                </div>
+
+                <div className="flex gap-1 mb-5 bg-white border border-gray-100 rounded-xl p-1 w-fit shadow-sm">
+                  {periods.map(p => (
+                    <button
+                      key={p.key}
+                      onClick={() => setPeriod(p.key)}
+                      className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                        period === p.key ? 'bg-gray-900 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+
+                {!hasData ? (
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 text-center">
+                    <Users className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+                    <p className="text-gray-400 font-medium">Sin datos de ventas</p>
+                    <p className="text-gray-300 text-sm mt-1">Crea órdenes para ver los informes</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-4">
+                      <div className="flex items-center justify-between mb-1">
+                        <h2 className="text-sm font-semibold text-gray-700">Ventas</h2>
+                        <span className="text-xs text-gray-400">{periodLabel}</span>
+                      </div>
+                      <p className="text-xs text-gray-400 mb-4">
+                        Total período: <span className="font-semibold text-gray-700">{COP(periodOrders.reduce((s, o) => s + o.totalAmount, 0))}</span>
+                      </p>
+                      <ResponsiveContainer width="100%" height={220}>
+                        <BarChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 4 }} barCategoryGap="30%">
+                          <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
+                          <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+                          <YAxis tickFormatter={COPShort} tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={60} domain={[0, maxVentas * 1.15]} />
+                          <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f9fafb' }} />
+                          <Bar dataKey="ventas" name="ventas" radius={[4, 4, 0, 0]} maxBarSize={40}>
+                            {chartData.map((entry, i) => <Cell key={i} fill={barColor(entry.ventas, maxVentas)} />)}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-4">
+                      <div className="flex items-center justify-between mb-1">
+                        <h2 className="text-sm font-semibold text-gray-700">Número de órdenes</h2>
+                        <span className="text-xs text-gray-400">{periodLabel}</span>
+                      </div>
+                      <p className="text-xs text-gray-400 mb-4">
+                        Total período: <span className="font-semibold text-gray-700">{periodOrders.length} órden{periodOrders.length !== 1 ? 'es' : ''}</span>
+                      </p>
+                      <ResponsiveContainer width="100%" height={180}>
+                        <LineChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 4 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
+                          <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+                          <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={30} />
+                          <Tooltip content={<CustomTooltip />} isAnimationActive={false} />
+                          <Line dataKey="ordenes" name="ordenes" stroke="#3b82f6" strokeWidth={2}
+                            dot={{ r: 3, fill: '#3b82f6', strokeWidth: 0 }}
+                            activeDot={{ r: 5, fill: '#1d4ed8' }} isAnimationActive={false} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                        <div className="flex items-center justify-between mb-4">
+                          <h2 className="text-sm font-semibold text-gray-700">Top clientes</h2>
+                          <span className="text-xs text-gray-400">{periodLabel}</span>
+                        </div>
+                        {topClients.length === 0 ? (
+                          <p className="text-xs text-gray-300 text-center py-6">Sin datos en el período</p>
+                        ) : (
+                          <div className="space-y-3">
+                            {topClients.map((c, i) => {
+                              const pct = periodOrders.length > 0
+                                ? Math.round((c.ventas / periodOrders.reduce((s, o) => s + o.totalAmount, 0)) * 100) : 0;
+                              return (
+                                <div key={i}>
+                                  <div className="flex items-center justify-between mb-1">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <span className="text-xs font-bold text-gray-300 w-4 flex-shrink-0">#{i + 1}</span>
+                                      <span className="text-xs font-medium text-gray-700 truncate">{c.name}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                                      <span className="text-xs text-gray-400">{c.ordenes} órd</span>
+                                      <span className="text-xs font-semibold text-gray-800">{COPShort(c.ventas)}</span>
+                                    </div>
+                                  </div>
+                                  <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                    <div className="h-full rounded-full bg-blue-500 transition-all" style={{ width: `${pct}%` }} />
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                        <div className="flex items-center justify-between mb-4">
+                          <h2 className="text-sm font-semibold text-gray-700">Estado de órdenes</h2>
+                          <span className="text-xs text-gray-400">{periodLabel}</span>
+                        </div>
+                        {!statusDist ? (
+                          <p className="text-xs text-gray-300 text-center py-6">Sin datos en el período</p>
+                        ) : (
+                          <div className="space-y-4">
+                            <div className="grid grid-cols-3 gap-2 text-center">
+                              <div><p className="text-xl font-bold text-gray-900">{statusDist.total}</p><p className="text-xs text-gray-400">Total</p></div>
+                              <div><p className="text-xl font-bold text-green-600">{statusDist.completed}</p><p className="text-xs text-gray-400">Entregadas</p></div>
+                              <div><p className="text-xl font-bold text-amber-500">{statusDist.pending}</p><p className="text-xs text-gray-400">Pendientes</p></div>
+                            </div>
+                            <div className="space-y-2.5">
+                              <div>
+                                <div className="flex justify-between text-xs text-gray-500 mb-1">
+                                  <span>Entregadas</span><span className="font-medium text-green-600">{statusDist.pctCompleted}%</span>
+                                </div>
+                                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                                  <div className="h-full bg-green-500 rounded-full transition-all" style={{ width: `${statusDist.pctCompleted}%` }} />
+                                </div>
+                              </div>
+                              <div>
+                                <div className="flex justify-between text-xs text-gray-500 mb-1">
+                                  <span>Pendientes</span><span className="font-medium text-amber-500">{statusDist.pctPending}%</span>
+                                </div>
+                                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                                  <div className="h-full bg-amber-400 rounded-full transition-all" style={{ width: `${statusDist.pctPending}%` }} />
+                                </div>
+                              </div>
+                            </div>
+                            <div className="pt-2 border-t border-gray-50">
+                              <p className="text-xs text-gray-400 text-center">
+                                Tasa de entrega: <span className={`font-semibold ${statusDist.pctCompleted >= 70 ? 'text-green-600' : statusDist.pctCompleted >= 40 ? 'text-amber-500' : 'text-red-500'}`}>{statusDist.pctCompleted}%</span>
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
+                <p className="text-xs text-gray-300 mt-2 text-center">{orders.length} órdenes · Excluye canceladas</p>
+              </>
+            )}
+
+            {/* ════════════════ TAB: INVENTARIO ════════════════ */}
+            {tab === 'inventario' && (
+              <>
+                {/* KPI cards */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-7 h-7 bg-indigo-50 rounded-lg flex items-center justify-center">
+                        <Package className="w-4 h-4 text-indigo-500" />
+                      </div>
+                      <span className="text-xs font-medium text-gray-500">Productos</span>
+                    </div>
+                    <p className="text-lg font-bold text-gray-900">{products.length}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">registrados</p>
+                  </div>
+                  <div className={`rounded-2xl border shadow-sm p-4 ${invStats.negative.length > 0 ? 'bg-red-50 border-red-200' : 'bg-white border-gray-100'}`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-7 h-7 bg-red-100 rounded-lg flex items-center justify-center">
+                        <TrendingDown className="w-4 h-4 text-red-600" />
+                      </div>
+                      <span className="text-xs font-medium text-gray-500">Negativos</span>
+                    </div>
+                    <p className={`text-lg font-bold ${invStats.negative.length > 0 ? 'text-red-700' : 'text-gray-900'}`}>{invStats.negative.length}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">requieren compra urgente</p>
+                  </div>
+                  <div className={`rounded-2xl border shadow-sm p-4 ${invStats.outOfStock.length > 0 ? 'bg-orange-50 border-orange-200' : 'bg-white border-gray-100'}`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-7 h-7 bg-orange-100 rounded-lg flex items-center justify-center">
+                        <AlertTriangle className="w-4 h-4 text-orange-500" />
+                      </div>
+                      <span className="text-xs font-medium text-gray-500">Sin stock</span>
+                    </div>
+                    <p className={`text-lg font-bold ${invStats.outOfStock.length > 0 ? 'text-orange-600' : 'text-gray-900'}`}>{invStats.outOfStock.length}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">en cero</p>
+                  </div>
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-7 h-7 bg-green-50 rounded-lg flex items-center justify-center">
+                        <DollarSign className="w-4 h-4 text-green-500" />
+                      </div>
+                      <span className="text-xs font-medium text-gray-500">Valor stock</span>
+                    </div>
+                    <p className="text-lg font-bold text-gray-900">{COPShort(invStats.totalValue)}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">a precio de venta</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  {/* Distribución estado */}
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                    <h2 className="text-sm font-semibold text-gray-700 mb-4">Distribución de stock</h2>
+                    <ResponsiveContainer width="100%" height={180}>
+                      <BarChart data={invChartData} margin={{ top: 4, right: 4, left: 0, bottom: 4 }} barCategoryGap="30%">
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
+                        <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+                        <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={30} />
+                        <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f9fafb' }} />
+                        <Bar dataKey="value" name="productos" radius={[4, 4, 0, 0]} maxBarSize={50}>
+                          {invChartData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      {invChartData.map(d => (
+                        <div key={d.label} className="flex items-center gap-2">
+                          <div className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ backgroundColor: d.fill }} />
+                          <span className="text-xs text-gray-500">{d.label}: <span className="font-semibold text-gray-700">{d.value}</span></span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Top por valor */}
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                    <h2 className="text-sm font-semibold text-gray-700 mb-4">Top productos por valor en stock</h2>
+                    {invStats.topStock.length === 0 ? (
+                      <p className="text-xs text-gray-300 text-center py-6">Sin stock disponible</p>
                     ) : (
                       <div className="space-y-3">
-                        {topClients.map((c, i) => {
-                          const pct = periodOrders.length > 0
-                            ? Math.round((c.ventas / periodOrders.reduce((s, o) => s + o.totalAmount, 0)) * 100)
-                            : 0;
+                        {invStats.topStock.map((p, i) => {
+                          const val = p.stock * p.salePrice;
+                          const pct = invStats.totalValue > 0 ? Math.round((val / invStats.totalValue) * 100) : 0;
                           return (
-                            <div key={i}>
+                            <div key={p.id}>
                               <div className="flex items-center justify-between mb-1">
                                 <div className="flex items-center gap-2 min-w-0">
                                   <span className="text-xs font-bold text-gray-300 w-4 flex-shrink-0">#{i + 1}</span>
-                                  <span className="text-xs font-medium text-gray-700 truncate">{c.name}</span>
+                                  <span className="text-xs font-medium text-gray-700 truncate">{p.name}</span>
                                 </div>
                                 <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                                  <span className="text-xs text-gray-400">{c.ordenes} órd</span>
-                                  <span className="text-xs font-semibold text-gray-800">{COPShort(c.ventas)}</span>
+                                  <span className="text-xs text-gray-400">{Number(p.stock).toLocaleString('es-CO')} {p.unit}</span>
+                                  <span className="text-xs font-semibold text-gray-800">{COPShort(val)}</span>
                                 </div>
                               </div>
                               <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                                <div
-                                  className="h-full rounded-full bg-blue-500 transition-all"
-                                  style={{ width: `${pct}%` }}
-                                />
+                                <div className="h-full rounded-full bg-indigo-500 transition-all" style={{ width: `${pct}%` }} />
                               </div>
                             </div>
                           );
@@ -465,71 +675,179 @@ const Reports: React.FC = () => {
                       </div>
                     )}
                   </div>
+                </div>
 
-                  {/* Distribución de estados */}
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                    <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-sm font-semibold text-gray-700">Estado de órdenes</h2>
-                      <span className="text-xs text-gray-400">{periodLabel}</span>
+                {/* Productos con stock negativo */}
+                {invStats.negative.length > 0 && (
+                  <div className="bg-white rounded-2xl border border-red-200 shadow-sm p-5 mb-4">
+                    <h2 className="text-sm font-semibold text-red-700 mb-3 flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4" />
+                      Productos con stock negativo — requieren reposición
+                    </h2>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full text-sm">
+                        <thead className="text-xs uppercase text-gray-500 border-b">
+                          <tr>
+                            <th className="py-2 text-left">Código</th>
+                            <th className="py-2 text-left">Producto</th>
+                            <th className="py-2 text-center">Stock actual</th>
+                            <th className="py-2 text-center">Mínimo</th>
+                            <th className="py-2 text-right">Unidades a reponer</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                          {invStats.negative.map(p => (
+                            <tr key={p.id}>
+                              <td className="py-2 font-mono text-xs text-gray-500">{p.code}</td>
+                              <td className="py-2 font-medium text-gray-800">{p.name}</td>
+                              <td className="py-2 text-center font-bold text-red-600">{Number(p.stock).toLocaleString('es-CO')} {p.unit}</td>
+                              <td className="py-2 text-center text-gray-500">{Number(p.minStock).toLocaleString('es-CO')} {p.unit}</td>
+                              <td className="py-2 text-right font-semibold text-orange-600">
+                                {Math.abs(p.stock) + p.minStock} {p.unit}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
-                    {!statusDist ? (
-                      <p className="text-xs text-gray-300 text-center py-6">Sin datos en el período</p>
+                  </div>
+                )}
+
+                <p className="text-xs text-gray-300 mt-2 text-center">{products.length} productos · Valor calculado a precio de venta</p>
+              </>
+            )}
+
+            {/* ════════════════ TAB: COMPRAS ════════════════ */}
+            {tab === 'compras' && (
+              <>
+                {/* KPI cards */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-7 h-7 bg-blue-50 rounded-lg flex items-center justify-center">
+                        <DollarSign className="w-4 h-4 text-blue-500" />
+                      </div>
+                      <span className="text-xs font-medium text-gray-500">Invertido (recibido)</span>
+                    </div>
+                    <p className="text-lg font-bold text-gray-900">{COPShort(poStats.totalInvested)}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{poStats.received.length} órd. recibidas</p>
+                  </div>
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-7 h-7 bg-emerald-50 rounded-lg flex items-center justify-center">
+                        <TrendingUp className="w-4 h-4 text-emerald-500" />
+                      </div>
+                      <span className="text-xs font-medium text-gray-500">Este mes</span>
+                    </div>
+                    <p className="text-lg font-bold text-gray-900">{COPShort(poStats.monthInvested)}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">en compras recibidas</p>
+                  </div>
+                  <div className={`rounded-2xl border shadow-sm p-4 ${poStats.ordered.length > 0 ? 'bg-amber-50 border-amber-200' : 'bg-white border-gray-100'}`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-7 h-7 bg-amber-100 rounded-lg flex items-center justify-center">
+                        <Clock className="w-4 h-4 text-amber-500" />
+                      </div>
+                      <span className="text-xs font-medium text-gray-500">En tránsito</span>
+                    </div>
+                    <p className={`text-lg font-bold ${poStats.ordered.length > 0 ? 'text-amber-700' : 'text-gray-900'}`}>{poStats.ordered.length}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">órd. ordenadas</p>
+                  </div>
+                  <div className={`rounded-2xl border shadow-sm p-4 ${poStats.draft.length > 0 ? 'bg-gray-50 border-gray-200' : 'bg-white border-gray-100'}`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-7 h-7 bg-gray-100 rounded-lg flex items-center justify-center">
+                        <FileText className="w-4 h-4 text-gray-400" />
+                      </div>
+                      <span className="text-xs font-medium text-gray-500">Borradores</span>
+                    </div>
+                    <p className="text-lg font-bold text-gray-900">{poStats.draft.length}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">sin confirmar</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  {/* Gráfica compras mensuales */}
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                    <h2 className="text-sm font-semibold text-gray-700 mb-1">Compras últimos 6 meses</h2>
+                    <p className="text-xs text-gray-400 mb-4">Monto total por mes</p>
+                    {purchaseOrders.length === 0 ? (
+                      <p className="text-xs text-gray-300 text-center py-6">Sin órdenes de compra</p>
                     ) : (
-                      <div className="space-y-4">
-                        {/* Summary numbers */}
-                        <div className="grid grid-cols-3 gap-2 text-center">
-                          <div>
-                            <p className="text-xl font-bold text-gray-900">{statusDist.total}</p>
-                            <p className="text-xs text-gray-400">Total</p>
-                          </div>
-                          <div>
-                            <p className="text-xl font-bold text-green-600">{statusDist.completed}</p>
-                            <p className="text-xs text-gray-400">Entregadas</p>
-                          </div>
-                          <div>
-                            <p className="text-xl font-bold text-amber-500">{statusDist.pending}</p>
-                            <p className="text-xs text-gray-400">Pendientes</p>
-                          </div>
-                        </div>
+                      <ResponsiveContainer width="100%" height={180}>
+                        <BarChart data={poStats.monthlyChart} margin={{ top: 4, right: 4, left: 0, bottom: 4 }} barCategoryGap="30%">
+                          <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
+                          <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+                          <YAxis tickFormatter={COPShort} tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={55} domain={[0, maxCompras * 1.15]} />
+                          <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f9fafb' }} />
+                          <Bar dataKey="compras" name="compras" radius={[4, 4, 0, 0]} maxBarSize={40}>
+                            {poStats.monthlyChart.map((entry, i) => <Cell key={i} fill={barColor(entry.compras, maxCompras)} />)}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    )}
+                  </div>
 
-                        {/* Progress bars */}
-                        <div className="space-y-2.5">
-                          <div>
-                            <div className="flex justify-between text-xs text-gray-500 mb-1">
-                              <span>Entregadas</span>
-                              <span className="font-medium text-green-600">{statusDist.pctCompleted}%</span>
+                  {/* Top proveedores */}
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                    <h2 className="text-sm font-semibold text-gray-700 mb-4">Top proveedores</h2>
+                    {poStats.topSuppliers.length === 0 ? (
+                      <p className="text-xs text-gray-300 text-center py-6">Sin órdenes de compra</p>
+                    ) : (
+                      <div className="space-y-3">
+                        {poStats.topSuppliers.map((s, i) => {
+                          const pct = poStats.totalInvested > 0 ? Math.round((s.total / poStats.totalInvested) * 100) : 0;
+                          return (
+                            <div key={i}>
+                              <div className="flex items-center justify-between mb-1">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <span className="text-xs font-bold text-gray-300 w-4 flex-shrink-0">#{i + 1}</span>
+                                  <span className="text-xs font-medium text-gray-700 truncate">{s.name}</span>
+                                </div>
+                                <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                                  <span className="text-xs text-gray-400">{s.count} órd</span>
+                                  <span className="text-xs font-semibold text-gray-800">{COPShort(s.total)}</span>
+                                </div>
+                              </div>
+                              <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                <div className="h-full rounded-full bg-violet-500 transition-all" style={{ width: `${pct}%` }} />
+                              </div>
                             </div>
-                            <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                              <div className="h-full bg-green-500 rounded-full transition-all" style={{ width: `${statusDist.pctCompleted}%` }} />
-                            </div>
-                          </div>
-                          <div>
-                            <div className="flex justify-between text-xs text-gray-500 mb-1">
-                              <span>Pendientes</span>
-                              <span className="font-medium text-amber-500">{statusDist.pctPending}%</span>
-                            </div>
-                            <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                              <div className="h-full bg-amber-400 rounded-full transition-all" style={{ width: `${statusDist.pctPending}%` }} />
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Tasa de completadas */}
-                        <div className="pt-2 border-t border-gray-50">
-                          <p className="text-xs text-gray-400 text-center">
-                            Tasa de entrega: <span className={`font-semibold ${statusDist.pctCompleted >= 70 ? 'text-green-600' : statusDist.pctCompleted >= 40 ? 'text-amber-500' : 'text-red-500'}`}>{statusDist.pctCompleted}%</span>
-                          </p>
-                        </div>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
                 </div>
+
+                {/* Estado de órdenes de compra */}
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-4">
+                  <h2 className="text-sm font-semibold text-gray-700 mb-4">Estado de órdenes de compra</h2>
+                  {purchaseOrders.length === 0 ? (
+                    <p className="text-xs text-gray-300 text-center py-6">Sin órdenes de compra registradas</p>
+                  ) : (
+                    <div className="grid grid-cols-3 gap-4">
+                      {[
+                        { label: 'Borradores', count: poStats.draft.length, icon: FileText, color: 'text-gray-500', bg: 'bg-gray-50' },
+                        { label: 'Ordenadas', count: poStats.ordered.length, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50' },
+                        { label: 'Recibidas', count: poStats.received.length, icon: CheckCircle, color: 'text-green-600', bg: 'bg-green-50' },
+                      ].map(s => (
+                        <div key={s.label} className={`${s.bg} rounded-xl p-4 text-center`}>
+                          <s.icon className={`w-6 h-6 mx-auto mb-2 ${s.color}`} />
+                          <p className={`text-2xl font-bold ${s.color}`}>{s.count}</p>
+                          <p className="text-xs text-gray-500 mt-0.5">{s.label}</p>
+                          {purchaseOrders.length > 0 && (
+                            <p className="text-xs text-gray-400 mt-1">
+                              {Math.round((s.count / purchaseOrders.length) * 100)}%
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <p className="text-xs text-gray-300 mt-2 text-center">{purchaseOrders.length} órdenes de compra · Todas las fechas</p>
               </>
             )}
-
-            <p className="text-xs text-gray-300 mt-2 text-center">
-              {orders.length} órdenes · Excluye canceladas
-            </p>
           </>
         )}
       </div>
