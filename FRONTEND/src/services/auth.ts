@@ -39,13 +39,30 @@ export class AuthService {
   }
 
   getToken(): string | null {
-    return localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+    const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+    if (!token) return null;
+    // Evita enviar un JWT vencido — limpia antes de cualquier llamada API
+    if (this.isTokenExpired(token)) {
+      this.logout();
+      return null;
+    }
+    return token;
   }
 
   isAuthenticated(): boolean {
-    const token = this.getToken();
+    const token = this.getToken(); // ya valida expiración
     const user = this.getCurrentUser();
     return !!(token && user);
+  }
+
+  private isTokenExpired(token: string): boolean {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      // exp está en segundos, Date.now() en ms
+      return payload.exp * 1000 < Date.now();
+    } catch {
+      return true; // token malformado → tratar como vencido
+    }
   }
 }
 
