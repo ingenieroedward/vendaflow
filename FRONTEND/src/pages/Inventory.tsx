@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, Package, TrendingDown, Plus, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { AlertTriangle, Package, TrendingDown, Plus, Search, ChevronLeft, ChevronRight, TrendingUp, ShoppingCart } from 'lucide-react';
 import { useProductStore } from '../store/productStore';
 import { usePurchaseOrderStore } from '../store/purchaseOrderStore';
 import { Product } from '../types';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import Button from '../components/ui/Button';
 
-type FilterType = 'all' | 'alerts' | 'out_of_stock';
+type FilterType = 'all' | 'negative' | 'alerts' | 'out_of_stock';
 
 const PAGE_SIZE = 50;
 
@@ -24,15 +24,18 @@ const Inventory: React.FC = () => {
     fetchStockAlerts();
   }, [getProducts, fetchStockAlerts]);
 
-  // Reset page when search/filter changes
   useEffect(() => { setPage(1); }, [search, filter]);
+
+  const negativeStock = products.filter(p => p.stock < 0);
+  const outOfStock = products.filter(p => p.stock <= 0).length;
+  const lowStock = products.filter(p => p.stock > 0 && p.stock <= p.minStock).length;
 
   const filtered = products.filter(p => {
     const matchesSearch =
       p.name.toLowerCase().includes(search.toLowerCase()) ||
       p.code.toLowerCase().includes(search.toLowerCase());
-
     if (!matchesSearch) return false;
+    if (filter === 'negative') return p.stock < 0;
     if (filter === 'out_of_stock') return p.stock <= 0;
     if (filter === 'alerts') return p.stock > 0 && p.stock <= p.minStock;
     return true;
@@ -41,14 +44,19 @@ const Inventory: React.FC = () => {
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  const outOfStock = products.filter(p => p.stock <= 0).length;
-  const lowStock = products.filter(p => p.stock > 0 && p.stock <= p.minStock).length;
-
   const getStockBadge = (product: Product) => {
-    if (product.stock <= 0) return { label: 'Sin stock', className: 'bg-red-100 text-red-700' };
+    if (product.stock < 0) return { label: 'Negativo', className: 'bg-red-200 text-red-800 font-bold' };
+    if (product.stock === 0) return { label: 'Sin stock', className: 'bg-red-100 text-red-700' };
     if (product.stock <= product.minStock) return { label: 'Stock bajo', className: 'bg-yellow-100 text-yellow-700' };
     return { label: 'OK', className: 'bg-green-100 text-green-700' };
   };
+
+  const FILTERS: { key: FilterType; label: string; danger?: boolean }[] = [
+    { key: 'all', label: 'Todos' },
+    { key: 'negative', label: 'Negativo', danger: true },
+    { key: 'alerts', label: 'Stock bajo' },
+    { key: 'out_of_stock', label: 'Sin stock' },
+  ];
 
   return (
     <div className="p-4 max-w-6xl mx-auto">
@@ -62,14 +70,61 @@ const Inventory: React.FC = () => {
         </Button>
       </div>
 
+      {/* Alerta stock negativo */}
+      {negativeStock.length > 0 && (
+        <div className="mb-5 rounded-xl border border-red-300 bg-red-50 p-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="text-red-500 mt-0.5 flex-shrink-0" size={20} />
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-red-800 text-sm">
+                {negativeStock.length} producto{negativeStock.length > 1 ? 's' : ''} con stock negativo — se deben comprar urgente
+              </p>
+              <p className="text-xs text-red-600 mt-1">
+                Hay órdenes de venta comprometidas que superan el stock disponible. Crea una orden de compra para reponer:
+              </p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {negativeStock.slice(0, 8).map(p => (
+                  <span key={p.id} className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-100 border border-red-200 rounded-full text-xs text-red-700">
+                    {p.code} · <span className="font-bold">{Number(p.stock).toLocaleString('es-CO')} {p.unit}</span>
+                  </span>
+                ))}
+                {negativeStock.length > 8 && (
+                  <span className="px-2 py-0.5 bg-red-100 border border-red-200 rounded-full text-xs text-red-600">
+                    +{negativeStock.length - 8} más
+                  </span>
+                )}
+              </div>
+            </div>
+            <button
+              onClick={() => { setFilter('negative'); setSearch(''); }}
+              className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white text-xs rounded-lg hover:bg-red-700 transition-colors"
+            >
+              <ShoppingCart size={13} /> Ver todos
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Summary cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         <div className="bg-white rounded-xl border border-gray-200 p-4">
           <div className="flex items-center gap-3">
-            <Package className="text-indigo-500" size={24} />
+            <Package className="text-indigo-500" size={22} />
             <div>
-              <p className="text-2xl font-bold text-gray-900">{products.length}</p>
-              <p className="text-sm text-gray-500">Productos totales</p>
+              <p className="text-xl font-bold text-gray-900">{products.length}</p>
+              <p className="text-xs text-gray-500">Totales</p>
+            </div>
+          </div>
+        </div>
+        <div
+          className={`rounded-xl border p-4 cursor-pointer transition-colors ${negativeStock.length > 0 ? 'bg-red-100 border-red-300 hover:bg-red-200' : 'bg-white border-gray-200'}`}
+          onClick={() => setFilter(filter === 'negative' ? 'all' : 'negative')}
+        >
+          <div className="flex items-center gap-3">
+            <TrendingUp className={negativeStock.length > 0 ? 'text-red-600' : 'text-gray-400'} size={22} />
+            <div>
+              <p className={`text-xl font-bold ${negativeStock.length > 0 ? 'text-red-700' : 'text-gray-900'}`}>{negativeStock.length}</p>
+              <p className="text-xs text-gray-500">Stock negativo</p>
             </div>
           </div>
         </div>
@@ -78,10 +133,10 @@ const Inventory: React.FC = () => {
           onClick={() => setFilter(filter === 'out_of_stock' ? 'all' : 'out_of_stock')}
         >
           <div className="flex items-center gap-3">
-            <AlertTriangle className={outOfStock > 0 ? 'text-red-500' : 'text-gray-400'} size={24} />
+            <AlertTriangle className={outOfStock > 0 ? 'text-red-500' : 'text-gray-400'} size={22} />
             <div>
-              <p className={`text-2xl font-bold ${outOfStock > 0 ? 'text-red-700' : 'text-gray-900'}`}>{outOfStock}</p>
-              <p className="text-sm text-gray-500">Sin stock</p>
+              <p className={`text-xl font-bold ${outOfStock > 0 ? 'text-red-700' : 'text-gray-900'}`}>{outOfStock}</p>
+              <p className="text-xs text-gray-500">Sin stock</p>
             </div>
           </div>
         </div>
@@ -90,18 +145,18 @@ const Inventory: React.FC = () => {
           onClick={() => setFilter(filter === 'alerts' ? 'all' : 'alerts')}
         >
           <div className="flex items-center gap-3">
-            <TrendingDown className={lowStock > 0 ? 'text-yellow-500' : 'text-gray-400'} size={24} />
+            <TrendingDown className={lowStock > 0 ? 'text-yellow-500' : 'text-gray-400'} size={22} />
             <div>
-              <p className={`text-2xl font-bold ${lowStock > 0 ? 'text-yellow-700' : 'text-gray-900'}`}>{lowStock}</p>
-              <p className="text-sm text-gray-500">Stock bajo mínimo</p>
+              <p className={`text-xl font-bold ${lowStock > 0 ? 'text-yellow-700' : 'text-gray-900'}`}>{lowStock}</p>
+              <p className="text-xs text-gray-500">Stock bajo</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Search and filters */}
-      <div className="flex gap-3 mb-4">
-        <div className="relative flex-1">
+      <div className="flex gap-3 mb-4 flex-wrap">
+        <div className="relative flex-1 min-w-48">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
@@ -111,16 +166,20 @@ const Inventory: React.FC = () => {
             className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </div>
-        <div className="flex gap-2">
-          {(['all', 'alerts', 'out_of_stock'] as FilterType[]).map(f => (
+        <div className="flex gap-2 flex-wrap">
+          {FILTERS.map(f => (
             <button
-              key={f}
-              onClick={() => setFilter(f)}
+              key={f.key}
+              onClick={() => setFilter(f.key)}
               className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${
-                filter === f ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                filter === f.key
+                  ? f.danger ? 'bg-red-600 text-white border-red-600' : 'bg-indigo-600 text-white border-indigo-600'
+                  : f.danger && negativeStock.length > 0
+                    ? 'bg-white text-red-600 border-red-300 hover:bg-red-50'
+                    : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
               }`}
             >
-              {f === 'all' ? 'Todos' : f === 'alerts' ? 'Stock bajo' : 'Sin stock'}
+              {f.label}{f.key === 'negative' && negativeStock.length > 0 ? ` (${negativeStock.length})` : ''}
             </button>
           ))}
         </div>
@@ -154,7 +213,14 @@ const Inventory: React.FC = () => {
                 ) : paginated.map(product => {
                   const badge = getStockBadge(product);
                   return (
-                    <tr key={product.id} className={`hover:bg-gray-50 ${product.stock <= 0 ? 'bg-red-50/40' : product.stock > 0 && product.stock <= product.minStock ? 'bg-yellow-50/40' : ''}`}>
+                    <tr
+                      key={product.id}
+                      className={`hover:bg-gray-50 ${
+                        product.stock < 0 ? 'bg-red-50' :
+                        product.stock === 0 ? 'bg-red-50/40' :
+                        product.stock <= product.minStock ? 'bg-yellow-50/40' : ''
+                      }`}
+                    >
                       <td className="px-4 py-3 font-mono text-xs text-gray-500">{product.code}</td>
                       <td className="px-4 py-3 font-medium text-gray-800">{product.name}</td>
                       <td className="px-4 py-3 text-gray-500 text-xs">{product.category?.name ?? '—'}</td>
