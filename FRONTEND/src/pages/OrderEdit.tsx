@@ -176,9 +176,11 @@ const OrderEdit: React.FC = () => {
     if (product) {
       setSelectedProduct(product);
       setUnitPrice(product.salePrice ?? 0);
+      setTaxRate(0);
     } else {
       setSelectedProduct(null);
       setUnitPrice(0);
+      setTaxRate(0);
     }
   };
 
@@ -288,7 +290,7 @@ const OrderEdit: React.FC = () => {
   if (loading || !isDataLoaded) {
     return (
       <div className="bg-gray-50 min-h-screen">
-        <div className="px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-7xl mx-auto">
+        <div className="max-w-2xl mx-auto px-3 py-4">
           <div className="flex items-center justify-center h-64">
             <LoadingSpinner size="lg" />
             <span className="ml-3 text-gray-500">Cargando orden...</span>
@@ -302,7 +304,7 @@ const OrderEdit: React.FC = () => {
   if (!currentOrder) {
     return (
       <div className="bg-gray-50 min-h-screen">
-        <div className="px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-7xl mx-auto">
+        <div className="max-w-2xl mx-auto px-3 py-4">
           <div className="text-center py-12">
             <h2 className="text-xl font-semibold text-gray-900 mb-2">
               Orden no encontrada
@@ -321,7 +323,7 @@ const OrderEdit: React.FC = () => {
 
   return (
     <div className="bg-gray-50">
-      <div className="px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-7xl mx-auto">
+      <div className="max-w-2xl mx-auto px-3 py-4">
         {/* Mobile Header - Compact */}
         <div className="mb-4 sm:mb-6 lg:mb-8">
           <Button
@@ -480,7 +482,7 @@ const OrderEdit: React.FC = () => {
                             <Input
                               label="IVA (%)"
                               type="number"
-                              value={taxRate === 0 ? '' : String(taxRate)}
+                              value={taxRate}
                               onChange={(e) => setTaxRate(parseFloat(e.target.value) || 0)}
                               min="0"
                               max="100"
