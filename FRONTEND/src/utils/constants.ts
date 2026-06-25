@@ -1,4 +1,14 @@
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'https://api.jjlm.edwsystem.com/api';
+const PRODUCTION_API = 'https://api.jjlm.edwsystem.com/api';
+
+// En contexto nativo (APK Capacitor) siempre usar la URL de producción.
+// El WebView del APK no tiene proxy nginx, así que localhost no funciona.
+const isNative = typeof window !== 'undefined' &&
+  (window.location.protocol === 'capacitor:' ||
+   (window.location.protocol === 'https:' && window.location.hostname === 'localhost' && !import.meta.env.DEV));
+
+export const API_BASE_URL = isNative
+  ? PRODUCTION_API
+  : (import.meta.env.VITE_API_BASE_URL ?? PRODUCTION_API);
 
 export const APP_CONFIG = {
   name: 'JJLM Sistema',
