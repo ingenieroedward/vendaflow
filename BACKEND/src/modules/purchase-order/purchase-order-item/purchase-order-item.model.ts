@@ -4,6 +4,7 @@ import {
   BelongsTo, ForeignKey,
 } from 'sequelize-typescript';
 import { Product } from '@/modules/product/product.model';
+import { PurchaseOrder } from '../purchase-order.model';
 
 export interface PurchaseOrderItemAttributes {
   id: number;
@@ -25,8 +26,12 @@ export class PurchaseOrderItem extends Model<PurchaseOrderItemAttributes, Purcha
   @Column({ type: DataType.INTEGER, primaryKey: true, autoIncrement: true })
   override id!: number;
 
+  @ForeignKey(() => PurchaseOrder)
   @Column({ type: DataType.INTEGER, allowNull: false })
   purchaseOrderId!: number;
+
+  @BelongsTo(() => PurchaseOrder)
+  purchaseOrder!: PurchaseOrder;
 
   @ForeignKey(() => Product)
   @Column({ type: DataType.INTEGER, allowNull: false })
