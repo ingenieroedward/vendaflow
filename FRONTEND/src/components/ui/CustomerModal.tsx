@@ -56,7 +56,7 @@ const CustomerModal: React.FC<CustomerModalProps> = ({
         const customerData: CreateCustomerRequest = {
           code: formData.code.trim() || null,
           name: formData.name.trim(),
-          nit: formData.nit.trim(),
+          nit: formData.nit.trim() || undefined,
           contact: formData.contact.trim() || undefined,
           address: formData.address.trim() || undefined,
           note: formData.note.trim() || undefined,
@@ -126,14 +126,13 @@ const CustomerModal: React.FC<CustomerModalProps> = ({
           {/* NIT */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              NIT / Cédula {!isEdit && '*'}
+              NIT / Cédula <span className="text-gray-400 font-normal">(opcional)</span>
             </label>
             <Input
               type="text"
               value={formData.nit}
               onChange={(e) => handleInputChange('nit', e.target.value)}
               placeholder="Ej: 900123456-7 o 12345678"
-              required={!isEdit}
               icon={Hash}
             />
           </div>

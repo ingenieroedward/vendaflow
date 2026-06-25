@@ -65,8 +65,10 @@ const OrderDetail: React.FC = () => {
     setUpdatingStatus(true);
     try {
       await updateOrder(currentOrder.id, { status: newStatus as any });
-      await getOrderById(currentOrder.id); // Refresh order data
+      await getOrderById(currentOrder.id);
       setShowStatusDropdown(false);
+      const label = statusOptions.find(o => o.value === newStatus)?.label ?? newStatus;
+      addNotification({ type: 'success', message: `Estado actualizado: ${label}` });
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : 'Error al actualizar el estado';
       addNotification({ type: 'error', title: 'Error', message: msg });

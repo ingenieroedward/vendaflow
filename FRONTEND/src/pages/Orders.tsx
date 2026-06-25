@@ -276,36 +276,41 @@ const Orders: React.FC = () => {
         {error && <ErrorMessage message={error} onDismiss={clearError} onRetry={handleRefresh} className="mb-4 sm:mb-6" />}
 
         {/* Tabs */}
-        <div className="flex border-b border-gray-200 mb-4 overflow-x-auto">
+        <div className="flex border-b border-gray-200 mb-4 overflow-x-auto scrollbar-none">
           <button
             onClick={() => { setActiveTab('active'); setSearch(''); }}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'active' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+            className={`px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'active' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
           >
-            Activas
-            {activeCount > 0 && (
-              <span className={`ml-2 px-1.5 py-0.5 rounded-full text-xs ${activeTab === 'active' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>
-                {activeCount}
-              </span>
-            )}
+            <span className="flex items-center gap-1.5">
+              Activas
+              {activeCount > 0 && (
+                <span className={`px-1.5 py-0.5 rounded-full text-xs ${activeTab === 'active' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>
+                  {activeCount}
+                </span>
+              )}
+            </span>
           </button>
           <button
             onClick={() => { setActiveTab('completed'); setSearch(''); }}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'completed' ? 'border-green-600 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+            className={`px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'completed' ? 'border-green-600 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
           >
-            Entregadas
-            {completedCount > 0 && (
-              <span className={`ml-2 px-1.5 py-0.5 rounded-full text-xs ${activeTab === 'completed' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
-                {completedCount}
-              </span>
-            )}
+            <span className="flex items-center gap-1.5">
+              Entregadas
+              {completedCount > 0 && (
+                <span className={`px-1.5 py-0.5 rounded-full text-xs ${activeTab === 'completed' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                  {completedCount}
+                </span>
+              )}
+            </span>
           </button>
           <button
             onClick={() => setActiveTab('local')}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'local' ? 'border-orange-500 text-orange-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+            className={`px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'local' ? 'border-orange-500 text-orange-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
           >
             <span className="flex items-center gap-1.5">
-              <CloudOff className="w-3.5 h-3.5" />
-              Pendientes
+              <CloudOff className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+              <span className="hidden xs:inline">Pendientes</span>
+              <span className="xs:hidden">Offline</span>
               {pendingSync > 0 && (
                 <span className={`px-1.5 py-0.5 rounded-full text-xs ${activeTab === 'local' ? 'bg-orange-100 text-orange-700' : 'bg-orange-50 text-orange-600'}`}>
                   {pendingSync}
@@ -316,11 +321,11 @@ const Orders: React.FC = () => {
           {user?.role === 'admin' && (
             <button
               onClick={() => setActiveTab('trash')}
-              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'trash' ? 'border-red-500 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+              className={`px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'trash' ? 'border-red-500 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
             >
               <span className="flex items-center gap-1.5">
-                <Trash2 className="w-3.5 h-3.5" />
-                Papelera
+                <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                <span className="hidden sm:inline">Papelera</span>
                 {trashList.length > 0 && activeTab === 'trash' && (
                   <span className="px-1.5 py-0.5 rounded-full text-xs bg-red-100 text-red-700">{trashList.length}</span>
                 )}

@@ -92,6 +92,10 @@ const Customers: React.FC = () => {
   };
 
   const handleCustomerSaved = () => {
+    addNotification({
+      type: 'success',
+      message: editCustomer ? 'Cliente actualizado correctamente' : 'Cliente creado correctamente',
+    });
     setShowModal(false);
     setEditCustomer(undefined);
     getCustomers(1, 50);
