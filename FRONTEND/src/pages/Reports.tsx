@@ -5,19 +5,19 @@ import { purchaseOrderService } from '../services/purchaseOrders';
 import { useProductStore } from '../store/productStore';
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, Cell,
+  Tooltip, ResponsiveContainer, Cell, Legend,
 } from 'recharts';
 import { format, subDays, subMonths, subYears } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
   TrendingUp, ShoppingCart, DollarSign, RefreshCw,
   WifiOff, Package, Users, Warehouse, AlertTriangle, TrendingDown,
-  CheckCircle, Clock, FileText,
+  CheckCircle, Clock, FileText, PiggyBank,
 } from 'lucide-react';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 
 type Period = 'daily' | 'monthly' | 'annual';
-type Tab = 'ventas' | 'inventario' | 'compras';
+type Tab = 'ventas' | 'inventario' | 'compras' | 'rentabilidad';
 
 interface OrderRow {
   totalAmount: number;
@@ -297,6 +297,68 @@ const Reports: React.FC = () => {
 
   const maxCompras = useMemo(() => Math.max(...poStats.monthlyChart.map(d => d.compras), 1), [poStats]);
 
+  // ── RENTABILIDAD: Stats ──────────────────────────────────────────────────
+  const rentStats = useMemo(() => {
+    const now = new Date();
+    const monthStr = colDay(now.toISOString()).substring(0, 7);
+    const prevMonthStr = colMonth(subMonths(now, 1));
+
+    const totalRevenue = orders.reduce((s, o) => s + o.totalAmount, 0);
+    const totalCost = purchaseOrders
+      .filter(p => p.status === 'received')
+      .reduce((s, p) => s + p.totalAmount, 0);
+    const grossProfit = totalRevenue - totalCost;
+    const grossMargin = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0;
+
+    const monthRevenue = orders
+      .filter(o => colDay(o.createdAt).startsWith(monthStr))
+      .reduce((s, o) => s + o.totalAmount, 0);
+    const monthCost = purchaseOrders
+      .filter(p => p.status === 'received' && colDay(p.createdAt).startsWith(monthStr))
+      .reduce((s, p) => s + p.totalAmount, 0);
+    const monthProfit = monthRevenue - monthCost;
+    const monthMargin = monthRevenue > 0 ? (monthProfit / monthRevenue) * 100 : 0;
+
+    const prevRevenue = orders
+      .filter(o => colDay(o.createdAt).startsWith(prevMonthStr))
+      .reduce((s, o) => s + o.totalAmount, 0);
+    const prevCost = purchaseOrders
+      .filter(p => p.status === 'received' && colDay(p.createdAt).startsWith(prevMonthStr))
+      .reduce((s, p) => s + p.totalAmount, 0);
+    const prevProfit = prevRevenue - prevCost;
+    const profitPct = prevProfit !== 0
+      ? Math.round(((monthProfit - prevProfit) / Math.abs(prevProfit)) * 100)
+      : null;
+
+    // Últimos 12 meses
+    const monthlyChart = Array.from({ length: 12 }, (_, i) => {
+      const month = subMonths(now, 11 - i);
+      const ms = colMonth(month);
+      const rev = orders
+        .filter(o => colDay(o.createdAt).startsWith(ms))
+        .reduce((s, o) => s + o.totalAmount, 0);
+      const cost = purchaseOrders
+        .filter(p => p.status === 'received' && colDay(p.createdAt).startsWith(ms))
+        .reduce((s, p) => s + p.totalAmount, 0);
+      return {
+        label: format(colStartOfMonth(month), 'MMM yy', { locale: es }),
+        ingresos: rev,
+        costos: cost,
+        utilidad: rev - cost,
+      };
+    });
+
+    // Mejor mes por utilidad
+    const bestMonth = [...monthlyChart].sort((a, b) => b.utilidad - a.utilidad)[0];
+
+    return {
+      totalRevenue, totalCost, grossProfit, grossMargin,
+      monthRevenue, monthCost, monthProfit, monthMargin, profitPct,
+      monthlyChart, bestMonth,
+      hasCostData: totalCost > 0,
+    };
+  }, [orders, purchaseOrders]);
+
   const hasData = orders.length > 0;
 
   const periods: { key: Period; label: string }[] = [
@@ -307,9 +369,10 @@ const Reports: React.FC = () => {
   const periodLabel = periods.find(p => p.key === period)?.label ?? '';
 
   const tabs: { key: Tab; label: string; icon: React.FC<any> }[] = [
-    { key: 'ventas', label: 'Ventas', icon: TrendingUp },
-    { key: 'inventario', label: 'Inventario', icon: Warehouse },
-    { key: 'compras', label: 'Compras', icon: ShoppingCart },
+    { key: 'ventas',        label: 'Ventas',        icon: TrendingUp },
+    { key: 'inventario',    label: 'Inventario',    icon: Warehouse },
+    { key: 'compras',       label: 'Compras',       icon: ShoppingCart },
+    { key: 'rentabilidad',  label: 'Rentabilidad',  icon: PiggyBank },
   ];
 
   return (
@@ -846,6 +909,158 @@ const Reports: React.FC = () => {
                 </div>
 
                 <p className="text-xs text-gray-300 mt-2 text-center">{purchaseOrders.length} órdenes de compra · Todas las fechas</p>
+              </>
+            )}
+
+            {/* ════════════════ TAB: RENTABILIDAD ════════════════ */}
+            {tab === 'rentabilidad' && (
+              <>
+                {!rentStats.hasCostData && (
+                  <div className="mb-4 flex items-start gap-2 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700">
+                    <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                    Sin órdenes de compra recibidas — los costos aparecen en $0. Registra compras para ver el margen real.
+                  </div>
+                )}
+
+                {/* KPIs */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-7 h-7 bg-emerald-50 rounded-lg flex items-center justify-center">
+                        <TrendingUp className="w-4 h-4 text-emerald-500" />
+                      </div>
+                      <span className="text-xs font-medium text-gray-500">Ingresos totales</span>
+                    </div>
+                    <p className="text-lg font-bold text-gray-900">{COPShort(rentStats.totalRevenue)}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{orders.length} órdenes</p>
+                  </div>
+
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-7 h-7 bg-orange-50 rounded-lg flex items-center justify-center">
+                        <ShoppingCart className="w-4 h-4 text-orange-500" />
+                      </div>
+                      <span className="text-xs font-medium text-gray-500">Costo compras</span>
+                    </div>
+                    <p className="text-lg font-bold text-gray-900">{COPShort(rentStats.totalCost)}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">POs recibidas</p>
+                  </div>
+
+                  <div className={`rounded-2xl border shadow-sm p-4 ${rentStats.grossProfit >= 0 ? 'bg-emerald-50 border-emerald-100' : 'bg-red-50 border-red-100'}`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${rentStats.grossProfit >= 0 ? 'bg-emerald-100' : 'bg-red-100'}`}>
+                        <PiggyBank className={`w-4 h-4 ${rentStats.grossProfit >= 0 ? 'text-emerald-600' : 'text-red-500'}`} />
+                      </div>
+                      <span className="text-xs font-medium text-gray-500">Utilidad bruta</span>
+                    </div>
+                    <p className={`text-lg font-bold ${rentStats.grossProfit >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>
+                      {COPShort(rentStats.grossProfit)}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-0.5">Ingresos − Costos</p>
+                  </div>
+
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-7 h-7 bg-violet-50 rounded-lg flex items-center justify-center">
+                        <DollarSign className="w-4 h-4 text-violet-500" />
+                      </div>
+                      <span className="text-xs font-medium text-gray-500">Margen bruto</span>
+                    </div>
+                    <p className={`text-lg font-bold ${rentStats.grossMargin >= 30 ? 'text-emerald-700' : rentStats.grossMargin >= 10 ? 'text-amber-600' : 'text-red-600'}`}>
+                      {rentStats.grossMargin.toFixed(1)}%
+                    </p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {rentStats.grossMargin >= 30 ? 'Saludable' : rentStats.grossMargin >= 10 ? 'Aceptable' : 'Bajo'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Este mes */}
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold text-gray-700">Este mes</h3>
+                    {rentStats.profitPct !== null && (
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                        rentStats.profitPct >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'
+                      }`}>
+                        {rentStats.profitPct >= 0 ? '+' : ''}{rentStats.profitPct}% vs mes anterior
+                      </span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <p className="text-xs text-gray-400 mb-0.5">Ingresos</p>
+                      <p className="text-base font-bold text-gray-900">{COPShort(rentStats.monthRevenue)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-400 mb-0.5">Costos</p>
+                      <p className="text-base font-bold text-orange-600">{COPShort(rentStats.monthCost)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-400 mb-0.5">Utilidad</p>
+                      <p className={`text-base font-bold ${rentStats.monthProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                        {COPShort(rentStats.monthProfit)}
+                        <span className="text-xs font-normal ml-1 text-gray-400">
+                          ({rentStats.monthMargin.toFixed(0)}%)
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Gráfica dual: Ingresos vs Costos 12 meses */}
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-6">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-4">Ingresos vs Costos — últimos 12 meses</h3>
+                  <ResponsiveContainer width="100%" height={220}>
+                    <BarChart data={rentStats.monthlyChart} barGap={2} barCategoryGap="25%">
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
+                      <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
+                      <YAxis tickFormatter={COPShort} tick={{ fontSize: 10, fill: '#9ca3af' }} tickLine={false} axisLine={false} width={48} />
+                      <Tooltip
+                        formatter={(value: number, name: string) => [COP(value), name === 'ingresos' ? 'Ingresos' : name === 'costos' ? 'Costos' : 'Utilidad']}
+                        contentStyle={{ borderRadius: '12px', border: '1px solid #e5e7eb', fontSize: 12 }}
+                      />
+                      <Legend formatter={(v) => v === 'ingresos' ? 'Ingresos' : v === 'costos' ? 'Costos' : 'Utilidad'} iconSize={8} wrapperStyle={{ fontSize: 11 }} />
+                      <Bar dataKey="ingresos" fill="#34d399" radius={[4, 4, 0, 0]} maxBarSize={28} />
+                      <Bar dataKey="costos" fill="#fb923c" radius={[4, 4, 0, 0]} maxBarSize={28} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Utilidad mensual */}
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-4">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-4">Utilidad mensual</h3>
+                  <ResponsiveContainer width="100%" height={160}>
+                    <LineChart data={rentStats.monthlyChart}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
+                      <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
+                      <YAxis tickFormatter={COPShort} tick={{ fontSize: 10, fill: '#9ca3af' }} tickLine={false} axisLine={false} width={48} />
+                      <Tooltip
+                        formatter={(v: number) => [COP(v), 'Utilidad']}
+                        contentStyle={{ borderRadius: '12px', border: '1px solid #e5e7eb', fontSize: 12 }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="utilidad"
+                        stroke="#6366f1"
+                        strokeWidth={2}
+                        dot={(props: any) => {
+                          const { cx, cy, payload } = props;
+                          return <circle key={props.key} cx={cx} cy={cy} r={3} fill={payload.utilidad >= 0 ? '#6366f1' : '#ef4444'} stroke="none" />;
+                        }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                  {rentStats.bestMonth && rentStats.bestMonth.utilidad > 0 && (
+                    <p className="text-xs text-gray-400 mt-2 text-center">
+                      Mejor mes: <span className="font-semibold text-emerald-600">{rentStats.bestMonth.label}</span> — {COP(rentStats.bestMonth.utilidad)}
+                    </p>
+                  )}
+                </div>
+
+                <p className="text-xs text-gray-300 mt-2 text-center">
+                  Costos = órdenes de compra en estado "Recibida" · Ingresos = órdenes no canceladas
+                </p>
               </>
             )}
           </>
