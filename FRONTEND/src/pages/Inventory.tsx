@@ -185,12 +185,57 @@ const Inventory: React.FC = () => {
         </div>
       </div>
 
-      {/* Table */}
       {loading ? (
         <LoadingSpinner />
       ) : (
         <>
-          <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
+          {/* Mobile: cards */}
+          <div className="sm:hidden space-y-2">
+            {paginated.length === 0 ? (
+              <p className="text-center text-gray-400 py-8">
+                {search ? 'No se encontraron productos' : 'Sin productos que mostrar'}
+              </p>
+            ) : paginated.map(product => {
+              const badge = getStockBadge(product);
+              return (
+                <div
+                  key={product.id}
+                  className={`rounded-xl border p-3 ${
+                    product.stock < 0 ? 'bg-red-50 border-red-200' :
+                    product.stock === 0 ? 'bg-red-50/60 border-red-100' :
+                    product.stock <= product.minStock ? 'bg-yellow-50/60 border-yellow-100' :
+                    'bg-white border-gray-200'
+                  }`}
+                >
+                  <div className="flex items-start justify-between mb-1">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-gray-800 text-sm leading-tight truncate">{product.name}</p>
+                      <p className="font-mono text-xs text-gray-400 mt-0.5">{product.code}</p>
+                    </div>
+                    <span className={`ml-2 flex-shrink-0 px-2 py-0.5 rounded-full text-xs font-medium ${badge.className}`}>
+                      {badge.label}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between mt-2">
+                    <div>
+                      <span className={`text-xl font-bold ${product.stock < 0 ? 'text-red-600' : product.stock === 0 ? 'text-red-500' : 'text-gray-900'}`}>
+                        {Number(product.stock).toLocaleString('es-CO')}
+                      </span>
+                      <span className="text-xs text-gray-400 ml-1">{product.unit}</span>
+                      <span className="text-xs text-gray-400 ml-2">/ mín {Number(product.minStock).toLocaleString('es-CO')}</span>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-700">${Number(product.salePrice).toLocaleString('es-CO')}</span>
+                  </div>
+                  {product.category?.name && (
+                    <p className="text-xs text-gray-400 mt-1">{product.category.name}</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Desktop: tabla */}
+          <div className="hidden sm:block overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
             <table className="min-w-full bg-white text-sm">
               <thead className="bg-gray-50 text-gray-600 uppercase text-xs">
                 <tr>
@@ -233,9 +278,7 @@ const Inventory: React.FC = () => {
                       <td className="px-4 py-3 text-center text-gray-500">
                         {Number(product.minStock).toLocaleString('es-CO')} {product.unit}
                       </td>
-                      <td className="px-4 py-3 text-right">
-                        ${Number(product.salePrice).toLocaleString('es-CO')}
-                      </td>
+                      <td className="px-4 py-3 text-right">${Number(product.salePrice).toLocaleString('es-CO')}</td>
                       <td className="px-4 py-3 text-center">
                         <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${badge.className}`}>
                           {badge.label}
