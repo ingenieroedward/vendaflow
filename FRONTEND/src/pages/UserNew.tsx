@@ -170,7 +170,6 @@ const UserNew: React.FC = () => {
                     error={errors.username}
                     placeholder="Ingresa el nombre de usuario"
                     autoFocus
-                    required
                   />
                 </div>
 
@@ -215,7 +214,6 @@ const UserNew: React.FC = () => {
                       onChange={handleInputChange}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
                       placeholder="Ingresa la contraseña"
-                      required
                     />
                     <button
                       type="button"
@@ -246,7 +244,6 @@ const UserNew: React.FC = () => {
                       onChange={handleInputChange}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
                       placeholder="Confirma la contraseña"
-                      required
                     />
                     <button
                       type="button"

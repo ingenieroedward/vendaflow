@@ -272,7 +272,6 @@ const UserEdit: React.FC = () => {
                   onChange={handleInputChange}
                   error={errors.username}
                   placeholder="Ingresa el nombre de usuario"
-                  required
                 />
                 </div>
                 <div className="sm:col-span-1">
