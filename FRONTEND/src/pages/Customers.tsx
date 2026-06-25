@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Plus, Search, Edit, Trash2, User, Phone, MapPin, Hash, Tag, RefreshCw, RotateCcw, AlertTriangle } from 'lucide-react';
 import { useCustomerStore } from '../store/customerStore';
 import { useAuthStore } from '../store/authStore';
@@ -21,6 +21,7 @@ const Customers: React.FC = () => {
   const [search, setSearch] = useState('');
   const [searchResults, setSearchResults] = useState<Customer[] | null>(null);
   const [searching, setSearching] = useState(false);
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [editCustomer, setEditCustomer] = useState<Customer | undefined>(undefined);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
@@ -65,16 +66,19 @@ const Customers: React.FC = () => {
     }
   };
 
-  const handleSearch = useCallback(async (q: string) => {
+  const handleSearch = useCallback((q: string) => {
     setSearch(q);
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
     if (!q.trim()) { setSearchResults(null); return; }
-    setSearching(true);
-    try {
-      const results = await searchCustomers(q.trim());
-      setSearchResults(results);
-    } finally {
-      setSearching(false);
-    }
+    debounceTimer.current = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const results = await searchCustomers(q.trim());
+        setSearchResults(results);
+      } finally {
+        setSearching(false);
+      }
+    }, 300);
   }, [searchCustomers]);
 
   const displayList = searchResults ?? customers;

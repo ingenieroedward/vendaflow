@@ -16,10 +16,10 @@ export type CreateCustomerDto = z.infer<typeof createCustomerSchema>;
 export const updateCustomerSchema = z.object({
   code: z.string().max(50, 'Code too long').optional().nullable(),
   name: z.string().min(1, 'Name is required').max(255, 'Name too long').optional(),
-  nit: z.string().min(1, 'NIT/Cédula is required').max(20, 'NIT too long').optional(),
-  contact: z.string().max(255, 'Contact too long').optional(),
-  address: z.string().max(255, 'Address too long').optional(),
-  note: z.string().max(255, 'Note too long').optional(),
+  nit: z.string().max(20, 'NIT too long').optional().nullable(),
+  contact: z.string().max(255, 'Contact too long').optional().nullable(),
+  address: z.string().max(255, 'Address too long').optional().nullable(),
+  note: z.string().max(255, 'Note too long').optional().nullable(),
 });
 
 export type UpdateCustomerDto = z.infer<typeof updateCustomerSchema>;

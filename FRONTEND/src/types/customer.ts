@@ -14,7 +14,7 @@ export interface Customer {
 export interface CreateCustomerRequest {
   code?: string | null;
   name: string;
-  nit: string;
+  nit?: string | null;
   contact?: string;
   address?: string;
   note?: string;
@@ -23,8 +23,8 @@ export interface CreateCustomerRequest {
 export interface UpdateCustomerRequest {
   code?: string | null;
   name?: string;
-  nit?: string;
-  contact?: string;
-  address?: string;
-  note?: string;
+  nit?: string | null;
+  contact?: string | null;
+  address?: string | null;
+  note?: string | null;
 }

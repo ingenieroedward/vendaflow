@@ -45,10 +45,10 @@ const CustomerModal: React.FC<CustomerModalProps> = ({
         const updateData: UpdateCustomerRequest = {
           code: formData.code.trim() || null,
           name: formData.name.trim(),
-          nit: formData.nit.trim() || undefined,
-          contact: formData.contact.trim() || undefined,
-          address: formData.address.trim() || undefined,
-          note: formData.note.trim() || undefined,
+          nit: formData.nit.trim() || null,
+          contact: formData.contact.trim() || null,
+          address: formData.address.trim() || null,
+          note: formData.note.trim() || null,
         };
         await updateCustomer(editCustomer.id, updateData);
         onCustomerUpdated?.({ ...editCustomer, ...updateData });
@@ -163,12 +163,18 @@ const CustomerModal: React.FC<CustomerModalProps> = ({
 
           {/* Note */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Nota</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Nota
+              <span className={`ml-2 text-xs font-normal ${formData.note.length > 230 ? 'text-orange-500' : 'text-gray-400'}`}>
+                {formData.note.length}/255
+              </span>
+            </label>
             <textarea
               value={formData.note}
               onChange={(e) => handleInputChange('note', e.target.value)}
               placeholder="Información adicional sobre el cliente..."
               rows={3}
+              maxLength={255}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
             />
           </div>
