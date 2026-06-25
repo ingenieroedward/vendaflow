@@ -56,10 +56,11 @@ const logger = winston.createLogger({
   transports: [],
 });
 
-// Add transports based on environment
-if (config.server.nodeEnv === 'development') {
-  logger.add(consoleTransport);
-} else {
+// Console always (Docker/Dokploy captura stdout)
+logger.add(consoleTransport);
+
+// File transports solo en producción
+if (config.server.nodeEnv !== 'development') {
   logger.add(errorFileTransport);
   logger.add(combinedFileTransport);
 }
