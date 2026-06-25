@@ -14,7 +14,7 @@ import { NotFoundError } from '@/core/errors/AppError';
 import logger from '@/core/logger';
 import { validateSchema, validatePartialSchema, paginationSchema, PaginationQuery } from '@/core/utils/validation';
 import { createOrderSchema, updateOrderSchema, searchOrderSchema } from './order.dto';
-import { Op, UniqueConstraintError } from 'sequelize';
+import { Op, UniqueConstraintError, literal } from 'sequelize';
 import sequelize from '@/database';
 import { StockMovementService } from '@/modules/stock-movement/stock-movement.service';
 
@@ -27,33 +27,20 @@ export class OrderService {
    */
   private async generateOrderNumber(): Promise<string> {
     try {
-      // Buscar la última orden para obtener el siguiente número
-      const lastOrder = await Order.findOne({
-        order: [['orderNumber', 'DESC']],
-        where: {
+      // Numeric MAX to avoid alphabetical sort issues with ORD-9X > ORD-1XX
+      const result = await Order.findOne({
+        attributes: [[literal('MAX(CAST(SUBSTRING(orderNumber, 5) AS UNSIGNED))'), 'maxNum']],
+        where: { orderNumber: { [Op.like]: 'ORD-%' } },
+        paranoid: false,
+        raw: true,
+      }) as any;
 
-          orderNumber: {
-            [Op.like]: 'ORD-%'
-          }
-        },
-        paranoid:false
-      });
-
-      let nextNumber = 1;
-
-      if (lastOrder) {
-        const match = lastOrder.orderNumber.match(/ORD-(\d+)/);
-        if (match && match[1]) {
-          nextNumber = parseInt(match[1]) + 1;
-        }
-      }
-
-      return `ORD-${nextNumber.toString().padStart(2, '0')}`;
+      const maxNum = result?.maxNum ?? 0;
+      const nextNumber = (parseInt(String(maxNum)) || 0) + 1;
+      return `ORD-${nextNumber.toString().padStart(4, '0')}`;
     } catch (error) {
       logger.error('Error generating order number:', error as Error);
-      // Fallback: usar timestamp como número de orden
-      const timestamp = Date.now();
-      return `ORD-${timestamp}`;
+      return `ORD-${Date.now()}`;
     }
   }
 

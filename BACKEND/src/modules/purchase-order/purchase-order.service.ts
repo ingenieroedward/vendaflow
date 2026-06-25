@@ -26,11 +26,11 @@ export class PurchaseOrderService {
       order: [['id', 'DESC']],
       paranoid: false,
     });
-    if (!last) return 'POC-01';
+    if (!last) return 'POC-0001';
     const match = last.poNumber.match(/POC-(\d+)/);
-    if (!match || !match[1]) return 'POC-01';
+    if (!match || !match[1]) return 'POC-0001';
     const next = parseInt(match[1], 10) + 1;
-    return `POC-${String(next).padStart(2, '0')}`;
+    return `POC-${String(next).padStart(4, '0')}`;
   }
 
   async createPurchaseOrder(data: CreatePurchaseOrderDto, userId: number): Promise<PurchaseOrderResponseDto> {
