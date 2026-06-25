@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, Package, TrendingDown, Plus, Search, ChevronLeft, ChevronRight, TrendingUp, ShoppingCart } from 'lucide-react';
+import { AlertTriangle, Package, TrendingDown, Plus, Search, ChevronLeft, ChevronRight, TrendingUp, ShoppingCart, ChevronDown } from 'lucide-react';
 import { useProductStore } from '../store/productStore';
 import { usePurchaseOrderStore } from '../store/purchaseOrderStore';
 import { Product } from '../types';
@@ -18,6 +18,7 @@ const Inventory: React.FC = () => {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<FilterType>('all');
   const [page, setPage] = useState(1);
+  const [alertExpanded, setAlertExpanded] = useState(false);
 
   useEffect(() => {
     getProducts(1, 2000, false);
@@ -72,17 +73,36 @@ const Inventory: React.FC = () => {
 
       {/* Alerta stock negativo */}
       {negativeStock.length > 0 && (
-        <div className="mb-5 rounded-xl border border-red-300 bg-red-50 p-4">
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="text-red-500 mt-0.5 flex-shrink-0" size={20} />
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-red-800 text-sm">
-                {negativeStock.length} producto{negativeStock.length > 1 ? 's' : ''} con stock negativo — se deben comprar urgente
+        <div className="mb-5 rounded-xl border border-red-300 bg-red-50 overflow-hidden">
+          {/* Fila principal — siempre visible */}
+          <div className="flex items-center gap-2 px-3 py-2.5 sm:px-4 sm:py-3">
+            <AlertTriangle className="text-red-500 flex-shrink-0" size={16} />
+            <p className="flex-1 font-semibold text-red-800 text-xs sm:text-sm leading-tight">
+              {negativeStock.length} producto{negativeStock.length > 1 ? 's' : ''} con stock negativo
+            </p>
+            <button
+              onClick={() => { setFilter('negative'); setSearch(''); }}
+              className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1 bg-red-600 text-white text-xs rounded-lg hover:bg-red-700 transition-colors"
+            >
+              <ShoppingCart size={11} />
+              <span className="hidden xs:inline">Ver</span>
+            </button>
+            <button
+              onClick={() => setAlertExpanded(v => !v)}
+              className="flex-shrink-0 w-7 h-7 flex items-center justify-center text-red-400 hover:text-red-600 transition-colors"
+              aria-label={alertExpanded ? 'Colapsar' : 'Expandir'}
+            >
+              <ChevronDown size={14} className={`transition-transform ${alertExpanded ? 'rotate-180' : ''}`} />
+            </button>
+          </div>
+
+          {/* Detalle expandible */}
+          {alertExpanded && (
+            <div className="px-3 pb-3 sm:px-4 sm:pb-4 border-t border-red-200">
+              <p className="text-xs text-red-600 mt-2 mb-2">
+                Órdenes de venta comprometidas que superan el stock. Crea una orden de compra para reponer:
               </p>
-              <p className="text-xs text-red-600 mt-1">
-                Hay órdenes de venta comprometidas que superan el stock disponible. Crea una orden de compra para reponer:
-              </p>
-              <div className="mt-2 flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-1.5">
                 {negativeStock.slice(0, 8).map(p => (
                   <span key={p.id} className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-100 border border-red-200 rounded-full text-xs text-red-700">
                     {p.code} · <span className="font-bold">{Number(p.stock).toLocaleString('es-CO')} {p.unit}</span>
@@ -95,13 +115,7 @@ const Inventory: React.FC = () => {
                 )}
               </div>
             </div>
-            <button
-              onClick={() => { setFilter('negative'); setSearch(''); }}
-              className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white text-xs rounded-lg hover:bg-red-700 transition-colors"
-            >
-              <ShoppingCart size={13} /> Ver todos
-            </button>
-          </div>
+          )}
         </div>
       )}
 
