@@ -83,7 +83,7 @@ const barColor = (value: number, max: number) => {
 };
 
 const Reports: React.FC = () => {
-  const [tab, setTab] = useState<Tab>('ventas');
+  const [tab, setTab] = useState<Tab>('rentabilidad');
   const [period, setPeriod] = useState<Period>('daily');
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [purchaseOrders, setPurchaseOrders] = useState<PORow[]>([]);
@@ -369,10 +369,10 @@ const Reports: React.FC = () => {
   const periodLabel = periods.find(p => p.key === period)?.label ?? '';
 
   const tabs: { key: Tab; label: string; icon: React.FC<any> }[] = [
-    { key: 'ventas',        label: 'Ventas',        icon: TrendingUp },
-    { key: 'inventario',    label: 'Inventario',    icon: Warehouse },
-    { key: 'compras',       label: 'Compras',       icon: ShoppingCart },
     { key: 'rentabilidad',  label: 'Rentabilidad',  icon: PiggyBank },
+    { key: 'ventas',        label: 'Ventas',        icon: TrendingUp },
+    { key: 'compras',       label: 'Compras',       icon: ShoppingCart },
+    { key: 'inventario',    label: 'Inventario',    icon: Warehouse },
   ];
 
   return (
