@@ -118,6 +118,8 @@ const mapServerProduct = (p: any): Product => ({
   code: p.code,
   unit: p.unit,
   salePrice: p.salePrice,
+  stock: p.stock ?? 0,
+  minStock: p.minStock ?? 0,
   categoryId: p.categoryId || null,
   category: p.category,
   createdAt: p.createdAt || new Date().toISOString(),
