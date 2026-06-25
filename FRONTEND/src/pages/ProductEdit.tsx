@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Package, Save, Plus, DollarSign, Building, X } from 'lucide-react';
+import { ArrowLeft, Package, Save, Plus, DollarSign, Building, X, Warehouse } from 'lucide-react';
 import { useProductStore } from '../store/productStore';
 import { useUIStore } from '../store/uiStore';
+import { useAuthStore } from '../store/authStore';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import { productService } from '../services/products';
@@ -14,6 +15,8 @@ interface ProductFormData {
   unit: string;
   categoryId?: number | null;
   salePrice: number;
+  stock: number;
+  minStock: number;
 }
 
 interface SupplierFormData {
@@ -43,6 +46,8 @@ const ProductEdit: React.FC = () => {
   const navigate = useNavigate();
   const { loading } = useProductStore();
   const { addNotification } = useUIStore();
+  const { user } = useAuthStore();
+  const isAdmin = user?.role === 'admin';
   
   const [product, setProduct] = useState<Product | null>(null);
 
@@ -54,6 +59,8 @@ const ProductEdit: React.FC = () => {
     code: '',
     unit: '',
     salePrice: 0,
+    stock: 0,
+    minStock: 0,
   });
   const [errors, setErrors] = useState<ProductFormErrors>({});
   
@@ -81,6 +88,8 @@ const ProductEdit: React.FC = () => {
           unit: productData.unit,
           categoryId: productData.categoryId,
           salePrice: productData.salePrice,
+          stock: productData.stock ?? 0,
+          minStock: productData.minStock ?? 0,
         });
 
         const pricesData = await productService.getPricesByProduct(parseInt(id));
@@ -182,9 +191,10 @@ const ProductEdit: React.FC = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
+    const numericFields = ['salePrice', 'stock', 'minStock'];
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'salePrice' ? Number(value) : value,
+      [name]: numericFields.includes(name) ? Number(value) : value,
     }));
     if (errors[name as keyof ProductFormErrors]) {
       setErrors(prev => ({ ...prev, [name]: undefined }));
@@ -434,6 +444,37 @@ const ProductEdit: React.FC = () => {
                 />
               </div>
             </div>
+
+            {/* Stock — solo admin */}
+            {isAdmin && (
+              <div className="border-t pt-6">
+                <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-4 flex items-center">
+                  <Warehouse className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                  Inventario
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Input
+                    label="Stock actual"
+                    name="stock"
+                    type="number"
+                    value={String(formData.stock)}
+                    onChange={handleInputChange}
+                    placeholder="0"
+                  />
+                  <Input
+                    label="Stock mínimo"
+                    name="minStock"
+                    type="number"
+                    value={String(formData.minStock)}
+                    onChange={handleInputChange}
+                    placeholder="0"
+                  />
+                </div>
+                <p className="mt-2 text-xs text-gray-400">
+                  Modifica directamente el stock solo para correcciones manuales. Para compras usa Órdenes de Compra.
+                </p>
+              </div>
+            )}
 
             {/* Price Section - Mobile Optimized */}
             <div className="border-t pt-6">
