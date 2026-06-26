@@ -333,20 +333,18 @@ const Customers: React.FC = () => {
 
       {/* Hard Delete Confirm */}
       {hardDeleteConfirm !== null && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                <AlertTriangle className="w-5 h-5 text-red-600" />
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center" onClick={() => setHardDeleteConfirm(null)}>
+          <div className="animate-slide-up w-full sm:max-w-sm bg-white rounded-t-2xl sm:rounded-2xl shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="sm:hidden flex justify-center pt-3 pb-1"><div className="w-10 h-1 bg-gray-200 rounded-full" /></div>
+            <div className="p-6 pb-8">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0"><AlertTriangle className="w-5 h-5 text-red-600" /></div>
+                <div><h3 className="font-semibold text-gray-900">Eliminar definitivamente</h3><p className="text-sm text-gray-500">Esta acción es irreversible. El cliente se borrará para siempre.</p></div>
               </div>
-              <div>
-                <h3 className="font-semibold text-gray-900">Eliminar definitivamente</h3>
-                <p className="text-sm text-gray-500">Esta acción es irreversible. El cliente se borrará para siempre.</p>
+              <div className="flex gap-3">
+                <Button variant="outline" onClick={() => setHardDeleteConfirm(null)} className="flex-1">Cancelar</Button>
+                <Button variant="danger" onClick={() => handleHardDelete(hardDeleteConfirm)} className="flex-1">Eliminar para siempre</Button>
               </div>
-            </div>
-            <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setHardDeleteConfirm(null)} className="flex-1">Cancelar</Button>
-              <Button variant="danger" onClick={() => handleHardDelete(hardDeleteConfirm)} className="flex-1">Eliminar para siempre</Button>
             </div>
           </div>
         </div>
@@ -354,20 +352,18 @@ const Customers: React.FC = () => {
 
       {/* Delete Confirm */}
       {deleteConfirm !== null && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                <Trash2 className="w-5 h-5 text-red-600" />
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center" onClick={() => setDeleteConfirm(null)}>
+          <div className="animate-slide-up w-full sm:max-w-sm bg-white rounded-t-2xl sm:rounded-2xl shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="sm:hidden flex justify-center pt-3 pb-1"><div className="w-10 h-1 bg-gray-200 rounded-full" /></div>
+            <div className="p-6 pb-8">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0"><Trash2 className="w-5 h-5 text-red-600" /></div>
+                <div><h3 className="font-semibold text-gray-900">Eliminar cliente</h3><p className="text-sm text-gray-500">Esta acción no se puede deshacer.</p></div>
               </div>
-              <div>
-                <h3 className="font-semibold text-gray-900">Eliminar cliente</h3>
-                <p className="text-sm text-gray-500">Esta acción no se puede deshacer.</p>
+              <div className="flex gap-3">
+                <Button variant="outline" onClick={() => setDeleteConfirm(null)} className="flex-1">Cancelar</Button>
+                <Button variant="danger" onClick={() => handleDelete(deleteConfirm)} className="flex-1">Eliminar</Button>
               </div>
-            </div>
-            <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setDeleteConfirm(null)} className="flex-1">Cancelar</Button>
-              <Button variant="danger" onClick={() => handleDelete(deleteConfirm)} className="flex-1">Eliminar</Button>
             </div>
           </div>
         </div>

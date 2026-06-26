@@ -198,45 +198,27 @@ const Categories: React.FC = () => {
 
       {/* Create/Edit Modal */}
       {modal && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50" onClick={() => { if (!saving) setModal(null); }} />
-          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-5">
-              {modal.mode === 'create' ? 'Nueva categoría' : 'Editar categoría'}
-            </h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
-                <Input
-                  value={form.name}
-                  onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                  placeholder="Nombre de la categoría"
-                />
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center" onClick={() => { if (!saving) setModal(null); }}>
+          <div className="animate-slide-up w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="sm:hidden flex justify-center pt-3 pb-1"><div className="w-10 h-1 bg-gray-200 rounded-full" /></div>
+            <div className="p-6 pb-8">
+              <h3 className="text-lg font-semibold text-gray-900 mb-5">
+                {modal.mode === 'create' ? 'Nueva categoría' : 'Editar categoría'}
+              </h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
+                  <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Nombre de la categoría" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
+                  <Input value={form.description ?? ''} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Descripción opcional" />
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
-                <Input
-                  value={form.description ?? ''}
-                  onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                  placeholder="Descripción opcional"
-                />
+              <div className="flex gap-3 mt-6">
+                <button onClick={() => { if (!saving) setModal(null); }} className="flex-1 px-4 py-2.5 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors" disabled={saving}>Cancelar</button>
+                <button onClick={handleSave} disabled={saving || !form.name.trim()} className="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50">{saving ? 'Guardando...' : 'Guardar'}</button>
               </div>
-            </div>
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => { if (!saving) setModal(null); }}
-                className="flex-1 px-4 py-2.5 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-                disabled={saving}
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={saving || !form.name.trim()}
-                className="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
-              >
-                {saving ? 'Guardando...' : 'Guardar'}
-              </button>
             </div>
           </div>
         </div>
@@ -244,32 +226,21 @@ const Categories: React.FC = () => {
 
       {/* Delete Confirm */}
       {confirmDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50" onClick={() => { if (!saving) setConfirmDelete(null); }} />
-          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
-            <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <AlertTriangle className="w-7 h-7 text-red-600" />
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900 text-center mb-2">Eliminar categoría</h3>
-            <p className="text-sm text-gray-600 text-center mb-6">
-              ¿Eliminar <span className="font-semibold text-gray-900">{confirmDelete.name}</span>?
-              Los productos de esta categoría quedarán sin categoría.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setConfirmDelete(null)}
-                className="flex-1 px-4 py-2.5 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50"
-                disabled={saving}
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleDelete}
-                disabled={saving}
-                className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-xl text-sm font-medium hover:bg-red-700 disabled:opacity-50"
-              >
-                {saving ? 'Eliminando...' : 'Eliminar'}
-              </button>
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center" onClick={() => { if (!saving) setConfirmDelete(null); }}>
+          <div className="animate-slide-up w-full sm:max-w-sm bg-white rounded-t-2xl sm:rounded-2xl shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="sm:hidden flex justify-center pt-3 pb-1"><div className="w-10 h-1 bg-gray-200 rounded-full" /></div>
+            <div className="p-6 pb-8">
+              <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertTriangle className="w-7 h-7 text-red-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 text-center mb-2">Eliminar categoría</h3>
+              <p className="text-sm text-gray-600 text-center mb-6">
+                ¿Eliminar <span className="font-semibold text-gray-900">{confirmDelete.name}</span>? Los productos quedarán sin categoría.
+              </p>
+              <div className="flex gap-3">
+                <button onClick={() => setConfirmDelete(null)} className="flex-1 px-4 py-2.5 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50" disabled={saving}>Cancelar</button>
+                <button onClick={handleDelete} disabled={saving} className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-xl text-sm font-medium hover:bg-red-700 disabled:opacity-50">{saving ? 'Eliminando...' : 'Eliminar'}</button>
+              </div>
             </div>
           </div>
         </div>

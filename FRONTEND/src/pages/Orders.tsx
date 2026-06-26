@@ -656,20 +656,18 @@ const Orders: React.FC = () => {
 
       {/* Modal: hard delete orden de papelera */}
       {hardDeleteConfirm !== null && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                <AlertTriangle className="w-5 h-5 text-red-600" />
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center" onClick={() => setHardDeleteConfirm(null)}>
+          <div className="animate-slide-up w-full sm:max-w-sm bg-white rounded-t-2xl sm:rounded-2xl shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="sm:hidden flex justify-center pt-3 pb-1"><div className="w-10 h-1 bg-gray-200 rounded-full" /></div>
+            <div className="p-6 pb-8">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0"><AlertTriangle className="w-5 h-5 text-red-600" /></div>
+                <div><h3 className="font-semibold text-gray-900">Eliminar definitivamente</h3><p className="text-sm text-gray-500">Esta acción es irreversible. La orden se borrará para siempre.</p></div>
               </div>
-              <div>
-                <h3 className="font-semibold text-gray-900">Eliminar definitivamente</h3>
-                <p className="text-sm text-gray-500">Esta acción es irreversible. La orden se borrará para siempre.</p>
+              <div className="flex gap-3">
+                <Button variant="outline" onClick={() => setHardDeleteConfirm(null)} className="flex-1">Cancelar</Button>
+                <Button variant="danger" onClick={() => handleHardDelete(hardDeleteConfirm)} className="flex-1">Eliminar para siempre</Button>
               </div>
-            </div>
-            <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setHardDeleteConfirm(null)} className="flex-1">Cancelar</Button>
-              <Button variant="danger" onClick={() => handleHardDelete(hardDeleteConfirm)} className="flex-1">Eliminar para siempre</Button>
             </div>
           </div>
         </div>
@@ -677,15 +675,15 @@ const Orders: React.FC = () => {
 
       {/* Modal: eliminar orden del servidor */}
       {showDeleteModal && orderToDelete !== null && (
-        <div className="fixed px-2 inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-sm">
-            <h2 className="text-lg font-bold mb-4">¿Eliminar orden?</h2>
-            <p className="mb-6">Esta acción no se puede deshacer. ¿Seguro que deseas eliminar la orden?</p>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setShowDeleteModal(false)}>Cancelar</Button>
-              <Button
-                variant="danger"
-                onClick={async () => {
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center" onClick={() => setShowDeleteModal(false)}>
+          <div className="animate-slide-up w-full sm:max-w-sm bg-white rounded-t-2xl sm:rounded-2xl shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="sm:hidden flex justify-center pt-3 pb-1"><div className="w-10 h-1 bg-gray-200 rounded-full" /></div>
+            <div className="p-6 pb-8">
+              <h2 className="text-base font-semibold text-gray-900 mb-2">¿Eliminar orden?</h2>
+              <p className="text-sm text-gray-500 mb-6">Esta acción no se puede deshacer.</p>
+              <div className="flex gap-3">
+                <Button variant="outline" onClick={() => setShowDeleteModal(false)} className="flex-1">Cancelar</Button>
+                <Button variant="danger" className="flex-1" onClick={async () => {
                   try {
                     await deleteOrder(orderToDelete);
                     setShowDeleteModal(false);
@@ -696,10 +694,8 @@ const Orders: React.FC = () => {
                     addNotification({ type: 'error', title: 'Error', message: msg });
                     setShowDeleteModal(false);
                   }
-                }}
-              >
-                Eliminar
-              </Button>
+                }}>Eliminar</Button>
+              </div>
             </div>
           </div>
         </div>
@@ -707,22 +703,17 @@ const Orders: React.FC = () => {
 
       {/* Modal: eliminar orden de local (Dexie) */}
       {localDeleteConfirm !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-40">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
-            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Trash2 className="w-6 h-6 text-red-600" />
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900 text-center mb-2">Eliminar de este dispositivo</h3>
-            <p className="text-sm text-gray-600 text-center mb-6">
-              Esta orden nunca llegó al servidor y será eliminada solo de este dispositivo. No se puede deshacer.
-            </p>
-            <div className="flex gap-3">
-              <button onClick={() => setLocalDeleteConfirm(null)} className="flex-1 px-4 py-2.5 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50">
-                Cancelar
-              </button>
-              <button onClick={() => handleDeleteLocal(localDeleteConfirm)} className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-xl text-sm font-medium hover:bg-red-700">
-                Eliminar
-              </button>
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center" onClick={() => setLocalDeleteConfirm(null)}>
+          <div className="animate-slide-up w-full sm:max-w-sm bg-white rounded-t-2xl sm:rounded-2xl shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="sm:hidden flex justify-center pt-3 pb-1"><div className="w-10 h-1 bg-gray-200 rounded-full" /></div>
+            <div className="p-6 pb-8">
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4"><Trash2 className="w-6 h-6 text-red-600" /></div>
+              <h3 className="text-lg font-semibold text-gray-900 text-center mb-2">Eliminar de este dispositivo</h3>
+              <p className="text-sm text-gray-600 text-center mb-6">Esta orden nunca llegó al servidor y será eliminada solo de este dispositivo.</p>
+              <div className="flex gap-3">
+                <button onClick={() => setLocalDeleteConfirm(null)} className="flex-1 px-4 py-2.5 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50">Cancelar</button>
+                <button onClick={() => handleDeleteLocal(localDeleteConfirm)} className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-xl text-sm font-medium hover:bg-red-700">Eliminar</button>
+              </div>
             </div>
           </div>
         </div>
