@@ -32,6 +32,7 @@ const Inventory: React.FC = () => {
   const [editMode, setEditMode] = useState(false);
   const [edits, setEdits] = useState<Record<number, number>>({}); // id → nuevo stock
   const [saving, setSaving] = useState(false);
+  const [clearingNegatives, setClearingNegatives] = useState(false);
 
   useEffect(() => {
     getProducts(1, 2000, false);
@@ -100,6 +101,27 @@ const Inventory: React.FC = () => {
       return next;
     });
   }, [filtered]);
+
+  const clearAllNegatives = async () => {
+    if (negativeStock.length === 0) return;
+    const confirmed = window.confirm(
+      `¿Poner en 0 los ${negativeStock.length} producto${negativeStock.length !== 1 ? 's' : ''} con stock negativo?\n\nEsta acción no se puede deshacer.`
+    );
+    if (!confirmed) return;
+    setClearingNegatives(true);
+    try {
+      await Promise.all(negativeStock.map(p => productService.updateProduct(p.id, { stock: 0 })));
+      addNotification({
+        type: 'success',
+        message: `${negativeStock.length} producto${negativeStock.length !== 1 ? 's' : ''} limpiado${negativeStock.length !== 1 ? 's' : ''} a 0`,
+      });
+      getProducts(1, 2000, false);
+    } catch {
+      addNotification({ type: 'error', message: 'Error al limpiar el stock negativo' });
+    } finally {
+      setClearingNegatives(false);
+    }
+  };
 
   const saveAll = async () => {
     if (modifiedCount === 0) return;
@@ -201,8 +223,16 @@ const Inventory: React.FC = () => {
               {negativeStock.length} producto{negativeStock.length > 1 ? 's' : ''} con stock negativo
             </p>
             <button
+              onClick={clearAllNegatives}
+              disabled={clearingNegatives}
+              className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1 bg-red-600 text-white text-xs rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors font-medium"
+            >
+              {clearingNegatives ? <LoadingSpinner size="sm" /> : <Zap size={11} />}
+              <span>Limpiar a 0</span>
+            </button>
+            <button
               onClick={() => { setFilter('negative'); setSearch(''); }}
-              className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1 bg-red-600 text-white text-xs rounded-lg hover:bg-red-700 transition-colors"
+              className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1 border border-red-300 text-red-700 bg-white text-xs rounded-lg hover:bg-red-50 transition-colors"
             >
               <ShoppingCart size={11} />
               <span className="hidden xs:inline">Ver</span>
