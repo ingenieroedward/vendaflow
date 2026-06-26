@@ -42,10 +42,12 @@ const COP = (n: number) =>
 
 const COPShort = (n: number) => {
   if (n === 0) return '$0';
-  if (n >= 1_000_000_000) return `$${(n / 1_000_000_000).toFixed(1)}B`;
-  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `$${(n / 1_000).toFixed(0)}K`;
-  return `$${n}`;
+  const sign = n < 0 ? '-' : '';
+  const abs = Math.abs(n);
+  if (abs >= 1_000_000_000) return `${sign}$${(abs / 1_000_000_000).toFixed(1)}B`;
+  if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1)}M`;
+  if (abs >= 1_000) return `${sign}$${(abs / 1_000).toFixed(0)}K`;
+  return `${sign}$${abs}`;
 };
 
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -980,29 +982,30 @@ const Reports: React.FC = () => {
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-sm font-semibold text-gray-700">Este mes</h3>
                     {rentStats.profitPct !== null && (
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ml-2 ${
                         rentStats.profitPct >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'
                       }`}>
-                        {rentStats.profitPct >= 0 ? '+' : ''}{rentStats.profitPct}% vs mes anterior
+                        {rentStats.profitPct >= 0 ? '+' : ''}{rentStats.profitPct}%
+                        <span className="hidden sm:inline"> vs mes anterior</span>
                       </span>
                     )}
                   </div>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-3 gap-2">
                     <div>
                       <p className="text-xs text-gray-400 mb-0.5">Ingresos</p>
-                      <p className="text-base font-bold text-gray-900">{COPShort(rentStats.monthRevenue)}</p>
+                      <p className="text-sm font-bold text-gray-900">{COPShort(rentStats.monthRevenue)}</p>
                     </div>
                     <div>
                       <p className="text-xs text-gray-400 mb-0.5">Costos</p>
-                      <p className="text-base font-bold text-orange-600">{COPShort(rentStats.monthCost)}</p>
+                      <p className="text-sm font-bold text-orange-600">{COPShort(rentStats.monthCost)}</p>
                     </div>
                     <div>
                       <p className="text-xs text-gray-400 mb-0.5">Utilidad</p>
-                      <p className={`text-base font-bold ${rentStats.monthProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                      <p className={`text-sm font-bold ${rentStats.monthProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                         {COPShort(rentStats.monthProfit)}
-                        <span className="text-xs font-normal ml-1 text-gray-400">
-                          ({rentStats.monthMargin.toFixed(0)}%)
-                        </span>
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        {rentStats.monthMargin.toFixed(0)}% margen
                       </p>
                     </div>
                   </div>
