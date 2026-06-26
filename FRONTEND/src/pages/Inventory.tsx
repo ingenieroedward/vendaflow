@@ -1,11 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, Package, TrendingDown, Plus, Search, ChevronLeft, ChevronRight, TrendingUp, ShoppingCart, ChevronDown } from 'lucide-react';
+import {
+  AlertTriangle, Package, TrendingDown, Plus, Search,
+  ChevronLeft, ChevronRight, TrendingUp, ShoppingCart,
+  ChevronDown, Edit3, X, Save, Zap, ArrowUpToLine,
+} from 'lucide-react';
 import { useProductStore } from '../store/productStore';
 import { usePurchaseOrderStore } from '../store/purchaseOrderStore';
+import { useUIStore } from '../store/uiStore';
 import { Product } from '../types';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import Button from '../components/ui/Button';
+import { productService } from '../services/products';
 
 type FilterType = 'all' | 'negative' | 'alerts' | 'out_of_stock';
 
@@ -15,10 +21,17 @@ const Inventory: React.FC = () => {
   const navigate = useNavigate();
   const { products, getProducts, loading } = useProductStore();
   const { fetchStockAlerts } = usePurchaseOrderStore();
+  const { addNotification } = useUIStore();
+
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<FilterType>('all');
   const [page, setPage] = useState(1);
   const [alertExpanded, setAlertExpanded] = useState(false);
+
+  // ── Modo edición ──────────────────────────────────────────────────────────
+  const [editMode, setEditMode] = useState(false);
+  const [edits, setEdits] = useState<Record<number, number>>({}); // id → nuevo stock
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     getProducts(1, 2000, false);
@@ -59,22 +72,129 @@ const Inventory: React.FC = () => {
     { key: 'out_of_stock', label: 'Sin stock' },
   ];
 
+  // ── Helpers edición ───────────────────────────────────────────────────────
+  const getDisplayStock = (p: Product) =>
+    p.id in edits ? edits[p.id] : p.stock;
+
+  const setEdit = (id: number, val: number) =>
+    setEdits(prev => ({ ...prev, [id]: val }));
+
+  const cancelEdit = () => { setEdits({}); setEditMode(false); };
+
+  const modifiedCount = Object.keys(edits).length;
+
+  // Acciones masivas sobre los productos del filtro actual
+  const applyBulkAction = useCallback((action: 'zero_negative' | 'all_zero' | 'to_minimum') => {
+    const targets = action === 'zero_negative'
+      ? filtered.filter(p => p.stock < 0)
+      : action === 'all_zero'
+        ? filtered
+        : filtered.filter(p => p.stock < p.minStock);
+
+    setEdits(prev => {
+      const next = { ...prev };
+      targets.forEach(p => {
+        const newVal = action === 'to_minimum' ? p.minStock : 0;
+        next[p.id] = newVal;
+      });
+      return next;
+    });
+  }, [filtered]);
+
+  const saveAll = async () => {
+    if (modifiedCount === 0) return;
+    setSaving(true);
+    try {
+      await Promise.all(
+        Object.entries(edits).map(([id, stock]) =>
+          productService.updateProduct(Number(id), { stock })
+        )
+      );
+      addNotification({
+        type: 'success',
+        message: `${modifiedCount} producto${modifiedCount !== 1 ? 's' : ''} actualizado${modifiedCount !== 1 ? 's' : ''}`,
+      });
+      setEdits({});
+      setEditMode(false);
+      getProducts(1, 2000, false);
+    } catch {
+      addNotification({ type: 'error', message: 'Error al guardar algunos cambios' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
-    <div className="p-4 max-w-6xl mx-auto">
+    <div className="p-4 max-w-6xl mx-auto pb-32">
+      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Inventario</h1>
           <p className="text-sm text-gray-500 mt-1">{products.length} producto(s) registrado(s)</p>
         </div>
-        <Button onClick={() => navigate('/purchase-orders/new')} className="flex items-center gap-2">
-          <Plus size={16} /> Nueva Orden de Compra
-        </Button>
+        <div className="flex items-center gap-2">
+          {!editMode ? (
+            <>
+              <Button
+                variant="outline"
+                onClick={() => setEditMode(true)}
+                className="flex items-center gap-1.5 text-sm"
+              >
+                <Edit3 size={15} /> Editar stock
+              </Button>
+              <Button onClick={() => navigate('/purchase-orders/new')} className="flex items-center gap-2">
+                <Plus size={16} /> Nueva OC
+              </Button>
+            </>
+          ) : (
+            <button
+              onClick={cancelEdit}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50"
+            >
+              <X size={15} /> Cancelar edición
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* Banner modo edición */}
+      {editMode && (
+        <div className="mb-4 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <Edit3 size={15} className="text-indigo-600 flex-shrink-0" />
+            <span className="text-sm font-medium text-indigo-800 flex-1">
+              Modo edición activo — edita el stock directamente en la tabla
+            </span>
+            {/* Acciones masivas */}
+            <div className="flex flex-wrap gap-2 mt-1 sm:mt-0">
+              {negativeStock.length > 0 && (
+                <button
+                  onClick={() => applyBulkAction('zero_negative')}
+                  className="flex items-center gap-1 px-2.5 py-1 bg-red-100 border border-red-300 text-red-700 text-xs rounded-lg hover:bg-red-200 transition-colors"
+                >
+                  <Zap size={11} /> Negativos → 0 ({negativeStock.length})
+                </button>
+              )}
+              <button
+                onClick={() => applyBulkAction('to_minimum')}
+                className="flex items-center gap-1 px-2.5 py-1 bg-yellow-100 border border-yellow-300 text-yellow-700 text-xs rounded-lg hover:bg-yellow-200 transition-colors"
+              >
+                <ArrowUpToLine size={11} /> Subir al mínimo
+              </button>
+              <button
+                onClick={() => applyBulkAction('all_zero')}
+                className="flex items-center gap-1 px-2.5 py-1 bg-gray-100 border border-gray-300 text-gray-600 text-xs rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Todo a 0
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Alerta stock negativo */}
       {negativeStock.length > 0 && (
         <div className="mb-5 rounded-xl border border-red-300 bg-red-50 overflow-hidden">
-          {/* Fila principal — siempre visible */}
           <div className="flex items-center gap-2 px-3 py-2.5 sm:px-4 sm:py-3">
             <AlertTriangle className="text-red-500 flex-shrink-0" size={16} />
             <p className="flex-1 font-semibold text-red-800 text-xs sm:text-sm leading-tight">
@@ -95,8 +215,6 @@ const Inventory: React.FC = () => {
               <ChevronDown size={14} className={`transition-transform ${alertExpanded ? 'rotate-180' : ''}`} />
             </button>
           </div>
-
-          {/* Detalle expandible */}
           {alertExpanded && (
             <div className="px-3 pb-3 sm:px-4 sm:pb-4 border-t border-red-200">
               <p className="text-xs text-red-600 mt-2 mb-2">
@@ -210,14 +328,17 @@ const Inventory: React.FC = () => {
                 {search ? 'No se encontraron productos' : 'Sin productos que mostrar'}
               </p>
             ) : paginated.map(product => {
-              const badge = getStockBadge(product);
+              const displayStock = getDisplayStock(product);
+              const isEdited = product.id in edits;
+              const badge = getStockBadge({ ...product, stock: displayStock });
               return (
                 <div
                   key={product.id}
-                  className={`rounded-xl border p-3 ${
-                    product.stock < 0 ? 'bg-red-50 border-red-200' :
-                    product.stock === 0 ? 'bg-red-50/60 border-red-100' :
-                    product.stock <= product.minStock ? 'bg-yellow-50/60 border-yellow-100' :
+                  className={`rounded-xl border p-3 transition-colors ${
+                    isEdited ? 'bg-indigo-50 border-indigo-300' :
+                    displayStock < 0 ? 'bg-red-50 border-red-200' :
+                    displayStock === 0 ? 'bg-red-50/60 border-red-100' :
+                    displayStock <= product.minStock ? 'bg-yellow-50/60 border-yellow-100' :
                     'bg-white border-gray-200'
                   }`}
                 >
@@ -231,12 +352,21 @@ const Inventory: React.FC = () => {
                     </span>
                   </div>
                   <div className="flex items-center justify-between mt-2">
-                    <div>
-                      <span className={`text-xl font-bold ${product.stock < 0 ? 'text-red-600' : product.stock === 0 ? 'text-red-500' : 'text-gray-900'}`}>
-                        {Number(product.stock).toLocaleString('es-CO')}
-                      </span>
-                      <span className="text-xs text-gray-400 ml-1">{product.unit}</span>
-                      <span className="text-xs text-gray-400 ml-2">/ mín {Number(product.minStock).toLocaleString('es-CO')}</span>
+                    <div className="flex items-center gap-2">
+                      {editMode ? (
+                        <input
+                          type="number"
+                          value={displayStock}
+                          onChange={e => setEdit(product.id, parseFloat(e.target.value) || 0)}
+                          className="w-24 px-2 py-1 border-2 border-indigo-400 rounded-lg text-base font-bold text-center focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                      ) : (
+                        <span className={`text-xl font-bold ${displayStock < 0 ? 'text-red-600' : displayStock === 0 ? 'text-red-500' : 'text-gray-900'}`}>
+                          {Number(displayStock).toLocaleString('es-CO')}
+                        </span>
+                      )}
+                      <span className="text-xs text-gray-400">{product.unit}</span>
+                      <span className="text-xs text-gray-400">/ mín {Number(product.minStock).toLocaleString('es-CO')}</span>
                     </div>
                     <span className="text-sm font-semibold text-gray-700">${Number(product.salePrice).toLocaleString('es-CO')}</span>
                   </div>
@@ -256,7 +386,13 @@ const Inventory: React.FC = () => {
                   <th className="px-4 py-3 text-left">Código</th>
                   <th className="px-4 py-3 text-left">Producto</th>
                   <th className="px-4 py-3 text-left">Categoría</th>
-                  <th className="px-4 py-3 text-center">Stock actual</th>
+                  <th className="px-4 py-3 text-center">
+                    {editMode ? (
+                      <span className="text-indigo-600 flex items-center justify-center gap-1">
+                        <Edit3 size={11} /> Stock actual
+                      </span>
+                    ) : 'Stock actual'}
+                  </th>
                   <th className="px-4 py-3 text-center">Mínimo</th>
                   <th className="px-4 py-3 text-right">Precio venta</th>
                   <th className="px-4 py-3 text-center">Estado</th>
@@ -270,24 +406,41 @@ const Inventory: React.FC = () => {
                     </td>
                   </tr>
                 ) : paginated.map(product => {
-                  const badge = getStockBadge(product);
+                  const displayStock = getDisplayStock(product);
+                  const isEdited = product.id in edits;
+                  const badge = getStockBadge({ ...product, stock: displayStock });
                   return (
                     <tr
                       key={product.id}
-                      className={`hover:bg-gray-50 ${
-                        product.stock < 0 ? 'bg-red-50' :
-                        product.stock === 0 ? 'bg-red-50/40' :
-                        product.stock <= product.minStock ? 'bg-yellow-50/40' : ''
+                      className={`transition-colors ${
+                        isEdited ? 'bg-indigo-50' :
+                        displayStock < 0 ? 'bg-red-50 hover:bg-red-100' :
+                        displayStock === 0 ? 'bg-red-50/40 hover:bg-red-50' :
+                        displayStock <= product.minStock ? 'bg-yellow-50/40 hover:bg-yellow-50' :
+                        'hover:bg-gray-50'
                       }`}
                     >
                       <td className="px-4 py-3 font-mono text-xs text-gray-500">{product.code}</td>
                       <td className="px-4 py-3 font-medium text-gray-800">{product.name}</td>
                       <td className="px-4 py-3 text-gray-500 text-xs">{product.category?.name ?? '—'}</td>
                       <td className="px-4 py-3 text-center">
-                        <span className={`font-bold text-base ${product.stock < 0 ? 'text-red-600' : product.stock === 0 ? 'text-red-500' : 'text-gray-800'}`}>
-                          {Number(product.stock).toLocaleString('es-CO')}
-                        </span>
-                        <span className="text-xs text-gray-400 ml-1">{product.unit}</span>
+                        {editMode ? (
+                          <input
+                            type="number"
+                            value={displayStock}
+                            onChange={e => setEdit(product.id, parseFloat(e.target.value) || 0)}
+                            className={`w-24 px-2 py-1 border-2 rounded-lg text-sm font-bold text-center focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                              isEdited ? 'border-indigo-400 bg-white' : 'border-gray-300 bg-white'
+                            }`}
+                          />
+                        ) : (
+                          <>
+                            <span className={`font-bold text-base ${displayStock < 0 ? 'text-red-600' : displayStock === 0 ? 'text-red-500' : 'text-gray-800'}`}>
+                              {Number(displayStock).toLocaleString('es-CO')}
+                            </span>
+                            <span className="text-xs text-gray-400 ml-1">{product.unit}</span>
+                          </>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-center text-gray-500">
                         {Number(product.minStock).toLocaleString('es-CO')} {product.unit}
@@ -344,6 +497,39 @@ const Inventory: React.FC = () => {
             </div>
           )}
         </>
+      )}
+
+      {/* ── Barra flotante de guardado ──────────────────────────────────────── */}
+      {editMode && (
+        <div className={`fixed bottom-16 md:bottom-0 inset-x-0 z-50 flex justify-center px-4 pb-4 pt-2 pointer-events-none`}>
+          <div className={`pointer-events-auto w-full max-w-lg bg-white border shadow-2xl rounded-2xl px-4 py-3 flex items-center gap-3 transition-all ${
+            modifiedCount > 0 ? 'border-indigo-300' : 'border-gray-200'
+          }`}>
+            <div className="flex-1 min-w-0">
+              {modifiedCount > 0 ? (
+                <p className="text-sm font-semibold text-indigo-700">
+                  {modifiedCount} producto{modifiedCount !== 1 ? 's' : ''} modificado{modifiedCount !== 1 ? 's' : ''}
+                </p>
+              ) : (
+                <p className="text-sm text-gray-400">Sin cambios — edita el stock en la tabla</p>
+              )}
+            </div>
+            <button
+              onClick={cancelEdit}
+              className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={saveAll}
+              disabled={modifiedCount === 0 || saving}
+              className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              {saving ? <LoadingSpinner size="sm" /> : <Save size={14} />}
+              {saving ? 'Guardando...' : 'Guardar todo'}
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
