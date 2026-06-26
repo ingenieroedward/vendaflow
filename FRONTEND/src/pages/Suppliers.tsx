@@ -283,6 +283,7 @@ const Suppliers: React.FC = () => {
                 {saving ? 'Eliminando...' : 'Eliminar'}
               </button>
             </div>
+            </div>
           </div>
         </div>
       )}
