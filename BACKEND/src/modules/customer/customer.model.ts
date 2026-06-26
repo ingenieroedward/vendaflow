@@ -63,6 +63,7 @@ export class Customer extends Model<
   @Column({
     type: DataType.STRING(20),
     allowNull: true,
+    unique: true,
   })
   nit!: string | null;
 
