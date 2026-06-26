@@ -9,9 +9,14 @@ export default {
           '50%':  { transform: 'translateX(0%)' },
           '100%': { transform: 'translateX(100%)' },
         },
+        'slide-up': {
+          from: { transform: 'translateY(100%)' },
+          to:   { transform: 'translateY(0)' },
+        },
       },
       animation: {
         'loading-bar': 'loading-bar 1.4s ease-in-out infinite',
+        'slide-up':    'slide-up 0.28s cubic-bezier(0.32, 0.72, 0, 1)',
       },
     },
   },
