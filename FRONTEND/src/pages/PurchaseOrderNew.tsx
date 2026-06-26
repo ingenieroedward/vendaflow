@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Trash2, ShoppingCart, AlertCircle, ChevronDown } from 'lucide-react';
+import { Plus, Trash2, ShoppingCart, AlertCircle, ChevronDown, ArrowLeft } from 'lucide-react';
 import { usePurchaseOrderStore } from '../store/purchaseOrderStore';
 import { useProductStore } from '../store/productStore';
 import { useAuthStore } from '../store/authStore';
@@ -93,12 +93,16 @@ const PurchaseOrderNew: React.FC = () => {
   return (
     <div className="p-4 max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Nueva Orden de Compra</h1>
-          <p className="text-sm text-gray-500 mt-1">Registra la compra de productos a un proveedor</p>
+        <div className="min-w-0 flex-1">
+          <h1 className="text-lg sm:text-2xl font-bold text-gray-900">Nueva Orden de Compra</h1>
+          <p className="text-xs sm:text-sm text-gray-500 mt-0.5">Registra la compra de productos a un proveedor</p>
         </div>
-        <button onClick={() => navigate('/purchase-orders')} className="text-sm text-gray-500 hover:text-gray-700">
-          ← Volver
+        <button
+          onClick={() => navigate('/purchase-orders')}
+          className="flex-shrink-0 flex items-center gap-1 p-1.5 sm:px-3 sm:py-1.5 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors ml-2"
+        >
+          <ArrowLeft size={16} />
+          <span className="hidden sm:inline text-sm">Volver</span>
         </button>
       </div>
 

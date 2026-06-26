@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { CheckCircle, Package, AlertCircle, Truck } from 'lucide-react';
+import { CheckCircle, Package, AlertCircle, Truck, ArrowLeft } from 'lucide-react';
 import { usePurchaseOrderStore } from '../store/purchaseOrderStore';
 import { useAuthStore } from '../store/authStore';
 import { useUIStore } from '../store/uiStore';
@@ -74,20 +74,24 @@ const PurchaseOrderDetail: React.FC = () => {
     <div className="p-4 max-w-4xl mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900">{po.poNumber}</h1>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-lg sm:text-2xl font-bold text-gray-900">{po.poNumber}</h1>
             <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${status.className}`}>
               {status.label}
             </span>
           </div>
-          <p className="text-sm text-gray-500 mt-1">
-            Creada {format(new Date(po.createdAt), "dd 'de' MMMM yyyy", { locale: es })}
-            {po.user && ` · por ${po.user.username}`}
+          <p className="text-xs sm:text-sm text-gray-500 mt-1">
+            {format(new Date(po.createdAt), "dd MMM yyyy", { locale: es })}
+            {po.user && ` · ${po.user.username}`}
           </p>
         </div>
-        <button onClick={() => navigate('/purchase-orders')} className="text-sm text-gray-500 hover:text-gray-700">
-          ← Volver
+        <button
+          onClick={() => navigate('/purchase-orders')}
+          className="flex-shrink-0 flex items-center gap-1 p-1.5 sm:px-3 sm:py-1.5 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors ml-2"
+        >
+          <ArrowLeft size={16} />
+          <span className="hidden sm:inline text-sm">Volver</span>
         </button>
       </div>
 

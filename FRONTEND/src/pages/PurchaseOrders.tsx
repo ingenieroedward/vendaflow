@@ -42,12 +42,17 @@ const PurchaseOrders: React.FC = () => {
     <div className="p-4 max-w-6xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Órdenes de Compra</h1>
-          <p className="text-sm text-gray-500 mt-1">{pagination.total} orden(es) registrada(s)</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Órdenes de Compra</h1>
+          <p className="text-sm text-gray-500 mt-1">{pagination.total} orden(es)</p>
         </div>
-        <Button onClick={() => navigate('/purchase-orders/new')} className="flex items-center gap-2">
-          <Plus size={16} /> Nueva Orden de Compra
-        </Button>
+        <button
+          onClick={() => navigate('/purchase-orders/new')}
+          className="flex items-center gap-1 px-2.5 py-1.5 text-xs sm:text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+        >
+          <Plus size={13} />
+          <span className="hidden sm:inline">Nueva Orden de Compra</span>
+          <span className="sm:hidden">Nueva OC</span>
+        </button>
       </div>
 
       {error && (
