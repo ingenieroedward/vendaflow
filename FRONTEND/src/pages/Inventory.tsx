@@ -152,62 +152,69 @@ const Inventory: React.FC = () => {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Inventario</h1>
-          <p className="text-sm text-gray-500 mt-1">{products.length} producto(s) registrado(s)</p>
+          <p className="text-sm text-gray-500 mt-1">{products.length} producto(s)</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           {!editMode ? (
             <>
-              <Button
-                variant="outline"
+              <button
                 onClick={() => setEditMode(true)}
-                className="flex items-center gap-1.5 text-sm"
+                className="flex items-center gap-1 px-2.5 py-1.5 text-xs sm:text-sm border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors"
               >
-                <Edit3 size={15} /> Editar stock
-              </Button>
-              <Button onClick={() => navigate('/purchase-orders/new')} className="flex items-center gap-2">
-                <Plus size={16} /> Nueva OC
-              </Button>
+                <Edit3 size={13} /> <span className="hidden xs:inline">Editar</span><span className="xs:hidden"> stock</span>
+              </button>
+              <button
+                onClick={() => navigate('/purchase-orders/new')}
+                className="flex items-center gap-1 px-2.5 py-1.5 text-xs sm:text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+              >
+                <Plus size={13} /> <span>Nueva OC</span>
+              </button>
             </>
           ) : (
             <button
               onClick={cancelEdit}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50"
+              className="flex items-center gap-1 px-2.5 py-1.5 text-xs sm:text-sm border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors"
             >
-              <X size={15} /> Cancelar edición
+              <X size={13} /> <span className="hidden xs:inline">Cancelar</span><span className="xs:hidden">✕</span>
             </button>
           )}
         </div>
       </div>
 
-      {/* Banner modo edición */}
+      {/* Banner modo edición — compacto en mobile */}
       {editMode && (
-        <div className="mb-4 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <Edit3 size={15} className="text-indigo-600 flex-shrink-0" />
-            <span className="text-sm font-medium text-indigo-800 flex-1">
-              Modo edición activo — edita el stock directamente en la tabla
+        <div className="mb-4 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2.5 sm:px-4 sm:py-3">
+          {/* Fila 1: título + acciones masivas */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <Edit3 size={13} className="text-indigo-600 flex-shrink-0" />
+            <span className="text-xs sm:text-sm font-medium text-indigo-800 flex-1 whitespace-nowrap">
+              Modo edición
             </span>
-            {/* Acciones masivas */}
-            <div className="flex flex-wrap gap-2 mt-1 sm:mt-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
               {negativeStock.length > 0 && (
                 <button
                   onClick={() => applyBulkAction('zero_negative')}
-                  className="flex items-center gap-1 px-2.5 py-1 bg-red-100 border border-red-300 text-red-700 text-xs rounded-lg hover:bg-red-200 transition-colors"
+                  className="flex items-center gap-1 px-2 py-1 bg-red-100 border border-red-300 text-red-700 text-xs rounded-lg hover:bg-red-200 transition-colors"
                 >
-                  <Zap size={11} /> Negativos → 0 ({negativeStock.length})
+                  <Zap size={10} />
+                  <span className="hidden sm:inline">Negativos → 0</span>
+                  <span className="sm:hidden">Neg→0</span>
+                  <span className="font-bold">({negativeStock.length})</span>
                 </button>
               )}
               <button
                 onClick={() => applyBulkAction('to_minimum')}
-                className="flex items-center gap-1 px-2.5 py-1 bg-yellow-100 border border-yellow-300 text-yellow-700 text-xs rounded-lg hover:bg-yellow-200 transition-colors"
+                className="flex items-center gap-1 px-2 py-1 bg-yellow-100 border border-yellow-300 text-yellow-700 text-xs rounded-lg hover:bg-yellow-200 transition-colors"
               >
-                <ArrowUpToLine size={11} /> Subir al mínimo
+                <ArrowUpToLine size={10} />
+                <span className="hidden sm:inline">Al mínimo</span>
+                <span className="sm:hidden">Mín</span>
               </button>
               <button
                 onClick={() => applyBulkAction('all_zero')}
-                className="flex items-center gap-1 px-2.5 py-1 bg-gray-100 border border-gray-300 text-gray-600 text-xs rounded-lg hover:bg-gray-200 transition-colors"
+                className="flex items-center gap-1 px-2 py-1 bg-gray-100 border border-gray-300 text-gray-600 text-xs rounded-lg hover:bg-gray-200 transition-colors"
               >
-                Todo a 0
+                Todo→0
               </button>
             </div>
           </div>
