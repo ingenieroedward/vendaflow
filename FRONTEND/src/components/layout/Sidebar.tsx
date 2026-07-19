@@ -47,10 +47,10 @@ const Sidebar = () => {
     <aside className="hidden md:flex flex-col fixed top-0 left-0 h-full w-56 bg-white border-r border-gray-200 z-40">
       {/* Logo */}
       <div className="flex items-center space-x-2.5 px-5 py-5 border-b border-gray-100">
-        <div className="p-1.5 rounded-xl bg-blue-50">
+        <div className="p-1.5 rounded-xl bg-primary/10">
           {tenant?.logoUrl
             ? <img src={tenant.logoUrl} alt={tenant.name} className="w-6 h-6 object-contain" />
-            : <Package className="w-6 h-6 text-blue-600" />}
+            : <Package className="w-6 h-6 text-primary" />}
         </div>
         <span className="text-xl font-bold text-gray-900 tracking-tight">{tenant?.name ?? 'VendaFlow'}</span>
       </div>
@@ -65,17 +65,17 @@ const Sidebar = () => {
               to={item.to}
               className={`flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors duration-150 ${
                 active
-                  ? 'bg-blue-50 text-blue-700 font-semibold'
+                  ? 'bg-primary/10 text-primary font-semibold'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
               }`}
               aria-current={active ? 'page' : undefined}
             >
               <item.icon
-                className={`w-5 h-5 flex-shrink-0 ${active ? 'text-blue-600' : 'text-gray-400'}`}
+                className={`w-5 h-5 flex-shrink-0 ${active ? 'text-primary' : 'text-gray-400'}`}
               />
               <span>{item.label}</span>
               {active && (
-                <span className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-600" aria-hidden="true" />
+                <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" aria-hidden="true" />
               )}
             </Link>
           );

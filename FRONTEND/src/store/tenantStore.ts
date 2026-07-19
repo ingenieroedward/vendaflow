@@ -11,9 +11,15 @@ interface TenantState {
 }
 
 function applyTheme(primaryColor: string) {
-  document.documentElement.style.setProperty('--vf-primary', primaryColor);
-  // Derive a lighter shade for hover/bg states
-  document.documentElement.style.setProperty('--vf-primary-10', primaryColor + '1a');
+  // Store as RGB channels so Tailwind's opacity modifier syntax works:
+  // rgb(var(--vf-primary) / 0.1) → correctly transparent tint
+  const hex = primaryColor.replace('#', '');
+  const r = parseInt(hex.slice(0, 2), 16);
+  const g = parseInt(hex.slice(2, 4), 16);
+  const b = parseInt(hex.slice(4, 6), 16);
+  if (!isNaN(r) && !isNaN(g) && !isNaN(b)) {
+    document.documentElement.style.setProperty('--vf-primary', `${r} ${g} ${b}`);
+  }
 }
 
 export const useTenantStore = create<TenantState>((set) => ({

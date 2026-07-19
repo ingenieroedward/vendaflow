@@ -3,8 +3,8 @@
 @tailwind utilities;
 
 :root {
-  --vf-primary: #2563eb;
-  --vf-primary-10: #2563eb1a;
+  /* RGB channels (no #) — lets Tailwind's opacity modifier work: rgb(var(--vf-primary) / 0.1) */
+  --vf-primary: 37 99 235; /* #2563eb */
 }
 
 @layer utilities {

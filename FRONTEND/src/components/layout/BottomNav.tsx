@@ -61,14 +61,14 @@ const BottomNav = () => {
                 key={item.to}
                 to={item.to}
                 className={`flex-1 flex flex-col items-center justify-center space-y-0.5 text-xs font-medium transition-colors duration-150 relative ${
-                  active ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'
+                  active ? 'text-primary' : 'text-gray-400 hover:text-gray-600'
                 }`}
                 aria-current={active ? 'page' : undefined}
               >
-                <item.icon className={`w-5 h-5 flex-shrink-0 ${active ? 'text-blue-600' : 'text-gray-400'}`} />
+                <item.icon className={`w-5 h-5 flex-shrink-0 ${active ? 'text-primary' : 'text-gray-400'}`} />
                 <span className="leading-none">{item.label}</span>
                 {active && (
-                  <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-blue-600 rounded-full" aria-hidden="true" />
+                  <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary rounded-full" aria-hidden="true" />
                 )}
               </Link>
             );
@@ -78,14 +78,14 @@ const BottomNav = () => {
             <button
               onClick={() => setShowMore(v => !v)}
               className={`flex-1 flex flex-col items-center justify-center space-y-0.5 text-xs font-medium transition-colors duration-150 relative ${
-                overflowActive || showMore ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'
+                overflowActive || showMore ? 'text-primary' : 'text-gray-400 hover:text-gray-600'
               }`}
               aria-label="Más opciones"
             >
-              <MoreHorizontal className={`w-5 h-5 ${overflowActive || showMore ? 'text-blue-600' : 'text-gray-400'}`} />
+              <MoreHorizontal className={`w-5 h-5 ${overflowActive || showMore ? 'text-primary' : 'text-gray-400'}`} />
               <span className="leading-none">Más</span>
               {overflowActive && !showMore && (
-                <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-blue-600 rounded-full" aria-hidden="true" />
+                <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary rounded-full" aria-hidden="true" />
               )}
             </button>
           )}
@@ -121,11 +121,11 @@ const BottomNav = () => {
                     onClick={() => setShowMore(false)}
                     className={`flex flex-col items-center justify-center gap-1.5 py-4 rounded-xl text-xs font-medium transition-colors ${
                       active
-                        ? 'bg-blue-50 text-blue-600'
+                        ? 'bg-primary/10 text-primary'
                         : 'text-gray-600 hover:bg-gray-50'
                     }`}
                   >
-                    <item.icon className={`w-6 h-6 ${active ? 'text-blue-600' : 'text-gray-500'}`} />
+                    <item.icon className={`w-6 h-6 ${active ? 'text-primary' : 'text-gray-500'}`} />
                     <span>{item.label}</span>
                   </Link>
                 );

@@ -96,7 +96,7 @@ const Login: React.FC = () => {
               {tenant?.logoUrl ? (
                 <img src={tenant.logoUrl} alt={tenant.name} className="w-12 h-12 sm:w-16 sm:h-16 object-contain rounded-xl" />
               ) : (
-                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-blue-600 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--vf-primary)' }}>
+                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-primary rounded-full flex items-center justify-center">
                   <Package className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
                 </div>
               )}
@@ -176,7 +176,7 @@ const Login: React.FC = () => {
                 href="https://edwsystem.com" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="text-blue-600 hover:text-blue-500 transition-colors duration-200 font-medium"
+                className="text-primary hover:text-primary/80 transition-colors duration-200 font-medium"
               >
                 Edwsystem
               </a>

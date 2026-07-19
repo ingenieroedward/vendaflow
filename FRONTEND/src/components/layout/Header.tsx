@@ -40,10 +40,10 @@ const Header = () => {
 
           {/* Logo + sync state */}
           <Link to="/" className="flex items-center gap-2 group" aria-label="Ir al inicio">
-            <div className="p-1.5 rounded-xl bg-blue-50 group-hover:bg-blue-100 transition-colors">
+            <div className="p-1.5 rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
               {tenant?.logoUrl
                 ? <img src={tenant.logoUrl} alt={tenant.name} className="w-5 h-5 object-contain" />
-                : <Package className="w-5 h-5 text-blue-600" />}
+                : <Package className="w-5 h-5 text-primary" />}
             </div>
             <span className="text-lg font-bold text-gray-900">{tenant?.name ?? 'VendaFlow'}</span>
 
@@ -79,7 +79,7 @@ const Header = () => {
                 className="p-2 rounded-xl text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-50"
               >
                 {pushSubscribed
-                  ? <Bell className="w-5 h-5 text-blue-600" />
+                  ? <Bell className="w-5 h-5 text-primary" />
                   : <BellOff className="w-5 h-5" />}
               </button>
             )}

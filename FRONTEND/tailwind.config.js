@@ -3,6 +3,9 @@ export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
+      colors: {
+        primary: 'rgb(var(--vf-primary) / <alpha-value>)',
+      },
       keyframes: {
         'loading-bar': {
           '0%':   { transform: 'translateX(-100%)' },

@@ -21,16 +21,16 @@ const TopLoadingBar: React.FC = () => {
   if (!isVisible) return null;
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-[100] h-0.5 bg-blue-100 overflow-hidden">
+    <div className="fixed top-0 left-0 right-0 z-[100] h-0.5 bg-primary/20 overflow-hidden">
       {isSyncing ? (
         // Barra determinada con porcentaje real del sync
         <div
-          className="h-full bg-blue-500 transition-all duration-300 ease-out"
+          className="h-full bg-primary transition-all duration-300 ease-out"
           style={{ width: `${percent}%` }}
         />
       ) : (
         // Barra indeterminada para cargas normales
-        <div className="h-full w-full bg-blue-500 animate-loading-bar" />
+        <div className="h-full w-full bg-primary animate-loading-bar" />
       )}
     </div>
   );
