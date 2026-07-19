@@ -18,33 +18,56 @@ export class AuthService {
   async login(credentials: LoginDto): Promise<{ user: any; token: string; tenant: any }> {
     const validatedData = validateSchema(loginSchema, credentials);
 
-    const user = await User.findOne({
-      where: { username: validatedData.username },
-      include: [{ model: Tenant, as: 'tenant' }],
-    });
+    let user: User | null = null;
+
+    if (validatedData.tenantSlug) {
+      // Scoped login: resolve slug → tenantId, then find user within that tenant
+      const tenant = await Tenant.findOne({ where: { slug: validatedData.tenantSlug } });
+      if (!tenant) throw new UnauthorizedError('Invalid username or password');
+      user = await User.findOne({
+        where: { username: validatedData.username, tenantId: tenant.id },
+        include: [{ model: Tenant, as: 'tenant' }],
+      });
+    } else {
+      // No slug: only superadmin may log in without tenant context
+      user = await User.findOne({
+        where: { username: validatedData.username },
+        include: [{ model: Tenant, as: 'tenant' }],
+      });
+      // Prevent regular users from bypassing tenant isolation by omitting the slug
+      if (user && user.role !== 'superadmin') {
+        throw new UnauthorizedError('Invalid username or password');
+      }
+    }
+
     if (!user) throw new UnauthorizedError('Invalid username or password');
 
     const isPasswordValid = await user.comparePassword(validatedData.password);
     if (!isPasswordValid) throw new UnauthorizedError('Invalid username or password');
 
-    // Verify tenant is active (superadmin bypasses this)
+    // Verify tenant is active (superadmin bypasses this check)
     if (user.role !== 'superadmin') {
-      const tenant = (user as any).tenant as Tenant;
-      if (!tenant || !tenant.isActive) {
+      const tenantModel = (user as any).tenant as Tenant;
+      if (!tenantModel || !tenantModel.isActive) {
         throw new ForbiddenError('Cuenta suspendida. Contacta al administrador.');
       }
     }
 
     const token = this.generateToken(user.id, user.username, user.role, user.tenantId);
 
+    const tenantData = (user as any).tenant as Tenant | undefined;
     return {
       user: { id: user.id, username: user.username, role: user.role, tenantId: user.tenantId },
       token,
-      tenant: (user as any).tenant ? {
-        name: (user as any).tenant.name,
-        slug: (user as any).tenant.slug,
-        primaryColor: (user as any).tenant.primaryColor,
-        logoUrl: (user as any).tenant.logoUrl,
+      tenant: tenantData ? {
+        id: tenantData.id,
+        slug: tenantData.slug,
+        name: tenantData.name,
+        plan: tenantData.plan,
+        status: tenantData.status,
+        primaryColor: tenantData.primaryColor,
+        logoUrl: tenantData.logoUrl,
+        trialEndsAt: tenantData.trialEndsAt,
       } : null,
     };
   }

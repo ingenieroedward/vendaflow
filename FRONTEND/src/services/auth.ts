@@ -1,10 +1,13 @@
 import { apiService } from './api';
 import { LoginRequest, RegisterRequest, LoginResponse, User, Tenant } from '../types/auth';
 import { STORAGE_KEYS } from '../utils/constants';
+import { detectTenantSlug } from './tenant';
 
 export class AuthService {
   async login(credentials: LoginRequest): Promise<LoginResponse> {
-    const response = await apiService.post<LoginResponse>('/auth/login', credentials);
+    const tenantSlug = detectTenantSlug();
+    const payload = tenantSlug ? { ...credentials, tenantSlug } : credentials;
+    const response = await apiService.post<LoginResponse>('/auth/login', payload);
     localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, response.data.token);
     localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(response.data.user));
     if (response.data.tenant) {
