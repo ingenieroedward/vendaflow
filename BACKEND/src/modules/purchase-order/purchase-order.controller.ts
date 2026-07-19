@@ -7,7 +7,8 @@ export class PurchaseOrderController {
 
   create = asyncHandler(async (req: Request, res: Response) => {
     const userId = (req as any).user?.['id'];
-    const po = await this.service.createPurchaseOrder(req.body, userId);
+    const tenantId = (req as any).user?.['tenantId'];
+    const po = await this.service.createPurchaseOrder(req.body, userId, tenantId);
     res.status(201).json({ status: 'success', data: po });
   });
 

@@ -19,6 +19,8 @@ import orderRoutes from '@/modules/order/order.routes';
 import pushRoutes from '@/modules/push/push.routes';
 import purchaseOrderRoutes from '@/modules/purchase-order/purchase-order.routes';
 import stockMovementRoutes from '@/modules/stock-movement/stock-movement.routes';
+import tenantRoutes from '@/modules/tenant/tenant.routes';
+import onboardingRoutes from '@/modules/tenant/onboarding.routes';
 
 const app = express();
 
@@ -79,6 +81,8 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/purchase-orders', purchaseOrderRoutes);
 app.use('/api/stock-movements', stockMovementRoutes);
 app.use('/api/push', pushRoutes);
+app.use('/api/tenants', tenantRoutes);
+app.use('/api/onboarding', onboardingRoutes);
 
 // 404 handler
 app.use('*', notFoundHandler);

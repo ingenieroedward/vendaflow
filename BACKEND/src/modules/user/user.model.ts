@@ -9,16 +9,20 @@ import {
   BeforeCreate,
   BeforeUpdate,
   HasMany,
+  BelongsTo,
+  ForeignKey,
 } from 'sequelize-typescript';
 import bcrypt from 'bcryptjs';
 import { Order } from '../order/order.model';
 import { Price } from '../price/price.model';
+import { Tenant } from '../tenant/tenant.model';
 
 export interface UserAttributes {
   id: number;
+  tenantId: number;
   username: string;
   password: string;
-  role: 'buyer' | 'seller' | 'admin';
+  role: 'buyer' | 'seller' | 'admin' | 'superadmin';
   createdAt: Date;
   updatedAt: Date;
   deletedAt?: Date;
@@ -29,7 +33,8 @@ export interface UserCreationAttributes extends Omit<UserAttributes, 'id' | 'cre
 @Table({
   tableName: 'users',
   timestamps: true,
-  paranoid: true, // Soft deletes
+  paranoid: true,
+  indexes: [{ unique: true, fields: ['tenantId', 'username'] }],
 })
 export class User extends Model<UserAttributes, UserCreationAttributes> {
   @Column({
@@ -39,32 +44,33 @@ export class User extends Model<UserAttributes, UserCreationAttributes> {
   })
   override id!: number;
 
+  @ForeignKey(() => Tenant)
+  @Column({ type: DataType.INTEGER, allowNull: false })
+  tenantId!: number;
+
+  @BelongsTo(() => Tenant)
+  tenant!: Tenant;
+
   @Column({
     type: DataType.STRING(255),
     allowNull: false,
-    unique: true,
-    validate: {
-      notEmpty: true,
-      len: [3, 255],
-    },
+    validate: { notEmpty: true, len: [3, 255] },
   })
   username!: string;
 
   @Column({
     type: DataType.STRING(255),
     allowNull: false,
-    validate: {
-      len: [6, 255],
-    },
+    validate: { len: [6, 255] },
   })
   password!: string;
 
   @Column({
-    type: DataType.ENUM('buyer', 'seller', 'admin'),
+    type: DataType.ENUM('buyer', 'seller', 'admin', 'superadmin'),
     allowNull: false,
     defaultValue: 'buyer',
   })
-  role!: 'buyer' | 'seller' | 'admin';
+  role!: 'buyer' | 'seller' | 'admin' | 'superadmin';
 
   @CreatedAt
   override createdAt!: Date;

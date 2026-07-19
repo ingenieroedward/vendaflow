@@ -12,9 +12,11 @@ import {
 } from 'sequelize-typescript';
 import { Category } from '@/modules/category/category.model';
 import { Price } from '@/modules/price/price.model';
+import { Tenant } from '@/modules/tenant/tenant.model';
 
 export interface ProductAttributes {
   id: number;
+  tenantId: number;
   name: string;
   code: string;
   unit: string;
@@ -32,15 +34,19 @@ export interface ProductCreationAttributes extends Omit<ProductAttributes, 'id' 
 @Table({
   tableName: 'products',
   timestamps: true,
-  paranoid: true, // Soft deletes
+  paranoid: true,
+  indexes: [{ unique: true, fields: ['tenantId', 'code'] }],
 })
 export class Product extends Model<ProductAttributes, ProductCreationAttributes> {
-  @Column({
-    type: DataType.INTEGER,
-    primaryKey: true,
-    autoIncrement: true,
-  })
+  @Column({ type: DataType.INTEGER, primaryKey: true, autoIncrement: true })
   override id!: number;
+
+  @ForeignKey(() => Tenant)
+  @Column({ type: DataType.INTEGER, allowNull: false })
+  tenantId!: number;
+
+  @BelongsTo(() => Tenant)
+  tenant!: Tenant;
 
   @Column({
     type: DataType.STRING(255),
@@ -55,11 +61,7 @@ export class Product extends Model<ProductAttributes, ProductCreationAttributes>
   @Column({
     type: DataType.STRING(50),
     allowNull: false,
-    unique: true,
-    validate: {
-      notEmpty: true,
-      len: [1, 50],
-    },
+    validate: { notEmpty: true, len: [1, 50] },
   })
   code!: string;
 

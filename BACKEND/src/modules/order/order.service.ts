@@ -51,7 +51,7 @@ export class OrderService {
    * la orden queda huérfana; considerar envolver en transacción si esto es crítico).
    * Si no se provee orderNumber, lo genera automáticamente.
    */
-  async createOrder(orderData: CreateOrderDto, userId: number): Promise<OrderResponseDto> {
+  async createOrder(orderData: CreateOrderDto, userId: number, tenantId: number): Promise<OrderResponseDto> {
     const validatedData = validateSchema(createOrderSchema, orderData);
 
     // Check if customer exists
@@ -85,6 +85,7 @@ export class OrderService {
       const t = await sequelize.transaction();
       try {
         const order = await Order.create({
+          tenantId,
           orderNumber,
           customerId: validatedData.customerId,
           userId,
@@ -111,6 +112,7 @@ export class OrderService {
         try {
           for (const item of validatedData.items) {
             await this.stockMovementService.createMovement({
+              tenantId,
               productId: item.productId,
               type: 'sale',
               quantity: -item.quantity,

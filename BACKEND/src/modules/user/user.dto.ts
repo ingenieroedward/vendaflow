@@ -21,7 +21,7 @@ export type UpdateUserDto = z.infer<typeof updateUserSchema>;
 export interface UserResponseDto {
   id: number;
   username: string;
-  role: 'buyer' | 'admin' | 'seller';
+  role: 'buyer' | 'admin' | 'seller' | 'superadmin';
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | undefined;

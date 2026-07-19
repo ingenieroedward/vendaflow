@@ -7,11 +7,15 @@ import {
   UpdatedAt,
   DeletedAt,
   HasMany,
+  BelongsTo,
+  ForeignKey,
 } from 'sequelize-typescript';
 import { Price } from '@/modules/price/price.model';
+import { Tenant } from '@/modules/tenant/tenant.model';
 
 export interface SupplierAttributes {
   id: number;
+  tenantId: number;
   name: string;
   contact: string;
   location: string;
@@ -22,26 +26,22 @@ export interface SupplierAttributes {
 
 export interface SupplierCreationAttributes extends Omit<SupplierAttributes, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'> {}
 
-@Table({
-  tableName: 'suppliers',
-  timestamps: true,
-  paranoid: true, // Soft deletes
-})
+@Table({ tableName: 'suppliers', timestamps: true, paranoid: true })
 export class Supplier extends Model<SupplierAttributes, SupplierCreationAttributes> {
-  @Column({
-    type: DataType.INTEGER,
-    primaryKey: true,
-    autoIncrement: true,
-  })
+  @Column({ type: DataType.INTEGER, primaryKey: true, autoIncrement: true })
   override id!: number;
+
+  @ForeignKey(() => Tenant)
+  @Column({ type: DataType.INTEGER, allowNull: false })
+  tenantId!: number;
+
+  @BelongsTo(() => Tenant)
+  tenant!: Tenant;
 
   @Column({
     type: DataType.STRING(255),
     allowNull: false,
-    validate: {
-      notEmpty: true,
-      len: [1, 255],
-    },
+    validate: { notEmpty: true, len: [1, 255] },
   })
   name!: string;
 

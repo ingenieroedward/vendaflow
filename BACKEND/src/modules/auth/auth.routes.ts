@@ -5,8 +5,7 @@ import { isAuth } from '@/core/middlewares/auth';
 const router = Router();
 const authController = new AuthController();
 
-// Public routes
-router.post('/register', authController.register);
+// Public routes (register is now via /api/onboarding/register)
 router.post('/login', authController.login);
 
 // Protected routes

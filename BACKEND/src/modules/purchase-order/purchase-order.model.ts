@@ -5,12 +5,14 @@ import {
 } from 'sequelize-typescript';
 import { Supplier } from '@/modules/supplier/supplier.model';
 import { User } from '@/modules/user/user.model';
+import { Tenant } from '@/modules/tenant/tenant.model';
 import { PurchaseOrderItem } from './purchase-order-item/purchase-order-item.model';
 
 export type PurchaseOrderStatus = 'draft' | 'ordered' | 'received' | 'cancelled';
 
 export interface PurchaseOrderAttributes {
   id: number;
+  tenantId: number;
   poNumber: string;
   supplierId: number;
   userId: number;
@@ -25,12 +27,24 @@ export interface PurchaseOrderAttributes {
 export interface PurchaseOrderCreationAttributes
   extends Omit<PurchaseOrderAttributes, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'> {}
 
-@Table({ tableName: 'purchase_orders', timestamps: true, paranoid: true })
+@Table({
+  tableName: 'purchase_orders',
+  timestamps: true,
+  paranoid: true,
+  indexes: [{ unique: true, fields: ['tenantId', 'poNumber'] }],
+})
 export class PurchaseOrder extends Model<PurchaseOrderAttributes, PurchaseOrderCreationAttributes> {
   @Column({ type: DataType.INTEGER, primaryKey: true, autoIncrement: true })
   override id!: number;
 
-  @Column({ type: DataType.STRING(50), allowNull: false, unique: true })
+  @ForeignKey(() => Tenant)
+  @Column({ type: DataType.INTEGER, allowNull: false })
+  tenantId!: number;
+
+  @BelongsTo(() => Tenant)
+  tenant!: Tenant;
+
+  @Column({ type: DataType.STRING(50), allowNull: false })
   poNumber!: string;
 
   @ForeignKey(() => Supplier)

@@ -10,12 +10,14 @@ import {
 } from 'sequelize-typescript';
 import { Product } from '@/modules/product/product.model';
 import { User } from '@/modules/user/user.model';
+import { Tenant } from '@/modules/tenant/tenant.model';
 
 export type MovementType = 'sale' | 'purchase' | 'adjustment';
 export type ReferenceType = 'order' | 'purchase_order' | 'adjustment';
 
 export interface StockMovementAttributes {
   id: number;
+  tenantId: number;
   productId: number;
   type: MovementType;
   quantity: number;
@@ -40,6 +42,13 @@ export interface StockMovementCreationAttributes
 export class StockMovement extends Model<StockMovementAttributes, StockMovementCreationAttributes> {
   @Column({ type: DataType.INTEGER, primaryKey: true, autoIncrement: true })
   override id!: number;
+
+  @ForeignKey(() => Tenant)
+  @Column({ type: DataType.INTEGER, allowNull: false })
+  tenantId!: number;
+
+  @BelongsTo(() => Tenant)
+  tenant!: Tenant;
 
   @ForeignKey(() => Product)
   @Column({ type: DataType.INTEGER, allowNull: false })

@@ -14,7 +14,8 @@ export class OrderController {
   createOrder = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const orderData: CreateOrderDto = req.body;
     const userId = req.user!.id;
-    const order = await this.orderService.createOrder(orderData, userId);
+    const tenantId = req.user!.tenantId;
+    const order = await this.orderService.createOrder(orderData, userId, tenantId);
 
     res.status(201).json({
       status: 'success',

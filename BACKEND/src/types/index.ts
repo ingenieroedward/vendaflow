@@ -22,15 +22,4 @@ export interface PaginatedResponse<T> {
   };
 }
 
-// Extend Express Request interface
-declare global {
-  namespace Express {
-    interface Request {
-      user?: {
-        id: number;
-        username: string;
-        role: 'buyer' | 'admin' | 'seller';
-      };
-    }
-  }
-} 
+// Express Request is extended in src/types/express.d.ts

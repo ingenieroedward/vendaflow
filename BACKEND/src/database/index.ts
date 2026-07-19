@@ -2,6 +2,7 @@ import { Sequelize } from 'sequelize-typescript';
 import { config } from '@/config';
 
 // Import models here
+import { Tenant } from '@/modules/tenant/tenant.model';
 import { User } from '@/modules/user/user.model';
 import { Category } from '@/modules/category/category.model';
 import { Product } from '@/modules/product/product.model';
@@ -24,7 +25,7 @@ const sequelize = new Sequelize({
   username: config.database.user,
   password: config.database.password,
   logging: config.server.nodeEnv === 'development' ? console.log : false,
-  models: [User, Category, Product, Supplier, Price, Customer, Order, OrderItem, PushSubscription, PurchaseOrder, PurchaseOrderItem, StockMovement], // Add all models here
+  models: [Tenant, User, Category, Product, Supplier, Price, Customer, Order, OrderItem, PushSubscription, PurchaseOrder, PurchaseOrderItem, StockMovement],
   modelMatch: (filename, member) => {
     return filename.substring(0, filename.indexOf('.model')) === member.toLowerCase();
   },
@@ -44,7 +45,6 @@ export const initializeDatabase = async (): Promise<void> => {
       // Sync database - crea tablas si no existen (safe para producción)
       await sequelize.sync({ alter: false });
       console.log('✅ Database synchronized.');
-      await createDefaultCategory();
       return;
     } catch (error) {
       console.error(`❌ DB connection attempt ${attempt}/${maxRetries} failed:`, error);
@@ -58,20 +58,7 @@ export const initializeDatabase = async (): Promise<void> => {
   }
 };
 
-const createDefaultCategory = async (): Promise<void> => {
-  try {
-    const defaultCategory = await Category.findOrCreate({
-      where: { name: 'Sin categoría' },
-      defaults: { name: 'Sin categoría' }
-    });
-    
-    if (defaultCategory[1]) {
-      console.log('✅ Default category "Sin categoría" created.');
-    }
-  } catch (error) {
-    console.error('❌ Error creating default category:', error);
-  }
-};
+// Default categories are now created per-tenant during onboarding (TenantService.create)
 
 export const closeDatabase = async (): Promise<void> => {
   try {

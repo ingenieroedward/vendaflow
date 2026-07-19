@@ -12,9 +12,11 @@ import {
 import { Product } from '@/modules/product/product.model';
 import { Supplier } from '@/modules/supplier/supplier.model';
 import { User } from '@/modules/user/user.model';
+import { Tenant } from '@/modules/tenant/tenant.model';
 
 export interface PriceAttributes {
   id: number;
+  tenantId: number;
   productId: number;
   supplierId: number;
   price: number;
@@ -29,7 +31,7 @@ export interface PriceCreationAttributes extends Omit<PriceAttributes, 'id' | 'c
 @Table({
   tableName: 'prices',
   timestamps: true,
-  paranoid: true, // Soft deletes
+  paranoid: true,
 })
 export class Price extends Model<PriceAttributes, PriceCreationAttributes> {
   @Column({
@@ -38,6 +40,13 @@ export class Price extends Model<PriceAttributes, PriceCreationAttributes> {
     autoIncrement: true,
   })
   override id!: number;
+
+  @ForeignKey(() => Tenant)
+  @Column({ type: DataType.INTEGER, allowNull: false })
+  tenantId!: number;
+
+  @BelongsTo(() => Tenant)
+  tenant!: Tenant;
 
   @ForeignKey(() => Product)
   @Column({

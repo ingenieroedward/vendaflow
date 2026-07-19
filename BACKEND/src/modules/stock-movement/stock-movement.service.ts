@@ -4,6 +4,7 @@ import { Transaction } from 'sequelize';
 import { paginationSchema, PaginationQuery, validateSchema } from '@/core/utils/validation';
 
 export interface CreateMovementData {
+  tenantId: number;
   productId: number;
   type: MovementType;
   quantity: number;
@@ -27,6 +28,7 @@ export class StockMovementService {
 
     return StockMovement.create(
       {
+        tenantId: data.tenantId,
         productId: data.productId,
         type: data.type,
         quantity: data.quantity,

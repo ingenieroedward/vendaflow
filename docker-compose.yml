@@ -8,7 +8,7 @@ services:
       MYSQL_ROOT_PASSWORD: rootpassword
       MYSQL_DATABASE: jjlm_db
       MYSQL_USER: jjlm_user
-      MYSQL_PASSWORD: jjlm_password
+      MYSQL_PASSWORD: jjlm_passwordya
     ports:
       - "3307:3306"
     volumes:

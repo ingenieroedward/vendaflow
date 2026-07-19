@@ -6,10 +6,14 @@ import {
   Model,
   Table,
   UpdatedAt,
+  BelongsTo,
+  ForeignKey,
 } from "sequelize-typescript";
+import { Tenant } from "@/modules/tenant/tenant.model";
 
 export interface CustomerAttributes {
   id: number;
+  tenantId: number;
   code: string | null;
   name: string;
   nit: string | null;
@@ -31,40 +35,33 @@ export interface CustomerCreationAttributes
   tableName: "customers",
   timestamps: true,
   paranoid: true,
+  indexes: [
+    { unique: true, fields: ['tenantId', 'code'] },
+    { unique: true, fields: ['tenantId', 'nit'] },
+  ],
 })
-export class Customer extends Model<
-  CustomerAttributes,
-  CustomerCreationAttributes
-> {
-  @Column({
-    type: DataType.INTEGER,
-    primaryKey: true,
-    autoIncrement: true,
-  })
+export class Customer extends Model<CustomerAttributes, CustomerCreationAttributes> {
+  @Column({ type: DataType.INTEGER, primaryKey: true, autoIncrement: true })
   override id!: number;
 
-  @Column({
-    type: DataType.STRING(50),
-    allowNull: true,
-    unique: true,
-  })
+  @ForeignKey(() => Tenant)
+  @Column({ type: DataType.INTEGER, allowNull: false })
+  tenantId!: number;
+
+  @BelongsTo(() => Tenant)
+  tenant!: Tenant;
+
+  @Column({ type: DataType.STRING(50), allowNull: true })
   code!: string | null;
 
   @Column({
     type: DataType.STRING(255),
     allowNull: false,
-    validate: {
-      notEmpty: true,
-      len: [1, 255],
-    },
+    validate: { notEmpty: true, len: [1, 255] },
   })
   name!: string;
 
-  @Column({
-    type: DataType.STRING(20),
-    allowNull: true,
-    unique: true,
-  })
+  @Column({ type: DataType.STRING(20), allowNull: true })
   nit!: string | null;
 
   @Column({

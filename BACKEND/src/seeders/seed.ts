@@ -7,6 +7,7 @@ import bcrypt from 'bcryptjs';
 import { config } from '@/config';
 
 // Models
+import { Tenant } from '@/modules/tenant/tenant.model';
 import { User } from '@/modules/user/user.model';
 import { Category } from '@/modules/category/category.model';
 import { Product } from '@/modules/product/product.model';
@@ -28,7 +29,7 @@ const sequelize = new Sequelize({
   username: process.env['DB_USER'] || config.database.user,
   password: process.env['DB_PASSWORD'] || config.database.password,
   logging: false,
-  models: [User, Category, Product, Supplier, Price, Customer, Order, OrderItem, PushSubscription],
+  models: [Tenant, User, Category, Product, Supplier, Price, Customer, Order, OrderItem, PushSubscription],
 });
 
 // ──────────────────────────────────────────────────────────────
@@ -523,12 +524,31 @@ async function seed(): Promise<void> {
     await sequelize.sync({ alter: false });
     console.log('✅ Schema synchronized.');
 
+    // ── 0. Seed Tenant ────────────────────────────────────────
+    console.log('\n📋 Ensuring seed tenant...');
+    const [seedTenant] = await Tenant.findOrCreate({
+      where: { slug: 'seed' },
+      defaults: {
+        slug: 'seed',
+        name: 'Seed Company',
+        plan: 'enterprise',
+        status: 'active',
+        logoUrl: null,
+        primaryColor: '#2563eb',
+        trialEndsAt: null,
+        maxUsers: 999,
+        maxProducts: 99999,
+        maxOrdersPerMonth: 99999,
+      },
+    });
+    console.log(`  ✅ Seed tenant (id: ${seedTenant.id})`);
+
     // ── 1. Users ──────────────────────────────────────────────
     console.log('\n📋 Seeding users...');
     const createdUsers: User[] = [];
 
     for (const u of USERS) {
-      const existing = await User.findOne({ where: { username: u.username } });
+      const existing = await User.findOne({ where: { tenantId: seedTenant.id, username: u.username } });
       if (existing) {
         console.log(`  ↩  User "${u.username}" already exists — skipping.`);
         createdUsers.push(existing);
@@ -537,11 +557,9 @@ async function seed(): Promise<void> {
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(u.password, salt);
 
-      // Create directly with raw SQL to bypass the BeforeCreate hook
-      // (the hook would re-hash an already-hashed password)
       const user = await User.create(
-        { username: u.username, password: hashedPassword, role: u.role },
-        { hooks: false }     // skip BeforeCreate so the password is NOT double-hashed
+        { tenantId: seedTenant.id, username: u.username, password: hashedPassword, role: u.role },
+        { hooks: false }
       );
       console.log(`  ✅ User "${u.username}" created (role: ${u.role}).`);
       createdUsers.push(user);
@@ -555,8 +573,8 @@ async function seed(): Promise<void> {
 
     for (const name of CATEGORY_NAMES) {
       const [cat, created] = await Category.findOrCreate({
-        where: { name },
-        defaults: { name },
+        where: { tenantId: seedTenant.id, name },
+        defaults: { tenantId: seedTenant.id, name },
       });
       if (created) {
         console.log(`  ✅ Category "${name}" created.`);
@@ -568,8 +586,8 @@ async function seed(): Promise<void> {
 
     // Also ensure the default "Sin categoría" exists
     await Category.findOrCreate({
-      where: { name: 'Sin categoría' },
-      defaults: { name: 'Sin categoría' },
+      where: { tenantId: seedTenant.id, name: 'Sin categoría' },
+      defaults: { tenantId: seedTenant.id, name: 'Sin categoría' },
     });
 
     // ── 3. Suppliers ──────────────────────────────────────────
@@ -578,8 +596,8 @@ async function seed(): Promise<void> {
 
     for (const s of SUPPLIERS) {
       const [sup, created] = await Supplier.findOrCreate({
-        where: { name: s.name },
-        defaults: { name: s.name, contact: s.contact, location: s.location },
+        where: { tenantId: seedTenant.id, name: s.name },
+        defaults: { tenantId: seedTenant.id, name: s.name, contact: s.contact, location: s.location },
       });
       if (created) {
         console.log(`  ✅ Supplier "${s.name}" created.`);
@@ -601,8 +619,8 @@ async function seed(): Promise<void> {
 
       for (const [name, code, unit, salePrice] of rows) {
         const [prod, created] = await Product.findOrCreate({
-          where: { code },
-          defaults: { name, code, unit, salePrice, stock: 0, minStock: 0, categoryId: cat.id },
+          where: { tenantId: seedTenant.id, code },
+          defaults: { tenantId: seedTenant.id, name, code, unit, salePrice, stock: 0, minStock: 0, categoryId: cat.id },
         });
         if (created) productCount++;
         allProducts.push(prod);
@@ -636,6 +654,7 @@ async function seed(): Promise<void> {
 
         if (!existing) {
           await Price.create({
+            tenantId: seedTenant.id,
             productId: product.id,
             supplierId: supplier.id,
             price: supplierPrice,

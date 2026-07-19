@@ -13,9 +13,11 @@ import {
 import { Customer } from '@/modules/customer/customer.model';
 import { User } from '@/modules/user/user.model';
 import { OrderItem } from './order-item.model';
+import { Tenant } from '@/modules/tenant/tenant.model';
 
 export interface OrderAttributes {
   id: number;
+  tenantId: number;
   orderNumber: string;
   customerId: number;
   userId: number;
@@ -32,24 +34,24 @@ export interface OrderCreationAttributes extends Omit<OrderAttributes, 'id' | 'c
 @Table({
   tableName: 'orders',
   timestamps: true,
-  paranoid: true, // Soft deletes
+  paranoid: true,
+  indexes: [{ unique: true, fields: ['tenantId', 'orderNumber'] }],
 })
 export class Order extends Model<OrderAttributes, OrderCreationAttributes> {
-  @Column({
-    type: DataType.INTEGER,
-    primaryKey: true,
-    autoIncrement: true,
-  })
+  @Column({ type: DataType.INTEGER, primaryKey: true, autoIncrement: true })
   override id!: number;
+
+  @ForeignKey(() => Tenant)
+  @Column({ type: DataType.INTEGER, allowNull: false })
+  tenantId!: number;
+
+  @BelongsTo(() => Tenant)
+  tenant!: Tenant;
 
   @Column({
     type: DataType.STRING(50),
     allowNull: false,
-    unique: true,
-    validate: {
-      notEmpty: true,
-      len: [1, 50],
-    },
+    validate: { notEmpty: true, len: [1, 50] },
   })
   orderNumber!: string;
 

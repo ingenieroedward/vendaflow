@@ -7,11 +7,15 @@ import {
   UpdatedAt,
   DeletedAt,
   HasMany,
+  BelongsTo,
+  ForeignKey,
 } from 'sequelize-typescript';
 import { Product } from '@/modules/product/product.model';
+import { Tenant } from '@/modules/tenant/tenant.model';
 
 export interface CategoryAttributes {
   id: number;
+  tenantId: number;
   name: string;
   createdAt: Date;
   updatedAt: Date;
@@ -23,15 +27,18 @@ export interface CategoryCreationAttributes extends Omit<CategoryAttributes, 'id
 @Table({
   tableName: 'categories',
   timestamps: true,
-  paranoid: true, // Soft deletes
+  paranoid: true,
 })
 export class Category extends Model<CategoryAttributes, CategoryCreationAttributes> {
-  @Column({
-    type: DataType.INTEGER,
-    primaryKey: true,
-    autoIncrement: true,
-  })
+  @Column({ type: DataType.INTEGER, primaryKey: true, autoIncrement: true })
   override id!: number;
+
+  @ForeignKey(() => Tenant)
+  @Column({ type: DataType.INTEGER, allowNull: false })
+  tenantId!: number;
+
+  @BelongsTo(() => Tenant)
+  tenant!: Tenant;
 
   @Column({
     type: DataType.STRING(255),

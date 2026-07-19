@@ -21,5 +21,6 @@ export type RegisterDto = z.infer<typeof registerSchema>;
 export interface JwtPayload {
   userId: number;
   username: string;
-  role: 'buyer' | 'admin' | 'seller';
-} 
+  role: 'buyer' | 'admin' | 'seller' | 'superadmin';
+  tenantId: number;
+}

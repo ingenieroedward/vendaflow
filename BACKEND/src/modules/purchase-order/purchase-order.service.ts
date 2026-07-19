@@ -33,7 +33,7 @@ export class PurchaseOrderService {
     return `POC-${String(next).padStart(4, '0')}`;
   }
 
-  async createPurchaseOrder(data: CreatePurchaseOrderDto, userId: number): Promise<PurchaseOrderResponseDto> {
+  async createPurchaseOrder(data: CreatePurchaseOrderDto, userId: number, tenantId: number): Promise<PurchaseOrderResponseDto> {
     const validatedData = validateSchema(createPurchaseOrderSchema, data);
 
     const supplier = await Supplier.findByPk(validatedData.supplierId);
@@ -59,6 +59,7 @@ export class PurchaseOrderService {
 
           const po = await PurchaseOrder.create(
             {
+              tenantId,
               poNumber,
               supplierId: validatedData.supplierId,
               userId,
@@ -86,6 +87,7 @@ export class PurchaseOrderService {
           if (po.status === 'received') {
             for (const item of validatedData.items) {
               await this.stockMovementService.createMovement({
+                tenantId,
                 productId: item.productId,
                 type: 'purchase',
                 quantity: item.quantity,
@@ -236,6 +238,7 @@ export class PurchaseOrderService {
         const currentItems = await PurchaseOrderItem.findAll({ where: { purchaseOrderId: po.id }, transaction: t });
         for (const item of currentItems) {
           await this.stockMovementService.createMovement({
+            tenantId: po.tenantId,
             productId: item.productId,
             type: 'purchase',
             quantity: item.quantity,
