@@ -6,6 +6,8 @@ import { useOrderStore } from './store/orderStore';
 import { useCustomerStore } from './store/customerStore';
 import { useProductStore } from './store/productStore';
 import { useUserStore } from './store/userStore';
+import { useTenantStore } from './store/tenantStore';
+import { detectTenantSlug, fetchTenantBySlug } from './services/tenant';
 import ErrorBoundary from './components/ui/ErrorBoundary';
 import { Network } from '@capacitor/network';
 import { Download } from 'lucide-react';
@@ -110,7 +112,18 @@ function App() {
   const { getUsers } = useUserStore();
 
   useEffect(() => {
+    // Apply stored tenant theme immediately to avoid flash of default color
+    useTenantStore.getState().loadFromStorage();
     checkAuth();
+
+    // Detect tenant from URL and fetch if not cached
+    const slug = detectTenantSlug();
+    if (slug && !useTenantStore.getState().tenant) {
+      useTenantStore.setState({ isLoading: true });
+      fetchTenantBySlug(slug)
+        .then((t) => { if (t) useTenantStore.getState().setTenant(t); })
+        .finally(() => useTenantStore.setState({ isLoading: false }));
+    }
   }, [checkAuth]);
 
   // Sincronizar al arrancar si ya hay conexión y el usuario está autenticado

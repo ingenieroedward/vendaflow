@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Package, Eye, EyeOff } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { useUIStore } from '../store/uiStore';
+import { useTenantStore } from '../store/tenantStore';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import { LoginRequest } from '../types/auth';
@@ -11,6 +12,7 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
   const { login, isAuthenticated, isLoading } = useAuthStore();
   const { addNotification } = useUIStore();
+  const { tenant } = useTenantStore();
   
   const [formData, setFormData] = useState<LoginRequest>({
     username: '',
@@ -91,12 +93,16 @@ const Login: React.FC = () => {
           {/* Header */}
           <div className="text-center">
             <div className="flex justify-center">
-              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-blue-600 rounded-full flex items-center justify-center">
-                <Package className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
-              </div>
+              {tenant?.logoUrl ? (
+                <img src={tenant.logoUrl} alt={tenant.name} className="w-12 h-12 sm:w-16 sm:h-16 object-contain rounded-xl" />
+              ) : (
+                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-blue-600 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--vf-primary)' }}>
+                  <Package className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
+                </div>
+              )}
             </div>
             <h2 className="mt-4 sm:mt-6 text-2xl sm:text-3xl font-bold text-gray-900">
-              Sistema JJLM
+              {tenant?.name ?? 'VendaFlow'}
             </h2>
             <p className="mt-2 text-sm text-gray-600">
               Gestión de productos y precios
@@ -162,7 +168,7 @@ const Login: React.FC = () => {
         <div className="max-w-sm sm:max-w-md mx-auto text-center space-y-2">
          
           <div className="block  flex-col sm:flex-row items-center justify-center space-y-1 sm:space-y-0 sm:space-x-4 text-xs text-gray-400">
-            <span>© {new Date().getFullYear()} JJLM. Todos los derechos reservados.</span>
+            <span>© {new Date().getFullYear()} {tenant?.name ?? 'VendaFlow'}. Todos los derechos reservados.</span>
             <br />
             <span>
               Desarrollado por{' '}

@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --vf-primary: #2563eb;
+  --vf-primary-10: #2563eb1a;
+}
+
 @layer utilities {
   /* Safe area insets para iPhone notch / Dynamic Island / home indicator */
   .pt-safe {

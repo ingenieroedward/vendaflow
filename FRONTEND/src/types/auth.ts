@@ -21,10 +21,22 @@ export interface UpdateUserRequest {
   role?: 'admin' | 'buyer' | 'seller';
 }
 
+export interface Tenant {
+  id: number;
+  slug: string;
+  name: string;
+  plan: string;
+  status: string;
+  logoUrl: string | null;
+  primaryColor: string;
+  trialEndsAt: string | null;
+}
+
 export interface LoginResponse {
   data: {
     token: string;
     user: User;
+    tenant?: Tenant;
   }
 }
 

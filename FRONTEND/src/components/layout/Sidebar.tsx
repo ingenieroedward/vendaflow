@@ -1,6 +1,7 @@
 import { Package, ClipboardList, Users, LogOut, User, Shield, Truck, Tag, DollarSign, UserCheck, BarChart2, Warehouse, ShoppingCart } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
+import { useTenantStore } from '../../store/tenantStore';
 
 interface NavItem {
   label: string;
@@ -24,6 +25,7 @@ const NAV_ITEMS: NavItem[] = [
 
 const Sidebar = () => {
   const { user, logout } = useAuthStore();
+  const { tenant } = useTenantStore();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -46,9 +48,11 @@ const Sidebar = () => {
       {/* Logo */}
       <div className="flex items-center space-x-2.5 px-5 py-5 border-b border-gray-100">
         <div className="p-1.5 rounded-xl bg-blue-50">
-          <Package className="w-6 h-6 text-blue-600" />
+          {tenant?.logoUrl
+            ? <img src={tenant.logoUrl} alt={tenant.name} className="w-6 h-6 object-contain" />
+            : <Package className="w-6 h-6 text-blue-600" />}
         </div>
-        <span className="text-xl font-bold text-gray-900 tracking-tight">JJLM</span>
+        <span className="text-xl font-bold text-gray-900 tracking-tight">{tenant?.name ?? 'VendaFlow'}</span>
       </div>
 
       {/* Nav links */}

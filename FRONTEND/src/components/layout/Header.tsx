@@ -5,12 +5,14 @@ import { useAuthStore } from '../../store/authStore';
 import { useSyncStore } from '../../store/syncStore';
 import { useOrderStore } from '../../store/orderStore';
 import { useCustomerStore } from '../../store/customerStore';
+import { useTenantStore } from '../../store/tenantStore';
 import InstallButton from '../ui/InstallButton';
 import TopLoadingBar from '../ui/TopLoadingBar';
 import { usePushNotifications } from '../../hooks/usePushNotifications';
 
 const Header = () => {
   const { user, logout } = useAuthStore();
+  const { tenant } = useTenantStore();
   const navigate = useNavigate();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const { status, current, total } = useSyncStore();
@@ -39,9 +41,11 @@ const Header = () => {
           {/* Logo + sync state */}
           <Link to="/" className="flex items-center gap-2 group" aria-label="Ir al inicio">
             <div className="p-1.5 rounded-xl bg-blue-50 group-hover:bg-blue-100 transition-colors">
-              <Package className="w-5 h-5 text-blue-600" />
+              {tenant?.logoUrl
+                ? <img src={tenant.logoUrl} alt={tenant.name} className="w-5 h-5 object-contain" />
+                : <Package className="w-5 h-5 text-blue-600" />}
             </div>
-            <span className="text-lg font-bold text-gray-900">JJLM</span>
+            <span className="text-lg font-bold text-gray-900">{tenant?.name ?? 'VendaFlow'}</span>
 
             {/* Syncing progress */}
             {status === 'syncing' && (

@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { AuthState, LoginRequest, RegisterRequest } from '../types/auth';
 import { authService } from '../services/auth';
 import { db } from '../database/LocalDatabase';
+import { useTenantStore } from './tenantStore';
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: authService.getCurrentUser(),
@@ -15,7 +16,9 @@ export const useAuthStore = create<AuthState>((set) => ({
       const response = await authService.login(credentials);
       const user = response.data.user;
       set({ user, token: response.data.token, isAuthenticated: true, isLoading: false });
-      // Persist current user in IndexedDB so offline orders can resolve the username
+      if (response.data.tenant) {
+        useTenantStore.getState().setTenant(response.data.tenant);
+      }
       cacheUserLocally(user).catch(() => {});
     } catch (error) {
       set({ isLoading: false });
@@ -41,11 +44,8 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   logout: () => {
     authService.logout();
-    set({
-      user: null,
-      token: null,
-      isAuthenticated: false,
-    });
+    useTenantStore.getState().clearTenant();
+    set({ user: null, token: null, isAuthenticated: false });
   },
 
   checkAuth: () => {

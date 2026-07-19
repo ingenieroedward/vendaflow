@@ -1,4 +1,4 @@
-const PRODUCTION_API = 'https://api.jjlm.edwsystem.com/api';
+const PRODUCTION_API = 'https://api.vendaflow.app/api';
 
 // En contexto nativo (APK Capacitor) siempre usar la URL de producción.
 // El WebView del APK no tiene proxy nginx, así que localhost no funciona.
@@ -11,9 +11,9 @@ export const API_BASE_URL = isNative
   : (import.meta.env.VITE_API_BASE_URL ?? PRODUCTION_API);
 
 export const APP_CONFIG = {
-  name: 'JJLM Sistema',
+  name: 'VendaFlow',
   version: '1.0.0',
-  description: 'Sistema de Gestión de Productos y Precios',
+  description: 'Sistema de Gestión de Ventas',
 };
 
 export const ROUTES = {
@@ -29,8 +29,9 @@ export const ROUTES = {
 } as const;
 
 export const STORAGE_KEYS = {
-  AUTH_TOKEN: 'jjlm_token',
-  USER_DATA: 'jjlm_user',
+  AUTH_TOKEN: 'vf_token',
+  USER_DATA: 'vf_user',
+  TENANT_DATA: 'vf_tenant',
 } as const;
 
 export const DEFAULT_PAGINATION = {
