@@ -1,6 +1,22 @@
 import { apiService } from './api';
 import { Tenant } from '../types/auth';
 
+export async function getMyTenant(): Promise<Tenant | null> {
+  try {
+    return await apiService.get<Tenant>('/tenants/me');
+  } catch {
+    return null;
+  }
+}
+
+export async function updateMyTheme(data: {
+  name?: string;
+  primaryColor?: string;
+  logoUrl?: string | null;
+}): Promise<void> {
+  await apiService.put<unknown>('/tenants/me/theme', data);
+}
+
 interface TenantResponse {
   id: number;
   slug: string;

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { TenantController } from './tenant.controller';
-import { isAuth, isSuperAdmin } from '@/core/middlewares/auth';
+import { isAuth, isAdmin, isSuperAdmin } from '@/core/middlewares/auth';
 
 const router = Router();
 const ctrl = new TenantController();
@@ -10,7 +10,7 @@ router.get('/slug/:slug', ctrl.getBySlug);
 
 // Authenticated — get own tenant info & update theme
 router.get('/me', isAuth, ctrl.getMyTenant);
-router.put('/me/theme', isAuth, ctrl.updateTheme);
+router.put('/me/theme', isAuth, isAdmin, ctrl.updateTheme);
 
 // Super-admin only
 router.post('/', isAuth, isSuperAdmin, ctrl.createTenant);

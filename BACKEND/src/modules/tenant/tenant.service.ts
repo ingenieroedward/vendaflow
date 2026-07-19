@@ -85,7 +85,7 @@ export class TenantService {
     };
   }
 
-  async updateTheme(tenantId: number, data: { primaryColor?: string; logoUrl?: string; name?: string }) {
+  async updateTheme(tenantId: number, data: { primaryColor?: string; logoUrl?: string | null; name?: string }) {
     const tenant = await this.findById(tenantId);
     await tenant.update(data);
     return tenant;

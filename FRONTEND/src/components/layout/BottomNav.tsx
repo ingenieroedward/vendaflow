@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Package, ClipboardList, Users, DollarSign, Truck, Tag, UserCheck, BarChart2, Warehouse, ShoppingCart, MoreHorizontal, X } from 'lucide-react';
+import { Package, ClipboardList, Users, DollarSign, Truck, Tag, UserCheck, BarChart2, Warehouse, ShoppingCart, MoreHorizontal, X, Settings } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 
@@ -20,7 +20,8 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Categorías',  to: '/categories',      icon: Tag,           roles: ['buyer', 'admin'] },
   { label: 'Compras',     to: '/purchase-orders', icon: ShoppingCart,  roles: ['seller', 'admin'] },
   { label: 'Informes',    to: '/reports',         icon: BarChart2,     roles: ['seller', 'admin'] },
-  { label: 'Usuarios',    to: '/users',           icon: Users,         roles: ['admin'] },
+  { label: 'Usuarios',        to: '/users',    icon: Users,    roles: ['admin'] },
+  { label: 'Configuración',   to: '/settings', icon: Settings, roles: ['admin'] },
 ];
 
 // Max items shown directly in the bar before overflow into "Más"

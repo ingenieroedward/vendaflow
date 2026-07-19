@@ -1,4 +1,4 @@
-import { Package, ClipboardList, Users, LogOut, User, Shield, Truck, Tag, DollarSign, UserCheck, BarChart2, Warehouse, ShoppingCart } from 'lucide-react';
+import { Package, ClipboardList, Users, LogOut, User, Shield, Truck, Tag, DollarSign, UserCheck, BarChart2, Warehouse, ShoppingCart, Settings } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { useTenantStore } from '../../store/tenantStore';
@@ -21,6 +21,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Órdenes Compra', to: '/purchase-orders', icon: ShoppingCart, roles: ['seller', 'admin'] },
   { label: 'Informes', to: '/reports', icon: BarChart2, roles: ['seller', 'admin'] },
   { label: 'Usuarios', to: '/users', icon: Users, roles: ['admin'] },
+  { label: 'Configuración', to: '/settings', icon: Settings, roles: ['admin'] },
 ];
 
 const Sidebar = () => {

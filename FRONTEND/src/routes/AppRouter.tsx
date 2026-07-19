@@ -24,6 +24,7 @@ import Inventory from '../pages/Inventory';
 import PurchaseOrders from '../pages/PurchaseOrders';
 import PurchaseOrderNew from '../pages/PurchaseOrderNew';
 import PurchaseOrderDetail from '../pages/PurchaseOrderDetail';
+import TenantSettings from '../pages/TenantSettings';
 
 // Protected Route Component
 interface RouteProps {
@@ -314,6 +315,16 @@ const InnerRoutes: React.FC = () => (
               </SellerRoute>
             }
           />
+
+    {/* Admin: tenant settings */}
+    <Route
+      path="/settings"
+      element={
+        <AdminRoute>
+          <TenantSettings />
+        </AdminRoute>
+      }
+    />
 
     {/* Redirect any unknown routes to home */}
     <Route path="*" element={<Navigate to="/" replace />} />
