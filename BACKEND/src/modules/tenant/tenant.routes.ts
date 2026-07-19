@@ -13,6 +13,7 @@ router.get('/me', isAuth, ctrl.getMyTenant);
 router.put('/me/theme', isAuth, ctrl.updateTheme);
 
 // Super-admin only
+router.post('/', isAuth, isSuperAdmin, ctrl.createTenant);
 router.get('/', isAuth, isSuperAdmin, ctrl.listAll);
 router.put('/:id/suspend', isAuth, isSuperAdmin, ctrl.suspend);
 router.put('/:id/activate', isAuth, isSuperAdmin, ctrl.activate);

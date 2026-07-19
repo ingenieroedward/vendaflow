@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import { useAuthStore } from '../store/authStore';
 import Layout from '../components/layout/Layout';
 import Login from '../pages/Login';
+import Superadmin from '../pages/Superadmin';
 import Home from '../pages/Home';
 import ProductDetail from '../pages/ProductDetail';
 import ProductNew from '../pages/ProductNew';
@@ -31,15 +32,23 @@ interface RouteProps {
 // Admin Route Component
 const AdminRoute: React.FC<RouteProps> = ({ children }) => {
   const { isAuthenticated, user } = useAuthStore();
-  
+
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
-  
+
   if (user?.role !== 'admin') {
     return <Navigate to="/" replace />;
   }
-  
+
+  return <>{children}</>;
+};
+
+// Superadmin Route — standalone, no app chrome
+const SuperadminRoute: React.FC<RouteProps> = ({ children }) => {
+  const { isAuthenticated, user } = useAuthStore();
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (user?.role !== 'superadmin') return <Navigate to="/" replace />;
   return <>{children}</>;
 };
 
@@ -96,11 +105,29 @@ const ProductDetailRoute: React.FC = () => {
 const AppRouter: React.FC = () => {
   return (
     <Router>
-      <Layout>
-        <Routes>
-          {/* Public Routes */}
-          <Route 
-            path="/login" 
+      <Routes>
+        {/* Superadmin panel — rendered without app chrome (no Sidebar/Header/BottomNav) */}
+        <Route
+          path="/superadmin"
+          element={<SuperadminRoute><Superadmin /></SuperadminRoute>}
+        />
+
+        {/* All other routes inside Layout */}
+        <Route path="*" element={
+          <Layout>
+            <InnerRoutes />
+          </Layout>
+        } />
+      </Routes>
+    </Router>
+  );
+};
+
+const InnerRoutes: React.FC = () => (
+  <Routes>
+    {/* Public Routes */}
+    <Route
+      path="/login"
             element={
               <PublicRoute>
                 <Login />
@@ -288,12 +315,9 @@ const AppRouter: React.FC = () => {
             }
           />
 
-          {/* Redirect any unknown routes to home */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Layout>
-    </Router>
-  );
-};
+    {/* Redirect any unknown routes to home */}
+    <Route path="*" element={<Navigate to="/" replace />} />
+  </Routes>
+);
 
 export default AppRouter;
