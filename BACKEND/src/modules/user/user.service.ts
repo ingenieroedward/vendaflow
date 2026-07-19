@@ -17,28 +17,28 @@ import { Order } from "../order/order.model";
 import { Price } from "../price/price.model";
 
 export class UserService {
-  async createUser(userData: CreateUserDto): Promise<UserResponseDto> {
+  async createUser(userData: CreateUserDto, tenantId: number): Promise<UserResponseDto> {
     const validatedData = validateSchema(createUserSchema, userData);
 
-    // Check if user already exists
     const existingUser = await User.findOne({
-      where: { username: validatedData.username },
+      where: { tenantId, username: validatedData.username },
     });
     if (existingUser) {
       throw new ConflictError("User with this username already exists");
     }
 
-    const user = await User.create(validatedData as UserAttributes);
+    const user = await User.create({ ...validatedData, tenantId } as UserAttributes);
     return this.mapToResponseDto(user);
   }
 
-  async getAllUsers(query: PaginationQuery): Promise<UsersListResponseDto> {
+  async getAllUsers(query: PaginationQuery, tenantId: number): Promise<UsersListResponseDto> {
     const { page, limit } = validateSchema(paginationSchema, query);
     const validatedPage = page || 1;
     const validatedLimit = limit || 10;
     const offset = (validatedPage - 1) * validatedLimit;
 
     const { count, rows } = await User.findAndCountAll({
+      where: { tenantId },
       limit: validatedLimit,
       offset,
       order: [["createdAt", "DESC"]],
@@ -59,33 +59,25 @@ export class UserService {
     };
   }
 
-  async getUserById(id: number): Promise<UserResponseDto> {
-    const user = await User.findByPk(id);
+  async getUserById(id: number, tenantId: number): Promise<UserResponseDto> {
+    const user = await User.findOne({ where: { id, tenantId } });
     if (!user) {
       throw new NotFoundError("User not found");
     }
-
     return this.mapToResponseDto(user);
   }
 
-  async updateUser(
-    id: number,
-    updateData: UpdateUserDto
-  ): Promise<UserResponseDto> {
-    const validatedData = validatePartialSchema(
-      updateUserSchema,
-      updateData
-    ) as Partial<UpdateUserDto>;
+  async updateUser(id: number, updateData: UpdateUserDto, tenantId: number): Promise<UserResponseDto> {
+    const validatedData = validatePartialSchema(updateUserSchema, updateData) as Partial<UpdateUserDto>;
 
-    const user = await User.findByPk(id);
+    const user = await User.findOne({ where: { id, tenantId } });
     if (!user) {
       throw new NotFoundError("User not found");
     }
 
-    // Check if username is being updated and if it already exists
     if (validatedData.username && validatedData.username !== user.username) {
       const existingUser = await User.findOne({
-        where: { username: validatedData.username },
+        where: { tenantId, username: validatedData.username },
       });
       if (existingUser) {
         throw new ConflictError("User with this username already exists");
@@ -108,8 +100,9 @@ export class UserService {
    *
    * @param transferToAdminId  ID del admin que absorbe los precios y órdenes del usuario eliminado.
    */
-  async deleteUser(id: number, transferToAdminId?: number): Promise<void> {
-    const user = await User.findByPk(id, {
+  async deleteUser(id: number, tenantId: number, transferToAdminId?: number): Promise<void> {
+    const user = await User.findOne({
+      where: { id, tenantId },
       paranoid: false,
       // paranoid: false en los includes para detectar TODOS los registros,
       // incluyendo soft-deleted, que aún referencian al usuario vía FK en MySQL.
@@ -150,8 +143,8 @@ export class UserService {
     return await user.destroy();
   }
 
-  async restoreUser(id: number): Promise<void> {
-    const user = await User.findByPk(id, { paranoid: false });
+  async restoreUser(id: number, tenantId: number): Promise<void> {
+    const user = await User.findOne({ where: { id, tenantId }, paranoid: false });
     if (!user) {
       throw new NotFoundError("User not found")
     }

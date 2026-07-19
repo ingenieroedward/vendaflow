@@ -1,7 +1,8 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { ProductService } from './product.service';
 import { CreateProductDto, UpdateProductDto, SearchProductDto } from './product.dto';
 import { asyncHandler } from '@/core/middlewares/asyncHandler';
+import { AuthenticatedRequest } from '@/core/middlewares/auth';
 
 export class ProductController {
   private productService: ProductService;
@@ -10,102 +11,73 @@ export class ProductController {
     this.productService = new ProductService();
   }
 
-  createProduct = asyncHandler(async (req: Request, res: Response) => {
+  createProduct = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const tenantId = req.user!.tenantId;
     const productData: CreateProductDto = req.body;
-    const product = await this.productService.createProduct(productData);
-
-    res.status(201).json({
-      status: 'success',
-      data: product,
-    });
+    const product = await this.productService.createProduct(productData, tenantId);
+    res.status(201).json({ status: 'success', data: product });
   });
 
-  getAllProducts = asyncHandler(async (req: Request, res: Response) => {
-    const result = await this.productService.getAllProducts(req.query as any);
-    res.status(200).json({
-      status: 'success',
-      data: result.products,
-      pagination: result.pagination,
-    });
+  getAllProducts = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const tenantId = req.user!.tenantId;
+    const result = await this.productService.getAllProducts(req.query as any, tenantId, false);
+    res.status(200).json({ status: 'success', data: result.products, pagination: result.pagination });
   });
 
-  getAllProductsPrices = asyncHandler(async (req: Request, res: Response) => {
-    const result = await this.productService.getAllProducts(req.query as any, false);
-    res.status(200).json({
-      status: 'success',
-      data: result.products,
-      pagination: result.pagination,
-    });
+  getAllProductsPrices = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const tenantId = req.user!.tenantId;
+    const result = await this.productService.getAllProducts(req.query as any, tenantId, false);
+    res.status(200).json({ status: 'success', data: result.products, pagination: result.pagination });
   });
 
-
-  getProductById = asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
-    const product = await this.productService.getProductById(Number(id));
-
-    res.status(200).json({
-      status: 'success',
-      data: product,
-    });
+  getProductById = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const tenantId = req.user!.tenantId;
+    const product = await this.productService.getProductById(Number(req.params['id']), tenantId);
+    res.status(200).json({ status: 'success', data: product });
   });
 
-  updateProduct = asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
+  updateProduct = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const tenantId = req.user!.tenantId;
     const updateData: UpdateProductDto = req.body;
-    const product = await this.productService.updateProduct(Number(id), updateData);
-
-    res.status(200).json({
-      status: 'success',
-      data: product,
-    });
+    const product = await this.productService.updateProduct(Number(req.params['id']), updateData, tenantId);
+    res.status(200).json({ status: 'success', data: product });
   });
 
-  deleteProduct = asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
-    await this.productService.deleteProduct(Number(id));
-
+  deleteProduct = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const tenantId = req.user!.tenantId;
+    await this.productService.deleteProduct(Number(req.params['id']), tenantId);
     res.status(204).send();
   });
 
-  searchProducts = asyncHandler(async (req: Request, res: Response) => {
+  searchProducts = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const tenantId = req.user!.tenantId;
     const searchData: SearchProductDto = req.query as any;
-    // required_prices=false: muestra todos los productos, incluyendo los sin precio
-    const products = await this.productService.searchProducts(searchData, false);
-
-    res.status(200).json({
-      status: 'success',
-      data: products,
-    });
-  });
-
-  searchProductsPrices = asyncHandler(async (req: Request, res: Response) => {
-    const searchData: SearchProductDto = req.query as any;
-    const products = await this.productService.searchProducts(searchData, true);
-
-    res.status(200).json({
-      status: 'success',
-      data: products,
-    });
-  });
-  getProductsByCategory = asyncHandler(async (req: Request, res: Response) => {
-    const { categoryId } = req.params;
-    const result = await this.productService.getProductsByCategory(Number(categoryId), req.query as any);
-
-    res.status(200).json({
-      status: 'success',
-      data: result.products,
-      pagination: result.pagination,
-    });
-  });
-
-  getStockAlerts = asyncHandler(async (_req: Request, res: Response) => {
-    const products = await this.productService.getStockAlerts();
+    const products = await this.productService.searchProducts(searchData, tenantId, false);
     res.status(200).json({ status: 'success', data: products });
   });
 
-  adjustStock = asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
-    const product = await this.productService.adjustStock(Number(id), req.body);
+  searchProductsPrices = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const tenantId = req.user!.tenantId;
+    const searchData: SearchProductDto = req.query as any;
+    const products = await this.productService.searchProducts(searchData, tenantId, true);
+    res.status(200).json({ status: 'success', data: products });
+  });
+
+  getProductsByCategory = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const tenantId = req.user!.tenantId;
+    const result = await this.productService.getProductsByCategory(Number(req.params['categoryId']), req.query as any, tenantId);
+    res.status(200).json({ status: 'success', data: result.products, pagination: result.pagination });
+  });
+
+  getStockAlerts = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const tenantId = req.user!.tenantId;
+    const products = await this.productService.getStockAlerts(tenantId);
+    res.status(200).json({ status: 'success', data: products });
+  });
+
+  adjustStock = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const tenantId = req.user!.tenantId;
+    const product = await this.productService.adjustStock(Number(req.params['id']), req.body, tenantId);
     res.status(200).json({ status: 'success', data: product });
   });
-} 
+}

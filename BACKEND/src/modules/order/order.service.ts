@@ -147,14 +147,15 @@ export class OrderService {
     return { nextOrderNumber: nextNumber };
   }
 
-  async getAllOrders(query: PaginationQuery): Promise<OrdersListResponseDto> {
+  async getAllOrders(query: PaginationQuery, tenantId: number): Promise<OrdersListResponseDto> {
     const { page, limit } = validateSchema(paginationSchema, query);
     const validatedPage = page || 1;
     const validatedLimit = limit || 10;
     const offset = (validatedPage - 1) * validatedLimit;
 
     const { count, rows } = await Order.findAndCountAll({
-      distinct: true, // prevents inflated count from 1-to-many JOIN with orderItems
+      where: { tenantId },
+      distinct: true,
       include: [
         {
           model: Customer,
@@ -197,9 +198,9 @@ export class OrderService {
     };
   }
 
-  async getOrderById(id: number): Promise<OrderResponseDto> {
+  async getOrderById(id: number, tenantId: number): Promise<OrderResponseDto> {
     const order = await Order.findOne({
-      where: { id },
+      where: { id, tenantId },
       include: [
         {
           model: Customer,
@@ -238,13 +239,12 @@ export class OrderService {
    *  4. Recalcula totalAmount sumando los totalPrice actuales.
    * Si cualquier paso falla, hace rollback completo.
    */
-  async updateOrder(id: number, updateData: UpdateOrderDto): Promise<OrderResponseDto> {
+  async updateOrder(id: number, updateData: UpdateOrderDto, tenantId: number): Promise<OrderResponseDto> {
     const validatedData = validatePartialSchema(updateOrderSchema, updateData) as Partial<UpdateOrderDto>;
 
-    // Start transaction
     const transaction = await sequelize.transaction();
     try {
-      const order = await Order.findByPk(id, { transaction });
+      const order = await Order.findOne({ where: { id, tenantId }, transaction });
       if (!order) {
         throw new NotFoundError('Order not found');
       }
@@ -314,9 +314,8 @@ export class OrderService {
 
       await transaction.commit();
 
-      // Fetch updated order with relations
       const updatedOrder = await Order.findOne({
-        where: { id },
+        where: { id, tenantId },
         include: [
           {
             model: Customer,
@@ -349,18 +348,17 @@ export class OrderService {
     }
   }
 
-  async deleteOrder(id: number): Promise<void> {
-    const order = await Order.findByPk(id);
+  async deleteOrder(id: number, tenantId: number): Promise<void> {
+    const order = await Order.findOne({ where: { id, tenantId } });
     if (!order) {
       throw new NotFoundError('Order not found');
     }
-
     await order.destroy();
   }
 
-  async getDeletedOrders(): Promise<OrderResponseDto[]> {
+  async getDeletedOrders(tenantId: number): Promise<OrderResponseDto[]> {
     const orders = await Order.findAll({
-      where: { deletedAt: { [Op.ne]: null } } as any,
+      where: { tenantId, deletedAt: { [Op.ne]: null } } as any,
       paranoid: false,
       order: [['deletedAt', 'DESC']],
       include: [
@@ -371,9 +369,9 @@ export class OrderService {
     return orders.map(o => this.mapToResponseDto(o, []));
   }
 
-  async restoreOrder(id: number): Promise<OrderResponseDto> {
+  async restoreOrder(id: number, tenantId: number): Promise<OrderResponseDto> {
     const order = await Order.findOne({
-      where: { id, deletedAt: { [Op.ne]: null } } as any,
+      where: { id, tenantId, deletedAt: { [Op.ne]: null } } as any,
       paranoid: false,
     });
     if (!order) throw new NotFoundError('Order not found in trash');
@@ -381,9 +379,9 @@ export class OrderService {
     return this.mapToResponseDto(order, []);
   }
 
-  async hardDeleteOrder(id: number): Promise<void> {
+  async hardDeleteOrder(id: number, tenantId: number): Promise<void> {
     const order = await Order.findOne({
-      where: { id, deletedAt: { [Op.ne]: null } } as any,
+      where: { id, tenantId, deletedAt: { [Op.ne]: null } } as any,
       paranoid: false,
     });
     if (!order) throw new NotFoundError('Order not found in trash');
@@ -391,11 +389,12 @@ export class OrderService {
     await order.destroy({ force: true });
   }
 
-  async searchOrders(searchData: SearchOrderDto): Promise<OrderResponseDto[]> {
+  async searchOrders(searchData: SearchOrderDto, tenantId: number): Promise<OrderResponseDto[]> {
     const validatedData = validateSchema(searchOrderSchema, searchData) as SearchOrderDto;
 
     const orders = await Order.findAll({
       where: {
+        tenantId,
         [Op.or]: [
           { orderNumber: { [Op.like]: `%${validatedData.q}%` } },
         ],
@@ -429,7 +428,7 @@ export class OrderService {
     return orders.map(order => this.mapToResponseDto(order, order.orderItems));
   }
 
-  async getOrdersByCustomer(customerId: number, query: PaginationQuery): Promise<OrdersListResponseDto> {
+  async getOrdersByCustomer(customerId: number, query: PaginationQuery, tenantId: number): Promise<OrdersListResponseDto> {
     const { page, limit } = validateSchema(paginationSchema, query);
     const validatedPage = page || 1;
     const validatedLimit = limit || 10;
@@ -437,7 +436,7 @@ export class OrderService {
 
     const { count, rows } = await Order.findAndCountAll({
       distinct: true,
-      where: { customerId },
+      where: { tenantId, customerId },
       include: [
         {
           model: Customer,

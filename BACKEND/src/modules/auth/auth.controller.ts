@@ -17,7 +17,7 @@ export class AuthController {
 
   // GET /api/auth/me
   getCurrentUser = asyncHandler(async (req: Request, res: Response) => {
-    const user = await this.authService.getCurrentUser(req.user!.id);
+    const user = await this.authService.getCurrentUser(req.user!.id, req.user!.tenantId);
     res.status(200).json({ status: 'success', data: user });
   });
 }

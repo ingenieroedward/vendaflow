@@ -5,26 +5,26 @@ import { validateSchema, validatePartialSchema, paginationSchema, PaginationQuer
 import { createCategorySchema, updateCategorySchema } from './category.dto';
 
 export class CategoryService {
-  async createCategory(categoryData: CreateCategoryDto): Promise<CategoryResponseDto> {
+  async createCategory(categoryData: CreateCategoryDto, tenantId: number): Promise<CategoryResponseDto> {
     const validatedData = validateSchema(createCategorySchema, categoryData);
 
-    // Check if category already exists
-    const existingCategory = await Category.findOne({ where: { name: validatedData.name } });
+    const existingCategory = await Category.findOne({ where: { tenantId, name: validatedData.name } });
     if (existingCategory) {
       throw new ConflictError('Category with this name already exists');
     }
 
-    const category = await Category.create(validatedData as CategoryAttributes);
+    const category = await Category.create({ ...validatedData, tenantId } as CategoryAttributes);
     return this.mapToResponseDto(category);
   }
 
-  async getAllCategories(query: PaginationQuery): Promise<CategoriesListResponseDto> {
+  async getAllCategories(query: PaginationQuery, tenantId: number): Promise<CategoriesListResponseDto> {
     const { page, limit } = validateSchema(paginationSchema, query);
     const validatedPage = page || 1;
     const validatedLimit = limit || 10;
     const offset = (validatedPage - 1) * validatedLimit;
 
     const { count, rows } = await Category.findAndCountAll({
+      where: { tenantId },
       limit: validatedLimit,
       offset,
       order: [['name', 'ASC']],
@@ -44,26 +44,24 @@ export class CategoryService {
     };
   }
 
-  async getCategoryById(id: number): Promise<CategoryResponseDto> {
-    const category = await Category.findByPk(id);
+  async getCategoryById(id: number, tenantId: number): Promise<CategoryResponseDto> {
+    const category = await Category.findOne({ where: { id, tenantId } });
     if (!category) {
       throw new NotFoundError('Category not found');
     }
-
     return this.mapToResponseDto(category);
   }
 
-  async updateCategory(id: number, updateData: UpdateCategoryDto): Promise<CategoryResponseDto> {
+  async updateCategory(id: number, updateData: UpdateCategoryDto, tenantId: number): Promise<CategoryResponseDto> {
     const validatedData = validatePartialSchema(updateCategorySchema, updateData) as Partial<UpdateCategoryDto>;
 
-    const category = await Category.findByPk(id);
+    const category = await Category.findOne({ where: { id, tenantId } });
     if (!category) {
       throw new NotFoundError('Category not found');
     }
 
-    // Check if name is being updated and if it already exists
     if (validatedData.name && validatedData.name !== category.name) {
-      const existingCategory = await Category.findOne({ where: { name: validatedData.name } });
+      const existingCategory = await Category.findOne({ where: { tenantId, name: validatedData.name } });
       if (existingCategory) {
         throw new ConflictError('Category with this name already exists');
       }
@@ -73,13 +71,12 @@ export class CategoryService {
     return this.mapToResponseDto(category);
   }
 
-  async deleteCategory(id: number): Promise<void> {
-    const category = await Category.findByPk(id);
+  async deleteCategory(id: number, tenantId: number): Promise<void> {
+    const category = await Category.findOne({ where: { id, tenantId } });
     if (!category) {
       throw new NotFoundError('Category not found');
     }
 
-    // Check if category is "Sin categoría" (default category)
     if (category.name === 'Sin categoría') {
       throw new ConflictError('Cannot delete the default category');
     }
@@ -95,4 +92,4 @@ export class CategoryService {
       updatedAt: category.updatedAt,
     };
   }
-} 
+}

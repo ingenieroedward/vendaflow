@@ -1,8 +1,8 @@
 import { Customer, CustomerAttributes } from './customer.model';
-import { 
-  CreateCustomerDto, 
-  UpdateCustomerDto, 
-  CustomerResponseDto, 
+import {
+  CreateCustomerDto,
+  UpdateCustomerDto,
+  CustomerResponseDto,
   CustomersListResponseDto,
   SearchCustomerDto
 } from './customer.dto';
@@ -12,19 +12,20 @@ import { createCustomerSchema, updateCustomerSchema, searchCustomerSchema } from
 import { Op } from 'sequelize';
 
 export class CustomerService {
-  async createCustomer(customerData: CreateCustomerDto): Promise<CustomerResponseDto> {
+  async createCustomer(customerData: CreateCustomerDto, tenantId: number): Promise<CustomerResponseDto> {
     const validatedData = validateSchema(createCustomerSchema, customerData);
-    const customer = await Customer.create(validatedData as CustomerAttributes);
+    const customer = await Customer.create({ ...validatedData, tenantId } as CustomerAttributes);
     return this.mapToResponseDto(customer);
   }
 
-  async getAllCustomers(query: PaginationQuery): Promise<CustomersListResponseDto> {
+  async getAllCustomers(query: PaginationQuery, tenantId: number): Promise<CustomersListResponseDto> {
     const { page, limit } = validateSchema(paginationSchema, query);
     const validatedPage = page || 1;
     const validatedLimit = limit || 10;
     const offset = (validatedPage - 1) * validatedLimit;
 
     const { count, rows } = await Customer.findAndCountAll({
+      where: { tenantId },
       limit: validatedLimit,
       offset,
       order: [['createdAt', 'DESC']],
@@ -44,20 +45,18 @@ export class CustomerService {
     };
   }
 
-  async getCustomerById(id: number): Promise<CustomerResponseDto> {
-    const customer = await Customer.findByPk(id);
-
+  async getCustomerById(id: number, tenantId: number): Promise<CustomerResponseDto> {
+    const customer = await Customer.findOne({ where: { id, tenantId } });
     if (!customer) {
       throw new NotFoundError('Customer not found');
     }
-
     return this.mapToResponseDto(customer);
   }
 
-  async updateCustomer(id: number, updateData: UpdateCustomerDto): Promise<CustomerResponseDto> {
+  async updateCustomer(id: number, updateData: UpdateCustomerDto, tenantId: number): Promise<CustomerResponseDto> {
     const validatedData = validatePartialSchema(updateCustomerSchema, updateData) as Partial<UpdateCustomerDto>;
 
-    const customer = await Customer.findByPk(id);
+    const customer = await Customer.findOne({ where: { id, tenantId } });
     if (!customer) {
       throw new NotFoundError('Customer not found');
     }
@@ -66,13 +65,12 @@ export class CustomerService {
     return this.mapToResponseDto(customer);
   }
 
-  async deleteCustomer(id: number): Promise<void> {
-    const customer = await Customer.findByPk(id);
+  async deleteCustomer(id: number, tenantId: number): Promise<void> {
+    const customer = await Customer.findOne({ where: { id, tenantId } });
     if (!customer) {
       throw new NotFoundError('Customer not found');
     }
 
-    // Liberar el código único antes del soft delete para que otro cliente pueda reutilizarlo
     if (customer.code) {
       await customer.update({ code: null });
     }
@@ -80,18 +78,18 @@ export class CustomerService {
     await customer.destroy();
   }
 
-  async getDeletedCustomers(): Promise<CustomerResponseDto[]> {
+  async getDeletedCustomers(tenantId: number): Promise<CustomerResponseDto[]> {
     const customers = await Customer.findAll({
-      where: { deletedAt: { [Op.ne]: null } } as any,
+      where: { tenantId, deletedAt: { [Op.ne]: null } } as any,
       paranoid: false,
       order: [['deletedAt', 'DESC']],
     });
     return customers.map(c => this.mapToResponseDto(c));
   }
 
-  async restoreCustomer(id: number): Promise<CustomerResponseDto> {
+  async restoreCustomer(id: number, tenantId: number): Promise<CustomerResponseDto> {
     const customer = await Customer.findOne({
-      where: { id, deletedAt: { [Op.ne]: null } } as any,
+      where: { id, tenantId, deletedAt: { [Op.ne]: null } } as any,
       paranoid: false,
     });
     if (!customer) throw new NotFoundError('Customer not found in trash');
@@ -99,20 +97,21 @@ export class CustomerService {
     return this.mapToResponseDto(customer);
   }
 
-  async hardDeleteCustomer(id: number): Promise<void> {
+  async hardDeleteCustomer(id: number, tenantId: number): Promise<void> {
     const customer = await Customer.findOne({
-      where: { id, deletedAt: { [Op.ne]: null } } as any,
+      where: { id, tenantId, deletedAt: { [Op.ne]: null } } as any,
       paranoid: false,
     });
     if (!customer) throw new NotFoundError('Customer not found in trash');
     await customer.destroy({ force: true });
   }
 
-  async searchCustomers(searchData: SearchCustomerDto): Promise<CustomerResponseDto[]> {
+  async searchCustomers(searchData: SearchCustomerDto, tenantId: number): Promise<CustomerResponseDto[]> {
     const validatedData = validateSchema(searchCustomerSchema, searchData) as SearchCustomerDto;
 
     const customers = await Customer.findAll({
       where: {
+        tenantId,
         [Op.or]: [
           { code: { [Op.like]: `%${validatedData.q}%` } },
           { name: { [Op.like]: `%${validatedData.q}%` } },
@@ -140,4 +139,4 @@ export class CustomerService {
       updatedAt: customer.updatedAt,
     };
   }
-} 
+}

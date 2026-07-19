@@ -9,33 +9,21 @@ import { createPriceSchema, updatePriceSchema } from './price.dto';
 import { pushService } from '@/modules/push/push.service';
 
 export class PriceService {
-  /**
-   * Crea un precio para una combinación producto-proveedor.
-   * Solo puede existir un precio por par (productId, supplierId) — lanza ConflictError si ya existe.
-   * Al crear, dispara una notificación push a todos los suscriptores.
-   * El fallo de la notificación se suprime (.catch(() => {})) para no bloquear la respuesta.
-   */
-  async createPrice(priceData: CreatePriceDto, userId: number): Promise<PriceResponseDto> {
+  async createPrice(priceData: CreatePriceDto, userId: number, tenantId: number): Promise<PriceResponseDto> {
     const validatedData = validateSchema(createPriceSchema, priceData);
 
-    // Check if product exists
-    const product = await Product.findByPk(validatedData.productId);
+    const product = await Product.findOne({ where: { id: validatedData.productId, tenantId } });
     if (!product) {
       throw new NotFoundError('Product not found');
     }
 
-    // Check if supplier exists
-    const supplier = await Supplier.findByPk(validatedData.supplierId);
+    const supplier = await Supplier.findOne({ where: { id: validatedData.supplierId, tenantId } });
     if (!supplier) {
       throw new NotFoundError('Supplier not found');
     }
 
-    // Check if price already exists for this product and supplier
     const existingPrice = await Price.findOne({
-      where: {
-        productId: validatedData.productId,
-        supplierId: validatedData.supplierId,
-      },
+      where: { tenantId, productId: validatedData.productId, supplierId: validatedData.supplierId },
     });
     if (existingPrice) {
       throw new ConflictError('Price already exists for this product and supplier');
@@ -43,6 +31,7 @@ export class PriceService {
 
     const price = await Price.create({
       ...validatedData,
+      tenantId,
       updatedByUserId: userId,
     } as PriceAttributes);
 
@@ -55,13 +44,14 @@ export class PriceService {
     return this.mapToResponseDto(price);
   }
 
-  async getAllPrices(query: PaginationQuery): Promise<PricesListResponseDto> {
+  async getAllPrices(query: PaginationQuery, tenantId: number): Promise<PricesListResponseDto> {
     const { page, limit } = validateSchema(paginationSchema, query);
     const validatedPage = page || 1;
     const validatedLimit = limit || 10;
     const offset = (validatedPage - 1) * validatedLimit;
 
     const { count, rows } = await Price.findAndCountAll({
+      where: { tenantId },
       limit: validatedLimit,
       offset,
       order: [['updatedAt', 'DESC']],
@@ -86,8 +76,9 @@ export class PriceService {
     };
   }
 
-  async getPriceById(id: number): Promise<PriceResponseDto> {
-    const price = await Price.findByPk(id, {
+  async getPriceById(id: number, tenantId: number): Promise<PriceResponseDto> {
+    const price = await Price.findOne({
+      where: { id, tenantId },
       include: [
         { model: Product, as: 'product' },
         { model: Supplier, as: 'supplier' },
@@ -97,24 +88,18 @@ export class PriceService {
     if (!price) {
       throw new NotFoundError('Price not found');
     }
-
     return this.mapToResponseDto(price);
   }
 
-  /**
-   * Actualiza el precio de un registro existente.
-   * Si el nuevo precio es igual al actual, retorna sin hacer ningún UPDATE (optimización).
-   * Si cambia, persiste el nuevo valor y envía notificación push (fallo suprimido).
-   */
-  async updatePrice(id: number, updateData: UpdatePriceDto, userId: number): Promise<PriceResponseDto> {
+  async updatePrice(id: number, updateData: UpdatePriceDto, userId: number, tenantId: number): Promise<PriceResponseDto> {
     const validatedData = validatePartialSchema(updatePriceSchema, updateData) as Partial<UpdatePriceDto>;
 
-    const price = await Price.findByPk(id);
+    const price = await Price.findOne({ where: { id, tenantId } });
     if (!price) {
       throw new NotFoundError('Price not found');
     }
-    
-    if(Number(price.price) === Number(validatedData.price)) {
+
+    if (Number(price.price) === Number(validatedData.price)) {
       return this.mapToResponseDto(price);
     }
 
@@ -123,7 +108,7 @@ export class PriceService {
       updatedByUserId: userId,
     } as any);
 
-    const updatedProduct = await Product.findByPk(price.productId);
+    const updatedProduct = await Product.findOne({ where: { id: price.productId, tenantId } });
     if (updatedProduct && validatedData.price !== undefined) {
       pushService.notifyAll(
         '💰 Precio actualizado',
@@ -135,25 +120,23 @@ export class PriceService {
     return this.mapToResponseDto(price);
   }
 
-  async deletePrice(id: number): Promise<void> {
-    const price = await Price.findByPk(id);
+  async deletePrice(id: number, tenantId: number): Promise<void> {
+    const price = await Price.findOne({ where: { id, tenantId } });
     if (!price) {
       throw new NotFoundError('Price not found');
     }
-
     await price.destroy();
   }
 
-  async getPricesByProduct(productId: number): Promise<PriceResponseDto[]> {
+  async getPricesByProduct(productId: number, tenantId: number): Promise<PriceResponseDto[]> {
     const prices = await Price.findAll({
-      where: { productId },
+      where: { tenantId, productId },
       include: [
         { model: Supplier, as: 'supplier' },
         { model: User, as: 'updatedByUser' },
       ],
       order: [['updatedAt', 'DESC']],
     });
-
     return prices.map(price => this.mapToResponseDto(price));
   }
 
@@ -189,4 +172,4 @@ export class PriceService {
       updatedAt: price.updatedAt,
     };
   }
-} 
+}

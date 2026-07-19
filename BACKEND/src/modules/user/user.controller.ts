@@ -1,6 +1,7 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { UserService } from './user.service';
 import { asyncHandler } from '@/core/middlewares/asyncHandler';
+import { AuthenticatedRequest } from '@/core/middlewares/auth';
 import { validateSchema, idParamSchema, IdParam } from '@/core/utils/validation';
 
 export class UserController {
@@ -10,60 +11,44 @@ export class UserController {
     this.userService = new UserService();
   }
 
-  // GET /api/users
-  getAllUsers = asyncHandler(async (req: Request, res: Response) => {
-    const result = await this.userService.getAllUsers(req.query as any);
-    res.status(200).json({
-      status: 'success',
-      data: result.users,
-      pagination: result.pagination,
-    });
+  getAllUsers = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const tenantId = req.user!.tenantId;
+    const result = await this.userService.getAllUsers(req.query as any, tenantId);
+    res.status(200).json({ status: 'success', data: result.users, pagination: result.pagination });
   });
 
-  // GET /api/users/:id
-  getUserById = asyncHandler(async (req: Request, res: Response) => {
+  getUserById = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const tenantId = req.user!.tenantId;
     const { id } = validateSchema(idParamSchema, req.params) as IdParam;
-    const user = await this.userService.getUserById(id);
-    res.status(200).json({
-      status: 'success',
-      data: user,
-    });
+    const user = await this.userService.getUserById(id, tenantId);
+    res.status(200).json({ status: 'success', data: user });
   });
 
-  // POST /api/users
-  createUser = asyncHandler(async (req: Request, res: Response) => {
-    const user = await this.userService.createUser(req.body);
-    res.status(201).json({
-      status: 'success',
-      data: user,
-    });
+  createUser = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const tenantId = req.user!.tenantId;
+    const user = await this.userService.createUser(req.body, tenantId);
+    res.status(201).json({ status: 'success', data: user });
   });
 
-  // PUT /api/users/:id
-  updateUser = asyncHandler(async (req: Request, res: Response) => {
+  updateUser = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const tenantId = req.user!.tenantId;
     const { id } = validateSchema(idParamSchema, req.params) as IdParam;
-    const user = await this.userService.updateUser(id, req.body);
-    res.status(200).json({
-      status: 'success',
-      data: user,
-    });
+    const user = await this.userService.updateUser(id, req.body, tenantId);
+    res.status(200).json({ status: 'success', data: user });
   });
 
-  // DELETE /api/users/:id
-  deleteUser = asyncHandler(async (req: Request, res: Response) => {
+  deleteUser = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const tenantId = req.user!.tenantId;
     const { id } = validateSchema(idParamSchema, req.params) as IdParam;
     const transferTo = req.query['transferTo'] ? Number(req.query['transferTo']) : undefined;
-    await this.userService.deleteUser(id, transferTo);
+    await this.userService.deleteUser(id, tenantId, transferTo);
     res.status(204).send();
   });
 
-  // GET /api/users/:id/restore
-  restoreUser = asyncHandler(async (req: Request, res: Response) => {
+  restoreUser = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const tenantId = req.user!.tenantId;
     const { id } = validateSchema(idParamSchema, req.params) as IdParam;
-    const user = await this.userService.restoreUser(id)
-    res.status(200).json({
-      status: 'success',
-      data: user,
-    });
-  })
-} 
+    await this.userService.restoreUser(id, tenantId);
+    res.status(200).json({ status: 'success', data: null });
+  });
+}

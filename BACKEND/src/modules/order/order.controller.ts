@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { OrderService } from './order.service';
 import { CreateOrderDto, UpdateOrderDto, SearchOrderDto } from './order.dto';
 import { asyncHandler } from '@/core/middlewares/asyncHandler';
@@ -16,95 +16,67 @@ export class OrderController {
     const userId = req.user!.id;
     const tenantId = req.user!.tenantId;
     const order = await this.orderService.createOrder(orderData, userId, tenantId);
-
-    res.status(201).json({
-      status: 'success',
-      data: order,
-    });
+    res.status(201).json({ status: 'success', data: order });
   });
 
-  getAllOrders = asyncHandler(async (req: Request, res: Response) => {
-    const result = await this.orderService.getAllOrders(req.query as any);
-
-    res.status(200).json({
-      status: 'success',
-      data: result.orders,
-      pagination: result.pagination,
-    });
+  getAllOrders = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const tenantId = req.user!.tenantId;
+    const result = await this.orderService.getAllOrders(req.query as any, tenantId);
+    res.status(200).json({ status: 'success', data: result.orders, pagination: result.pagination });
   });
 
-  getOrderById = asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
-    const order = await this.orderService.getOrderById(Number(id));
-
-    res.status(200).json({
-      status: 'success',
-      data: order,
-    });
-  });
-
-  updateOrder = asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
-    const updateData: UpdateOrderDto = req.body;
-    const order = await this.orderService.updateOrder(Number(id), updateData);
-
-    res.status(200).json({
-      status: 'success',
-      data: order,
-    });
-  });
-
-  deleteOrder = asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
-    await this.orderService.deleteOrder(Number(id));
-
-    res.status(204).send();
-  });
-
-  searchOrders = asyncHandler(async (req: Request, res: Response) => {
-    const searchData: SearchOrderDto = req.query as any;
-    const orders = await this.orderService.searchOrders(searchData);
-
-    res.status(200).json({
-      status: 'success',
-      data: orders,
-    });
-  });
-
-  getNextOrderNumber = asyncHandler(async (_req: Request, res: Response) => {
-    const result = await this.orderService.getNextOrderNumber();
-
-    res.status(200).json({
-      status: 'success',
-      data: result,
-    });
-  });
-
-  getOrdersByCustomer = asyncHandler(async (req: Request, res: Response) => {
-    const { customerId } = req.params;
-    const result = await this.orderService.getOrdersByCustomer(Number(customerId), req.query as any);
-
-    res.status(200).json({
-      status: 'success',
-      data: result.orders,
-      pagination: result.pagination,
-    });
-  });
-
-  getDeletedOrders = asyncHandler(async (_req: Request, res: Response) => {
-    const orders = await this.orderService.getDeletedOrders();
-    res.status(200).json({ status: 'success', data: orders });
-  });
-
-  restoreOrder = asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
-    const order = await this.orderService.restoreOrder(Number(id));
+  getOrderById = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const tenantId = req.user!.tenantId;
+    const order = await this.orderService.getOrderById(Number(req.params['id']), tenantId);
     res.status(200).json({ status: 'success', data: order });
   });
 
-  hardDeleteOrder = asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
-    await this.orderService.hardDeleteOrder(Number(id));
+  updateOrder = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const tenantId = req.user!.tenantId;
+    const updateData: UpdateOrderDto = req.body;
+    const order = await this.orderService.updateOrder(Number(req.params['id']), updateData, tenantId);
+    res.status(200).json({ status: 'success', data: order });
+  });
+
+  deleteOrder = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const tenantId = req.user!.tenantId;
+    await this.orderService.deleteOrder(Number(req.params['id']), tenantId);
     res.status(204).send();
   });
-} 
+
+  searchOrders = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const tenantId = req.user!.tenantId;
+    const searchData: SearchOrderDto = req.query as any;
+    const orders = await this.orderService.searchOrders(searchData, tenantId);
+    res.status(200).json({ status: 'success', data: orders });
+  });
+
+  getNextOrderNumber = asyncHandler(async (_req: AuthenticatedRequest, res: Response) => {
+    const result = await this.orderService.getNextOrderNumber();
+    res.status(200).json({ status: 'success', data: result });
+  });
+
+  getOrdersByCustomer = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const tenantId = req.user!.tenantId;
+    const result = await this.orderService.getOrdersByCustomer(Number(req.params['customerId']), req.query as any, tenantId);
+    res.status(200).json({ status: 'success', data: result.orders, pagination: result.pagination });
+  });
+
+  getDeletedOrders = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const tenantId = req.user!.tenantId;
+    const orders = await this.orderService.getDeletedOrders(tenantId);
+    res.status(200).json({ status: 'success', data: orders });
+  });
+
+  restoreOrder = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const tenantId = req.user!.tenantId;
+    const order = await this.orderService.restoreOrder(Number(req.params['id']), tenantId);
+    res.status(200).json({ status: 'success', data: order });
+  });
+
+  hardDeleteOrder = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const tenantId = req.user!.tenantId;
+    await this.orderService.hardDeleteOrder(Number(req.params['id']), tenantId);
+    res.status(204).send();
+  });
+}

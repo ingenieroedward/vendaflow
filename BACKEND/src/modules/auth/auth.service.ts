@@ -49,8 +49,8 @@ export class AuthService {
     };
   }
 
-  async getCurrentUser(userId: number) {
-    return await this.userService.getUserById(userId);
+  async getCurrentUser(userId: number, tenantId: number) {
+    return await this.userService.getUserById(userId, tenantId);
   }
 
   verifyToken(token: string): JwtPayload {

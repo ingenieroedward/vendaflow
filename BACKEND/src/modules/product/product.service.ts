@@ -16,28 +16,28 @@ import { createProductSchema, updateProductSchema, searchProductSchema, adjustSt
 import { Op, literal } from 'sequelize';
 
 export class ProductService {
-  async createProduct(productData: CreateProductDto): Promise<ProductResponseDto> {
+  async createProduct(productData: CreateProductDto, tenantId: number): Promise<ProductResponseDto> {
     const validatedData = validateSchema(createProductSchema, productData);
 
-    // Check if category exists if provided
     if (validatedData.categoryId) {
-      const category = await Category.findByPk(validatedData.categoryId);
+      const category = await Category.findOne({ where: { id: validatedData.categoryId, tenantId } });
       if (!category) {
         throw new NotFoundError('Category not found');
       }
     }
 
-    const product = await Product.create(validatedData as ProductAttributes);
+    const product = await Product.create({ ...validatedData, tenantId } as ProductAttributes);
     return this.mapToResponseDto(product);
   }
 
-  async getAllProducts(query: PaginationQuery, required_prices:boolean = false): Promise<ProductsListResponseDto> {
+  async getAllProducts(query: PaginationQuery, tenantId: number, required_prices: boolean = false): Promise<ProductsListResponseDto> {
     const { page, limit } = validateSchema(paginationSchema, query);
     const validatedPage = page || 1;
     const validatedLimit = limit || 10;
     const offset = (validatedPage - 1) * validatedLimit;
 
     const { count, rows } = await Product.findAndCountAll({
+      where: { tenantId },
       include: [
         {
           model: Category,
@@ -47,7 +47,7 @@ export class ProductService {
         {
           model: Price,
           as: 'prices',
-          required:required_prices,
+          required: required_prices,
           include: [
             {
               model: Supplier,
@@ -77,9 +77,9 @@ export class ProductService {
     };
   }
 
-  async getProductById(id: number): Promise<ProductResponseDto> {
+  async getProductById(id: number, tenantId: number): Promise<ProductResponseDto> {
     const product = await Product.findOne({
-      where: { id },
+      where: { id, tenantId },
       include: [
         {
           model: Category,
@@ -96,17 +96,16 @@ export class ProductService {
     return this.mapToResponseDto(product);
   }
 
-  async updateProduct(id: number, updateData: UpdateProductDto): Promise<ProductResponseDto> {
+  async updateProduct(id: number, updateData: UpdateProductDto, tenantId: number): Promise<ProductResponseDto> {
     const validatedData = validatePartialSchema(updateProductSchema, updateData) as Partial<UpdateProductDto>;
 
-    const product = await Product.findByPk(id);
+    const product = await Product.findOne({ where: { id, tenantId } });
     if (!product) {
       throw new NotFoundError('Product not found');
     }
 
-    // Check if category exists if provided
     if (validatedData.categoryId) {
-      const category = await Category.findByPk(validatedData.categoryId);
+      const category = await Category.findOne({ where: { id: validatedData.categoryId, tenantId } });
       if (!category) {
         throw new NotFoundError('Category not found');
       }
@@ -116,22 +115,22 @@ export class ProductService {
     return this.mapToResponseDto(product);
   }
 
-  async deleteProduct(id: number): Promise<void> {
-    const product = await Product.findByPk(id);
+  async deleteProduct(id: number, tenantId: number): Promise<void> {
+    const product = await Product.findOne({ where: { id, tenantId } });
     if (!product) {
       throw new NotFoundError('Product not found');
     }
 
-    // Hard delete all associated prices (including soft-deleted ones) then the product
-    await Price.destroy({ where: { productId: id }, force: true });
+    await Price.destroy({ where: { productId: id, tenantId }, force: true });
     await product.destroy({ force: true });
   }
 
-  async searchProducts(searchData: SearchProductDto, required_prices:boolean = true): Promise<ProductResponseDto[]> {
+  async searchProducts(searchData: SearchProductDto, tenantId: number, required_prices: boolean = true): Promise<ProductResponseDto[]> {
     const validatedData = validateSchema(searchProductSchema, searchData);
 
     const products = await Product.findAll({
       where: {
+        tenantId,
         [Op.or]: [
           { name: { [Op.like]: `%${validatedData.q}%` } },
           { code: { [Op.like]: `%${validatedData.q}%` } },
@@ -146,7 +145,7 @@ export class ProductService {
         {
           model: Price,
           as: 'prices',
-          required:required_prices,
+          required: required_prices,
           include: [
             {
               model: Supplier,
@@ -163,14 +162,14 @@ export class ProductService {
     return products.map(product => this.mapToResponseDto(product));
   }
 
-  async getProductsByCategory(categoryId: number, query: PaginationQuery): Promise<ProductsListResponseDto> {
+  async getProductsByCategory(categoryId: number, query: PaginationQuery, tenantId: number): Promise<ProductsListResponseDto> {
     const { page, limit } = validateSchema(paginationSchema, query);
     const validatedPage = page || 1;
     const validatedLimit = limit || 10;
     const offset = (validatedPage - 1) * validatedLimit;
 
     const { count, rows } = await Product.findAndCountAll({
-      where: { categoryId },
+      where: { tenantId, categoryId },
       include: [
         {
           model: Category,
@@ -197,9 +196,10 @@ export class ProductService {
     };
   }
 
-  async getStockAlerts(): Promise<ProductResponseDto[]> {
+  async getStockAlerts(tenantId: number): Promise<ProductResponseDto[]> {
     const products = await Product.findAll({
       where: {
+        tenantId,
         [Op.or]: [
           { stock: { [Op.lte]: literal('minStock') } },
           { stock: { [Op.lte]: 0 } },
@@ -211,9 +211,9 @@ export class ProductService {
     return products.map(p => this.mapToResponseDto(p));
   }
 
-  async adjustStock(id: number, data: AdjustStockDto): Promise<ProductResponseDto> {
+  async adjustStock(id: number, data: AdjustStockDto, tenantId: number): Promise<ProductResponseDto> {
     const validatedData = validateSchema(adjustStockSchema, data);
-    const product = await Product.findByPk(id);
+    const product = await Product.findOne({ where: { id, tenantId } });
     if (!product) throw new NotFoundError('Product not found');
     await product.update({ stock: Number(product.stock) + validatedData.quantity });
     return this.mapToResponseDto(product);
@@ -257,4 +257,4 @@ export class ProductService {
       updatedAt: product.updatedAt,
     };
   }
-} 
+}
