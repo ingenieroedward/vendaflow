@@ -50,7 +50,7 @@ export const initializeDatabase = async (): Promise<void> => {
       console.error(`❌ DB connection attempt ${attempt}/${maxRetries} failed:`, error);
       if (attempt === maxRetries) {
         console.error('❌ Unable to connect to the database after all retries.');
-        process.exit(1);
+        throw error;
       }
       console.log(`⏳ Retrying in ${retryDelay / 1000}s...`);
       await wait(retryDelay);

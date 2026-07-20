@@ -26,13 +26,11 @@ export class AuthService {
       if (!tenant) throw new UnauthorizedError('Invalid username or password');
       user = await User.findOne({
         where: { username: validatedData.username, tenantId: tenant.id },
-        include: [{ model: Tenant, as: 'tenant' }],
       });
     } else {
       // No slug: only superadmin may log in without tenant context
       user = await User.findOne({
         where: { username: validatedData.username },
-        include: [{ model: Tenant, as: 'tenant' }],
       });
       // Prevent regular users from bypassing tenant isolation by omitting the slug
       if (user && user.role !== 'superadmin') {
@@ -45,17 +43,18 @@ export class AuthService {
     const isPasswordValid = await user.comparePassword(validatedData.password);
     if (!isPasswordValid) throw new UnauthorizedError('Invalid username or password');
 
+    // Fetch tenant separately to avoid association alias issues
+    const tenantData = user.tenantId ? await Tenant.findByPk(user.tenantId) : null;
+
     // Verify tenant is active (superadmin bypasses this check)
     if (user.role !== 'superadmin') {
-      const tenantModel = (user as any).tenant as Tenant;
-      if (!tenantModel || !tenantModel.isActive) {
+      if (!tenantData || !tenantData.isActive) {
         throw new ForbiddenError('Cuenta suspendida. Contacta al administrador.');
       }
     }
 
     const token = this.generateToken(user.id, user.username, user.role, user.tenantId);
 
-    const tenantData = (user as any).tenant as Tenant | undefined;
     return {
       user: { id: user.id, username: user.username, role: user.role, tenantId: user.tenantId },
       token,
