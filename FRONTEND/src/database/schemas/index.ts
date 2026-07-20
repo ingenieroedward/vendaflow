@@ -2,7 +2,7 @@ import { SyncStatus } from '../LocalDatabase';
 
 // Constantes
 export const DB_VERSION = 1;
-export const DB_NAME = 'JJLM_Database';
+export const DB_NAME = 'Merco_Database';
 
 // Helpers para crear modelos base
 export function createBaseModel(userId?: number): {

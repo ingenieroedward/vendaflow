@@ -55,7 +55,7 @@ const OrderPrintViewCarta = forwardRef<HTMLDivElement, Props>(({ order }, ref) =
     >
       {/* ── Header: una sola línea compacta ── */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-        <div style={{ fontSize: "18px", fontWeight: "900", letterSpacing: "-0.5px", color: "#111827" }}>JJLM</div>
+        <div style={{ fontSize: "18px", fontWeight: "900", letterSpacing: "-0.5px", color: "#111827" }}>Merco</div>
         <div style={{ textAlign: "right" }}>
           <span style={{ fontSize: "10px", color: "#9ca3af", textTransform: "uppercase", letterSpacing: "1px", marginRight: "8px" }}>Orden de Venta</span>
           <span style={{ fontSize: "15px", fontWeight: "800", color: "#111827" }}>#{order.orderNumber}</span>
@@ -162,7 +162,7 @@ const OrderPrintViewCarta = forwardRef<HTMLDivElement, Props>(({ order }, ref) =
 
       {/* ── Footer ── */}
       <div style={{ position: "absolute", bottom: "40px", left: "56px", right: "56px", borderTop: "1px solid #e5e7eb", paddingTop: "12px", display: "flex", justifyContent: "space-between", fontSize: "10px", color: "#9ca3af" }}>
-        <span>JJLM · Sistema de Gestión de Ventas</span>
+        <span>Merco · Sistema de Gestión de Ventas</span>
         <span>{order.items.length} producto{order.items.length !== 1 ? "s" : ""} · Generado {fmt(new Date().toISOString())}</span>
       </div>
     </div>

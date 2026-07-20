@@ -17,7 +17,7 @@ export const useSyncStore = create<SyncState>((set) => ({
   status: 'idle',
   current: 0,
   total: 0,
-  lastSync: localStorage.getItem('jjlm_last_sync'),
+  lastSync: localStorage.getItem('merco_last_sync'),
 
   setProgress: (current: number, total: number) => set({ current, total }),
 
@@ -25,7 +25,7 @@ export const useSyncStore = create<SyncState>((set) => ({
 
   setLastSync: () => {
     const now = new Date().toISOString();
-    localStorage.setItem('jjlm_last_sync', now);
+    localStorage.setItem('merco_last_sync', now);
     set({ lastSync: now });
   },
 

@@ -5,15 +5,14 @@ import { isAuth, isAdmin, isBuyer } from '@/core/middlewares/auth';
 const router = Router();
 const productController = new ProductController();
 
-// Public routes
-router.get('/', productController.getAllProducts);
-router.get('/prices', productController.getAllProductsPrices);
-router.get('/search', productController.searchProducts);
-router.get('/search/prices', productController.searchProductsPrices);
+router.get('/', isAuth, productController.getAllProducts);
+router.get('/prices', isAuth, productController.getAllProductsPrices);
+router.get('/search', isAuth, productController.searchProducts);
+router.get('/search/prices', isAuth, productController.searchProductsPrices);
 router.get('/stock/alerts', isAuth, productController.getStockAlerts);
 
-router.get('/:id', productController.getProductById);
-router.get('/category/:categoryId', productController.getProductsByCategory);
+router.get('/:id', isAuth, productController.getProductById);
+router.get('/category/:categoryId', isAuth, productController.getProductsByCategory);
 
 // Protected routes (buyer + admin for mutations, admin only for delete)
 router.post('/', isAuth, isBuyer, productController.createProduct);

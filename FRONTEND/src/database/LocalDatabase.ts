@@ -107,7 +107,7 @@ class LocalDatabase extends Dexie {
   syncQueue!: Table<SyncQueueItem, number>;
 
   constructor() {
-    super('JJLM_Database');
+    super('Merco_Database');
 
     // Version 1: Schema inicial
     this.version(1).stores({

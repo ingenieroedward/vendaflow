@@ -5,9 +5,8 @@ import { isAuth, isAdmin } from '@/core/middlewares/auth';
 const router = Router();
 const categoryController = new CategoryController();
 
-// Public routes
-router.get('/', categoryController.getAllCategories);
-router.get('/:id', categoryController.getCategoryById);
+router.get('/', isAuth, categoryController.getAllCategories);
+router.get('/:id', isAuth, categoryController.getCategoryById);
 
 // Protected routes (admin only)
 router.post('/', isAuth, isAdmin, categoryController.createCategory);

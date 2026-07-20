@@ -53,7 +53,7 @@ const Sidebar = () => {
             ? <img src={tenant.logoUrl} alt={tenant.name} className="w-6 h-6 object-contain" />
             : <Package className="w-6 h-6 text-primary" />}
         </div>
-        <span className="text-xl font-bold text-gray-900 tracking-tight">{tenant?.name ?? 'VendaFlow'}</span>
+        <span className="text-xl font-bold text-gray-900 tracking-tight">{tenant?.name ?? 'Merco'}</span>
       </div>
 
       {/* Nav links */}

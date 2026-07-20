@@ -1,5 +1,5 @@
 export const DATABASE_CONFIG = {
-  name: 'JJLM_Database',
+  name: 'Merco_Database',
   version: 1,
 
   // Configuración de sincronización

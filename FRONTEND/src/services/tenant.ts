@@ -38,7 +38,7 @@ export async function fetchTenantBySlug(slug: string): Promise<Tenant | null> {
 }
 
 // Detects the tenant slug from the current URL.
-// - subdomain: acme.vendaflow.app → 'acme'
+// - subdomain: acme.merco.edwsystem.com → 'acme'
 // - query param ?tenant=acme (for local dev: localhost?tenant=acme)
 // - env var VITE_TENANT_SLUG (for staging deploys)
 export function detectTenantSlug(): string | null {
@@ -54,7 +54,7 @@ export function detectTenantSlug(): string | null {
   // 3. Subdomain detection
   const hostname = window.location.hostname;
   const parts = hostname.split('.');
-  const reserved = new Set(['www', 'app', 'api', 'localhost', 'vendaflow']);
+  const reserved = new Set(['www', 'app', 'api', 'localhost', 'merco', 'edwsystem']);
   if (parts.length >= 2 && !reserved.has(parts[0]!)) {
     return parts[0] ?? null;
   }

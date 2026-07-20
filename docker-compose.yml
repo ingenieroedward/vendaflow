@@ -3,31 +3,31 @@ services:
   # ── MySQL Database ──────────────────────────────────────────────────────────
   mysql:
     image: mysql:8.0
-    container_name: jjlm-mysql
+    container_name: merco-mysql
     environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: jjlm_db
-      MYSQL_USER: jjlm_user
-      MYSQL_PASSWORD: jjlm_passwordya
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: merco_db
+      MYSQL_USER: merco_user
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-merco_password}
     ports:
       - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-rootpassword}"]
       interval: 10s
       timeout: 5s
       retries: 10
       start_period: 30s
     networks:
-      - jjlm-network
+      - merco-network
 
   # ── Backend ────────────────────────────────────────────────────────────────
   backend:
     build:
       context: ./BACKEND
-    container_name: jjlm-backend
+    container_name: merco-backend
     ports:
       - "3001:3001"
     environment:
@@ -35,17 +35,20 @@ services:
       PORT: 3001
       DB_HOST: mysql
       DB_PORT: 3306
-      DB_NAME: jjlm_db
-      DB_USER: jjlm_user
-      DB_PASSWORD: jjlm_password
+      DB_NAME: merco_db
+      DB_USER: merco_user
+      DB_PASSWORD: ${MYSQL_PASSWORD:-merco_password}
       DB_DIALECT: mysql
-      JWT_SECRET: jjlm_jwt_super_secret_2026
+      JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: 24h
-      CORS_ORIGIN: https://jjlm.edwsystem.com,https://api.jjlm.edwsystem.com,https://localhost,capacitor://localhost
+      CORS_ORIGIN: https://merco.edwsystem.com,https://api.merco.edwsystem.com,https://localhost,capacitor://localhost
+      CORS_WILDCARD_ORIGIN: "*.merco.edwsystem.com"
       LOG_LEVEL: info
-      VAPID_PUBLIC_KEY: BFs2khE7TREeTo_S95ob5C_JBfpjvhTsnw2eRezgJ2jH8_Jh9V8tC0Xtcj9sEkpjhxpmXD1_dYzpeWOBEN9-fVw
-      VAPID_PRIVATE_KEY: 6kvoyQf61Kdif0a4n5kIWwbxirkf6BX8cF5Nv2gPQSQ
-      VAPID_SUBJECT: mailto:admin@jjlm.com
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY}
+      VAPID_SUBJECT: mailto:admin@edwsystem.com
+      SUPERADMIN_USERNAME: ${SUPERADMIN_USERNAME:-superadmin}
+      SUPERADMIN_PASSWORD: ${SUPERADMIN_PASSWORD}
     volumes:
       - backend_logs:/app/logs
     depends_on:
@@ -59,7 +62,7 @@ services:
       retries: 5
       start_period: 60s
     networks:
-      - jjlm-network
+      - merco-network
       - dokploy-network
 
   # ── Frontend ───────────────────────────────────────────────────────────────
@@ -67,8 +70,8 @@ services:
     build:
       context: ./FRONTEND
       args:
-        VITE_API_BASE_URL: https://api.jjlm.edwsystem.com/api
-    container_name: jjlm-frontend
+        VITE_API_BASE_URL: https://api.merco.edwsystem.com/api
+    container_name: merco-frontend
     ports:
       - "8080:80"
     depends_on:
@@ -76,11 +79,11 @@ services:
         condition: service_healthy
     restart: unless-stopped
     networks:
-      - jjlm-network
+      - merco-network
       - dokploy-network
 
 networks:
-  jjlm-network:
+  merco-network:
     driver: bridge
   dokploy-network:
     external: true

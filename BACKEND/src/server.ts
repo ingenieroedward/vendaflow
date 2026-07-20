@@ -3,6 +3,7 @@ import 'dotenv/config';
 import app from './app';
 import { config } from '@/config';
 import { initializeDatabase, closeDatabase } from '@/database';
+import { ensureSuperadmin } from '@/core/startup/ensureSuperadmin';
 
 const PORT = config.server.port;
 
@@ -10,6 +11,9 @@ const startServer = async (): Promise<void> => {
   try {
     // Initialize database
     await initializeDatabase();
+
+    // Ensure superadmin exists (from env vars SUPERADMIN_USERNAME / SUPERADMIN_PASSWORD)
+    await ensureSuperadmin();
 
     // Start server
     const server = app.listen(PORT, () => {

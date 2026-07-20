@@ -30,9 +30,19 @@ app.set('trust proxy', 1);
 // Security middleware
 app.use(helmet());
 
-// CORS configuration
+// CORS configuration — acepta orígenes estáticos + wildcard de subdominio
 app.use(cors({
-  origin: config.cors.origin,
+  origin: (origin, callback) => {
+    // Peticiones sin origin (curl, Postman, server-to-server)
+    if (!origin) return callback(null, true);
+    // Lista estática de orígenes permitidos
+    if (config.cors.origin.includes(origin)) return callback(null, true);
+    // Wildcard de subdominio: *.merco.edwsystem.com
+    if (config.cors.wildcardPattern && config.cors.wildcardPattern.test(origin)) {
+      return callback(null, true);
+    }
+    callback(new Error(`CORS: origin ${origin} not allowed`));
+  },
   credentials: true,
 }));
 

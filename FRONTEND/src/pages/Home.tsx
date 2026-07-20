@@ -2,6 +2,7 @@ import React, {  useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, RefreshCw, Package, TrendingUp } from 'lucide-react';
 import { useProductStore } from '../store/productStore';
+import { useTenantStore } from '../store/tenantStore';
 import SearchBar from '../components/features/SearchBar';
 import ProductCard from '../components/features/ProductCard';
 import Pagination from '../components/features/Pagination';
@@ -11,7 +12,8 @@ import Button from '../components/ui/Button';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
-  const { 
+  const { tenant } = useTenantStore();
+  const {
     products, 
     loading, 
     error, 
@@ -57,7 +59,7 @@ const Home: React.FC = () => {
         <div className="mb-6 sm:mb-8">
           <div className="text-center mb-6 sm:mb-8">
             <h1 className="text-xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2 px-2">
-              Sistema de gestión JJLM
+              {tenant?.name ?? 'Merco'}
             </h1>
             <p className="text-sm sm:text-lg text-gray-600 px-2">
               Busca y compara precios de productos.

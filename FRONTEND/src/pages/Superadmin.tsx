@@ -222,7 +222,7 @@ const Superadmin: React.FC = () => {
               <Building2 className="w-4 h-4 text-white" />
             </div>
             <div>
-              <p className="text-sm font-bold text-gray-900 leading-none">VendaFlow</p>
+              <p className="text-sm font-bold text-gray-900 leading-none">Merco</p>
               <p className="text-xs text-gray-400 leading-none mt-0.5">Panel superadmin</p>
             </div>
           </div>

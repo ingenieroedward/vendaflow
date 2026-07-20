@@ -41,11 +41,18 @@ export const config = {
     maxRequests: parseInt(process.env['RATE_LIMIT_MAX_REQUESTS'] || '100'),
   },
 
-  // CORS configuration — soporta múltiples orígenes separados por coma
+  // CORS configuration — soporta orígenes estáticos + wildcard de subdominio
   cors: {
     origin: (process.env['CORS_ORIGIN'] || 'http://localhost:3000')
       .split(',')
       .map(o => o.trim()),
+    // CORS_WILDCARD_ORIGIN=*.merco.edwsystem.com → convierte a RegExp
+    wildcardPattern: (() => {
+      const w = process.env['CORS_WILDCARD_ORIGIN'];
+      if (!w) return null;
+      const escaped = w.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\\\*/g, '[^.]+');
+      return new RegExp(`^https?://${escaped}$`);
+    })(),
   },
 
   // Logging
@@ -59,7 +66,7 @@ export const config = {
   vapid: {
     publicKey: process.env['VAPID_PUBLIC_KEY'] || '',
     privateKey: process.env['VAPID_PRIVATE_KEY'] || '',
-    subject: process.env['VAPID_SUBJECT'] || 'mailto:admin@jjlm.com',
+    subject: process.env['VAPID_SUBJECT'] || 'mailto:admin@edwsystem.com',
   },
 };
 

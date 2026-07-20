@@ -1,4 +1,4 @@
-const PRODUCTION_API = 'https://api.vendaflow.app/api';
+const PRODUCTION_API = 'https://api.merco.edwsystem.com/api';
 
 // En contexto nativo (APK Capacitor) siempre usar la URL de producción.
 // El WebView del APK no tiene proxy nginx, así que localhost no funciona.
@@ -11,7 +11,7 @@ export const API_BASE_URL = isNative
   : (import.meta.env.VITE_API_BASE_URL ?? PRODUCTION_API);
 
 export const APP_CONFIG = {
-  name: 'VendaFlow',
+  name: 'Merco',
   version: '1.0.0',
   description: 'Sistema de Gestión de Ventas',
 };

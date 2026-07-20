@@ -45,7 +45,7 @@ const Header = () => {
                 ? <img src={tenant.logoUrl} alt={tenant.name} className="w-5 h-5 object-contain" />
                 : <Package className="w-5 h-5 text-primary" />}
             </div>
-            <span className="text-lg font-bold text-gray-900">{tenant?.name ?? 'VendaFlow'}</span>
+            <span className="text-lg font-bold text-gray-900">{tenant?.name ?? 'Merco'}</span>
 
             {/* Syncing progress */}
             {status === 'syncing' && (

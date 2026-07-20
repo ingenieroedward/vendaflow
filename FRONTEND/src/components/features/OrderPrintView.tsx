@@ -55,7 +55,7 @@ const OrderPrintView = forwardRef<HTMLDivElement, OrderPrintViewProps>(
       >
         {/* Encabezado */}
         <div style={{ textAlign: "center", marginBottom: "8px" }}>
-          <div style={{ fontSize: "16px", fontWeight: "bold", letterSpacing: "1px" }}>JJLM</div>
+          <div style={{ fontSize: "16px", fontWeight: "bold", letterSpacing: "1px" }}>Merco</div>
           <div style={{ fontSize: "9px", color: "#555" }}>SISTEMA DE GESTIÓN DE VENTAS</div>
         </div>
 

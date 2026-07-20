@@ -102,7 +102,7 @@ const Login: React.FC = () => {
               )}
             </div>
             <h2 className="mt-4 sm:mt-6 text-2xl sm:text-3xl font-bold text-gray-900">
-              {tenant?.name ?? 'VendaFlow'}
+              {tenant?.name ?? 'Merco'}
             </h2>
             <p className="mt-2 text-sm text-gray-600">
               Gestión de productos y precios
@@ -168,7 +168,7 @@ const Login: React.FC = () => {
         <div className="max-w-sm sm:max-w-md mx-auto text-center space-y-2">
          
           <div className="block  flex-col sm:flex-row items-center justify-center space-y-1 sm:space-y-0 sm:space-x-4 text-xs text-gray-400">
-            <span>© {new Date().getFullYear()} {tenant?.name ?? 'VendaFlow'}. Todos los derechos reservados.</span>
+            <span>© {new Date().getFullYear()} {tenant?.name ?? 'Merco'}. Todos los derechos reservados.</span>
             <br />
             <span>
               Desarrollado por{' '}
