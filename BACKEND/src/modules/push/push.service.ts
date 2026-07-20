@@ -3,11 +3,15 @@ import { config } from '@/config';
 import { PushSubscription } from './push-subscription.model';
 import logger from '@/core/logger';
 
-webpush.setVapidDetails(
-  config.vapid.subject,
-  config.vapid.publicKey,
-  config.vapid.privateKey,
-);
+if (config.vapid.publicKey && config.vapid.privateKey) {
+  webpush.setVapidDetails(
+    config.vapid.subject,
+    config.vapid.publicKey,
+    config.vapid.privateKey,
+  );
+} else {
+  logger.warn('[PushService] VAPID keys not configured — push notifications disabled');
+}
 
 export interface SubscriptionPayload {
   endpoint: string;

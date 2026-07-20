@@ -9,6 +9,11 @@ const PORT = config.server.port;
 
 const startServer = async (): Promise<void> => {
   try {
+    // Startup diagnostics — log which env vars are present (not their values)
+    const requiredEnvVars = ['NODE_ENV', 'PORT', 'DB_HOST', 'DB_NAME', 'JWT_SECRET', 'SUPERADMIN_PASSWORD', 'VAPID_PUBLIC_KEY'];
+    const envStatus = requiredEnvVars.map(k => `${k}=${process.env[k] ? '✅' : '❌'}`).join(' | ');
+    console.log(`[Startup] Env check: ${envStatus}`);
+
     // Initialize database
     await initializeDatabase();
 
