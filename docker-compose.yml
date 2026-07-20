@@ -73,6 +73,17 @@ services:
     restart: unless-stopped
     networks:
       - dokploy-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.merco-wildcard.rule=HostRegexp(`{subdomain:[a-z0-9-]+}.merco.edwsystem.com`)"
+      - "traefik.http.routers.merco-wildcard.entrypoints=websecure"
+      - "traefik.http.routers.merco-wildcard.tls=true"
+      - "traefik.http.routers.merco-wildcard.tls.certresolver=letsencrypt"
+      - "traefik.http.services.merco-wildcard.loadbalancer.server.port=80"
+      - "traefik.http.routers.merco-wildcard-http.rule=HostRegexp(`{subdomain:[a-z0-9-]+}.merco.edwsystem.com`)"
+      - "traefik.http.routers.merco-wildcard-http.entrypoints=web"
+      - "traefik.http.routers.merco-wildcard-http.middlewares=redirect-to-https@docker"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
 
 networks:
   dokploy-network:
