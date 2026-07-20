@@ -7,65 +7,58 @@ import { ensureSuperadmin } from '@/core/startup/ensureSuperadmin';
 
 const PORT = config.server.port;
 
-const startServer = async (): Promise<void> => {
-  try {
-    // Startup diagnostics — log which env vars are present (not their values)
-    const requiredEnvVars = ['NODE_ENV', 'PORT', 'DB_HOST', 'DB_NAME', 'JWT_SECRET', 'SUPERADMIN_PASSWORD', 'VAPID_PUBLIC_KEY'];
-    const envStatus = requiredEnvVars.map(k => `${k}=${process.env[k] ? '✅' : '❌'}`).join(' | ');
-    console.log(`[Startup] Env check: ${envStatus}`);
+// Startup diagnostics — log which env vars are present (not their values)
+const requiredEnvVars = ['NODE_ENV', 'PORT', 'DB_HOST', 'DB_NAME', 'JWT_SECRET', 'SUPERADMIN_PASSWORD', 'VAPID_PUBLIC_KEY'];
+const envStatus = requiredEnvVars.map(k => `${k}=${process.env[k] ? '✅' : '❌'}`).join(' | ');
+console.log(`[Startup] Env check: ${envStatus}`);
 
-    // Initialize database
+const startServer = async (): Promise<void> => {
+  // Start HTTP server FIRST so health checks pass while DB initializes
+  const server = app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`📊 Environment: ${config.server.nodeEnv}`);
+    console.log(`🔗 Health check: http://localhost:${PORT}/health`);
+  });
+
+  // Graceful shutdown
+  const gracefulShutdown = async (signal: string): Promise<void> => {
+    console.log(`\n🛑 Received ${signal}. Starting graceful shutdown...`);
+    server.close(async () => {
+      console.log('✅ HTTP server closed.');
+      try {
+        await closeDatabase();
+        console.log('✅ Database connection closed.');
+        process.exit(0);
+      } catch (error) {
+        console.error('❌ Error during shutdown:', error);
+        process.exit(1);
+      }
+    });
+  };
+
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+  process.on('uncaughtException', (error) => {
+    console.error('❌ Uncaught Exception:', error);
+    process.exit(1);
+  });
+  process.on('unhandledRejection', (reason) => {
+    console.error('❌ Unhandled Rejection:', reason);
+    process.exit(1);
+  });
+
+  try {
+    // Initialize database (with retries) AFTER server is already listening
     await initializeDatabase();
 
-    // Ensure superadmin exists (from env vars SUPERADMIN_USERNAME / SUPERADMIN_PASSWORD)
+    // Ensure superadmin exists
     await ensureSuperadmin();
 
-    // Start server
-    const server = app.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT}`);
-      console.log(`📊 Environment: ${config.server.nodeEnv}`);
-      console.log(`🔗 Health check: http://localhost:${PORT}/health`);
-      console.log(`👥 Users API: http://localhost:${PORT}/api/users`);
-    });
-
-    // Graceful shutdown
-    const gracefulShutdown = async (signal: string): Promise<void> => {
-      console.log(`\n🛑 Received ${signal}. Starting graceful shutdown...`);
-      
-      server.close(async () => {
-        console.log('✅ HTTP server closed.');
-        
-        try {
-          await closeDatabase();
-          console.log('✅ Database connection closed.');
-          process.exit(0);
-        } catch (error) {
-          console.error('❌ Error during shutdown:', error);
-          process.exit(1);
-        }
-      });
-    };
-
-    // Handle shutdown signals
-    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-
-    // Handle uncaught exceptions
-    process.on('uncaughtException', (error) => {
-      console.error('❌ Uncaught Exception:', error);
-      process.exit(1);
-    });
-
-    process.on('unhandledRejection', (reason, promise) => {
-      console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
-      process.exit(1);
-    });
-
+    console.log('✅ Database ready — all systems operational');
   } catch (error) {
-    console.error('❌ Failed to start server:', error);
-    process.exit(1);
+    console.error('❌ Database initialization failed:', error);
+    // Don't exit — server is still running, will return errors for DB-dependent endpoints
   }
 };
 
-// Start the server
-startServer(); 
+startServer();
