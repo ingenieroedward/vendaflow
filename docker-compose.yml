@@ -19,7 +19,7 @@ services:
       retries: 10
       start_period: 30s
     networks:
-      - merco-network
+      - dokploy-network
 
   # ── Backend ────────────────────────────────────────────────────────────────
   backend:
@@ -58,7 +58,6 @@ services:
       retries: 5
       start_period: 60s
     networks:
-      - merco-network
       - dokploy-network
 
   # ── Frontend ───────────────────────────────────────────────────────────────
@@ -73,12 +72,9 @@ services:
         condition: service_healthy
     restart: unless-stopped
     networks:
-      - merco-network
       - dokploy-network
 
 networks:
-  merco-network:
-    driver: bridge
   dokploy-network:
     external: true
 

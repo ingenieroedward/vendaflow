@@ -3,7 +3,6 @@ import 'dotenv/config';
 import app from './app';
 import { config } from '@/config';
 import { initializeDatabase, closeDatabase } from '@/database';
-import sequelize from '@/database';
 import { ensureSuperadmin } from '@/core/startup/ensureSuperadmin';
 
 const PORT = config.server.port;
@@ -46,17 +45,6 @@ const startServer = async (): Promise<void> => {
   process.on('unhandledRejection', (reason) => {
     console.error('❌ Unhandled Rejection:', reason);
     process.exit(1);
-  });
-
-  // Temporary debug endpoint — shows DB status and table list
-  app.get('/api/debug/db', async (_req, res) => {
-    try {
-      await sequelize.authenticate();
-      const [tables] = await sequelize.query('SHOW TABLES') as any;
-      res.json({ status: 'connected', tables: tables.map((r: any) => Object.values(r)[0]) });
-    } catch (err: any) {
-      res.json({ status: 'error', errorCode: err.name, errorDetail: err.message?.substring(0, 300) });
-    }
   });
 
   try {
