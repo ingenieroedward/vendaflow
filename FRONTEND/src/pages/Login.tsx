@@ -10,10 +10,10 @@ import { LoginRequest } from '../types/auth';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
-  const { login, isAuthenticated, isLoading } = useAuthStore();
+  const { login, isAuthenticated, isLoading, user } = useAuthStore();
   const { addNotification } = useUIStore();
   const { tenant } = useTenantStore();
-  
+
   const [formData, setFormData] = useState<LoginRequest>({
     username: '',
     password: '',
@@ -23,9 +23,9 @@ const Login: React.FC = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/');
+      navigate(user?.role === 'superadmin' ? '/superadmin' : '/');
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, user]);
 
   const validateForm = (): boolean => {
     const newErrors: Partial<LoginRequest> = {};
@@ -66,8 +66,8 @@ const Login: React.FC = () => {
         title: 'Bienvenido',
         message: 'Has iniciado sesión correctamente',
       });
-      
-      navigate('/');
+      const { user: loggedUser } = useAuthStore.getState();
+      navigate(loggedUser?.role === 'superadmin' ? '/superadmin' : '/');
     } catch (error: unknown) {
       let errorMessage = 'Credenciales incorrectas';
       

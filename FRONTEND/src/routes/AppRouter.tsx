@@ -87,12 +87,12 @@ const SellerRoute: React.FC<RouteProps> = ({ children }) => {
 
 // Public Route Component (redirects to home if authenticated)
 const PublicRoute: React.FC<RouteProps> = ({ children }) => {
-  const { isAuthenticated } = useAuthStore();
-  
+  const { isAuthenticated, user } = useAuthStore();
+
   if (isAuthenticated) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={user?.role === 'superadmin' ? '/superadmin' : '/'} replace />;
   }
-  
+
   return <>{children}</>;
 };
 
