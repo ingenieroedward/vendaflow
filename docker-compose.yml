@@ -9,8 +9,6 @@ services:
       MYSQL_DATABASE: merco_db
       MYSQL_USER: merco_user
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:-merco_password}
-    ports:
-      - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     restart: unless-stopped
