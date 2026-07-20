@@ -53,16 +53,10 @@ export const errorHandler = (
     userId: (req as any).user?.id,
   });
 
-  const errorResponse: ErrorResponse & { errorCode?: string } = {
+  const errorResponse: ErrorResponse = {
     status: 'error',
     message,
   };
-
-  // Expose error type for non-AppError errors (helps diagnose DB/unexpected issues)
-  if (!(error instanceof AppError)) {
-    (errorResponse as any).errorCode = error.name;
-    (errorResponse as any).errorDetail = error.message?.substring(0, 200);
-  }
 
   // Include stack trace in development
   if (config.server.nodeEnv === 'development' && error.stack) {

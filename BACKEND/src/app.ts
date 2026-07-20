@@ -94,18 +94,6 @@ app.use('/api/push', pushRoutes);
 app.use('/api/tenants', tenantRoutes);
 app.use('/api/onboarding', onboardingRoutes);
 
-// Temporary debug endpoint: shows DB connection status + tables
-app.get('/api/debug/db', async (_req, res) => {
-  try {
-    const sequelize = (await import('@/database')).default;
-    await sequelize.authenticate();
-    const [tables] = await sequelize.query('SHOW TABLES') as any;
-    res.json({ status: 'connected', tables: tables.map((r: any) => Object.values(r)[0]) });
-  } catch (err: any) {
-    res.json({ status: 'error', errorCode: err.name, errorDetail: err.message?.substring(0, 300) });
-  }
-});
-
 // 404 handler
 app.use('*', notFoundHandler);
 
