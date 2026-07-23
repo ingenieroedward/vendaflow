@@ -4,6 +4,7 @@ import app from './app';
 import { config } from '@/config';
 import { initializeDatabase, closeDatabase } from '@/database';
 import { ensureSuperadmin } from '@/core/startup/ensureSuperadmin';
+import { ensureDemoData } from '@/core/startup/ensureDemoData';
 
 const PORT = config.server.port;
 
@@ -53,6 +54,9 @@ const startServer = async (): Promise<void> => {
 
     // Ensure superadmin exists
     await ensureSuperadmin();
+
+    // Ensure demo tenant/user if DEMO_ADMIN_PASSWORD is set
+    await ensureDemoData();
 
     console.log('✅ Database ready — all systems operational');
   } catch (error) {
