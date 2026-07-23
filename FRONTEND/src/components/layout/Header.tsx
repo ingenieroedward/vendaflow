@@ -32,6 +32,11 @@ const Header = () => {
   const toggleUserMenu = () => setIsUserMenuOpen((v) => !v);
   const closeUserMenu = () => setIsUserMenuOpen(false);
 
+  // Abreviación de 2-4 letras para el header mobile: "Distribuciones Imperium SAS" → "DIS"
+  const shortName = tenant?.name
+    ? tenant.name.split(/\s+/).map((w: string) => w[0]).join('').toUpperCase().slice(0, 4)
+    : 'M';
+
   return (
     <header className="md:hidden bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50 pt-safe">
       <TopLoadingBar />
@@ -45,7 +50,12 @@ const Header = () => {
                 ? <img src={tenant.logoUrl} alt={tenant.name} className="w-5 h-5 object-contain" />
                 : <Package className="w-5 h-5 text-primary" />}
             </div>
-            <span className="text-lg font-bold text-gray-900">{tenant?.name ?? 'Merco'}</span>
+            <span
+              className="text-lg font-bold text-primary tracking-widest"
+              title={tenant?.name}
+            >
+              {shortName}
+            </span>
 
             {/* Syncing progress */}
             {status === 'syncing' && (

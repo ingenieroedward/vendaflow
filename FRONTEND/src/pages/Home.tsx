@@ -58,7 +58,7 @@ const Home: React.FC = () => {
         {/* Header - Optimizado para mobile */}
         <div className="mb-6 sm:mb-8">
           <div className="text-center mb-6 sm:mb-8">
-            <h1 className="text-xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2 px-2">
+            <h1 className="hidden sm:block text-3xl font-bold text-gray-900 mb-2">
               {tenant?.name ?? 'Merco'}
             </h1>
             <p className="text-sm sm:text-lg text-gray-600 px-2">
