@@ -28,7 +28,7 @@ services:
     container_name: merco-backend
     environment:
       NODE_ENV: production
-      PORT: 3001
+      PORT: 3005
       DB_HOST: mysql
       DB_PORT: 3306
       DB_NAME: merco_db
@@ -52,7 +52,7 @@ services:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3001/health"]
+      test: ["CMD", "wget", "-qO-", "http://localhost:3005/health"]
       interval: 30s
       timeout: 10s
       retries: 5
