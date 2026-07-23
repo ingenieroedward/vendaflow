@@ -52,7 +52,7 @@ export const config = {
     wildcardPattern: (() => {
       const w = process.env['CORS_WILDCARD_ORIGIN'];
       if (!w) return null;
-      const escaped = w.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\\\*/g, '[^.]+');
+      const escaped = w.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '[^.]+');
       return new RegExp(`^https?://${escaped}$`);
     })(),
   },
