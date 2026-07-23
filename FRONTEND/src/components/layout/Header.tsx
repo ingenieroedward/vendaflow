@@ -1,12 +1,12 @@
-import { useState } from 'react';
-import { User, LogOut, Package, Shield, Bell, BellOff, CloudOff } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { User, LogOut, Package, Shield, Bell, BellOff, CloudOff, Download } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { useSyncStore } from '../../store/syncStore';
 import { useOrderStore } from '../../store/orderStore';
 import { useCustomerStore } from '../../store/customerStore';
 import { useTenantStore } from '../../store/tenantStore';
-import InstallButton from '../ui/InstallButton';
+import InstallModal from '../ui/InstallModal';
 import TopLoadingBar from '../ui/TopLoadingBar';
 import { usePushNotifications } from '../../hooks/usePushNotifications';
 
@@ -15,10 +15,18 @@ const Header = () => {
   const { tenant } = useTenantStore();
   const navigate = useNavigate();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isInstallOpen, setIsInstallOpen] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const { status, current, total } = useSyncStore();
   const { pendingSync: pendingOrders } = useOrderStore();
   const { pendingSync: pendingCustomers } = useCustomerStore();
   const { isSupported: pushSupported, isSubscribed: pushSubscribed, isLoading: pushLoading, toggle: togglePush } = usePushNotifications();
+
+  useEffect(() => {
+    const handler = (e: any) => { e.preventDefault(); setDeferredPrompt(e); };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
 
   const totalPending = pendingOrders + pendingCustomers;
   const percent = total > 0 ? Math.round((current / total) * 100) : 0;
@@ -79,6 +87,15 @@ const Header = () => {
 
           {/* Right actions */}
           <div className="flex items-center gap-1">
+
+            {/* Install / Help button — always visible */}
+            <button
+              onClick={() => setIsInstallOpen(true)}
+              title="Instalar app"
+              className="p-2 rounded-xl text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+            >
+              <Download className="w-5 h-5" />
+            </button>
 
             {/* Push notifications */}
             {pushSupported && (
@@ -146,9 +163,17 @@ const Header = () => {
                         </div>
                       )}
 
-                      {/* Install button */}
-                      <div className="px-4 py-3 border-b border-gray-100">
-                        <InstallButton />
+                      {/* Install / Help */}
+                      <div className="px-2 py-1 border-b border-gray-100">
+                        <button
+                          onClick={() => { closeUserMenu(); setIsInstallOpen(true); }}
+                          className="flex items-center gap-3 w-full px-2 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-xl transition-colors"
+                        >
+                          <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+                            <Download className="w-4 h-4 text-blue-600" />
+                          </div>
+                          <span>Instalar app / Ayuda</span>
+                        </button>
                       </div>
 
                       {/* Logout */}
@@ -172,6 +197,13 @@ const Header = () => {
         </div>
       </div>
     </header>
+
+    <InstallModal
+      isOpen={isInstallOpen}
+      onClose={() => setIsInstallOpen(false)}
+      deferredPrompt={deferredPrompt}
+      onInstalled={() => setDeferredPrompt(null)}
+    />
   );
 };
 
