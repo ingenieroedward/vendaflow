@@ -31,14 +31,16 @@ app.set('trust proxy', 1);
 app.use(helmet());
 
 // CORS configuration — acepta orígenes estáticos + wildcard de subdominio
+// CORS_WILDCARD_ORIGIN=*.merco.edwsystem.com → suffix = ".merco.edwsystem.com"
+const CORS_WILDCARD_SUFFIX = (process.env['CORS_WILDCARD_ORIGIN'] || '').replace(/^\*/, '');
 app.use(cors({
   origin: (origin, callback) => {
     // Peticiones sin origin (curl, Postman, server-to-server)
     if (!origin) return callback(null, true);
     // Lista estática de orígenes permitidos
     if (config.cors.origin.includes(origin)) return callback(null, true);
-    // Wildcard de subdominio: *.merco.edwsystem.com
-    if (config.cors.wildcardPattern && config.cors.wildcardPattern.test(origin)) {
+    // Wildcard: *.merco.edwsystem.com → cualquier origen que termine en .merco.edwsystem.com
+    if (CORS_WILDCARD_SUFFIX && origin.endsWith(CORS_WILDCARD_SUFFIX)) {
       return callback(null, true);
     }
     callback(new Error(`CORS: origin ${origin} not allowed`));
