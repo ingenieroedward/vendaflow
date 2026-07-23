@@ -46,6 +46,7 @@ const Header = () => {
     : 'M';
 
   return (
+    <>
     <header className="md:hidden bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50 pt-safe">
       <TopLoadingBar />
       <div className="px-4">
@@ -204,6 +205,7 @@ const Header = () => {
       deferredPrompt={deferredPrompt}
       onInstalled={() => setDeferredPrompt(null)}
     />
+    </>
   );
 };
 
