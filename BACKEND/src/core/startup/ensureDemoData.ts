@@ -33,7 +33,7 @@ export async function ensureDemoData(): Promise<void> {
 
   if (demoUser) {
     demoUser.password = demoPassword;
-    if (demoUser.deletedAt) demoUser.setDataValue('deletedAt', null);
+    if (demoUser.deletedAt) await (demoUser as any).restore();
     await demoUser.save();
     logger.info(`Demo user "demo_admin" password updated (tenant: demo)`);
   } else {
