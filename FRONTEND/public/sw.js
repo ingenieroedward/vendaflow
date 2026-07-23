@@ -1,15 +1,14 @@
 /**
- * Service Worker Avanzado para JJLM
+ * Service Worker para Merco
  * Implementa offline-first con múltiples estrategias de cache
- * SPEC-006: Service Worker Avanzado
  */
 
 // ============================================================================
 // CONFIGURACIÓN
 // ============================================================================
 
-const VERSION = '1.0.0';
-const CACHE_PREFIX = 'jjlm';
+const VERSION = '1.0.1';
+const CACHE_PREFIX = 'merco';
 
 // Nombres de caches
 const STATIC_CACHE = `${CACHE_PREFIX}-static-v${VERSION}`;
@@ -345,7 +344,7 @@ async function getOfflineFallback(request) {
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Sin Conexión - JJLM</title>
+        <title>Sin Conexión - Merco</title>
         <style>
           body {
             font-family: system-ui, -apple-system, sans-serif;
@@ -520,10 +519,10 @@ self.addEventListener('push', (event) => {
   try {
     payload = event.data.json();
   } catch {
-    payload = { title: 'JJLM', body: event.data.text() };
+    payload = { title: 'Merco', body: event.data.text() };
   }
 
-  const { title = 'JJLM', body = '', data = {} } = payload;
+  const { title = 'Merco', body = '', data = {} } = payload;
 
   event.waitUntil(
     self.registration.showNotification(title, {
