@@ -331,9 +331,10 @@ Nombre, ícono y color splash vienen del `manifest.json` de cada subdominio.
 **Estado de implementación:**
 1. [x] `GET /api/manifest` — `BACKEND/src/modules/tenant/manifest.routes.ts`. Público, sin auth. Lee slug de `X-Tenant-Slug` (lo pone nginx), `?slug=` o subdominio del Host. Devuelve `name`/`short_name`/`theme_color` (= `primaryColor`) del tenant; fallback a Merco/#3b82f6
 2. [x] nginx proxea `location = /manifest.json` → backend `/api/manifest`, con fallback al `manifest.json` estático si el backend no responde (`@manifest_static`)
-3. [ ] Por cada cliente que pida APK: `bubblewrap init --manifest https://slug.merco.edwsystem.com/manifest.json && bubblewrap build`
-4. [ ] Entregar el `.apk` generado — se instala directo en el cel o se sube al Play Store del cliente
-5. [ ] Pendiente: íconos por tenant (hoy todos usan los íconos Merco de `/icons/`)
+3. [x] Digital Asset Links: `GET /api/assetlinks` (`assetlinks.routes.ts`) + nginx proxea `/.well-known/assetlinks.json`. Registro de APKs por tenant en el mapa `TWA_APPS` — al generar un APK nuevo, agregar ahí packageId + huella SHA-256 del keystore
+4. [x] APK demo generado: `apk-builds/demo/` (gitignored — contiene keystore y su contraseña). Proceso: `twa-manifest.json` a mano (evita el wizard) + `bubblewrap update --skipVersionUpgrade` + `bubblewrap build --skipPwaValidation`. Requiere `~/.bubblewrap/config.json` con jdkPath (bundle raíz, sin /Contents/Home) y androidSdkPath (dir con cmdline-tools en la raíz); `local.properties` del proyecto apunta al SDK completo de Android Studio
+5. [ ] Por cada cliente nuevo: repetir el proceso de `apk-builds/demo/` con su slug/color, registrar huella en `TWA_APPS`, entregar el `.apk` o subirlo al Play Store del cliente
+6. [ ] Pendiente: íconos por tenant (hoy todos usan los íconos Merco de `/icons/`)
 
 **Costo por tenant:** ~10 min una vez configurado el manifest dinámico.
 **Play Store:** $25 USD cuenta de desarrollador (una sola cuenta para todos los tenants, o una por cliente si quieren su propia cuenta).

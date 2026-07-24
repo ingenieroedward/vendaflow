@@ -22,6 +22,7 @@ import stockMovementRoutes from '@/modules/stock-movement/stock-movement.routes'
 import tenantRoutes from '@/modules/tenant/tenant.routes';
 import onboardingRoutes from '@/modules/tenant/onboarding.routes';
 import manifestRoutes from '@/modules/tenant/manifest.routes';
+import assetlinksRoutes from '@/modules/tenant/assetlinks.routes';
 
 const app = express();
 
@@ -111,6 +112,7 @@ app.use('/api/push', pushRoutes);
 app.use('/api/tenants', tenantRoutes);
 app.use('/api/onboarding', onboardingRoutes);
 app.use('/api/manifest', manifestRoutes);
+app.use('/api/assetlinks', assetlinksRoutes);
 
 // 404 handler
 app.use('*', notFoundHandler);
