@@ -25,11 +25,13 @@ export interface Tenant {
   id: number;
   slug: string;
   name: string;
-  plan: string;
+  // plan y trialEndsAt solo llegan de endpoints autenticados (/tenants/me);
+  // el endpoint público /tenants/slug/:slug ya no los expone
+  plan?: string;
   status: string;
   logoUrl: string | null;
   primaryColor: string;
-  trialEndsAt: string | null;
+  trialEndsAt?: string | null;
 }
 
 export interface LoginResponse {

@@ -21,11 +21,9 @@ interface TenantResponse {
   id: number;
   slug: string;
   name: string;
-  plan: string;
   status: string;
   logoUrl: string | null;
   primaryColor: string;
-  trialEndsAt: string | null;
 }
 
 export async function fetchTenantBySlug(slug: string): Promise<Tenant | null> {

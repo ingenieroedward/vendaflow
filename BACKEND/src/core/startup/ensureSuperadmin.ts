@@ -16,7 +16,15 @@ export async function ensureSuperadmin(): Promise<void> {
 
   const existing = await User.findOne({ where: { username, role: 'superadmin' } });
   if (existing) {
-    logger.info(`Superadmin "${username}" already exists — skipping`);
+    // Sincronizar contraseña con el env var — permite rotarla con un redeploy
+    const upToDate = await bcrypt.compare(password, existing.password);
+    if (!upToDate) {
+      existing.password = await bcrypt.hash(password, 10);
+      await existing.save({ hooks: false });
+      logger.info(`Superadmin "${username}" password updated from env`);
+    } else {
+      logger.info(`Superadmin "${username}" already exists — password up to date`);
+    }
     return;
   }
 

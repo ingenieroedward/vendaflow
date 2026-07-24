@@ -27,7 +27,7 @@ const createTenantSchema = z.object({
 
 export class TenantController {
   getBySlug = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const tenant = await tenantService.getInfo(
+    const tenant = await tenantService.getPublicInfo(
       (await tenantService.findBySlug(req.params['slug']!)).id
     );
     res.json(tenant);

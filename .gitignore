@@ -27,3 +27,6 @@ Thumbs.db
 
 # Test results
 test-results/
+
+# APK builds por tenant (TWA) — contienen keystores, no commitear
+apk-builds/

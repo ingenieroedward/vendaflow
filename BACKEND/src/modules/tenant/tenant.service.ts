@@ -71,6 +71,20 @@ export class TenantService {
     return tenant;
   }
 
+  // Versión pública de getInfo — solo lo necesario para theming del login.
+  // No expone plan, trial ni límites (GET /tenants/slug/:slug es público)
+  async getPublicInfo(tenantId: number) {
+    const tenant = await this.findById(tenantId);
+    return {
+      id: tenant.id,
+      slug: tenant.slug,
+      name: tenant.name,
+      status: tenant.status,
+      logoUrl: tenant.logoUrl,
+      primaryColor: tenant.primaryColor ?? '#2563eb',
+    };
+  }
+
   async getInfo(tenantId: number) {
     const tenant = await this.findById(tenantId);
     return {

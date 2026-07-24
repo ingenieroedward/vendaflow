@@ -45,7 +45,7 @@ services:
       VAPID_SUBJECT: mailto:admin@edwsystem.com
       SUPERADMIN_USERNAME: ${SUPERADMIN_USERNAME:-superadmin}
       SUPERADMIN_PASSWORD: ${SUPERADMIN_PASSWORD}
-      DEMO_ADMIN_PASSWORD: ${DEMO_ADMIN_PASSWORD:-Demo2024!}
+      DEMO_ADMIN_PASSWORD: ${DEMO_ADMIN_PASSWORD}
     volumes:
       - backend_logs:/app/logs
     depends_on:

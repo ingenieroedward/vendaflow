@@ -268,11 +268,11 @@ Al arrancar el backend:
 
 ## SEGURIDAD — NOTAS IMPORTANTES
 
-- `PUT /orders/:id` debe tener `isSeller` (sin él, cualquier buyer puede modificar órdenes)
-- No poner contraseñas con fallback hardcodeado en docker-compose (`:-valor`)
-- `ensureSuperadmin` debe actualizar contraseña si ya existe (no solo en creación)
-- Rate limiting solo en `/api/auth` — endpoints de búsqueda sin límite (pendiente de hardening)
-- `GET /tenants/slug/:slug` es público y expone plan/maxUsers — considerar filtrar esos campos
+- `PUT /orders/:id` debe tener `isSeller` (sin él, cualquier buyer puede modificar órdenes) — aplicado
+- No poner contraseñas con fallback hardcodeado en docker-compose (`:-valor`) — el fallback `:-Demo2024!` fue eliminado; `DEMO_ADMIN_PASSWORD` debe estar seteado en Dokploy
+- `ensureSuperadmin` actualiza la contraseña desde el env var si el usuario ya existe (permite rotarla con redeploy)
+- Rate limiting: `/api/auth` 20/15min + límite general `/api` 3000/15min por IP (alto a propósito para no afectar uso normal)
+- `GET /tenants/slug/:slug` (público) solo expone id/slug/name/status/logoUrl/primaryColor — plan y límites requieren auth (`/tenants/me`)
 
 ---
 
@@ -303,10 +303,11 @@ Al arrancar el backend:
 - [ ] Actividad reciente (últimas 5 órdenes)
 
 ### Seguridad (hardening)
-- [ ] Rate limiting general en todos los endpoints (no solo auth)
+- [x] Rate limiting general en todos los endpoints (3000/15min por IP)
+- [x] `ensureSuperadmin` actualiza contraseña si el usuario ya existe
+- [x] Eliminar fallback `:-Demo2024!` del docker-compose
+- [x] Filtrar plan/límites del endpoint público `GET /tenants/slug/:slug`
 - [ ] Middleware `tenantScope` como capa de defensa extra en rutas de negocio
-- [ ] `ensureSuperadmin` debe actualizar contraseña si el usuario ya existe
-- [ ] Eliminar fallback `:-Demo2024!` del docker-compose
 
 ### UX general
 - [ ] Breadcrumbs en páginas de detalle

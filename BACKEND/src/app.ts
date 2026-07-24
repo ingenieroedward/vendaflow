@@ -64,6 +64,19 @@ const authLimiter = rateLimit({
   skipSuccessfulRequests: true, // no cuenta los logins exitosos
 });
 
+// Rate limiting general — límite alto a propósito: frena scraping/abuso sin
+// afectar el uso normal (búsquedas con debounce, sync offline, dashboards)
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 3000, // 3000 peticiones por IP cada 15 min (~3.3 req/s sostenidas)
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    status: 'error',
+    message: 'Demasiadas peticiones, intenta de nuevo en unos minutos.',
+  },
+});
+
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
@@ -83,6 +96,7 @@ app.get('/health', (_req, res) => {
 });
 
 // API routes
+app.use('/api', apiLimiter);
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/categories', categoryRoutes);
