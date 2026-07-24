@@ -25,9 +25,19 @@ export interface CreateTenantPayload {
   primaryColor?: string;
 }
 
+export interface UpdateTenantPayload {
+  name?: string;
+  plan?: 'trial' | 'basic' | 'pro' | 'enterprise';
+  trialEndsAt?: string | null;
+  maxUsers?: number;
+  maxProducts?: number;
+  maxOrdersPerMonth?: number;
+}
+
 export const tenantAdminService = {
   listAll: () => apiService.get<TenantSummary[]>('/tenants'),
   create: (data: CreateTenantPayload) => apiService.post<TenantSummary>('/tenants', data),
+  update: (id: number, data: UpdateTenantPayload) => apiService.put<TenantSummary>(`/tenants/${id}`, data),
   suspend: (id: number) => apiService.put<TenantSummary>(`/tenants/${id}/suspend`, {}),
   activate: (id: number) => apiService.put<TenantSummary>(`/tenants/${id}/activate`, {}),
 };

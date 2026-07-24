@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, RefreshCw, Package, TrendingUp } from 'lucide-react';
 import { useProductStore } from '../store/productStore';
 import { useTenantStore } from '../store/tenantStore';
+import { useAuthStore } from '../store/authStore';
 import SearchBar from '../components/features/SearchBar';
 import ProductCard from '../components/features/ProductCard';
 import Pagination from '../components/features/Pagination';
@@ -13,6 +14,7 @@ import Button from '../components/ui/Button';
 const Home: React.FC = () => {
   const navigate = useNavigate();
   const { tenant } = useTenantStore();
+  const { user } = useAuthStore();
   const {
     products, 
     loading, 
@@ -77,9 +79,6 @@ const Home: React.FC = () => {
 
           {/* Actions - Stack vertical en mobile */}
           <div className="items-center flex justify-between space-x-2 sm:space-x-3">
-            {/* Botones de acción principales */}
-            
-            
               <Button
                 variant="outline"
                 icon={RefreshCw}
@@ -89,16 +88,17 @@ const Home: React.FC = () => {
               >
                 Actualizar
               </Button>
-              <Button
-                variant="primary"
-                icon={Plus}
-                onClick={() => navigate('/products/new')}
-                size="sm"
-                className="w-full sm:w-auto font-medium "
-              >
-                Nuevo producto
-              </Button>
-            
+              {user?.role === 'admin' && (
+                <Button
+                  variant="primary"
+                  icon={Plus}
+                  onClick={() => navigate('/products/new')}
+                  size="sm"
+                  className="w-full sm:w-auto font-medium"
+                >
+                  Nuevo producto
+                </Button>
+              )}
           </div>
         </div>
 
@@ -110,7 +110,7 @@ const Home: React.FC = () => {
                 <Package className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 mr-3" />
                 <div>
                   <p className="text-xs sm:text-sm font-medium text-gray-600">P. Totales</p>
-                  <p className="text-xl sm:text-2xl font-bold text-gray-900">{products.length}</p>
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900">{pagination.total}</p>
                 </div>
               </div>
             </div>
@@ -168,7 +168,7 @@ const Home: React.FC = () => {
                   <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
                     {showSearchResults ? 'Resultados' : 'Productos'}
                     <span className="text-gray-500 font-normal ml-2 text-sm sm:text-base">
-                      ({showSearchResults ? products.length : products.length})
+                      ({showSearchResults ? products.length : pagination.total})
                     </span>
                   </h2>
                 </div>

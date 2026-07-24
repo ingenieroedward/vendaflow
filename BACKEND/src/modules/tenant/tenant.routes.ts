@@ -17,5 +17,6 @@ router.post('/', isAuth, isSuperAdmin, ctrl.createTenant);
 router.get('/', isAuth, isSuperAdmin, ctrl.listAll);
 router.put('/:id/suspend', isAuth, isSuperAdmin, ctrl.suspend);
 router.put('/:id/activate', isAuth, isSuperAdmin, ctrl.activate);
+router.put('/:id', isAuth, isSuperAdmin, ctrl.updateTenant);
 
 export default router;

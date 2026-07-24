@@ -1,14 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Save, Palette, Building2 } from 'lucide-react';
+import { Settings, Save, Palette, Building2, CreditCard, Users, Package, ShoppingCart } from 'lucide-react';
 import { useTenantStore } from '../store/tenantStore';
 import { useUIStore } from '../store/uiStore';
 import { getMyTenant, updateMyTheme } from '../services/tenant';
+
+const PLAN_LABELS: Record<string, string> = {
+  trial: 'Trial',
+  basic: 'Básico',
+  pro: 'Pro',
+  enterprise: 'Enterprise',
+};
 
 const TenantSettings: React.FC = () => {
   const { tenant: currentTenant, setTenant } = useTenantStore();
   const { addNotification } = useUIStore();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [tenantInfo, setTenantInfo] = useState<any>(null);
   const [form, setForm] = useState({
     name: '',
     primaryColor: '#2563eb',
@@ -18,10 +26,11 @@ const TenantSettings: React.FC = () => {
   useEffect(() => {
     getMyTenant().then(t => {
       if (t) {
+        setTenantInfo(t);
         setForm({
           name: t.name,
-          primaryColor: t.primaryColor ?? '#2563eb',
-          logoUrl: t.logoUrl ?? '',
+          primaryColor: (t as any).primaryColor ?? '#2563eb',
+          logoUrl: (t as any).logoUrl ?? '',
         });
       }
     }).finally(() => setLoading(false));
@@ -76,6 +85,46 @@ const TenantSettings: React.FC = () => {
         <Settings className="w-5 h-5 text-gray-400" />
         <h1 className="text-lg font-bold text-gray-900">Configuración de Empresa</h1>
       </div>
+
+      {/* Plan info */}
+      {tenantInfo && (
+        <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
+          <div className="flex items-center gap-2 pb-3 mb-3 border-b border-gray-100">
+            <CreditCard className="w-4 h-4 text-gray-400" />
+            <h2 className="text-sm font-semibold text-gray-700">Plan y límites</h2>
+            <span className={`ml-auto px-2 py-0.5 rounded-full text-xs font-medium ${
+              tenantInfo.plan === 'enterprise' ? 'bg-purple-100 text-purple-700' :
+              tenantInfo.plan === 'pro' ? 'bg-blue-100 text-blue-700' :
+              tenantInfo.plan === 'basic' ? 'bg-green-100 text-green-700' :
+              'bg-gray-100 text-gray-600'
+            }`}>
+              {PLAN_LABELS[tenantInfo.plan] ?? tenantInfo.plan}
+            </span>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="text-center p-2 bg-gray-50 rounded-lg">
+              <Users className="w-4 h-4 text-gray-400 mx-auto mb-1" />
+              <p className="text-xs text-gray-500">Usuarios</p>
+              <p className="text-sm font-bold text-gray-700">hasta {tenantInfo.maxUsers}</p>
+            </div>
+            <div className="text-center p-2 bg-gray-50 rounded-lg">
+              <Package className="w-4 h-4 text-gray-400 mx-auto mb-1" />
+              <p className="text-xs text-gray-500">Productos</p>
+              <p className="text-sm font-bold text-gray-700">hasta {tenantInfo.maxProducts?.toLocaleString('es-CO')}</p>
+            </div>
+            <div className="text-center p-2 bg-gray-50 rounded-lg">
+              <ShoppingCart className="w-4 h-4 text-gray-400 mx-auto mb-1" />
+              <p className="text-xs text-gray-500">Órd/mes</p>
+              <p className="text-sm font-bold text-gray-700">hasta {tenantInfo.maxOrdersPerMonth?.toLocaleString('es-CO')}</p>
+            </div>
+          </div>
+          {tenantInfo.trialEndsAt && tenantInfo.plan === 'trial' && (
+            <p className="text-xs text-amber-600 mt-3 text-center">
+              Trial vence el {new Date(tenantInfo.trialEndsAt).toLocaleDateString('es-CO')}
+            </p>
+          )}
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Identidad */}

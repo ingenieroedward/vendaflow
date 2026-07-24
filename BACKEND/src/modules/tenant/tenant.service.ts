@@ -82,6 +82,9 @@ export class TenantService {
       logoUrl: tenant.logoUrl,
       primaryColor: tenant.primaryColor ?? '#2563eb',
       trialEndsAt: tenant.trialEndsAt,
+      maxUsers: tenant.maxUsers,
+      maxProducts: tenant.maxProducts,
+      maxOrdersPerMonth: tenant.maxOrdersPerMonth,
     };
   }
 
@@ -100,6 +103,37 @@ export class TenantService {
   async activate(tenantId: number) {
     const tenant = await this.findById(tenantId);
     await tenant.update({ status: 'active' });
+    return tenant;
+  }
+
+  async update(tenantId: number, data: {
+    name?: string;
+    plan?: TenantPlan;
+    trialEndsAt?: string | null;
+    maxUsers?: number;
+    maxProducts?: number;
+    maxOrdersPerMonth?: number;
+  }) {
+    const tenant = await this.findById(tenantId);
+    const updates: Partial<TenantAttributes> = {};
+
+    if (data.name !== undefined) updates.name = data.name;
+    if (data.trialEndsAt !== undefined) updates.trialEndsAt = data.trialEndsAt ? new Date(data.trialEndsAt) : null;
+    if (data.maxUsers !== undefined) updates.maxUsers = data.maxUsers;
+    if (data.maxProducts !== undefined) updates.maxProducts = data.maxProducts;
+    if (data.maxOrdersPerMonth !== undefined) updates.maxOrdersPerMonth = data.maxOrdersPerMonth;
+
+    if (data.plan !== undefined && data.plan !== tenant.plan) {
+      const limits = PLAN_LIMITS[data.plan];
+      updates.plan = data.plan;
+      updates.maxUsers = data.maxUsers ?? limits.maxUsers;
+      updates.maxProducts = data.maxProducts ?? limits.maxProducts;
+      updates.maxOrdersPerMonth = data.maxOrdersPerMonth ?? limits.maxOrdersPerMonth;
+      if (data.plan !== 'trial') updates.trialEndsAt = null;
+      if (tenant.status === 'trial' && data.plan !== 'trial') updates.status = 'active';
+    }
+
+    await tenant.update(updates);
     return tenant;
   }
 

@@ -7,6 +7,15 @@ import { ValidationError } from '@/core/errors/AppError';
 
 const tenantService = new TenantService();
 
+const updateTenantSchema = z.object({
+  name: z.string().min(2).max(255).optional(),
+  plan: z.enum(['trial', 'basic', 'pro', 'enterprise']).optional(),
+  trialEndsAt: z.string().nullable().optional(),
+  maxUsers: z.number().int().positive().optional(),
+  maxProducts: z.number().int().positive().optional(),
+  maxOrdersPerMonth: z.number().int().positive().optional(),
+});
+
 const createTenantSchema = z.object({
   slug: z.string().min(2).max(50).regex(/^[a-z0-9-]+$/, 'Solo letras minúsculas, números y guiones'),
   name: z.string().min(2).max(255),
@@ -61,6 +70,13 @@ export class TenantController {
 
   activate = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const tenant = await tenantService.activate(Number(req.params['id']!));
+    res.json(tenant);
+  });
+
+  updateTenant = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const result = updateTenantSchema.safeParse(req.body);
+    if (!result.success) throw new ValidationError(result.error.errors[0]?.message ?? 'Datos inválidos');
+    const tenant = await tenantService.update(Number(req.params['id']!), result.data);
     res.json(tenant);
   });
 }
