@@ -1,78 +1,101 @@
-# CLAUDE.md
+# CLAUDE.md — Merco (vendaflow)
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guía para Claude Code al trabajar en este repositorio.
 
 ---
 
 ## PROPÓSITO DEL SISTEMA
 
-**JJLM** es un Sistema de Gestión de Ventas y Comparación de Precios con:
-- Comparación de precios por proveedor
-- Gestión de órdenes de venta
-- 3 roles: `buyer` (compras/precios), `seller` (órdenes/ventas), `admin` (acceso total)
-- Modo offline-first en desarrollo activo (IndexedDB + Dexie.js)
+**Merco** es una plataforma SaaS **multi-tenant** de gestión de precios y ventas:
+- Comparación de precios de productos por proveedor
+- Gestión de órdenes de venta y compra
+- Inventario con movimientos de stock
+- Reportes de ventas, compras y rentabilidad
+- Modo offline-first (IndexedDB + Dexie.js)
+- **Multi-tenant**: cada empresa cliente tiene su propio slug y datos aislados
 
-**Ver también:** [CHANGELOG.md](./CHANGELOG.md) · [CONTRIBUTING.md](./CONTRIBUTING.md)
+**Acceso producción:**
+- Frontend: `https://<slug>.merco.edwsystem.com`
+- API: `https://api.merco.edwsystem.com`
+- Demo: `https://demo.merco.edwsystem.com` (usuario: `demo_admin` / `Demo2024!`)
+- Superadmin: login sin tenantSlug, usuario: `superadmin`
+
+**Rama de despliegue:** `feature/multitenant-phase1` — Dokploy escucha esta rama y despliega automáticamente en cada push.
 
 ---
 
 ## ARQUITECTURA GENERAL
 
 ```
-JJLM/
+vendaflow/
 ├── BACKEND/    # Node.js + TypeScript, Express, Sequelize ORM, MySQL
-└── FRONTEND/   # React + TypeScript, Vite, Zustand, Tailwind CSS
+├── FRONTEND/   # React + TypeScript, Vite, Zustand, Tailwind CSS
+└── docker-compose.yml
 ```
 
-**Backend:** patrón MSC (Model-Service-Controller). Cada módulo tiene: `*.model.ts` → `*.service.ts` → `*.controller.ts` → `*.routes.ts` → `*.dto.ts`.
+**Backend:** patrón MSC (Model → Service → Controller → Routes → DTO).
 
-**Frontend:** Component-Based con estado global Zustand. `pages/` componen `components/` (organizados en `ui/`, `layout/`, `features/`), `services/` llaman la API REST, `store/` mantiene estado global, `repositories/` abstrae acceso a datos local+remoto (patrón Repository para offline-first).
+**Frontend:** Component-Based + Zustand. `pages/` → `components/` (ui/ layout/ features/), `services/` → API REST, `store/` → estado global, `repositories/` → abstracción offline-first.
 
-**Path alias backend:** `@/` apunta a `src/` (e.g., `import logger from '@/core/logger'`).
+**Path alias backend:** `@/` → `src/`
+
+---
+
+## MULTI-TENANCY
+
+### Cómo funciona
+- Cada tenant tiene un `slug` único (ej. `demo`, `imperium`)
+- El frontend detecta el tenant del subdominio: `demo.merco.edwsystem.com` → slug `demo`
+- En login: `{ username, password, tenantSlug }` en el **body** (no en headers)
+- El JWT incluye `tenantId` — todos los endpoints lo usan para filtrar datos
+- El middleware `tenantScope` en `BACKEND/src/core/middlewares/tenantScope.ts` aplica el filtro de tenant
+
+### Roles
+| Rol | Acceso |
+|-----|--------|
+| `superadmin` | Todo sin restricción de tenant. Login sin tenantSlug. Panel en `/superadmin` |
+| `admin` | Gestión completa de su tenant |
+| `seller` | Órdenes, clientes, reportes, inventario |
+| `buyer` | Productos, precios, proveedores, categorías |
+
+### Middlewares de auth
+`BACKEND/src/core/middlewares/auth.ts`:
+- `isAuth` — JWT válido (cualquier rol)
+- `isAdmin` — admin o superadmin
+- `isSuperAdmin` — solo superadmin
+- `isSeller` — seller, admin o superadmin
+- `isBuyer` — buyer, admin o superadmin
+- `optionalAuth` — auth opcional (no falla si no hay token)
 
 ---
 
 ## COMANDOS DE DESARROLLO
 
 ### Backend (`cd BACKEND`)
-
 ```bash
-npm run dev          # Nodemon + TypeScript watch (puerto 3000)
+npm run dev          # Nodemon + TypeScript watch (puerto 3005)
 npm run build        # Compila TypeScript → dist/
-npm start            # Ejecuta dist/server.js (producción)
-npm test             # Jest (infraestructura lista, sin tests implementados aún)
-npm run test:watch
-npm run test:coverage
-
+npm start            # Ejecuta dist/server.js
 npm run lint
 npm run lint:fix
 npm run format
-npm run seed         # Ejecuta seeders
 ```
 
 ### Frontend (`cd FRONTEND`)
-
 ```bash
 npm run dev          # Vite dev server (puerto 5173)
 npm run build        # Build de producción
-npm run preview      # Preview del build
 npm run lint
-npm run test:e2e     # Playwright e2e tests
-npm run test:e2e:ui  # Playwright con UI interactiva
-# Tests unitarios (solo offline-first): vitest sobre LocalDatabase, ProductRepository, OrderRepository
-npx vitest run
+npx vitest run       # Tests unitarios offline-first
+npm run test:e2e     # Playwright e2e
 ```
 
-### Docker
-
+### Docker (desde raíz)
 ```bash
-# Producción (desde la raíz del proyecto):
-docker-compose up -d
+docker-compose up -d --build
 docker-compose down
-docker-compose logs -f
-
-# Desarrollo:
-cd BACKEND && npm run docker:dev
+docker-compose logs -f backend
+docker-compose logs -f frontend
 ```
 
 ---
@@ -80,92 +103,196 @@ cd BACKEND && npm run docker:dev
 ## STACK Y DEPENDENCIAS CLAVE
 
 ### Backend
-- **Express** + **Sequelize ORM** (MySQL) con **sequelize-typescript**
+- **Express** + **Sequelize ORM** (`sequelize-typescript`) + **MySQL 8.0**
 - **Zod** para validación en DTOs
 - **JWT** (jsonwebtoken) + **bcryptjs** para auth
-- **Winston** para logging (archivos en `BACKEND/logs/`)
+- **Winston** para logging (`BACKEND/logs/`)
+- **Helmet** + **CORS** + **express-rate-limit** (20 intentos/15min en `/api/auth`)
+- **Compression** para respuestas gzip
 - **Soft deletes** en todos los modelos (`paranoid: true`)
-- **No hay migrations** — se usa `sequelize.sync({ alter: false })`. Esto **solo crea tablas nuevas**, nunca agrega columnas a tablas existentes. Al agregar una columna a un modelo, hay que correrla manualmente en producción:
+- **Sin migrations** — `sequelize.sync({ alter: false })` solo crea tablas nuevas. Para agregar columna en producción:
   ```bash
-  docker exec -it <mysql-container> mysql -u root -p jjlm_db -e "ALTER TABLE <tabla> ADD COLUMN <col> <tipo> NULL AFTER <col_anterior>;"
-  # Ver nombre del contenedor: docker ps | grep mysql
+  docker exec -it merco-mysql mysql -u root -p merco_db -e \
+    "ALTER TABLE <tabla> ADD COLUMN <col> <tipo> NULL AFTER <col_anterior>;"
   ```
 
 ### Frontend
 - **Zustand** para estado global
-- **Axios** con interceptores (auto-attach token JWT, auto-logout en 401)
+- **Axios** con interceptores (auto-attach JWT, auto-logout en 401)
 - **React Hook Form** para formularios
-- **Dexie.js** para IndexedDB (feature offline-first en desarrollo)
-- **Playwright** para tests e2e
+- **Dexie.js** para IndexedDB (offline-first)
+- **Recharts** para gráficas en Reports
+- **date-fns** para fechas
+- **lucide-react** para íconos (único icon set — no mezclar)
+- **Tailwind CSS** para estilos (no usar librerías UI externas)
 
 ---
 
 ## MÓDULOS BACKEND
 
-Ubicados en `BACKEND/src/modules/`:
+`BACKEND/src/modules/`:
 
-| Módulo | Descripción |
-|--------|-------------|
-| `auth/` | Login, register, JWT |
-| `user/` | CRUD usuarios (solo admin) |
-| `category/` | Categorías de productos |
-| `product/` | Productos con búsqueda y paginación |
-| `supplier/` | Proveedores |
-| `price/` | Precios por producto/proveedor, tracking de cambios |
-| `customer/` | Clientes con búsqueda |
-| `order/` + `order/order-item/` | Órdenes con items, transacciones DB, numeración automática |
-
----
-
-## FEATURE OFFLINE-FIRST (en desarrollo activo)
-
-Documentado en `PROGRESO-OFFLINE-FIRST.md`. Implementa capacidad offline con sincronización:
-
-**Archivos clave frontend:**
-- `src/database/LocalDatabase.ts` — Dexie.js con 9 tablas locales
-- `src/database/schemas/index.ts` — Esquemas Dexie
-- `src/database/types/index.ts` — Tipos utilitarios: `ServerModel<T>`, `CreateModel<T>`, `SyncMetadata`
-- `src/repositories/` — Patrón Repository: `BaseRepository` + repos por entidad (Product, Order, Customer, Price, Supplier, User). Abstrae leer/escribir en IndexedDB vs API según conectividad. Ver `src/repositories/README.md`.
-- `src/store/syncStore.ts` — Estado de sincronización
-- `src/services/pushNotifications.ts` — Notificaciones push
-- `src/hooks/` — `useNetworkStatus`, `useAuth`, `useLocalStorage`, `usePushNotifications`
-
-**Campos de sincronización** en modelos locales: `_syncStatus` (synced | pending_create | pending_update | pending_delete | conflict), `_version`, `_lastModifiedAt`, `_lastModifiedBy`.
+| Módulo | Ruta API | Descripción |
+|--------|----------|-------------|
+| `auth/` | `/api/auth` | Login, JWT. Rate limited (20/15min) |
+| `user/` | `/api/users` | CRUD usuarios del tenant (solo admin) |
+| `category/` | `/api/categories` | Categorías de productos |
+| `product/` | `/api/products` | Productos con búsqueda y paginación |
+| `supplier/` | `/api/suppliers` | Proveedores |
+| `price/` | `/api/prices` | Precios por producto/proveedor, historial |
+| `customer/` | `/api/customers` | Clientes con búsqueda |
+| `order/` | `/api/orders` | Órdenes de venta con items |
+| `purchase-order/` | `/api/purchase-orders` | Órdenes de compra |
+| `stock-movement/` | `/api/stock-movements` | Movimientos de inventario |
+| `push/` | `/api/push` | Notificaciones push (Web Push VAPID) |
+| `tenant/` | `/api/tenants` | Gestión de tenants (superadmin) |
+| `tenant/onboarding` | `/api/onboarding/register` | Registro público de nuevo tenant |
 
 ---
 
-## SISTEMA DE ROLES Y MIDDLEWARES
+## RUTAS FRONTEND
 
-**Archivo:** `BACKEND/src/core/middlewares/auth.ts`
+`FRONTEND/src/routes/AppRouter.tsx`:
 
-- `isAuth` — token JWT válido (cualquier rol)
-- `isSeller` — rol seller o admin
-- `isAdmin` — solo admin
-
-Roles: `buyer` no puede crear órdenes ni eliminar; `seller` no puede eliminar ni gestionar usuarios; `admin` acceso completo.
+| Ruta | Componente | Roles |
+|------|-----------|-------|
+| `/login` | Login | público |
+| `/superadmin` | Superadmin | superadmin |
+| `/` | Home | buyer, admin |
+| `/products/:id` | ProductDetail | buyer, admin |
+| `/products/new` | ProductNew | buyer, admin |
+| `/orders` | Orders | seller, admin |
+| `/orders/new` | OrderNew | seller, admin |
+| `/orders/:id` | OrderDetail | seller, admin |
+| `/suppliers` | Suppliers | buyer, admin |
+| `/categories` | Categories | buyer, admin |
+| `/prices` | Prices | buyer, admin |
+| `/customers` | Customers | seller, admin |
+| `/reports` | Reports | seller, admin |
+| `/inventory` | Inventory | seller, admin |
+| `/purchase-orders` | PurchaseOrders | seller, admin |
+| `/users` | Users | admin |
+| `/settings` | TenantSettings | admin |
 
 ---
 
-## CONFIGURACIÓN
+## INFRAESTRUCTURA Y DEPLOY
 
-**Variables de entorno:** `BACKEND/.env`
+**Servidor:** VPS — Dokploy + Traefik
 
+**Contenedores Docker:**
+- `merco-mysql` — MySQL 8.0, solo en `dokploy-network` (sin puerto externo)
+- `merco-backend` — Node.js, puerto 3005, en `dokploy-network`
+- `merco-frontend` — nginx, en `dokploy-network`, expuesto vía Traefik
+
+**DNS Traefik:** `*.merco.edwsystem.com` → `merco-frontend` (nginx proxy `/api/` → backend)
+
+**IMPORTANTE — nginx proxy:** al usar variable `$backend_host` en proxy_pass, hay que incluir `$request_uri` explícitamente:
+```nginx
+proxy_pass http://$backend_host:3005$request_uri;
 ```
-NODE_ENV, PORT, DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
-JWT_SECRET, JWT_EXPIRES_IN
-CORS_ORIGIN
-```
 
-**Base de datos:** MySQL, nombre `jjlm_db`. Se crea automáticamente una categoría "Sin categoría" al iniciar.
+**Variables de entorno clave en Dokploy:**
+- `SUPERADMIN_USERNAME` / `SUPERADMIN_PASSWORD` — cuenta superadmin
+- `DEMO_ADMIN_PASSWORD` — resetea demo_admin en cada arranque. No configurar fallback hardcodeado en docker-compose
+- `JWT_SECRET` — secreto de firma JWT
+- `MYSQL_PASSWORD` / `DB_PASSWORD` — credenciales MySQL
 
-**Docker deploy:** VPS con Dokploy + Traefik. La red `dokploy-network` es externa y gestionada por Dokploy. Backend en puerto 3001, Frontend nginx en puerto 8080 (proxy `/api/` → backend).
+**Compose ID (deploy manual):** `fRFCqlfP25dO1If1jmo8I`
+
+---
+
+## STARTUP HOOKS (server.ts)
+
+Al arrancar el backend:
+1. `initializeDatabase()` — sync Sequelize, crea categoría "Sin categoría"
+2. `ensureSuperadmin()` — crea/actualiza superadmin desde vars de entorno
+3. `ensureDemoData()` — si `DEMO_ADMIN_PASSWORD` está seteado, garantiza tenant `demo` + `demo_admin`
+
+---
+
+## FEATURE OFFLINE-FIRST
+
+**Archivos clave:**
+- `src/database/LocalDatabase.ts` — Dexie.js, 9 tablas locales
+- `src/repositories/` — patrón Repository: lee de IndexedDB offline, de API online
+- `src/store/syncStore.ts` — estado de sincronización
+- `src/hooks/useNetworkStatus.ts` — detecta conectividad
+
+**Campos de sync:** `_syncStatus` (synced | pending_create | pending_update | pending_delete | conflict), `_version`, `_lastModifiedAt`, `_lastModifiedBy`
+
+---
+
+## COMPONENTES UI REUTILIZABLES
+
+`FRONTEND/src/components/ui/`:
+- `Modal.tsx` — bottom-sheet en mobile, centered en desktop. Animación `slide-up`
+- `InstallModal.tsx` — modal PWA: instrucciones por plataforma (iOS/Android/desktop) + manual de usuario en accordion
+- `CustomerModal.tsx` — bottom-sheet para crear/editar clientes
+- `Button.tsx`, `Input.tsx`, `SearchableSelect.tsx`, `LoadingSpinner.tsx`, `TopLoadingBar.tsx`
+
+`FRONTEND/src/components/layout/`:
+- `Header.tsx` — mobile-only header sticky. Capta `beforeinstallprompt` event. Abre `InstallModal`. Retorna `<>header + InstallModal</>` (Fragment obligatorio — no omitir)
 
 ---
 
 ## PATRONES IMPORTANTES
 
-- **Errores:** usar las clases de `@/core/errors/AppError.ts` — `BadRequestError` (400), `UnauthorizedError` (401), `ForbiddenError` (403), `NotFoundError` (404), `ConflictError` (409), `ValidationError` (422), `InternalServerError` (500). Para casos custom: `new AppError(mensaje, statusCode)`. El middleware global en `errorHandler.ts` los captura.
-- **Async controllers:** wrappear con `asyncHandler` de `@/core/utils/asyncHandler.ts`.
-- **Transacciones:** las operaciones multi-tabla (ej. crear orden + items) deben usar `sequelize.transaction()`.
-- **DTOs:** Zod schema + `z.infer<>` en cada módulo. Validar con `.parse(req.body)` en el controller.
-- **Logging:** `import logger from '@/core/logger'` — no usar `console.log` directo.
+**Errores backend:** clases en `@/core/errors/AppError.ts`:
+- `BadRequestError(400)`, `UnauthorizedError(401)`, `ForbiddenError(403)`
+- `NotFoundError(404)`, `ConflictError(409)`, `ValidationError(422)`, `InternalServerError(500)`
+
+**Async controllers:** siempre con `asyncHandler` de `@/core/middlewares/asyncHandler.ts`
+
+**Transacciones:** operaciones multi-tabla usan `sequelize.transaction()`
+
+**DTOs:** Zod schema + `z.infer<>`. En orders, los items necesitan `taxRate` (número, puede ser 0)
+
+**Logging:** `import logger from '@/core/logger'` — nunca `console.log` en producción
+
+**CORS backend:** acepta lista estática (`CORS_ORIGIN`) + wildcard `*.merco.edwsystem.com` (`CORS_WILDCARD_ORIGIN`)
+
+---
+
+## SEGURIDAD — NOTAS IMPORTANTES
+
+- `PUT /orders/:id` debe tener `isSeller` (sin él, cualquier buyer puede modificar órdenes)
+- No poner contraseñas con fallback hardcodeado en docker-compose (`:-valor`)
+- `ensureSuperadmin` debe actualizar contraseña si ya existe (no solo en creación)
+- Rate limiting solo en `/api/auth` — endpoints de búsqueda sin límite (pendiente de hardening)
+- `GET /tenants/slug/:slug` es público y expone plan/maxUsers — considerar filtrar esos campos
+
+---
+
+## DATOS DEMO (tenant: demo)
+
+- 7 categorías, 4 proveedores, 35 productos, 34 precios comparativos, 6 clientes, 8 órdenes
+- Usuario: `demo_admin` / `Demo2024!`
+- Se crean via API en inicio — ver script de seed en conversación anterior
+
+---
+
+## MEJORAS PENDIENTES
+
+### Panel Superadmin (`/superadmin`)
+- [ ] Botón "Acceder" por tenant → `https://[slug].merco.edwsystem.com`
+- [ ] Días restantes de trial con alerta visual (<7 días)
+- [ ] Búsqueda/filtro de tenants
+- [ ] Modal "Editar Tenant" (nombre, plan, color, extender trial)
+- [ ] Stats de uso: usuarios activos, productos registrados, órdenes del mes
+
+### Home del cliente (`/`)
+- [ ] KPIs reales: órdenes pendientes, ventas del mes, stock bajo
+- [ ] Accesos rápidos: Nueva Orden, Nuevo Producto
+- [ ] Actividad reciente (últimas 5 órdenes)
+
+### Seguridad (hardening)
+- [ ] Rate limiting general en todos los endpoints (no solo auth)
+- [ ] Middleware `tenantScope` como capa de defensa extra en rutas de negocio
+- [ ] `ensureSuperadmin` debe actualizar contraseña si el usuario ya existe
+- [ ] Eliminar fallback `:-Demo2024!` del docker-compose
+
+### UX general
+- [ ] Breadcrumbs en páginas de detalle
+- [ ] Confirmación antes de acciones destructivas
+- [ ] Empty states descriptivos con acciones sugeridas
