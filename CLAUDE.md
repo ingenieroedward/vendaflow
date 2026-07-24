@@ -295,7 +295,7 @@ Al arrancar el backend:
 - [x] Modal edición: nombre, plan, fecha trial, límites
 - [x] Formulario crear nuevo tenant
 - [x] Backend `PUT /tenants/:id` (superadmin only)
-- [ ] Stats de uso real por tenant: usuarios activos, productos, órdenes del mes
+- [x] Stats de uso real por tenant: columna "Uso" (`usado/límite` de usuarios, productos y órdenes del mes) con alerta ámbar ≥70% y roja ≥100%. `GET /tenants` incluye `usage` (3 queries agrupadas, sin N+1)
 
 ### Home del cliente (`/`)
 - [ ] KPIs reales: órdenes pendientes, ventas del mes, stock bajo

@@ -40,6 +40,21 @@ function tenantAppUrl(slug: string): string {
   return `https://${slug}.merco.edwsystem.com`;
 }
 
+// ---- Usage pill: usado/límite con alerta al acercarse al tope ----
+
+const UsagePill: React.FC<{ used: number; max: number; title: string }> = ({ used, max, title }) => {
+  const ratio = max > 0 ? used / max : 0;
+  const cls =
+    ratio >= 1 ? 'text-red-600 font-semibold'
+    : ratio >= 0.7 ? 'text-amber-600 font-medium'
+    : 'text-gray-500';
+  return (
+    <span className={cls} title={title}>
+      {used}/{max}
+    </span>
+  );
+};
+
 // ---- Create Tenant Form ----
 
 interface CreateFormProps {
@@ -498,7 +513,7 @@ const Superadmin: React.FC = () => {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-200 bg-gray-50">
-                    {['Nombre / URL', 'Slug', 'Plan', 'Estado', 'Trial vence', 'Límites', 'Creado', ''].map(h => (
+                    {['Nombre / URL', 'Slug', 'Plan', 'Estado', 'Trial vence', 'Uso', 'Creado', ''].map(h => (
                       <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
                         {h}
                       </th>
@@ -559,8 +574,20 @@ const Superadmin: React.FC = () => {
                             </span>
                           ) : '—'}
                         </td>
-                        <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">
-                          {t.maxUsers}u · {t.maxProducts}p · {t.maxOrdersPerMonth}o
+                        <td className="px-4 py-3 text-xs whitespace-nowrap">
+                          {t.usage ? (
+                            <span className="text-gray-400">
+                              <UsagePill used={t.usage.users} max={t.maxUsers} title="Usuarios" />u
+                              {' · '}
+                              <UsagePill used={t.usage.products} max={t.maxProducts} title="Productos" />p
+                              {' · '}
+                              <UsagePill used={t.usage.ordersThisMonth} max={t.maxOrdersPerMonth} title="Órdenes este mes" />o
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">
+                              {t.maxUsers}u · {t.maxProducts}p · {t.maxOrdersPerMonth}o
+                            </span>
+                          )}
                         </td>
                         <td className="px-4 py-3 text-gray-400 text-xs whitespace-nowrap">
                           {new Date(t.createdAt).toLocaleDateString('es-CO')}

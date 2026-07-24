@@ -14,6 +14,11 @@ export interface TenantSummary {
   maxOrdersPerMonth: number;
   createdAt: string;
   updatedAt: string;
+  usage?: {
+    users: number;
+    products: number;
+    ordersThisMonth: number;
+  };
 }
 
 export interface CreateTenantPayload {

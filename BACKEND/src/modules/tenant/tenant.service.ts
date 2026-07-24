@@ -1,8 +1,11 @@
 import { Tenant, TenantPlan, TenantAttributes } from './tenant.model';
 import { User } from '../user/user.model';
 import { Category } from '../category/category.model';
+import { Product } from '../product/product.model';
+import { Order } from '../order/order.model';
 import { ConflictError, NotFoundError } from '@/core/errors/AppError';
 import sequelize from '@/database';
+import { Op } from 'sequelize';
 import bcrypt from 'bcryptjs';
 
 const PLAN_LIMITS: Record<TenantPlan, { maxUsers: number; maxProducts: number; maxOrdersPerMonth: number }> = {
@@ -152,7 +155,35 @@ export class TenantService {
   }
 
   async listAll() {
-    return Tenant.findAll({ order: [['createdAt', 'DESC']] });
+    const tenants = await Tenant.findAll({ order: [['createdAt', 'DESC']] });
+
+    // Stats de uso por tenant en 3 queries agrupadas (sin N+1)
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
+    const [userCounts, productCounts, orderCounts] = await Promise.all([
+      User.count({ group: ['tenantId'] }),
+      Product.count({ group: ['tenantId'] }),
+      Order.count({ where: { createdAt: { [Op.gte]: startOfMonth } }, group: ['tenantId'] }),
+    ]);
+
+    const toMap = (rows: object[]): Record<number, number> =>
+      Object.fromEntries(
+        (rows as Array<{ tenantId: number; count: number }>).map((r) => [r.tenantId, r.count])
+      );
+    const users = toMap(userCounts);
+    const products = toMap(productCounts);
+    const orders = toMap(orderCounts);
+
+    return tenants.map((t) => ({
+      ...(t.toJSON() as TenantAttributes),
+      usage: {
+        users: users[t.id] ?? 0,
+        products: products[t.id] ?? 0,
+        ordersThisMonth: orders[t.id] ?? 0,
+      },
+    }));
   }
 
   getPlanLimits(plan: TenantPlan) {
