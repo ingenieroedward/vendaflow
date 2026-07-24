@@ -1,12 +1,16 @@
-# CLAUDE.md — Merco (vendaflow)
+# CLAUDE.md
 
-Guía para Claude Code al trabajar en este repositorio.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+Proyecto: **Merco** (vendaflow).
+
+**Otros documentos del repo:** `CHANGELOG.md` (historial de cambios, formato Keep a Changelog), `CONTRIBUTING.md` (flujo git — parcialmente desactualizado, ver nota de rama abajo), `PROGRESO-OFFLINE-FIRST.md` (avance del modo offline).
 
 ---
 
 ## PROPÓSITO DEL SISTEMA
 
-**Merco** es una plataforma SaaS **multi-tenant** de gestión de precios y ventas:
+**Merco** (nombre histórico: **JJLM** — así aparece en README, CHANGELOG y CONTRIBUTING) es una plataforma SaaS **multi-tenant** de gestión de precios y ventas:
 - Comparación de precios de productos por proveedor
 - Gestión de órdenes de venta y compra
 - Inventario con movimientos de stock
@@ -20,7 +24,7 @@ Guía para Claude Code al trabajar en este repositorio.
 - Demo: `https://demo.merco.edwsystem.com` (usuario: `demo_admin` / `Demo2024!`)
 - Superadmin: login sin tenantSlug, usuario: `superadmin`
 
-**Rama de despliegue:** `feature/multitenant-phase1` — Dokploy escucha esta rama y despliega automáticamente en cada push.
+**Rama de despliegue:** `feature/multitenant-phase1` — Dokploy escucha esta rama y despliega automáticamente en cada push. (Ojo: CONTRIBUTING.md describe un flujo `main`/`dev` que ya no refleja la práctica actual — la rama activa de trabajo y deploy es esta.)
 
 ---
 
@@ -74,11 +78,14 @@ vendaflow/
 ### Backend (`cd BACKEND`)
 ```bash
 npm run dev          # Nodemon + TypeScript watch (puerto 3005)
-npm run build        # Compila TypeScript → dist/
+npm run build        # Compila TypeScript → dist/ (tsc + tsc-alias)
 npm start            # Ejecuta dist/server.js
 npm run lint
 npm run lint:fix
 npm run format
+npm test             # Jest (configurado, pero hoy no hay archivos *.test.ts en BACKEND)
+npx jest <ruta>      # Un solo archivo de test
+npm run seed         # Puebla datos demo (src/seeders/seed.ts, conexión directa a MySQL)
 ```
 
 ### Frontend (`cd FRONTEND`)
@@ -86,8 +93,11 @@ npm run format
 npm run dev          # Vite dev server (puerto 5173)
 npm run build        # Build de producción
 npm run lint
-npx vitest run       # Tests unitarios offline-first
-npm run test:e2e     # Playwright e2e
+npx vitest run       # Tests unitarios offline-first (src/**/__tests__, usan fake-indexeddb)
+                     # ⚠️ vitest NO está en devDependencies — npx lo descarga al vuelo
+npm run test:e2e     # Playwright e2e (specs en e2e/, levanta el dev server solo)
+npx playwright test e2e/app.spec.ts   # Un solo spec e2e
+npm run test:e2e:ui  # Playwright con UI
 ```
 
 ### Docker (desde raíz)
@@ -125,6 +135,8 @@ docker-compose logs -f frontend
 - **date-fns** para fechas
 - **lucide-react** para íconos (único icon set — no mezclar)
 - **Tailwind CSS** para estilos (no usar librerías UI externas)
+- **jspdf** + **html2canvas** para exportar PDF
+- **Capacitor 8** ya instalado — existe `FRONTEND/android/` (proyecto Gradle) y `capacitor.config.ts` (appId `com.edwsystem.jjlm`, webDir `dist`)
 
 ---
 
@@ -268,7 +280,7 @@ Al arrancar el backend:
 
 - 7 categorías, 4 proveedores, 35 productos, 34 precios comparativos, 6 clientes, 8 órdenes
 - Usuario: `demo_admin` / `Demo2024!`
-- Se crean via API en inicio — ver script de seed en conversación anterior
+- Seeder: `cd BACKEND && npm run seed` (`src/seeders/seed.ts`). Además, en cada arranque `ensureDemoData()` (en `src/core/startup/`) garantiza tenant demo + usuario si `DEMO_ADMIN_PASSWORD` está seteado
 
 ---
 
@@ -328,9 +340,9 @@ Nombre, ícono y color splash vienen del `manifest.json` de cada subdominio.
 **Costo por tenant:** ~10 min una vez configurado el manifest dinámico.
 **Play Store:** $25 USD cuenta de desarrollador (una sola cuenta para todos los tenants, o una por cliente si quieren su propia cuenta).
 
-### Nivel 3 — Nativo white-label: Capacitor (futuro)
-Convierte React a nativo Android/iOS. Notificaciones push nativas, cámara, biometría.
-No implementar hasta tener volumen real de clientes que lo exijan.
+### Nivel 3 — Nativo white-label: Capacitor (parcialmente montado)
+Capacitor 8 ya está instalado en el frontend con proyecto Android generado (`FRONTEND/android/`, appId `com.edwsystem.jjlm`) y plugins network/filesystem/share. Falta: white-label por tenant, push nativo, publicación.
+No avanzar más hasta tener volumen real de clientes que lo exijan.
 
 ### Decisión por situación
 | Cliente pide | Solución |
