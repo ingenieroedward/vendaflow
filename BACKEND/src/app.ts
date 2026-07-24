@@ -6,6 +6,8 @@ import rateLimit from 'express-rate-limit';
 import { config } from '@/config';
 import { errorHandler, notFoundHandler } from '@/core/middlewares/errorHandler';
 import { httpLogger, requestLogger, errorLogger } from '@/core/middlewares/logger';
+import { isAuth } from '@/core/middlewares/auth';
+import { tenantScope } from '@/core/middlewares/tenantScope';
 
 // Import routes
 import userRoutes from '@/modules/user/user.routes';
@@ -98,16 +100,24 @@ app.get('/health', (_req, res) => {
 
 // API routes
 app.use('/api', apiLimiter);
+
+// Capa extra de defensa multi-tenant en rutas de negocio: además del filtro
+// por tenantId en cada service, bloquea tenants suspendidos/cancelados.
+// No aplica a: auth (login), tenants (tiene ruta pública de theming),
+// onboarding (registro público), push (vapid-public-key es público),
+// manifest/assetlinks (públicos por diseño).
+const tenantGuard = [isAuth, tenantScope];
+
 app.use('/api/auth', authLimiter, authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/categories', categoryRoutes);
-app.use('/api/products', productRoutes);
-app.use('/api/suppliers', supplierRoutes);
-app.use('/api/prices', priceRoutes);
-app.use('/api/customers', customerRoutes);
-app.use('/api/orders', orderRoutes);
-app.use('/api/purchase-orders', purchaseOrderRoutes);
-app.use('/api/stock-movements', stockMovementRoutes);
+app.use('/api/users', tenantGuard, userRoutes);
+app.use('/api/categories', tenantGuard, categoryRoutes);
+app.use('/api/products', tenantGuard, productRoutes);
+app.use('/api/suppliers', tenantGuard, supplierRoutes);
+app.use('/api/prices', tenantGuard, priceRoutes);
+app.use('/api/customers', tenantGuard, customerRoutes);
+app.use('/api/orders', tenantGuard, orderRoutes);
+app.use('/api/purchase-orders', tenantGuard, purchaseOrderRoutes);
+app.use('/api/stock-movements', tenantGuard, stockMovementRoutes);
 app.use('/api/push', pushRoutes);
 app.use('/api/tenants', tenantRoutes);
 app.use('/api/onboarding', onboardingRoutes);

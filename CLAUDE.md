@@ -52,7 +52,7 @@ vendaflow/
 - El frontend detecta el tenant del subdominio: `demo.merco.edwsystem.com` → slug `demo`
 - En login: `{ username, password, tenantSlug }` en el **body** (no en headers)
 - El JWT incluye `tenantId` — todos los endpoints lo usan para filtrar datos
-- El middleware `tenantScope` en `BACKEND/src/core/middlewares/tenantScope.ts` aplica el filtro de tenant
+- El middleware `tenantScope` (`BACKEND/src/core/middlewares/tenantScope.ts`) se monta como `tenantGuard` (= `isAuth` + `tenantScope`) en todas las rutas de negocio en app.ts: bloquea tenants suspendidos/cancelados con cache de 60s. El filtro de datos por `tenantId` lo hace cada service
 
 ### Roles
 | Rol | Acceso |
@@ -307,7 +307,7 @@ Al arrancar el backend:
 - [x] `ensureSuperadmin` actualiza contraseña si el usuario ya existe
 - [x] Eliminar fallback `:-Demo2024!` del docker-compose
 - [x] Filtrar plan/límites del endpoint público `GET /tenants/slug/:slug`
-- [ ] Middleware `tenantScope` como capa de defensa extra en rutas de negocio
+- [x] Middleware `tenantScope` en todas las rutas de negocio (`tenantGuard` en app.ts) — bloquea tenants suspendidos aunque el JWT siga vigente. Cache en memoria 60s del estado del tenant (una suspensión tarda ≤60s en aplicar)
 
 ### UX general
 - [ ] Breadcrumbs en páginas de detalle
