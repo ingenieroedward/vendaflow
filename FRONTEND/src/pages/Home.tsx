@@ -1,7 +1,6 @@
 import React, {  useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, RefreshCw, Package, TrendingUp, ClipboardList } from 'lucide-react';
-import HomeDashboard from '../components/features/HomeDashboard';
+import { Plus, RefreshCw, Package, TrendingUp } from 'lucide-react';
 import { useProductStore } from '../store/productStore';
 import { useTenantStore } from '../store/tenantStore';
 import { useAuthStore } from '../store/authStore';
@@ -90,37 +89,21 @@ const Home: React.FC = () => {
                 Actualizar
               </Button>
               {user?.role === 'admin' && (
-                <>
-                  <Button
-                    variant="outline"
-                    icon={ClipboardList}
-                    onClick={() => navigate('/orders/new')}
-                    size="sm"
-                    className="flex-1 sm:flex-none text-xs sm:text-sm"
-                  >
-                    Nueva orden
-                  </Button>
-                  <Button
-                    variant="primary"
-                    icon={Plus}
-                    onClick={() => navigate('/products/new')}
-                    size="sm"
-                    className="w-full sm:w-auto font-medium"
-                  >
-                    Nuevo producto
-                  </Button>
-                </>
+                <Button
+                  variant="primary"
+                  icon={Plus}
+                  onClick={() => navigate('/products/new')}
+                  size="sm"
+                  className="w-full sm:w-auto font-medium"
+                >
+                  Nuevo producto
+                </Button>
               )}
           </div>
         </div>
 
-        {/* Dashboard con KPIs reales (admin) */}
-        {!showSearchResults && user?.role === 'admin' && (
-          <HomeDashboard totalProducts={pagination.total} />
-        )}
-
-        {/* Stats Cards - Optimizado para mobile (roles sin acceso a órdenes) */}
-        {!showSearchResults && user?.role !== 'admin' && (
+        {/* Stats Cards - Optimizado para mobile */}
+        {!showSearchResults && (
           <div className="grid grid-cols-3 gap-3 sm:gap-6 mb-6 sm:mb-8">
             <div className="bg-white  rounded-lg p-4 sm:p-6 shadow-sm border border-gray-200">
               <div className="flex items-center  gap-2 flex-wrap">
