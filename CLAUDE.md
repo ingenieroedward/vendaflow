@@ -296,12 +296,11 @@ Al arrancar el backend:
 - [x] Formulario crear nuevo tenant
 - [x] Backend `PUT /tenants/:id` (superadmin only)
 - [x] Stats de uso real por tenant: columna "Uso" (`usado/límite` de usuarios, productos y órdenes del mes) con alerta ámbar ≥70% y roja ≥100%. `GET /tenants` incluye `usage` (3 queries agrupadas, sin N+1)
+- [x] KPI cards de plataforma (tenants con desglose, órdenes del mes, usuarios totales, trials por vencer) + panel "Actividad del mes" (top 5 tenants por órdenes con barras)
 
-### Home del cliente (`/`) — YA IMPLEMENTADO
-- [x] KPIs reales (solo admin, `HomeDashboard.tsx`): órdenes pendientes, ventas del mes, stock bajo, productos. Backend: `GET /orders/stats/home` (isSeller). Stock bajo reutiliza `GET /products/stock/alerts`
-- [x] Accesos rápidos: Nueva Orden + Nuevo Producto (admin)
-- [x] Actividad reciente: últimas 5 órdenes con cliente, estado y total, click → detalle
-- Nota: el dashboard requiere red; offline se oculta y el Home sigue funcionando. Roles no-admin conservan las stats de productos originales
+### Home del cliente (`/`)
+- DECISIÓN (jul 2026): se probó un dashboard de KPIs en el Home y se revirtió — el Home es la página de búsqueda de productos y el dashboard le estorbaba. NO volver a ponerlo ahí; si se quiere dashboard del tenant, hacerlo como página aparte
+- El backend `GET /orders/stats/home` (isSeller: pendientes, ventas del mes, últimas 5 órdenes) quedó desplegado y disponible para esa futura página. `productService.getStockAlerts()` y `getHomeStats()` siguen en los services del frontend
 
 ### Seguridad (hardening)
 - [x] Rate limiting general en todos los endpoints (3000/15min por IP)
