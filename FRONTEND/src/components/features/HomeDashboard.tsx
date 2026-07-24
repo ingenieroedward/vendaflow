@@ -42,6 +42,7 @@ const HomeDashboard: React.FC<Props> = ({ totalProducts }) => {
     {
       label: 'Órdenes pendientes',
       value: String(stats.pendingOrders),
+      sub: stats.pendingOrders > 0 ? 'por atender' : 'todo al día',
       icon: ClipboardList,
       iconBg: stats.pendingOrders > 0 ? 'bg-amber-100' : 'bg-gray-100',
       iconCls: stats.pendingOrders > 0 ? 'text-amber-600' : 'text-gray-400',
