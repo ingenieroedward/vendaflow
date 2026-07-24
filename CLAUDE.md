@@ -297,10 +297,11 @@ Al arrancar el backend:
 - [x] Backend `PUT /tenants/:id` (superadmin only)
 - [x] Stats de uso real por tenant: columna "Uso" (`usado/límite` de usuarios, productos y órdenes del mes) con alerta ámbar ≥70% y roja ≥100%. `GET /tenants` incluye `usage` (3 queries agrupadas, sin N+1)
 
-### Home del cliente (`/`)
-- [ ] KPIs reales: órdenes pendientes, ventas del mes, stock bajo
-- [ ] Accesos rápidos: Nueva Orden, Nuevo Producto
-- [ ] Actividad reciente (últimas 5 órdenes)
+### Home del cliente (`/`) — YA IMPLEMENTADO
+- [x] KPIs reales (solo admin, `HomeDashboard.tsx`): órdenes pendientes, ventas del mes, stock bajo, productos. Backend: `GET /orders/stats/home` (isSeller). Stock bajo reutiliza `GET /products/stock/alerts`
+- [x] Accesos rápidos: Nueva Orden + Nuevo Producto (admin)
+- [x] Actividad reciente: últimas 5 órdenes con cliente, estado y total, click → detalle
+- Nota: el dashboard requiere red; offline se oculta y el Home sigue funcionando. Roles no-admin conservan las stats de productos originales
 
 ### Seguridad (hardening)
 - [x] Rate limiting general en todos los endpoints (3000/15min por IP)

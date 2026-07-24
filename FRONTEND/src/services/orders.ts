@@ -47,4 +47,23 @@ export class OrderService {
   }
 }
 
-export const orderService = new OrderService(); 
+export interface HomeStats {
+  pendingOrders: number;
+  salesThisMonth: number;
+  ordersThisMonth: number;
+  recentOrders: Array<{
+    id: number;
+    orderNumber: string;
+    status: 'pending' | 'processing' | 'completed' | 'cancelled';
+    totalAmount: number;
+    createdAt: string;
+    customer: { id: number; name: string } | null;
+  }>;
+}
+
+export const orderService = new OrderService();
+
+export async function getHomeStats(): Promise<HomeStats> {
+  const response = await apiService.get<ApiResponse<HomeStats>>('/orders/stats/home');
+  return response.data;
+} 

@@ -9,6 +9,7 @@ const orderController = new OrderController();
 router.get('/', isAuth, orderController.getAllOrders);
 router.get('/search', isAuth, orderController.searchOrders);
 router.get('/next-number', isAuth, orderController.getNextOrderNumber);
+router.get('/stats/home', isAuth, isSeller, orderController.getHomeStats);
 router.get('/trash', isAuth, isAdmin, orderController.getDeletedOrders);
 router.get('/customer/:customerId', isAuth, orderController.getOrdersByCustomer);
 router.get('/:id', isAuth, orderController.getOrderById);

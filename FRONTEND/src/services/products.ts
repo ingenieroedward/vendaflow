@@ -13,6 +13,12 @@ import {
 } from '../types';
 
 export class ProductService {
+  // Productos con stock en o bajo el mínimo
+  async getStockAlerts(): Promise<Product[]> {
+    const response = await apiService.get<ApiResponse<Product[]>>('/products/stock/alerts');
+    return response.data;
+  }
+
   // Products
   async searchProducts(query: string, includePrices: boolean = true): Promise<Product[]> {
     try {

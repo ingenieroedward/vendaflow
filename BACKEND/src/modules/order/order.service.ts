@@ -147,6 +147,39 @@ export class OrderService {
     return { nextOrderNumber: nextNumber };
   }
 
+  // KPIs del Home: órdenes pendientes, ventas del mes y actividad reciente
+  async getHomeStats(tenantId: number) {
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
+    const [pendingOrders, salesThisMonth, ordersThisMonth, recentOrders] = await Promise.all([
+      Order.count({ where: { tenantId, status: ['pending', 'processing'] } }),
+      Order.sum('totalAmount', {
+        where: {
+          tenantId,
+          status: { [Op.ne]: 'cancelled' },
+          createdAt: { [Op.gte]: startOfMonth },
+        },
+      }),
+      Order.count({ where: { tenantId, createdAt: { [Op.gte]: startOfMonth } } }),
+      Order.findAll({
+        where: { tenantId },
+        order: [['createdAt', 'DESC']],
+        limit: 5,
+        attributes: ['id', 'orderNumber', 'status', 'totalAmount', 'createdAt'],
+        include: [{ model: Customer, as: 'customer', attributes: ['id', 'name'] }],
+      }),
+    ]);
+
+    return {
+      pendingOrders,
+      salesThisMonth: Number(salesThisMonth) || 0,
+      ordersThisMonth,
+      recentOrders,
+    };
+  }
+
   async getAllOrders(query: PaginationQuery, tenantId: number): Promise<OrdersListResponseDto> {
     const { page, limit } = validateSchema(paginationSchema, query);
     const validatedPage = page || 1;

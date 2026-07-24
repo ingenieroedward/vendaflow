@@ -25,6 +25,11 @@ export class OrderController {
     res.status(200).json({ status: 'success', data: result.orders, pagination: result.pagination });
   });
 
+  getHomeStats = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const stats = await this.orderService.getHomeStats(req.user!.tenantId);
+    res.status(200).json({ status: 'success', data: stats });
+  });
+
   getOrderById = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const tenantId = req.user!.tenantId;
     const order = await this.orderService.getOrderById(Number(req.params['id']), tenantId);
