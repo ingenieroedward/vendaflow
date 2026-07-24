@@ -300,3 +300,42 @@ Al arrancar el backend:
 - [ ] Breadcrumbs en páginas de detalle
 - [ ] Confirmación antes de acciones destructivas
 - [ ] Empty states descriptivos con acciones sugeridas
+
+---
+
+## APK POR TENANT — PLAN DE IMPLEMENTACIÓN
+
+Los clientes pueden pedir "su app" instalable. Hay 3 niveles:
+
+### Nivel 1 — Ya funciona: PWA instalable
+Merco es PWA. Android Chrome muestra "Agregar a pantalla de inicio". `InstallModal` guía paso a paso.
+Sin Play Store, sin APK. Suficiente para el 90% de clientes B2B.
+
+### Nivel 2 — APK por tenant vía TWA (próximo paso recomendado)
+`bubblewrap` convierte la PWA en APK nativo en ~30 min. El APK envuelve la URL del subdominio del tenant.
+Nombre, ícono y color splash vienen del `manifest.json` de cada subdominio.
+
+**Para implementar necesitamos:**
+1. Endpoint backend que sirva `manifest.json` dinámico por tenant:
+   ```
+   GET /api/manifest  →  lee tenant del subdominio, devuelve manifest personalizado
+   ```
+   Campos: `name`, `short_name`, `theme_color` (= `primaryColor` del tenant), `background_color`, `icons`
+2. El `manifest.json` estático del frontend apuntaría a ese endpoint (o el nginx lo proxea)
+3. Por cada cliente que pida APK: `bubblewrap init --manifest https://slug.merco.edwsystem.com/manifest.json && bubblewrap build`
+4. Entregar el `.apk` generado — se instala directo en el cel o se sube al Play Store del cliente
+
+**Costo por tenant:** ~10 min una vez configurado el manifest dinámico.
+**Play Store:** $25 USD cuenta de desarrollador (una sola cuenta para todos los tenants, o una por cliente si quieren su propia cuenta).
+
+### Nivel 3 — Nativo white-label: Capacitor (futuro)
+Convierte React a nativo Android/iOS. Notificaciones push nativas, cámara, biometría.
+No implementar hasta tener volumen real de clientes que lo exijan.
+
+### Decisión por situación
+| Cliente pide | Solución |
+|---|---|
+| "App en el celular" | PWA — InstallModal ya lo resuelve |
+| APK para distribuir internamente | TWA con bubblewrap |
+| App en Play Store con su logo | TWA publicado en Play Store |
+| Funciones nativas (cámara, biometría) | Capacitor (futuro) |
