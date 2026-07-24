@@ -1,4 +1,4 @@
-import { Tenant, TenantPlan } from './tenant.model';
+import { Tenant, TenantPlan, TenantAttributes } from './tenant.model';
 import { User } from '../user/user.model';
 import { Category } from '../category/category.model';
 import { ConflictError, NotFoundError } from '@/core/errors/AppError';
@@ -107,12 +107,12 @@ export class TenantService {
   }
 
   async update(tenantId: number, data: {
-    name?: string;
-    plan?: TenantPlan;
-    trialEndsAt?: string | null;
-    maxUsers?: number;
-    maxProducts?: number;
-    maxOrdersPerMonth?: number;
+    name?: string | undefined;
+    plan?: TenantPlan | undefined;
+    trialEndsAt?: string | null | undefined;
+    maxUsers?: number | undefined;
+    maxProducts?: number | undefined;
+    maxOrdersPerMonth?: number | undefined;
   }) {
     const tenant = await this.findById(tenantId);
     const updates: Partial<TenantAttributes> = {};

@@ -327,15 +327,12 @@ Sin Play Store, sin APK. Suficiente para el 90% de clientes B2B.
 `bubblewrap` convierte la PWA en APK nativo en ~30 min. El APK envuelve la URL del subdominio del tenant.
 Nombre, ícono y color splash vienen del `manifest.json` de cada subdominio.
 
-**Para implementar necesitamos:**
-1. Endpoint backend que sirva `manifest.json` dinámico por tenant:
-   ```
-   GET /api/manifest  →  lee tenant del subdominio, devuelve manifest personalizado
-   ```
-   Campos: `name`, `short_name`, `theme_color` (= `primaryColor` del tenant), `background_color`, `icons`
-2. El `manifest.json` estático del frontend apuntaría a ese endpoint (o el nginx lo proxea)
-3. Por cada cliente que pida APK: `bubblewrap init --manifest https://slug.merco.edwsystem.com/manifest.json && bubblewrap build`
-4. Entregar el `.apk` generado — se instala directo en el cel o se sube al Play Store del cliente
+**Estado de implementación:**
+1. [x] `GET /api/manifest` — `BACKEND/src/modules/tenant/manifest.routes.ts`. Público, sin auth. Lee slug de `X-Tenant-Slug` (lo pone nginx), `?slug=` o subdominio del Host. Devuelve `name`/`short_name`/`theme_color` (= `primaryColor`) del tenant; fallback a Merco/#3b82f6
+2. [x] nginx proxea `location = /manifest.json` → backend `/api/manifest`, con fallback al `manifest.json` estático si el backend no responde (`@manifest_static`)
+3. [ ] Por cada cliente que pida APK: `bubblewrap init --manifest https://slug.merco.edwsystem.com/manifest.json && bubblewrap build`
+4. [ ] Entregar el `.apk` generado — se instala directo en el cel o se sube al Play Store del cliente
+5. [ ] Pendiente: íconos por tenant (hoy todos usan los íconos Merco de `/icons/`)
 
 **Costo por tenant:** ~10 min una vez configurado el manifest dinámico.
 **Play Store:** $25 USD cuenta de desarrollador (una sola cuenta para todos los tenants, o una por cliente si quieren su propia cuenta).
