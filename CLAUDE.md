@@ -274,12 +274,16 @@ Al arrancar el backend:
 
 ## MEJORAS PENDIENTES
 
-### Panel Superadmin (`/superadmin`)
-- [ ] Botón "Acceder" por tenant → `https://[slug].merco.edwsystem.com`
-- [ ] Días restantes de trial con alerta visual (<7 días)
-- [ ] Búsqueda/filtro de tenants
-- [ ] Modal "Editar Tenant" (nombre, plan, color, extender trial)
-- [ ] Stats de uso: usuarios activos, productos registrados, órdenes del mes
+### Panel Superadmin (`/superadmin`) — YA IMPLEMENTADO
+- [x] Header oscuro slate-900 (diferenciación visual de contexto)
+- [x] Stats cards: Total / Activos / Trial / Suspendidos
+- [x] Alerta si trial vence en ≤7 días
+- [x] Búsqueda por nombre/slug + filtro por estado
+- [x] Tabla con color dot, "Abrir app" link, plan badge, fecha trial con countdown
+- [x] Modal edición: nombre, plan, fecha trial, límites
+- [x] Formulario crear nuevo tenant
+- [x] Backend `PUT /tenants/:id` (superadmin only)
+- [ ] Stats de uso real por tenant: usuarios activos, productos, órdenes del mes
 
 ### Home del cliente (`/`)
 - [ ] KPIs reales: órdenes pendientes, ventas del mes, stock bajo
