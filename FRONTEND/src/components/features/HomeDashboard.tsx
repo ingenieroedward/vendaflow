@@ -43,29 +43,39 @@ const HomeDashboard: React.FC<Props> = ({ totalProducts }) => {
       label: 'Órdenes pendientes',
       value: String(stats.pendingOrders),
       icon: ClipboardList,
-      iconCls: 'text-yellow-600',
+      iconBg: stats.pendingOrders > 0 ? 'bg-amber-100' : 'bg-gray-100',
+      iconCls: stats.pendingOrders > 0 ? 'text-amber-600' : 'text-gray-400',
+      accent: stats.pendingOrders > 0 ? 'text-amber-600' : 'text-gray-900',
       onClick: () => navigate('/orders'),
     },
     {
       label: 'Ventas del mes',
       value: formatCurrency(stats.salesThisMonth),
-      sub: `${stats.ordersThisMonth} ${stats.ordersThisMonth === 1 ? 'orden' : 'órdenes'}`,
+      sub: `${stats.ordersThisMonth} ${stats.ordersThisMonth === 1 ? 'orden' : 'órdenes'} este mes`,
       icon: TrendingUp,
+      iconBg: 'bg-green-100',
       iconCls: 'text-green-600',
+      accent: 'text-gray-900',
       onClick: () => navigate('/reports'),
     },
     {
       label: 'Stock bajo',
       value: lowStock !== null ? String(lowStock) : '—',
+      sub: lowStock ? 'productos por reponer' : 'todo en orden',
       icon: AlertTriangle,
+      iconBg: lowStock ? 'bg-red-100' : 'bg-gray-100',
       iconCls: lowStock ? 'text-red-500' : 'text-gray-400',
+      accent: lowStock ? 'text-red-600' : 'text-gray-900',
       onClick: () => navigate('/inventory'),
     },
     {
       label: 'Productos',
       value: String(totalProducts),
+      sub: 'en catálogo',
       icon: Package,
+      iconBg: 'bg-blue-100',
       iconCls: 'text-blue-600',
+      accent: 'text-gray-900',
       onClick: undefined,
     },
   ];
@@ -79,23 +89,28 @@ const HomeDashboard: React.FC<Props> = ({ totalProducts }) => {
             key={k.label}
             onClick={k.onClick}
             disabled={!k.onClick}
-            className={`bg-white rounded-lg p-4 shadow-sm border border-gray-200 text-left ${
-              k.onClick ? 'hover:border-blue-300 hover:shadow transition-all cursor-pointer' : 'cursor-default'
+            className={`group bg-white rounded-xl p-4 sm:p-5 shadow-sm border border-gray-200 text-left ${
+              k.onClick ? 'hover:border-blue-300 hover:shadow-md transition-all cursor-pointer' : 'cursor-default'
             }`}
           >
-            <div className="flex items-center gap-2 mb-1">
-              <k.icon className={`w-4 h-4 ${k.iconCls}`} />
-              <p className="text-xs font-medium text-gray-500">{k.label}</p>
+            <div className="flex items-start justify-between mb-3">
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${k.iconBg}`}>
+                <k.icon className={`w-5 h-5 ${k.iconCls}`} />
+              </div>
+              {k.onClick && (
+                <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-blue-400 group-hover:translate-x-0.5 transition-all mt-1" />
+              )}
             </div>
-            <p className="text-xl sm:text-2xl font-bold text-gray-900 truncate">{k.value}</p>
-            {k.sub && <p className="text-xs text-gray-400 mt-0.5">{k.sub}</p>}
+            <p className={`text-2xl font-bold leading-none truncate ${k.accent}`}>{k.value}</p>
+            <p className="text-xs font-medium text-gray-500 mt-1.5">{k.label}</p>
+            {k.sub && <p className="text-[11px] text-gray-400 mt-0.5">{k.sub}</p>}
           </button>
         ))}
       </div>
 
       {/* Actividad reciente */}
       {stats.recentOrders.length > 0 && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
             <h3 className="text-sm font-semibold text-gray-900">Actividad reciente</h3>
             <button
