@@ -213,6 +213,13 @@ proxy_pass http://$backend_host:3005$request_uri;
 
 **Compose ID (deploy manual):** `fRFCqlfP25dO1If1jmo8I`
 
+### Backups de MySQL (configurado jul 2026)
+- Script en el VPS: `/usr/local/bin/merco-backup-db.sh` — dump de `merco-mysql`, `jjlm-mysql` y `jjlm-staging-mysql` (credenciales desde el env de cada contenedor, sin secretos en el script)
+- Cron (root): diario 02:30, log en `/var/log/merco-backup.log`
+- Local: `/var/backups/merco/` (retención 7 días) · Off-site: Backblaze `b2-jjlm:jjlm-backups/db/` (retención 30 días, mismo patrón rclone que SIPGR)
+- Acceso VPS: `ssh -i ~/.ssh/id_ed25519_personal ubuntu@158.69.219.152` (docker/rclone requieren `sudo`)
+- **Restaurar**: `gunzip -c archivo.sql.gz | sudo docker exec -i merco-mysql sh -c 'exec mysql -uroot -p"$MYSQL_ROOT_PASSWORD" merco_db'` (descargar de B2 con `rclone copy b2-jjlm:jjlm-backups/db/<archivo> .`)
+
 ---
 
 ## STARTUP HOOKS (server.ts)
