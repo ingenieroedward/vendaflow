@@ -6,6 +6,7 @@ export interface Customer {
   contact?: string;
   address?: string;
   note?: string;
+  creditBalance?: number;
   createdAt: string;
   updatedAt: string;
   deletedAt?: string;

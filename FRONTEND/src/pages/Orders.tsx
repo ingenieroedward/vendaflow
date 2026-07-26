@@ -52,6 +52,9 @@ const Orders: React.FC = () => {
 
   // Cartera: órdenes a crédito sin pagar
   const [receivables, setReceivables] = useState<Receivables | null>(null);
+  const [receivablesDismissed, setReceivablesDismissed] = useState(
+    () => sessionStorage.getItem('receivablesBannerDismissed') === '1'
+  );
 
   useEffect(() => { getOrders(1, 50); }, [getOrders]);
 
@@ -284,8 +287,15 @@ const Orders: React.FC = () => {
         {error && <ErrorMessage message={error} onDismiss={clearError} onRetry={handleRefresh} className="mb-4 sm:mb-6" />}
 
         {/* Cartera: crédito pendiente de cobro */}
-        {receivables && receivables.count > 0 && (
-          <div className={`mb-4 rounded-xl border p-4 ${receivables.overdueCount > 0 ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'}`}>
+        {receivables && receivables.count > 0 && !receivablesDismissed && (
+          <div className={`mb-4 rounded-xl border p-4 relative ${receivables.overdueCount > 0 ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'}`}>
+            <button
+              onClick={() => { setReceivablesDismissed(true); sessionStorage.setItem('receivablesBannerDismissed', '1'); }}
+              className="absolute top-2.5 right-2.5 p-1 text-gray-400 hover:text-gray-600 rounded"
+              title="Ocultar (reaparece en la próxima sesión)"
+            >
+              <span className="text-sm leading-none">✕</span>
+            </button>
             <div className="flex items-start gap-2.5">
               <CreditCard className={`w-4 h-4 mt-0.5 flex-shrink-0 ${receivables.overdueCount > 0 ? 'text-red-600' : 'text-amber-600'}`} />
               <div className="min-w-0 flex-1">

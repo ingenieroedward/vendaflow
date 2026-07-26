@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { Plus, Search, Edit, Trash2, User, Phone, MapPin, Hash, Tag, RefreshCw, RotateCcw, AlertTriangle } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, User, Phone, MapPin, Hash, Tag, RefreshCw, RotateCcw, AlertTriangle, CreditCard } from 'lucide-react';
 import { useCustomerStore } from '../store/customerStore';
 import { useAuthStore } from '../store/authStore';
 import { useUIStore } from '../store/uiStore';
@@ -258,6 +258,12 @@ const Customers: React.FC = () => {
                         <Hash className="w-3 h-3 text-gray-400 flex-shrink-0" />
                         <span className="text-xs text-gray-500">{customer.nit}</span>
                       </div>
+                    )}
+                    {(customer.creditBalance ?? 0) > 0 && (
+                      <span className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-medium rounded">
+                        <CreditCard className="w-3 h-3" />
+                        Debe {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(customer.creditBalance!)}
+                      </span>
                     )}
                   </div>
                   <div className="flex gap-1 ml-2 flex-shrink-0">

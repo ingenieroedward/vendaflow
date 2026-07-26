@@ -9,7 +9,8 @@ import {
 import { NotFoundError } from '@/core/errors/AppError';
 import { validateSchema, validatePartialSchema, paginationSchema, PaginationQuery } from '@/core/utils/validation';
 import { createCustomerSchema, updateCustomerSchema, searchCustomerSchema } from './customer.dto';
-import { Op } from 'sequelize';
+import { Op, fn, col } from 'sequelize';
+import { Order } from '@/modules/order/order.model';
 
 export class CustomerService {
   async createCustomer(customerData: CreateCustomerDto, tenantId: number): Promise<CustomerResponseDto> {
@@ -31,7 +32,27 @@ export class CustomerService {
       order: [['createdAt', 'DESC']],
     });
 
-    const customers = rows.map(customer => this.mapToResponseDto(customer));
+    // Saldo pendiente (cartera) por cliente — crédito sin pagar, una sola query agrupada
+    const balances = rows.length
+      ? await Order.findAll({
+          where: {
+            tenantId,
+            customerId: rows.map(r => r.id),
+            paymentType: 'credit',
+            paidAt: null,
+            status: { [Op.ne]: 'cancelled' },
+          },
+          attributes: ['customerId', [fn('SUM', col('totalAmount')), 'due']],
+          group: ['customerId'],
+          raw: true,
+        }) as unknown as Array<{ customerId: number; due: string }>
+      : [];
+    const balanceMap = new Map(balances.map(b => [b.customerId, Number(b.due)]));
+
+    const customers = rows.map(customer => ({
+      ...this.mapToResponseDto(customer),
+      creditBalance: balanceMap.get(customer.id) ?? 0,
+    }));
     const totalPages = Math.ceil(Number(count) / validatedLimit);
 
     return {
