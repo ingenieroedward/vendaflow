@@ -3,12 +3,12 @@ import { useNavigate } from "react-router-dom";
 import {
   Plus, Search, Eye, Edit, Trash2, Calendar, User,
   WifiOff, RefreshCw, AlertCircle, CloudOff, CheckCircle2, Clock,
-  RotateCcw, AlertTriangle
+  RotateCcw, AlertTriangle, CreditCard
 } from "lucide-react";
 import { useOrderStore } from "../store/orderStore";
 import { useAuthStore } from "../store/authStore";
 import { useUIStore } from "../store/uiStore";
-import { orderService } from "../services/orders";
+import { orderService, getReceivables, Receivables } from "../services/orders";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
 import ErrorMessage from "../components/ui/ErrorMessage";
 import Button from "../components/ui/Button";
@@ -50,7 +50,15 @@ const Orders: React.FC = () => {
   const [trashLoading, setTrashLoading] = useState(false);
   const [hardDeleteConfirm, setHardDeleteConfirm] = useState<number | null>(null);
 
+  // Cartera: órdenes a crédito sin pagar
+  const [receivables, setReceivables] = useState<Receivables | null>(null);
+
   useEffect(() => { getOrders(1, 50); }, [getOrders]);
+
+  useEffect(() => {
+    if (!navigator.onLine) return;
+    getReceivables().then(setReceivables).catch(() => setReceivables(null));
+  }, []);
 
   const loadLocalOrders = useCallback(async () => {
     setLoadingLocal(true);
@@ -274,6 +282,42 @@ const Orders: React.FC = () => {
         </div>
 
         {error && <ErrorMessage message={error} onDismiss={clearError} onRetry={handleRefresh} className="mb-4 sm:mb-6" />}
+
+        {/* Cartera: crédito pendiente de cobro */}
+        {receivables && receivables.count > 0 && (
+          <div className={`mb-4 rounded-xl border p-4 ${receivables.overdueCount > 0 ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'}`}>
+            <div className="flex items-start gap-2.5">
+              <CreditCard className={`w-4 h-4 mt-0.5 flex-shrink-0 ${receivables.overdueCount > 0 ? 'text-red-600' : 'text-amber-600'}`} />
+              <div className="min-w-0 flex-1">
+                <p className={`text-sm font-semibold ${receivables.overdueCount > 0 ? 'text-red-800' : 'text-amber-800'}`}>
+                  Cartera: {formatCurrency(receivables.totalDue)} en {receivables.count} orden{receivables.count !== 1 ? 'es' : ''} a crédito
+                  {receivables.overdueCount > 0 && ` — ${receivables.overdueCount} vencida${receivables.overdueCount !== 1 ? 's' : ''}`}
+                </p>
+                <div className="mt-1 space-y-0.5">
+                  {receivables.orders.slice(0, 3).map(r => (
+                    <button
+                      key={r.id}
+                      onClick={() => navigate(`/orders/${r.id}`)}
+                      className={`block text-xs hover:underline text-left ${r.daysUntilDue !== null && r.daysUntilDue < 0 ? 'text-red-700' : 'text-amber-700'}`}
+                    >
+                      #{r.orderNumber} · {r.customer?.name ?? 'Cliente'} · {formatCurrency(r.totalAmount)}
+                      {r.daysUntilDue !== null && (
+                        r.daysUntilDue < 0
+                          ? ` — venció hace ${-r.daysUntilDue} día${r.daysUntilDue === -1 ? '' : 's'}`
+                          : r.daysUntilDue === 0
+                            ? ' — vence HOY'
+                            : ` — vence en ${r.daysUntilDue} día${r.daysUntilDue === 1 ? '' : 's'}`
+                      )}
+                    </button>
+                  ))}
+                  {receivables.orders.length > 3 && (
+                    <p className="text-xs text-gray-500">…y {receivables.orders.length - 3} más</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Tabs */}
         <div className="flex border-b border-gray-200 mb-4 overflow-x-auto scrollbar-none">
@@ -550,9 +594,29 @@ const Orders: React.FC = () => {
                               </div>
                               <p className="text-sm text-gray-500">{formatDate(order.createdAt)}</p>
                             </div>
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
-                              {getStatusText(order.status)}
-                            </span>
+                            <div className="flex flex-col items-end gap-1">
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
+                                {getStatusText(order.status)}
+                              </span>
+                              {order.paymentType === 'credit' && (
+                                order.paidAt ? (
+                                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                                    Crédito pagado
+                                  </span>
+                                ) : (
+                                  <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                                    order.paymentDueDate && new Date(`${order.paymentDueDate}T00:00:00`) < new Date()
+                                      ? 'bg-red-100 text-red-700'
+                                      : 'bg-amber-100 text-amber-700'
+                                  }`}>
+                                    <CreditCard className="w-3 h-3" />
+                                    {order.paymentDueDate
+                                      ? `Vence ${format(new Date(`${order.paymentDueDate}T00:00:00`), 'd MMM', { locale: es })}`
+                                      : 'Crédito'}
+                                  </span>
+                                )
+                              )}
+                            </div>
                           </div>
 
                           <div className="space-y-3 mb-4">

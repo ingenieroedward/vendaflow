@@ -24,6 +24,11 @@ export interface OrderAttributes {
   totalAmount: number;
   status: 'pending' | 'processing' | 'completed' | 'cancelled';
   notes: string | null;
+  // Pago a plazo (crédito)
+  paymentType: 'cash' | 'credit';
+  paymentDueDate: string | null; // DATEONLY — fecha límite de pago si es crédito
+  reminderDays: number | null; // días antes del vencimiento para recordar el cobro
+  paidAt: Date | null; // null = pendiente de cobro (solo relevante en crédito)
   createdAt: Date;
   updatedAt: Date;
   deletedAt?: Date;
@@ -91,6 +96,31 @@ export class Order extends Model<OrderAttributes, OrderCreationAttributes> {
     allowNull: true,
   })
   notes!: string | null;
+
+  @Column({
+    type: DataType.ENUM('cash', 'credit'),
+    allowNull: false,
+    defaultValue: 'cash',
+  })
+  paymentType!: 'cash' | 'credit';
+
+  @Column({
+    type: DataType.DATEONLY,
+    allowNull: true,
+  })
+  paymentDueDate!: string | null;
+
+  @Column({
+    type: DataType.INTEGER,
+    allowNull: true,
+  })
+  reminderDays!: number | null;
+
+  @Column({
+    type: DataType.DATE,
+    allowNull: true,
+  })
+  paidAt!: Date | null;
 
   @BelongsTo(() => Customer)
   customer!: Customer;

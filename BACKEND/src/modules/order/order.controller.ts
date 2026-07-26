@@ -30,6 +30,17 @@ export class OrderController {
     res.status(200).json({ status: 'success', data: stats });
   });
 
+  markPaid = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const paid = req.body?.paid !== false; // default: marcar pagada
+    const order = await this.orderService.markPaid(Number(req.params['id']), req.user!.tenantId, paid);
+    res.status(200).json({ status: 'success', data: order });
+  });
+
+  getReceivables = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const data = await this.orderService.getReceivables(req.user!.tenantId);
+    res.status(200).json({ status: 'success', data });
+  });
+
   getOrderById = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const tenantId = req.user!.tenantId;
     const order = await this.orderService.getOrderById(Number(req.params['id']), tenantId);

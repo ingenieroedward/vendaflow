@@ -40,8 +40,24 @@ export class PushService {
     await PushSubscription.destroy({ where: { endpoint } });
   }
 
+  // Notifica solo a los usuarios indicados (todas sus suscripciones/dispositivos)
+  async notifyUsers(userIds: number[], title: string, body: string, data?: Record<string, unknown>): Promise<void> {
+    if (userIds.length === 0) return;
+    const subscriptions = await PushSubscription.findAll({ where: { userId: userIds } });
+    await this.sendToSubscriptions(subscriptions, title, body, data);
+  }
+
   async notifyAll(title: string, body: string, data?: Record<string, unknown>): Promise<void> {
     const subscriptions = await PushSubscription.findAll();
+    await this.sendToSubscriptions(subscriptions, title, body, data);
+  }
+
+  private async sendToSubscriptions(
+    subscriptions: PushSubscription[],
+    title: string,
+    body: string,
+    data?: Record<string, unknown>,
+  ): Promise<void> {
 
     const payload = JSON.stringify({ title, body, data });
 

@@ -12,6 +12,8 @@ import {
   WifiOff,
   RefreshCw,
   Eraser,
+  CreditCard,
+  Banknote,
 } from "lucide-react";
 import { useNetworkStatus } from "../hooks/useNetworkStatus";
 import { useOrderStore } from "../store/orderStore";
@@ -61,6 +63,9 @@ const OrderNew: React.FC = () => {
   const [unitPrice, setUnitPrice] = useState<number>(0);
   const [taxRate, setTaxRate] = useState<number>(0);
   const [notes, setNotes] = useState<string>("");
+  const [paymentType, setPaymentType] = useState<"cash" | "credit">("cash");
+  const [paymentDueDate, setPaymentDueDate] = useState<string>("");
+  const [reminderDays, setReminderDays] = useState<number>(3);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
     null
   );
@@ -198,6 +203,11 @@ const OrderNew: React.FC = () => {
         taxRate: item.taxRate,
       })),
       notes: notes.trim() || undefined,
+      paymentType,
+      ...(paymentType === "credit" && {
+        paymentDueDate,
+        reminderDays,
+      }),
     };
 
     try {
@@ -548,6 +558,102 @@ const OrderNew: React.FC = () => {
               )}
             </div>
 
+            {/* Payment Section */}
+            <div className="border-t pt-3">
+              <div className="flex items-center gap-1.5 mb-2">
+                <CreditCard className="w-4 h-4 text-gray-400" />
+                <label className="text-sm font-medium text-gray-700">Forma de pago</label>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPaymentType("cash")}
+                  className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border text-sm font-medium transition-colors ${
+                    paymentType === "cash"
+                      ? "border-blue-500 bg-blue-50 text-blue-700"
+                      : "border-gray-300 text-gray-600 hover:bg-gray-50"
+                  }`}
+                >
+                  <Banknote className="w-4 h-4" />
+                  Contado
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPaymentType("credit");
+                    if (!paymentDueDate) {
+                      const d = new Date();
+                      d.setDate(d.getDate() + 30);
+                      setPaymentDueDate(d.toISOString().slice(0, 10));
+                    }
+                  }}
+                  className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border text-sm font-medium transition-colors ${
+                    paymentType === "credit"
+                      ? "border-amber-500 bg-amber-50 text-amber-700"
+                      : "border-gray-300 text-gray-600 hover:bg-gray-50"
+                  }`}
+                >
+                  <CreditCard className="w-4 h-4" />
+                  Crédito
+                </button>
+              </div>
+
+              {paymentType === "credit" && (
+                <div className="mt-3 space-y-3 bg-amber-50/50 border border-amber-100 rounded-lg p-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1.5">Plazo de pago</label>
+                    <div className="flex gap-1.5 mb-2">
+                      {[7, 15, 30, 60].map((d) => {
+                        const target = new Date();
+                        target.setDate(target.getDate() + d);
+                        const targetStr = target.toISOString().slice(0, 10);
+                        return (
+                          <button
+                            key={d}
+                            type="button"
+                            onClick={() => setPaymentDueDate(targetStr)}
+                            className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                              paymentDueDate === targetStr
+                                ? "border-amber-500 bg-amber-100 text-amber-800"
+                                : "border-gray-300 text-gray-600 hover:bg-gray-50"
+                            }`}
+                          >
+                            {d} días
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <input
+                      type="date"
+                      value={paymentDueDate}
+                      onChange={(e) => setPaymentDueDate(e.target.value)}
+                      min={new Date().toISOString().slice(0, 10)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                      Recordar el cobro
+                    </label>
+                    <select
+                      value={reminderDays}
+                      onChange={(e) => setReminderDays(Number(e.target.value))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm bg-white"
+                    >
+                      <option value={1}>1 día antes del vencimiento</option>
+                      <option value={2}>2 días antes del vencimiento</option>
+                      <option value={3}>3 días antes del vencimiento</option>
+                      <option value={5}>5 días antes del vencimiento</option>
+                      <option value={7}>7 días antes del vencimiento</option>
+                    </select>
+                    <p className="mt-1 text-[11px] text-gray-400">
+                      El administrador y los vendedores recibirán una notificación push.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Notes Section */}
             <div className="border-t pt-3">
               <div className="flex items-center gap-1.5 mb-2">
@@ -572,7 +678,7 @@ const OrderNew: React.FC = () => {
                 variant="primary"
                 icon={Save}
                 loading={loading}
-                disabled={loading || orderItems.length === 0 || !selectedCustomer}
+                disabled={loading || orderItems.length === 0 || !selectedCustomer || (paymentType === "credit" && !paymentDueDate)}
                 className="w-full"
               >
                 {loading ? "Creando..." : "Crear orden"}

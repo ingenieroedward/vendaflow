@@ -14,7 +14,10 @@ import {
   Phone,
   MapPin,
   Loader2,
+  CreditCard,
+  Banknote,
 } from "lucide-react";
+import { markOrderPaid } from "../services/orders";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { Capacitor } from "@capacitor/core";
@@ -45,6 +48,21 @@ const OrderDetail: React.FC = () => {
   const [showPdfMenu, setShowPdfMenu] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [generatingPdf, setGeneratingPdf] = useState(false);
+  const [markingPaid, setMarkingPaid] = useState(false);
+
+  const handleMarkPaid = async (paid: boolean) => {
+    if (!currentOrder || markingPaid) return;
+    setMarkingPaid(true);
+    try {
+      await markOrderPaid(currentOrder.id, paid);
+      await getOrderById(currentOrder.id);
+      addNotification({ type: "success", message: paid ? "Orden marcada como pagada" : "Pago revertido" });
+    } catch {
+      addNotification({ type: "error", message: "No se pudo actualizar el pago" });
+    } finally {
+      setMarkingPaid(false);
+    }
+  };
 
   const statusOptions = [
     { value: 'pending', label: 'Pendiente', color: 'bg-yellow-100 text-yellow-800' },
@@ -467,6 +485,61 @@ const OrderDetail: React.FC = () => {
           {currentOrder.customer?.note && (
             <p className="mt-1 text-xs text-gray-500 italic">{currentOrder.customer.note}</p>
           )}
+        </div>
+
+        {/* Pago */}
+        <div className="bg-white rounded-lg border border-gray-200 p-3">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              {currentOrder.paymentType === "credit" ? (
+                <CreditCard className={`w-4 h-4 flex-shrink-0 ${currentOrder.paidAt ? "text-green-600" : "text-amber-600"}`} />
+              ) : (
+                <Banknote className="w-4 h-4 text-green-600 flex-shrink-0" />
+              )}
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Pago</p>
+                {currentOrder.paymentType === "credit" ? (
+                  <p className="text-sm text-gray-800">
+                    Crédito
+                    {currentOrder.paymentDueDate && (
+                      <> · vence el {format(new Date(`${currentOrder.paymentDueDate}T00:00:00`), "d 'de' MMMM", { locale: es })}</>
+                    )}
+                    {currentOrder.paidAt ? (
+                      <span className="ml-1.5 px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700">
+                        Pagada {format(new Date(currentOrder.paidAt), "d MMM", { locale: es })}
+                      </span>
+                    ) : currentOrder.paymentDueDate && new Date(`${currentOrder.paymentDueDate}T00:00:00`) < new Date() ? (
+                      <span className="ml-1.5 px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">Vencida</span>
+                    ) : (
+                      <span className="ml-1.5 px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-700">Por cobrar</span>
+                    )}
+                  </p>
+                ) : (
+                  <p className="text-sm text-gray-800">Contado</p>
+                )}
+              </div>
+            </div>
+            {currentOrder.paymentType === "credit" && (user?.role === "admin" || user?.role === "seller") && (
+              currentOrder.paidAt ? (
+                <button
+                  onClick={() => handleMarkPaid(false)}
+                  disabled={markingPaid}
+                  className="text-xs text-gray-400 hover:text-gray-600 underline flex-shrink-0 disabled:opacity-50"
+                >
+                  Revertir
+                </button>
+              ) : (
+                <button
+                  onClick={() => handleMarkPaid(true)}
+                  disabled={markingPaid}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 transition-colors flex-shrink-0 disabled:opacity-50"
+                >
+                  {markingPaid ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                  Marcar pagada
+                </button>
+              )
+            )}
+          </div>
         </div>
 
         {/* Notas compactas */}

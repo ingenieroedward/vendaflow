@@ -13,6 +13,8 @@ export interface OrderItem {
   };
 }
 
+export type PaymentType = 'cash' | 'credit';
+
 export interface Order {
   id: number;
   orderNumber: string;
@@ -21,6 +23,10 @@ export interface Order {
   totalAmount: number;
   status: 'pending' | 'processing' | 'completed' | 'cancelled';
   notes?: string;
+  paymentType?: PaymentType;
+  paymentDueDate?: string | null;
+  reminderDays?: number | null;
+  paidAt?: string | null;
   customer: {
     id: number;
     name: string;
@@ -49,6 +55,9 @@ export interface CreateOrderRequest {
     taxRate: number;
   }[];
   notes?: string;
+  paymentType?: PaymentType;
+  paymentDueDate?: string | null;
+  reminderDays?: number | null;
 }
 
 export interface UpdateOrderRequest {
@@ -63,6 +72,9 @@ export interface UpdateOrderRequest {
   }[];
   status?: 'pending' | 'processing' | 'completed' | 'cancelled';
   notes?: string;
+  paymentType?: PaymentType;
+  paymentDueDate?: string | null;
+  reminderDays?: number | null;
 }
 
 export interface OrderFilters {

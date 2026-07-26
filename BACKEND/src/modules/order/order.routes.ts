@@ -10,6 +10,7 @@ router.get('/', isAuth, orderController.getAllOrders);
 router.get('/search', isAuth, orderController.searchOrders);
 router.get('/next-number', isAuth, orderController.getNextOrderNumber);
 router.get('/stats/home', isAuth, isSeller, orderController.getHomeStats);
+router.get('/receivables', isAuth, isSeller, orderController.getReceivables);
 router.get('/trash', isAuth, isAdmin, orderController.getDeletedOrders);
 router.get('/customer/:customerId', isAuth, orderController.getOrdersByCustomer);
 router.get('/:id', isAuth, orderController.getOrderById);
@@ -17,6 +18,7 @@ router.get('/:id', isAuth, orderController.getOrderById);
 router.post('/', isAuth, isSeller, orderController.createOrder);
 router.post('/:id/restore', isAuth, isAdmin, orderController.restoreOrder);
 router.put('/:id', isAuth, isSeller, orderController.updateOrder);
+router.patch('/:id/pay', isAuth, isSeller, orderController.markPaid);
 router.delete('/:id/permanent', isAuth, isAdmin, orderController.hardDeleteOrder);
 router.delete('/:id', isAuth, isAdmin, orderController.deleteOrder);
 

@@ -92,6 +92,10 @@ export class OrderService {
           totalAmount,
           status: validatedData.status,
           notes: validatedData.notes,
+          paymentType: validatedData.paymentType,
+          paymentDueDate: validatedData.paymentType === 'credit' ? validatedData.paymentDueDate ?? null : null,
+          reminderDays: validatedData.paymentType === 'credit' ? validatedData.reminderDays ?? 3 : null,
+          paidAt: null,
         } as OrderAttributes, { transaction: t });
 
         const orderItems = await Promise.all(
@@ -145,6 +149,57 @@ export class OrderService {
   async getNextOrderNumber(): Promise<{ nextOrderNumber: string }> {
     const nextNumber = await this.generateOrderNumber();
     return { nextOrderNumber: nextNumber };
+  }
+
+  // Marcar una orden a crédito como pagada (o revertir con paid=false)
+  async markPaid(id: number, tenantId: number, paid: boolean): Promise<OrderResponseDto> {
+    const order = await Order.findOne({
+      where: { id, tenantId },
+      include: [{ model: Customer, as: 'customer', attributes: ['id', 'name', 'contact', 'address'] }],
+    });
+    if (!order) throw new NotFoundError('Order not found');
+
+    await order.update({ paidAt: paid ? new Date() : null });
+    logger.info(`Order ${order.orderNumber} marked as ${paid ? 'paid' : 'unpaid'} (tenant ${tenantId})`);
+    return this.mapToResponseDto(order);
+  }
+
+  // Cartera: órdenes a crédito sin pagar, ordenadas por vencimiento
+  async getReceivables(tenantId: number) {
+    const orders = await Order.findAll({
+      where: {
+        tenantId,
+        paymentType: 'credit',
+        paidAt: null,
+        status: { [Op.ne]: 'cancelled' },
+      },
+      attributes: ['id', 'orderNumber', 'totalAmount', 'paymentDueDate', 'reminderDays', 'createdAt'],
+      include: [{ model: Customer, as: 'customer', attributes: ['id', 'name'] }],
+      order: [['paymentDueDate', 'ASC']],
+    });
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    let totalDue = 0;
+    let overdueCount = 0;
+    const items = orders.map(o => {
+      const total = Number(o.totalAmount);
+      totalDue += total;
+      const due = o.paymentDueDate ? new Date(`${o.paymentDueDate}T00:00:00`) : null;
+      const daysUntilDue = due ? Math.round((due.getTime() - today.getTime()) / 86400000) : null;
+      if (daysUntilDue !== null && daysUntilDue < 0) overdueCount++;
+      return {
+        id: o.id,
+        orderNumber: o.orderNumber,
+        totalAmount: total,
+        paymentDueDate: o.paymentDueDate,
+        daysUntilDue,
+        customer: o.customer ? { id: o.customer.id, name: o.customer.name } : null,
+      };
+    });
+
+    return { totalDue, count: items.length, overdueCount, orders: items };
   }
 
   // KPIs del Home: órdenes pendientes, ventas del mes y actividad reciente
@@ -280,6 +335,12 @@ export class OrderService {
       const order = await Order.findOne({ where: { id, tenantId }, transaction });
       if (!order) {
         throw new NotFoundError('Order not found');
+      }
+
+      // Al pasar a contado, limpiar los campos de crédito
+      if (validatedData.paymentType === 'cash') {
+        (validatedData as Record<string, unknown>)['paymentDueDate'] = null;
+        (validatedData as Record<string, unknown>)['reminderDays'] = null;
       }
 
       // Update main order fields
@@ -521,6 +582,10 @@ export class OrderService {
       totalAmount: Number(order.totalAmount),
       status: order.status,
       notes: order.notes,
+      paymentType: order.paymentType ?? 'cash',
+      paymentDueDate: order.paymentDueDate ?? null,
+      reminderDays: order.reminderDays ?? null,
+      paidAt: order.paidAt ?? null,
       ...(order.customer && {
         customer: {
           id: order.customer.id,

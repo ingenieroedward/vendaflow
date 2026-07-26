@@ -10,6 +10,13 @@ export const orderItemSchema = z.object({
 
 export type OrderItemDto = z.infer<typeof orderItemSchema>;
 
+// Pago: contado o crédito con fecha límite y días de recordatorio
+const paymentFields = {
+  paymentType: z.enum(['cash', 'credit']).default('cash'),
+  paymentDueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Fecha inválida (YYYY-MM-DD)').nullish(),
+  reminderDays: z.coerce.number().int().min(0).max(90).nullish(),
+};
+
 // Create Order DTO
 export const createOrderSchema = z.object({
   customerId: z.number().positive('Customer ID must be positive'),
@@ -17,6 +24,10 @@ export const createOrderSchema = z.object({
   status: z.enum(['pending', 'processing', 'completed', 'cancelled']).default('pending'),
   notes: z.string().optional(),
   items: z.array(orderItemSchema).min(1, 'At least one item is required'),
+  ...paymentFields,
+}).refine(d => d.paymentType !== 'credit' || !!d.paymentDueDate, {
+  message: 'Una orden a crédito necesita fecha límite de pago',
+  path: ['paymentDueDate'],
 });
 
 export type CreateOrderDto = z.infer<typeof createOrderSchema>;
@@ -27,6 +38,9 @@ export const updateOrderSchema = z.object({
   status: z.enum(['pending', 'processing', 'completed', 'cancelled']).optional(),
   notes: z.string().optional(),
   items: z.array(orderItemSchema.partial().extend({ id: z.number().optional() })).optional(),
+  paymentType: z.enum(['cash', 'credit']).optional(),
+  paymentDueDate: paymentFields.paymentDueDate,
+  reminderDays: paymentFields.reminderDays,
 });
 
 export type UpdateOrderDto = z.infer<typeof updateOrderSchema>;
@@ -64,6 +78,10 @@ export interface OrderResponseDto {
   totalAmount: number;
   status: 'pending' | 'processing' | 'completed' | 'cancelled';
   notes: string | null;
+  paymentType: 'cash' | 'credit';
+  paymentDueDate: string | null;
+  reminderDays: number | null;
+  paidAt: Date | null;
   customer?: {
     id: number;
     name: string;

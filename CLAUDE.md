@@ -218,8 +218,17 @@ proxy_pass http://$backend_host:3005$request_uri;
 
 Al arrancar el backend:
 1. `initializeDatabase()` — sync Sequelize, crea categoría "Sin categoría"
-2. `ensureSuperadmin()` — crea/actualiza superadmin desde vars de entorno
-3. `ensureDemoData()` — si `DEMO_ADMIN_PASSWORD` está seteado, garantiza tenant `demo` + `demo_admin`
+2. `ensureSchema()` — agrega columnas nuevas a tablas existentes (mini-migración: `sync({alter:false})` no agrega columnas). Al agregar una columna a un modelo, registrarla también aquí
+3. `ensureSuperadmin()` — crea/actualiza superadmin desde vars de entorno
+4. `ensureDemoData()` — si `DEMO_ADMIN_PASSWORD` está seteado, garantiza tenant `demo` + `demo_admin`
+5. `startPaymentReminderJob()` — job diario: push a admin/sellers del tenant con órdenes a crédito por vencer (ventana = `reminderDays` de cada orden) o vencidas
+
+## ÓRDENES A CRÉDITO (plazo de pago)
+
+- Campos en `orders`: `paymentType` (cash|credit), `paymentDueDate` (DATEONLY), `reminderDays` (días antes para recordar, default 3), `paidAt` (null = por cobrar)
+- Endpoints: `GET /orders/receivables` (cartera, isSeller), `PATCH /orders/:id/pay` (marcar pagada / body `{paid:false}` revierte, isSeller)
+- Frontend: selector Contado/Crédito en OrderNew (chips 7/15/30/60 días + fecha + recordatorio), banner de cartera y badges en Orders, card de pago con "Marcar pagada" en OrderDetail
+- Recordatorios: `BACKEND/src/core/jobs/paymentReminders.ts` — corre 1 min tras el arranque y luego cada 24h; usa `pushService.notifyUsers()`
 
 ---
 

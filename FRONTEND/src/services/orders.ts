@@ -47,6 +47,20 @@ export class OrderService {
   }
 }
 
+export interface Receivables {
+  totalDue: number;
+  count: number;
+  overdueCount: number;
+  orders: Array<{
+    id: number;
+    orderNumber: string;
+    totalAmount: number;
+    paymentDueDate: string | null;
+    daysUntilDue: number | null;
+    customer: { id: number; name: string } | null;
+  }>;
+}
+
 export interface HomeStats {
   pendingOrders: number;
   salesThisMonth: number;
@@ -65,5 +79,15 @@ export const orderService = new OrderService();
 
 export async function getHomeStats(): Promise<HomeStats> {
   const response = await apiService.get<ApiResponse<HomeStats>>('/orders/stats/home');
+  return response.data;
+}
+
+export async function getReceivables(): Promise<Receivables> {
+  const response = await apiService.get<ApiResponse<Receivables>>('/orders/receivables');
+  return response.data;
+}
+
+export async function markOrderPaid(id: number, paid = true): Promise<Order> {
+  const response = await apiService.patch<ApiResponse<Order>>(`/orders/${id}/pay`, { paid });
   return response.data;
 } 
