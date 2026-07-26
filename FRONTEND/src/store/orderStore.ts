@@ -188,6 +188,7 @@ interface OrderState {
 
   // Actions
   getOrders: (page?: number, limit?: number, filters?: OrderFilters) => Promise<void>;
+  loadMoreOrders: () => Promise<void>;
   getOrderById: (id: number) => Promise<void>;
   createOrder: (data: CreateOrderRequest) => Promise<Order>;
   updateOrder: (id: number, data: UpdateOrderRequest) => Promise<Order>;
@@ -199,13 +200,37 @@ interface OrderState {
   clearCurrentOrder: () => void;
 }
 
-export const useOrderStore = create<OrderState>((set) => ({
+export const useOrderStore = create<OrderState>((set, get) => ({
   orders: [],
   currentOrder: null,
   loading: false,
   error: null,
   pagination: { total: 0, page: 1, limit: 10, totalPages: 0 },
   pendingSync: 0,
+
+  // Trae la siguiente página y la agrega a las ya cargadas (sin duplicar)
+  loadMoreOrders: async () => {
+    const { pagination, orders, loading } = get();
+    if (loading || !navigator.onLine || orders.length >= pagination.total) return;
+    set({ loading: true });
+    try {
+      const nextPage = pagination.page + 1;
+      const response = await orderService.getOrders(nextPage, pagination.limit);
+      const seen = new Set(orders.map(o => o.id));
+      set({
+        orders: [...orders, ...response.data.filter(o => !seen.has(o.id))],
+        pagination: {
+          total: response.pagination?.total ?? pagination.total,
+          page: nextPage,
+          limit: pagination.limit,
+          totalPages: response.pagination?.totalPages ?? pagination.totalPages,
+        },
+        loading: false,
+      });
+    } catch {
+      set({ loading: false });
+    }
+  },
 
   getOrders: async (page = 1, limit = 10, filters) => {
     set({ loading: true, error: null });

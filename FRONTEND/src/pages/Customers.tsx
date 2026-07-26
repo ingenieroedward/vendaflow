@@ -233,9 +233,14 @@ const Customers: React.FC = () => {
             <h3 className="text-lg font-medium text-gray-700 mb-1">
               {search ? 'Sin resultados' : 'No hay clientes'}
             </h3>
-            <p className="text-gray-500 text-sm">
-              {search ? `No se encontraron clientes con "${search}"` : 'Agrega el primer cliente con el botón de arriba'}
+            <p className="text-gray-500 text-sm mb-6">
+              {search ? `No se encontraron clientes con "${search}"` : 'Registra tus clientes para crearles órdenes y llevar su cartera'}
             </p>
+            {!search && canManage && (
+              <Button variant="primary" icon={Plus} onClick={() => { setEditCustomer(undefined); setShowModal(true); }}>
+                Crear primer cliente
+              </Button>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

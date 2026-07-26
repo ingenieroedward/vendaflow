@@ -34,7 +34,7 @@ const Orders: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('active');
   const { user } = useAuthStore();
   const { addNotification } = useUIStore();
-  const { orders, loading, error, pagination, getOrders, clearError, deleteOrder, syncPendingOrders, retryConflictOrder, pendingSync } =
+  const { orders, loading, error, pagination, getOrders, loadMoreOrders, clearError, deleteOrder, syncPendingOrders, retryConflictOrder, pendingSync } =
     useOrderStore();
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -701,26 +701,11 @@ const Orders: React.FC = () => {
               </>
             )}
 
-            {/* Paginación */}
-            {activeTab !== 'local' && activeTab !== 'trash' && !loading && pagination.totalPages > 1 && (
-              <div className="flex justify-center items-center gap-3 mt-6">
-                <Button
-                  variant="outline" size="sm"
-                  onClick={() => getOrders(pagination.page - 1, 50)}
-                  disabled={pagination.page <= 1 || loading}
-                >
-                  Anterior
-                </Button>
-                <span className="text-sm text-gray-600">
-                  Página {pagination.page} de {pagination.totalPages}
-                  <span className="text-gray-400 ml-1">({pagination.total} órdenes)</span>
-                </span>
-                <Button
-                  variant="outline" size="sm"
-                  onClick={() => getOrders(pagination.page + 1, 50)}
-                  disabled={pagination.page >= pagination.totalPages || loading}
-                >
-                  Siguiente
+            {/* Cargar más — acumula sobre las ya mostradas */}
+            {activeTab !== 'local' && activeTab !== 'trash' && !loading && orders.length < pagination.total && (
+              <div className="flex justify-center mt-6">
+                <Button variant="outline" size="sm" onClick={loadMoreOrders}>
+                  Cargar más órdenes ({orders.length} de {pagination.total})
                 </Button>
               </div>
             )}

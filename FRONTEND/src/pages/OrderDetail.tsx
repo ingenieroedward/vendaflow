@@ -18,6 +18,7 @@ import {
   Banknote,
 } from "lucide-react";
 import { markOrderPaid } from "../services/orders";
+import Breadcrumbs from "../components/ui/Breadcrumbs";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { Capacitor } from "@capacitor/core";
@@ -344,6 +345,11 @@ const OrderDetail: React.FC = () => {
             </p>
           </div>
         )}
+
+        <Breadcrumbs
+          items={[{ label: 'Órdenes', to: '/orders' }, { label: `#${currentOrder.orderNumber}` }]}
+          className="mb-2"
+        />
 
         {/* Header bar */}
         <div className="flex items-center gap-2">

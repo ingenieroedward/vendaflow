@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Package, Tag, Calendar, Edit, TrendingUp, Trash2 } from 'lucide-react';
+import Breadcrumbs from '../components/ui/Breadcrumbs';
 import { useProductStore } from '../store/productStore';
 import { useUIStore } from '../store/uiStore';
 import { useAuthStore } from '../store/authStore';
@@ -326,6 +327,10 @@ const ProductDetail: React.FC = () => {
       <div className="px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-7xl mx-auto">
         {/* Mobile Header - Compact */}
         <div className="mb-4 sm:mb-6 lg:mb-8">
+          <Breadcrumbs
+            items={[{ label: 'Productos', to: '/' }, { label: product?.name ?? 'Detalle' }]}
+            className="mb-2"
+          />
           <Button
             variant="ghost"
             icon={ArrowLeft}

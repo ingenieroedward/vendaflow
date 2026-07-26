@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { db } from '../database/LocalDatabase';
-import { orderService } from '../services/orders';
+import { orderService, getReceivables, Receivables } from '../services/orders';
 import { purchaseOrderService } from '../services/purchaseOrders';
 import { useProductStore } from '../store/productStore';
 import {
@@ -12,12 +12,12 @@ import { es } from 'date-fns/locale';
 import {
   TrendingUp, ShoppingCart, DollarSign, RefreshCw,
   WifiOff, Package, Users, Warehouse, AlertTriangle, TrendingDown,
-  CheckCircle, Clock, FileText, PiggyBank,
+  CheckCircle, Clock, FileText, PiggyBank, CreditCard,
 } from 'lucide-react';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 
 type Period = 'daily' | 'monthly' | 'annual';
-type Tab = 'ventas' | 'inventario' | 'compras' | 'rentabilidad';
+type Tab = 'ventas' | 'inventario' | 'compras' | 'rentabilidad' | 'cartera';
 
 interface OrderRow {
   totalAmount: number;
@@ -86,6 +86,26 @@ const barColor = (value: number, max: number) => {
 
 const Reports: React.FC = () => {
   const [tab, setTab] = useState<Tab>('rentabilidad');
+
+  // Cartera: crédito pendiente de cobro
+  const [receivables, setReceivables] = useState<Receivables | null>(null);
+  useEffect(() => {
+    if (navigator.onLine) getReceivables().then(setReceivables).catch(() => setReceivables(null));
+  }, []);
+
+  const carteraByCustomer = useMemo(() => {
+    if (!receivables) return [];
+    const map = new Map<string, { name: string; total: number; count: number; overdue: number }>();
+    for (const o of receivables.orders) {
+      const key = o.customer?.name ?? 'Sin cliente';
+      const e = map.get(key) ?? { name: key, total: 0, count: 0, overdue: 0 };
+      e.total += o.totalAmount;
+      e.count += 1;
+      if (o.daysUntilDue !== null && o.daysUntilDue < 0) e.overdue += 1;
+      map.set(key, e);
+    }
+    return [...map.values()].sort((a, b) => b.total - a.total);
+  }, [receivables]);
   const [period, setPeriod] = useState<Period>('daily');
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [purchaseOrders, setPurchaseOrders] = useState<PORow[]>([]);
@@ -373,6 +393,7 @@ const Reports: React.FC = () => {
   const tabs: { key: Tab; label: string; icon: React.FC<any> }[] = [
     { key: 'rentabilidad',  label: 'Rentabilidad',  icon: PiggyBank },
     { key: 'ventas',        label: 'Ventas',        icon: TrendingUp },
+    { key: 'cartera',       label: 'Cartera',       icon: CreditCard },
     { key: 'compras',       label: 'Compras',       icon: ShoppingCart },
     { key: 'inventario',    label: 'Inventario',    icon: Warehouse },
   ];
@@ -426,6 +447,110 @@ const Reports: React.FC = () => {
           <div className="flex justify-center py-24"><LoadingSpinner size="lg" /></div>
         ) : (
           <>
+            {/* ════════════════ TAB: CARTERA ════════════════ */}
+            {tab === 'cartera' && (
+              <>
+                {!receivables || receivables.count === 0 ? (
+                  <div className="text-center py-20">
+                    <CheckCircle className="w-12 h-12 text-green-300 mx-auto mb-3" />
+                    <h3 className="text-base font-medium text-gray-900 mb-1">Sin cuentas por cobrar</h3>
+                    <p className="text-sm text-gray-400 max-w-sm mx-auto">
+                      No hay órdenes a crédito pendientes de pago. Las ventas a crédito aparecerán aquí hasta que se marquen pagadas.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    {/* KPIs */}
+                    <div className="grid grid-cols-3 gap-3 mb-6">
+                      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="w-7 h-7 bg-amber-50 rounded-lg flex items-center justify-center">
+                            <CreditCard className="w-3.5 h-3.5 text-amber-500" />
+                          </div>
+                          <p className="text-xs text-gray-400">Por cobrar</p>
+                        </div>
+                        <p className="text-lg sm:text-xl font-bold text-gray-900 truncate">{COP(receivables.totalDue)}</p>
+                      </div>
+                      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="w-7 h-7 bg-blue-50 rounded-lg flex items-center justify-center">
+                            <FileText className="w-3.5 h-3.5 text-blue-500" />
+                          </div>
+                          <p className="text-xs text-gray-400">Órdenes a crédito</p>
+                        </div>
+                        <p className="text-lg sm:text-xl font-bold text-gray-900">{receivables.count}</p>
+                      </div>
+                      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${receivables.overdueCount ? 'bg-red-50' : 'bg-gray-50'}`}>
+                            <AlertTriangle className={`w-3.5 h-3.5 ${receivables.overdueCount ? 'text-red-500' : 'text-gray-300'}`} />
+                          </div>
+                          <p className="text-xs text-gray-400">Vencidas</p>
+                        </div>
+                        <p className={`text-lg sm:text-xl font-bold ${receivables.overdueCount ? 'text-red-600' : 'text-gray-900'}`}>{receivables.overdueCount}</p>
+                      </div>
+                    </div>
+
+                    {/* Deuda por cliente */}
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5 mb-6">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Users className="w-4 h-4 text-gray-400" />
+                        <h3 className="text-sm font-semibold text-gray-900">Deuda por cliente</h3>
+                      </div>
+                      <div className="space-y-3">
+                        {carteraByCustomer.map(c => (
+                          <div key={c.name} className="flex items-center gap-3">
+                            <div className="w-32 sm:w-44 flex-shrink-0 min-w-0">
+                              <p className="text-xs font-medium text-gray-700 truncate">{c.name}</p>
+                              <p className="text-[11px] text-gray-400">
+                                {c.count} orden{c.count !== 1 ? 'es' : ''}{c.overdue > 0 && <span className="text-red-500"> · {c.overdue} vencida{c.overdue !== 1 ? 's' : ''}</span>}
+                              </p>
+                            </div>
+                            <div className="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
+                              <div
+                                className={`h-full rounded-full ${c.overdue > 0 ? 'bg-red-400' : 'bg-amber-400'}`}
+                                style={{ width: `${Math.max(6, (c.total / (carteraByCustomer[0]?.total || 1)) * 100)}%` }}
+                              />
+                            </div>
+                            <span className="text-xs font-semibold text-gray-700 w-20 text-right flex-shrink-0">{COP(c.total)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Detalle de órdenes */}
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                      <div className="flex items-center gap-2 px-4 sm:px-5 py-3 border-b border-gray-100">
+                        <Clock className="w-4 h-4 text-gray-400" />
+                        <h3 className="text-sm font-semibold text-gray-900">Órdenes pendientes de cobro</h3>
+                      </div>
+                      <ul className="divide-y divide-gray-100">
+                        {receivables.orders.map(o => (
+                          <li key={o.id} className="flex items-center justify-between px-4 sm:px-5 py-2.5">
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-gray-900 truncate">
+                                #{o.orderNumber}
+                                {o.customer && <span className="text-gray-500 font-normal"> · {o.customer.name}</span>}
+                              </p>
+                              {o.paymentDueDate && (
+                                <p className={`text-[11px] ${o.daysUntilDue !== null && o.daysUntilDue < 0 ? 'text-red-600 font-medium' : 'text-gray-400'}`}>
+                                  {o.daysUntilDue === null ? '' :
+                                    o.daysUntilDue < 0 ? `Venció hace ${-o.daysUntilDue} día${o.daysUntilDue === -1 ? '' : 's'}` :
+                                    o.daysUntilDue === 0 ? 'Vence HOY' :
+                                    `Vence en ${o.daysUntilDue} día${o.daysUntilDue === 1 ? '' : 's'}`}
+                                </p>
+                              )}
+                            </div>
+                            <span className="text-sm font-semibold text-gray-800 flex-shrink-0 ml-3">{COP(o.totalAmount)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+
             {/* ════════════════ TAB: VENTAS ════════════════ */}
             {tab === 'ventas' && (
               <>

@@ -319,9 +319,16 @@ Al arrancar el backend:
 - [x] Middleware `tenantScope` en todas las rutas de negocio (`tenantGuard` en app.ts) — bloquea tenants suspendidos aunque el JWT siga vigente. Cache en memoria 60s del estado del tenant (una suspensión tarda ≤60s en aplicar)
 
 ### UX general
-- [ ] Breadcrumbs en páginas de detalle
-- [ ] Confirmación antes de acciones destructivas
-- [ ] Empty states descriptivos con acciones sugeridas
+- [x] Breadcrumbs en páginas de detalle (`components/ui/Breadcrumbs.tsx` — OrderDetail y ProductDetail)
+- [x] Confirmación antes de acciones destructivas (ya existía en la mayoría de páginas)
+- [x] Empty states descriptivos con acciones sugeridas (Customers era el único sin CTA)
+- [x] Órdenes: botón "Cargar más" acumulativo (reemplaza paginación prev/next)
+
+### Seguridad — lecturas por rol (aplicado)
+- Los `GET` de negocio ahora exigen rol, no solo token: orders/customers/purchase-orders/stock-movements → `isSeller`; prices → `isBuyer`. Products y categories quedan con `isAuth` (ambos roles los necesitan)
+
+### Cartera (Informes)
+- Pestaña "Cartera" en Reports: KPIs (por cobrar, órdenes, vencidas), deuda por cliente con barras y detalle de órdenes con vencimiento. Fuente: `GET /orders/receivables`
 
 ---
 

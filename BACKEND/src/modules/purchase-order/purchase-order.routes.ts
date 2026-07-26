@@ -5,8 +5,8 @@ import { isAuth, isSeller, isAdmin } from '@/core/middlewares/auth';
 const router = Router();
 const controller = new PurchaseOrderController();
 
-router.get('/', isAuth, controller.getAll);
-router.get('/:id', isAuth, controller.getById);
+router.get('/', isAuth, isSeller, controller.getAll);
+router.get('/:id', isAuth, isSeller, controller.getById);
 router.post('/', isAuth, isSeller, controller.create);
 router.put('/:id', isAuth, isSeller, controller.update);
 router.delete('/:id', isAuth, isAdmin, controller.delete);
