@@ -285,6 +285,7 @@ const UserEdit: React.FC = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
                 >
                   <option value="buyer">Comprador</option>
+                  <option value="seller">Vendedor</option>
                   <option value="admin">Administrador</option>
                 </select>
                 <p className="mt-1 text-xs text-gray-500">
