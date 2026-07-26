@@ -110,7 +110,8 @@ const Sidebar = () => {
               title={pushSubscribed ? 'Desactivar notificaciones' : 'Activar notificaciones'}
             >
               {pushSubscribed ? <Bell className="w-5 h-5 flex-shrink-0" /> : <BellOff className="w-5 h-5 flex-shrink-0" />}
-              <span>{pushSubscribed ? 'Notificaciones activas' : 'Activar notificaciones'}</span>
+              <span className="truncate whitespace-nowrap text-left flex-1">Notificaciones</span>
+              <span className={`w-2 h-2 rounded-full flex-shrink-0 ${pushSubscribed ? 'bg-green-500' : 'bg-gray-300'}`} />
             </button>
           )}
           <button

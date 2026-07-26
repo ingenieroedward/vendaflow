@@ -81,9 +81,9 @@ const TenantSettings: React.FC = () => {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 sm:py-8">
-      <div className="flex items-center gap-2.5 mb-6">
-        <Settings className="w-5 h-5 text-gray-400" />
-        <h1 className="text-lg font-bold text-gray-900">Configuración de Empresa</h1>
+      <div className="text-center mb-6 sm:mb-8">
+        <h1 className="text-xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2 px-2">Configuración</h1>
+        <p className="text-sm sm:text-lg text-gray-600 px-2">Plan, identidad y personalización de tu empresa.</p>
       </div>
 
       {/* Plan info */}
