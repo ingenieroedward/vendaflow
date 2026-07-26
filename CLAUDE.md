@@ -83,7 +83,7 @@ npm start            # Ejecuta dist/server.js
 npm run lint
 npm run lint:fix
 npm run format
-npm test             # Jest (configurado, pero hoy no hay archivos *.test.ts en BACKEND)
+npm test             # Jest — 21 tests: DTOs de orden (crédito), tenantScope (cache), getNextCode
 npx jest <ruta>      # Un solo archivo de test
 npm run seed         # Puebla datos demo (src/seeders/seed.ts, conexión directa a MySQL)
 ```
@@ -93,8 +93,9 @@ npm run seed         # Puebla datos demo (src/seeders/seed.ts, conexión directa
 npm run dev          # Vite dev server (puerto 5173)
 npm run build        # Build de producción
 npm run lint
-npx vitest run       # Tests unitarios offline-first (src/**/__tests__, usan fake-indexeddb)
-                     # ⚠️ vitest NO está en devDependencies — npx lo descarga al vuelo
+npm test             # vitest — 67 tests offline-first (LocalDatabase, Product/OrderRepository)
+                     # Config en vitest.config.ts + setup en src/tests/vitest.setup.ts
+                     # (fake-indexeddb + stub de localStorage: el de Node ≥22 no es funcional)
 npm run test:e2e     # Playwright e2e (specs en e2e/, levanta el dev server solo)
 npx playwright test e2e/app.spec.ts   # Un solo spec e2e
 npm run test:e2e:ui  # Playwright con UI
