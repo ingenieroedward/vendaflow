@@ -15,7 +15,6 @@ const Categories: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [activeMenu, setActiveMenu] = useState<number | null>(null);
   const [modal, setModal] = useState<{ mode: 'create' | 'edit'; category?: Category } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Category | null>(null);
@@ -89,47 +88,34 @@ const Categories: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-white border-b border-gray-200 px-4 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <button onClick={() => navigate(-1)} className="p-2 -ml-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors">
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <div>
-              <h1 className="text-lg font-semibold text-gray-900">Categorías</h1>
-              <p className="text-sm text-gray-500">{loading ? '...' : `${filtered.length} categorías`}</p>
-            </div>
-          </div>
-          <div className="flex items-center space-x-2">
-            <button onClick={() => setIsSearchOpen(!isSearchOpen)} className="p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors">
-              {isSearchOpen ? <X className="w-5 h-5" /> : <Search className="w-5 h-5" />}
-            </button>
-            <Button variant="primary" icon={Plus} onClick={openCreate} size="sm" className="px-3">
-              Nueva
-            </Button>
-          </div>
+      <div className="px-3 sm:px-6 lg:px-8 pt-4 sm:pt-8">
+        <div className="text-center mb-6 sm:mb-8">
+          <h1 className="text-xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2 px-2">Categorías</h1>
+          <p className="text-sm sm:text-lg text-gray-600 px-2">Organiza tus productos por categorías.</p>
+        </div>
+      </div>
+      <div className="px-3 sm:px-6 lg:px-8 flex flex-col sm:flex-row sm:items-center gap-2 sm:justify-between mb-4">
+        <div className="relative w-full sm:max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
+          <Input
+            type="text"
+            placeholder="Buscar categorías..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <div className="flex items-center justify-between sm:justify-end gap-3">
+          <p className="text-sm text-gray-500">{loading ? '...' : `${filtered.length} categorías`}</p>
+          <Button variant="primary" icon={Plus} onClick={openCreate} size="sm" className="px-3">
+            Nueva
+          </Button>
         </div>
       </div>
 
-      {/* Search */}
-      {isSearchOpen && (
-        <div className="sticky top-16 z-20 bg-white border-b border-gray-200 px-4 py-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <Input
-              type="text"
-              placeholder="Buscar categorías..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="pl-10"
-              autoFocus
-            />
-          </div>
-        </div>
-      )}
 
       {/* List */}
-      <div className="px-4 py-4 space-y-2">
+      <div className="px-3 sm:px-6 lg:px-8 py-2 space-y-2">
         {loading ? (
           <div className="flex justify-center py-16"><LoadingSpinner size="lg" /></div>
         ) : filtered.length === 0 ? (
