@@ -1,7 +1,8 @@
-import { Package, ClipboardList, Users, LogOut, User, Shield, Truck, Tag, DollarSign, UserCheck, BarChart2, Warehouse, ShoppingCart, Settings } from 'lucide-react';
+import { Package, ClipboardList, Users, LogOut, User, Shield, Truck, Tag, DollarSign, UserCheck, BarChart2, Warehouse, ShoppingCart, Settings, Bell, BellOff } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { useTenantStore } from '../../store/tenantStore';
+import { usePushNotifications } from '../../hooks/usePushNotifications';
 
 interface NavItem {
   label: string;
@@ -26,6 +27,7 @@ const NAV_ITEMS: NavItem[] = [
 
 const Sidebar = () => {
   const { user, logout } = useAuthStore();
+  const { isSupported: pushSupported, isSubscribed: pushSubscribed, isLoading: pushLoading, toggle: togglePush } = usePushNotifications();
   const { tenant } = useTenantStore();
   const navigate = useNavigate();
   const location = useLocation();
@@ -98,6 +100,19 @@ const Sidebar = () => {
               </p>
             </div>
           </div>
+          {pushSupported && (
+            <button
+              onClick={togglePush}
+              disabled={pushLoading}
+              className={`flex items-center space-x-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-colors duration-150 disabled:opacity-50 ${
+                pushSubscribed ? 'text-blue-600 hover:bg-blue-50' : 'text-gray-500 hover:bg-gray-50'
+              }`}
+              title={pushSubscribed ? 'Desactivar notificaciones' : 'Activar notificaciones'}
+            >
+              {pushSubscribed ? <Bell className="w-5 h-5 flex-shrink-0" /> : <BellOff className="w-5 h-5 flex-shrink-0" />}
+              <span>{pushSubscribed ? 'Notificaciones activas' : 'Activar notificaciones'}</span>
+            </button>
+          )}
           <button
             onClick={handleLogout}
             className="flex items-center space-x-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 transition-colors duration-150"
