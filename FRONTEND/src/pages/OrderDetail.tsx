@@ -449,7 +449,7 @@ const OrderDetail: React.FC = () => {
         </div>
 
         {/* Info row compacto */}
-        <div className="bg-white rounded-lg border border-gray-200 p-3 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+        <div className="bg-white rounded-xl border border-gray-200 p-3 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
           <div className="flex items-center gap-1.5 text-gray-600">
             <Calendar className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
             <span>{formatDate(currentOrder.createdAt)}</span>
@@ -465,7 +465,7 @@ const OrderDetail: React.FC = () => {
         </div>
 
         {/* Cliente compacto */}
-        <div className="bg-white rounded-lg border border-gray-200 p-3">
+        <div className="bg-white rounded-xl border border-gray-200 p-3">
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Cliente</p>
           <p className="font-semibold text-sm text-gray-900">
             {currentOrder.customer?.name ?? `Cliente #${currentOrder.customerId}`}
@@ -494,7 +494,7 @@ const OrderDetail: React.FC = () => {
         </div>
 
         {/* Pago */}
-        <div className="bg-white rounded-lg border border-gray-200 p-3">
+        <div className="bg-white rounded-xl border border-gray-200 p-3">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
               {currentOrder.paymentType === "credit" ? (
@@ -557,7 +557,7 @@ const OrderDetail: React.FC = () => {
         )}
 
         {/* Productos */}
-        <div className="bg-white rounded-lg border border-gray-200 p-3">
+        <div className="bg-white rounded-xl border border-gray-200 p-3">
           <div className="flex items-center gap-1.5 mb-2">
             <Package className="w-3.5 h-3.5 text-green-600" />
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Productos</p>
@@ -621,7 +621,7 @@ const OrderDetail: React.FC = () => {
         {/* Modal eliminar */}
         {showDeleteModal && (
           <div className="fixed px-4 inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-            <div className="bg-white rounded-lg shadow-lg p-5 w-full max-w-sm">
+            <div className="bg-white rounded-xl shadow-lg p-5 w-full max-w-sm">
               <h2 className="text-base font-bold mb-2">¿Eliminar orden?</h2>
               <p className="text-sm text-gray-600 mb-4">Esta acción no se puede deshacer.</p>
               <div className="flex justify-end gap-2">

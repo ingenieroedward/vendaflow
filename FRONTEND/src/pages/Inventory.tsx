@@ -147,13 +147,14 @@ const Inventory: React.FC = () => {
   };
 
   return (
-    <div className="p-4 max-w-6xl mx-auto pb-32">
+    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 pb-32">
       {/* Header */}
+      <div className="text-center mb-6 sm:mb-8">
+        <h1 className="text-xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2 px-2">Inventario</h1>
+        <p className="text-sm sm:text-lg text-gray-600 px-2">Controla el stock de tus productos.</p>
+      </div>
       <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Inventario</h1>
-          <p className="text-sm text-gray-500 mt-1">{products.length} producto(s)</p>
-        </div>
+        <p className="text-sm text-gray-500">{products.length} producto(s)</p>
         <div className="flex items-center gap-1.5">
           {!editMode ? (
             <>

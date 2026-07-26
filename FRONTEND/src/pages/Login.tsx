@@ -110,7 +110,7 @@ const Login: React.FC = () => {
           </div>
 
           {/* Login Form */}
-          <div className="bg-white rounded-lg shadow-lg p-6 sm:p-8 space-y-6">
+          <div className="bg-white rounded-xl shadow-lg p-6 sm:p-8 space-y-6">
             <div>
               <h3 className="text-lg sm:text-xl font-semibold text-gray-900 text-center">
                 Iniciar Sesión

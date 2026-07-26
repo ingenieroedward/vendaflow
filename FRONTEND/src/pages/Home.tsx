@@ -114,7 +114,7 @@ const Home: React.FC = () => {
                 </div>
               </div>
             </div>
-            <div className="bg-white rounded-lg p-4 sm:p-6 shadow-sm border border-gray-200">
+            <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-200">
               <div className="flex items-center gap-2 flex-wrap">
                 <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-green-600 mr-3" />
                 <div>
@@ -125,7 +125,7 @@ const Home: React.FC = () => {
                 </div>
               </div>
             </div>
-            <div className="bg-white rounded-lg p-4 sm:p-6 shadow-sm border border-gray-200">
+            <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-200">
               <div className="flex items-center gap-2 flex-wrap">
                 <div className="w-6 h-6 sm:w-8 sm:h-8 bg-orange-100 rounded-full flex items-center justify-center mr-3">
                   <span className="text-orange-600 font-bold text-sm sm:text-base">%</span>

@@ -341,7 +341,7 @@ const ProductDetail: React.FC = () => {
             Volver
           </Button>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
             <div className="flex md:items-center  justify-between">
               <div className="flex items-start space-x-3 sm:space-x-4 mb-4 lg:mb-0">
                 <div className="w-12 h-12 sm:w-16 sm:h-16 bg-blue-100 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
@@ -429,7 +429,7 @@ const ProductDetail: React.FC = () => {
         {pricesLoading ? (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="bg-white rounded-lg p-3 sm:p-6 shadow-sm border border-gray-200 animate-pulse">
+              <div key={i} className="bg-white rounded-xl p-3 sm:p-6 shadow-sm border border-gray-200 animate-pulse">
                 <div className="h-4 bg-gray-200 rounded w-3/4 mb-2" />
                 <div className="h-7 bg-gray-200 rounded w-1/2" />
               </div>
@@ -437,7 +437,7 @@ const ProductDetail: React.FC = () => {
           </div>
         ) : prices.length > 0 && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
-            <div className="bg-white rounded-lg p-3 sm:p-6 shadow-sm border border-gray-200">
+            <div className="bg-white rounded-xl p-3 sm:p-6 shadow-sm border border-gray-200">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs sm:text-sm font-medium text-gray-600">Proveedores</p>
@@ -449,7 +449,7 @@ const ProductDetail: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-white rounded-lg p-3 sm:p-6 shadow-sm border border-gray-200">
+            <div className="bg-white rounded-xl p-3 sm:p-6 shadow-sm border border-gray-200">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs sm:text-sm font-medium text-gray-600">Menor precio</p>
@@ -461,7 +461,7 @@ const ProductDetail: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-white rounded-lg p-3 sm:p-6 shadow-sm border border-gray-200">
+            <div className="bg-white rounded-xl p-3 sm:p-6 shadow-sm border border-gray-200">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs sm:text-sm font-medium text-gray-600">Mayor precio</p>
@@ -473,7 +473,7 @@ const ProductDetail: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-white rounded-lg p-3 sm:p-6 shadow-sm border border-gray-200">
+            <div className="bg-white rounded-xl p-3 sm:p-6 shadow-sm border border-gray-200">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs sm:text-sm font-medium text-gray-600">Precio promedio</p>
@@ -505,7 +505,7 @@ const ProductDetail: React.FC = () => {
           </div>
 
           {pricesLoading ? (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden animate-pulse">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden animate-pulse">
               {[...Array(3)].map((_, i) => (
                 <div key={i} className="flex items-center px-4 py-4 border-b border-gray-100 last:border-0 gap-4">
                   <div className="h-4 bg-gray-200 rounded w-1/3" />
@@ -522,7 +522,7 @@ const ProductDetail: React.FC = () => {
         {/* Product Info - Mobile Optimized */}
         {product.category?.description && (
           <div className="mt-6 sm:mt-8">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
               <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">
                 Información de categoría
               </h3>

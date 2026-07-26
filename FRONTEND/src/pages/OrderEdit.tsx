@@ -336,7 +336,7 @@ const OrderEdit: React.FC = () => {
             Volver
           </Button>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
             <div className="flex items-center space-x-3 sm:space-x-4">
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
                 <ShoppingCart className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
@@ -367,7 +367,7 @@ const OrderEdit: React.FC = () => {
         )}
 
         {/* Form - Mobile Optimized */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Customer Information */}
             <div>

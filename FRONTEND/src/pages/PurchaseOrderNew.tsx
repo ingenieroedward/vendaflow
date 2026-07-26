@@ -91,7 +91,7 @@ const PurchaseOrderNew: React.FC = () => {
   };
 
   return (
-    <div className="p-4 max-w-4xl mx-auto">
+    <div className="max-w-2xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
       <div className="flex items-center justify-between mb-6">
         <div className="min-w-0 flex-1">
           <h1 className="text-lg sm:text-2xl font-bold text-gray-900">Nueva Orden de Compra</h1>

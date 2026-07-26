@@ -68,7 +68,7 @@ const UserEdit: React.FC = () => {
   if (currentUser?.role !== 'admin') {
     return (
       <div className="bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center py-16">
             <Shield className="w-16 h-16 text-red-300 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">
@@ -174,7 +174,7 @@ const UserEdit: React.FC = () => {
   if (loading && !user) {
     return (
       <div className="bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex justify-center items-center py-16">
             <LoadingSpinner size="lg" />
           </div>
@@ -186,7 +186,7 @@ const UserEdit: React.FC = () => {
   if (error) {
     return (
       <div className="bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <ErrorMessage
             message={error}
             onDismiss={clearError}
@@ -200,7 +200,7 @@ const UserEdit: React.FC = () => {
   if (!user) {
     return (
       <div className="bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center py-16">
             <User className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">
@@ -222,7 +222,7 @@ const UserEdit: React.FC = () => {
   
   return (
     <div className="bg-gray-50">
-      <div className="px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-7xl mx-auto">
+      <div className="px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-2xl mx-auto">
         {/* Mobile Header - Compact */}
         <div className="mb-4 sm:mb-6 lg:mb-8">
           <Button
@@ -235,7 +235,7 @@ const UserEdit: React.FC = () => {
             Volver
           </Button>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
             <div className="flex items-center space-x-3 sm:space-x-4">
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
                 <User className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
@@ -253,7 +253,7 @@ const UserEdit: React.FC = () => {
         </div>
 
         {/* Form - Mobile Optimized */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* User Information */}
             <div>

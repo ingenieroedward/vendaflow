@@ -58,7 +58,7 @@ const PurchaseOrderDetail: React.FC = () => {
 
   if (loading) return <LoadingSpinner />;
   if (error) return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <div className="max-w-2xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
       <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700">
         <AlertCircle size={16} /> {error}
       </div>

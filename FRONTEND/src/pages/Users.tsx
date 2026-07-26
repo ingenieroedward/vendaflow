@@ -339,7 +339,7 @@ const Users: React.FC = () => {
                         className="fixed inset-0 z-40"
                         onClick={() => setActiveUserMenu(null)}
                       />
-                      <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                      <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-1 z-50">
                         <button
                           onClick={() => handleEditUser(user.id)}
                           className="flex items-center space-x-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
@@ -421,7 +421,7 @@ const Users: React.FC = () => {
                         className="fixed inset-0 z-40"
                         onClick={() => setActiveUserMenu(null)}
                       />
-                      <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                      <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-1 z-50">
                         <button
                           onClick={() => handleRestoreUser(user.id)}
                           className="flex items-center space-x-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"

@@ -590,7 +590,7 @@ const Orders: React.FC = () => {
                       const priceBreakdown = getPriceBreakdown(order);
                       const isLocal = (order as any)._isLocal;
                       return (
-                        <div key={order.id} className={`bg-white rounded-lg shadow-sm border p-4 sm:p-6 hover:shadow-md transition-shadow duration-200 ${isLocal ? 'border-amber-300' : 'border-gray-200'}`}>
+                        <div key={order.id} className={`bg-white rounded-xl shadow-sm border p-4 sm:p-6 hover:shadow-md transition-shadow duration-200 ${isLocal ? 'border-amber-300' : 'border-gray-200'}`}>
                           <div className="flex justify-between items-start mb-4">
                             <div>
                               <div className="flex items-center gap-2">

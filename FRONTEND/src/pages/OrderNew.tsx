@@ -320,7 +320,7 @@ const OrderNew: React.FC = () => {
         )}
 
         {/* Form - Mobile Optimized */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Customer Information */}
             <div>

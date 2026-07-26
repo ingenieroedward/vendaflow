@@ -39,12 +39,13 @@ const PurchaseOrders: React.FC = () => {
   const isAdmin = user?.role === 'admin';
 
   return (
-    <div className="p-4 max-w-6xl mx-auto">
+    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
+      <div className="text-center mb-6 sm:mb-8">
+        <h1 className="text-xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2 px-2">Órdenes de compra</h1>
+        <p className="text-sm sm:text-lg text-gray-600 px-2">Gestiona las compras a tus proveedores.</p>
+      </div>
       <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Órdenes de Compra</h1>
-          <p className="text-sm text-gray-500 mt-1">{pagination.total} orden(es)</p>
-        </div>
+        <p className="text-sm text-gray-500">{pagination.total} orden(es)</p>
         <button
           onClick={() => navigate('/purchase-orders/new')}
           className="flex items-center gap-1 px-2.5 py-1.5 text-xs sm:text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"

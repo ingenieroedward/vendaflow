@@ -400,16 +400,16 @@ const Reports: React.FC = () => {
 
   return (
     <div className="bg-gray-50 min-h-screen">
-      <div className="max-w-5xl mx-auto px-3 sm:px-6 py-4 sm:py-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
 
         {/* Header */}
-        <div className="flex items-start justify-between mb-5">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Informes</h1>
-            <p className="text-sm text-gray-400 mt-0.5">
-              {isOffline ? 'Datos locales (sin conexión)' : 'Datos en tiempo real del servidor'}
-            </p>
-          </div>
+        <div className="text-center mb-6 sm:mb-8">
+          <h1 className="text-xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2 px-2">Informes</h1>
+          <p className="text-sm sm:text-lg text-gray-600 px-2">
+            {isOffline ? 'Datos locales (sin conexión)' : 'Ventas, cartera, compras e inventario de tu negocio.'}
+          </p>
+        </div>
+        <div className="flex justify-end mb-4">
           <button
             onClick={loadData}
             disabled={loading}
@@ -428,7 +428,7 @@ const Reports: React.FC = () => {
         )}
 
         {/* Tabs */}
-        <div className="flex gap-1 mb-6 bg-white border border-gray-100 rounded-xl p-1 shadow-sm w-full sm:w-fit">
+        <div className="flex gap-1 mb-6 bg-white border border-gray-200 rounded-xl p-1 shadow-sm w-full sm:w-fit">
           {tabs.map(t => (
             <button
               key={t.key}
@@ -462,7 +462,7 @@ const Reports: React.FC = () => {
                   <>
                     {/* KPIs */}
                     <div className="grid grid-cols-3 gap-3 mb-6">
-                      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
                         <div className="flex items-center gap-2 mb-2">
                           <div className="w-7 h-7 bg-amber-50 rounded-lg flex items-center justify-center">
                             <CreditCard className="w-3.5 h-3.5 text-amber-500" />
@@ -471,7 +471,7 @@ const Reports: React.FC = () => {
                         </div>
                         <p className="text-lg sm:text-xl font-bold text-gray-900 truncate">{COP(receivables.totalDue)}</p>
                       </div>
-                      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
                         <div className="flex items-center gap-2 mb-2">
                           <div className="w-7 h-7 bg-blue-50 rounded-lg flex items-center justify-center">
                             <FileText className="w-3.5 h-3.5 text-blue-500" />
@@ -480,7 +480,7 @@ const Reports: React.FC = () => {
                         </div>
                         <p className="text-lg sm:text-xl font-bold text-gray-900">{receivables.count}</p>
                       </div>
-                      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
                         <div className="flex items-center gap-2 mb-2">
                           <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${receivables.overdueCount ? 'bg-red-50' : 'bg-gray-50'}`}>
                             <AlertTriangle className={`w-3.5 h-3.5 ${receivables.overdueCount ? 'text-red-500' : 'text-gray-300'}`} />
@@ -492,7 +492,7 @@ const Reports: React.FC = () => {
                     </div>
 
                     {/* Deuda por cliente */}
-                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5 mb-6">
+                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-5 mb-6">
                       <div className="flex items-center gap-2 mb-4">
                         <Users className="w-4 h-4 text-gray-400" />
                         <h3 className="text-sm font-semibold text-gray-900">Deuda por cliente</h3>
@@ -519,8 +519,8 @@ const Reports: React.FC = () => {
                     </div>
 
                     {/* Detalle de órdenes */}
-                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                      <div className="flex items-center gap-2 px-4 sm:px-5 py-3 border-b border-gray-100">
+                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                      <div className="flex items-center gap-2 px-4 sm:px-5 py-3 border-b border-gray-200">
                         <Clock className="w-4 h-4 text-gray-400" />
                         <h3 className="text-sm font-semibold text-gray-900">Órdenes pendientes de cobro</h3>
                       </div>
@@ -555,7 +555,7 @@ const Reports: React.FC = () => {
             {tab === 'ventas' && (
               <>
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-7 h-7 bg-emerald-50 rounded-lg flex items-center justify-center">
                         <TrendingUp className="w-4 h-4 text-emerald-500" />
@@ -567,7 +567,7 @@ const Reports: React.FC = () => {
                     </p>
                     <p className="text-xs text-gray-400 mt-0.5">{kpis.today.ordenes} órden{kpis.today.ordenes !== 1 ? 'es' : ''}</p>
                   </div>
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-7 h-7 bg-blue-50 rounded-lg flex items-center justify-center">
                         <ShoppingCart className="w-4 h-4 text-blue-500" />
@@ -590,7 +590,7 @@ const Reports: React.FC = () => {
                       {kpis.month.ordenes} órd · {kpis.month.clientes} cliente{kpis.month.clientes !== 1 ? 's' : ''}
                     </p>
                   </div>
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-7 h-7 bg-violet-50 rounded-lg flex items-center justify-center">
                         <DollarSign className="w-4 h-4 text-violet-500" />
@@ -602,7 +602,7 @@ const Reports: React.FC = () => {
                     </p>
                     <p className="text-xs text-gray-400 mt-0.5">por orden</p>
                   </div>
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-7 h-7 bg-orange-50 rounded-lg flex items-center justify-center">
                         <Package className="w-4 h-4 text-orange-500" />
@@ -616,7 +616,7 @@ const Reports: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="flex gap-1 mb-5 bg-white border border-gray-100 rounded-xl p-1 shadow-sm w-full sm:w-fit">
+                <div className="flex gap-1 mb-5 bg-white border border-gray-200 rounded-xl p-1 shadow-sm w-full sm:w-fit">
                   {periods.map(p => (
                     <button
                       key={p.key}
@@ -631,14 +631,14 @@ const Reports: React.FC = () => {
                 </div>
 
                 {!hasData ? (
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 text-center">
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-12 text-center">
                     <Users className="w-12 h-12 text-gray-200 mx-auto mb-3" />
                     <p className="text-gray-400 font-medium">Sin datos de ventas</p>
                     <p className="text-gray-300 text-sm mt-1">Crea órdenes para ver los informes</p>
                   </div>
                 ) : (
                   <>
-                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-4">
+                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-4">
                       <div className="flex items-center justify-between mb-1">
                         <h2 className="text-sm font-semibold text-gray-700">Ventas</h2>
                         <span className="text-xs text-gray-400">{periodLabel}</span>
@@ -659,7 +659,7 @@ const Reports: React.FC = () => {
                       </ResponsiveContainer>
                     </div>
 
-                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-4">
+                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-4">
                       <div className="flex items-center justify-between mb-1">
                         <h2 className="text-sm font-semibold text-gray-700">Número de órdenes</h2>
                         <span className="text-xs text-gray-400">{periodLabel}</span>
@@ -681,7 +681,7 @@ const Reports: React.FC = () => {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                         <div className="flex items-center justify-between mb-4">
                           <h2 className="text-sm font-semibold text-gray-700">Top clientes</h2>
                           <span className="text-xs text-gray-400">{periodLabel}</span>
@@ -715,7 +715,7 @@ const Reports: React.FC = () => {
                         )}
                       </div>
 
-                      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                         <div className="flex items-center justify-between mb-4">
                           <h2 className="text-sm font-semibold text-gray-700">Estado de órdenes</h2>
                           <span className="text-xs text-gray-400">{periodLabel}</span>
@@ -767,7 +767,7 @@ const Reports: React.FC = () => {
               <>
                 {/* KPI cards */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-7 h-7 bg-indigo-50 rounded-lg flex items-center justify-center">
                         <Package className="w-4 h-4 text-indigo-500" />
@@ -777,7 +777,7 @@ const Reports: React.FC = () => {
                     <p className="text-lg font-bold text-gray-900">{products.length}</p>
                     <p className="text-xs text-gray-400 mt-0.5">registrados</p>
                   </div>
-                  <div className={`rounded-2xl border shadow-sm p-4 ${invStats.negative.length > 0 ? 'bg-red-50 border-red-200' : 'bg-white border-gray-100'}`}>
+                  <div className={`rounded-xl border shadow-sm p-4 ${invStats.negative.length > 0 ? 'bg-red-50 border-red-200' : 'bg-white border-gray-200'}`}>
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-7 h-7 bg-red-100 rounded-lg flex items-center justify-center">
                         <TrendingDown className="w-4 h-4 text-red-600" />
@@ -787,7 +787,7 @@ const Reports: React.FC = () => {
                     <p className={`text-lg font-bold ${invStats.negative.length > 0 ? 'text-red-700' : 'text-gray-900'}`}>{invStats.negative.length}</p>
                     <p className="text-xs text-gray-400 mt-0.5">requieren compra urgente</p>
                   </div>
-                  <div className={`rounded-2xl border shadow-sm p-4 ${invStats.outOfStock.length > 0 ? 'bg-orange-50 border-orange-200' : 'bg-white border-gray-100'}`}>
+                  <div className={`rounded-xl border shadow-sm p-4 ${invStats.outOfStock.length > 0 ? 'bg-orange-50 border-orange-200' : 'bg-white border-gray-200'}`}>
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-7 h-7 bg-orange-100 rounded-lg flex items-center justify-center">
                         <AlertTriangle className="w-4 h-4 text-orange-500" />
@@ -797,7 +797,7 @@ const Reports: React.FC = () => {
                     <p className={`text-lg font-bold ${invStats.outOfStock.length > 0 ? 'text-orange-600' : 'text-gray-900'}`}>{invStats.outOfStock.length}</p>
                     <p className="text-xs text-gray-400 mt-0.5">en cero</p>
                   </div>
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-7 h-7 bg-green-50 rounded-lg flex items-center justify-center">
                         <DollarSign className="w-4 h-4 text-green-500" />
@@ -811,7 +811,7 @@ const Reports: React.FC = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                   {/* Distribución estado */}
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                     <h2 className="text-sm font-semibold text-gray-700 mb-4">Distribución de stock</h2>
                     <ResponsiveContainer width="100%" height={180}>
                       <BarChart data={invChartData} margin={{ top: 4, right: 4, left: 0, bottom: 4 }} barCategoryGap="30%">
@@ -835,7 +835,7 @@ const Reports: React.FC = () => {
                   </div>
 
                   {/* Top por valor */}
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                     <h2 className="text-sm font-semibold text-gray-700 mb-4">Top productos por valor en stock</h2>
                     {invStats.topStock.length === 0 ? (
                       <p className="text-xs text-gray-300 text-center py-6">Sin stock disponible</p>
@@ -869,7 +869,7 @@ const Reports: React.FC = () => {
 
                 {/* Productos con stock negativo */}
                 {invStats.negative.length > 0 && (
-                  <div className="bg-white rounded-2xl border border-red-200 shadow-sm p-5 mb-4">
+                  <div className="bg-white rounded-xl border border-red-200 shadow-sm p-5 mb-4">
                     <h2 className="text-sm font-semibold text-red-700 mb-3 flex items-center gap-2">
                       <AlertTriangle className="w-4 h-4" />
                       Productos con stock negativo — requieren reposición
@@ -912,7 +912,7 @@ const Reports: React.FC = () => {
               <>
                 {/* KPI cards */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-7 h-7 bg-blue-50 rounded-lg flex items-center justify-center">
                         <DollarSign className="w-4 h-4 text-blue-500" />
@@ -922,7 +922,7 @@ const Reports: React.FC = () => {
                     <p className="text-lg font-bold text-gray-900">{COPShort(poStats.totalInvested)}</p>
                     <p className="text-xs text-gray-400 mt-0.5">{poStats.received.length} órd. recibidas</p>
                   </div>
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-7 h-7 bg-emerald-50 rounded-lg flex items-center justify-center">
                         <TrendingUp className="w-4 h-4 text-emerald-500" />
@@ -932,7 +932,7 @@ const Reports: React.FC = () => {
                     <p className="text-lg font-bold text-gray-900">{COPShort(poStats.monthInvested)}</p>
                     <p className="text-xs text-gray-400 mt-0.5">en compras recibidas</p>
                   </div>
-                  <div className={`rounded-2xl border shadow-sm p-4 ${poStats.ordered.length > 0 ? 'bg-amber-50 border-amber-200' : 'bg-white border-gray-100'}`}>
+                  <div className={`rounded-xl border shadow-sm p-4 ${poStats.ordered.length > 0 ? 'bg-amber-50 border-amber-200' : 'bg-white border-gray-200'}`}>
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-7 h-7 bg-amber-100 rounded-lg flex items-center justify-center">
                         <Clock className="w-4 h-4 text-amber-500" />
@@ -942,7 +942,7 @@ const Reports: React.FC = () => {
                     <p className={`text-lg font-bold ${poStats.ordered.length > 0 ? 'text-amber-700' : 'text-gray-900'}`}>{poStats.ordered.length}</p>
                     <p className="text-xs text-gray-400 mt-0.5">órd. ordenadas</p>
                   </div>
-                  <div className={`rounded-2xl border shadow-sm p-4 ${poStats.draft.length > 0 ? 'bg-gray-50 border-gray-200' : 'bg-white border-gray-100'}`}>
+                  <div className={`rounded-xl border shadow-sm p-4 ${poStats.draft.length > 0 ? 'bg-gray-50 border-gray-200' : 'bg-white border-gray-200'}`}>
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-7 h-7 bg-gray-100 rounded-lg flex items-center justify-center">
                         <FileText className="w-4 h-4 text-gray-400" />
@@ -956,7 +956,7 @@ const Reports: React.FC = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                   {/* Gráfica compras mensuales */}
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                     <h2 className="text-sm font-semibold text-gray-700 mb-1">Compras últimos 6 meses</h2>
                     <p className="text-xs text-gray-400 mb-4">Monto total por mes</p>
                     {purchaseOrders.length === 0 ? (
@@ -977,7 +977,7 @@ const Reports: React.FC = () => {
                   </div>
 
                   {/* Top proveedores */}
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                     <h2 className="text-sm font-semibold text-gray-700 mb-4">Top proveedores</h2>
                     {poStats.topSuppliers.length === 0 ? (
                       <p className="text-xs text-gray-300 text-center py-6">Sin órdenes de compra</p>
@@ -1009,7 +1009,7 @@ const Reports: React.FC = () => {
                 </div>
 
                 {/* Estado de órdenes de compra */}
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-4">
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-4">
                   <h2 className="text-sm font-semibold text-gray-700 mb-4">Estado de órdenes de compra</h2>
                   {purchaseOrders.length === 0 ? (
                     <p className="text-xs text-gray-300 text-center py-6">Sin órdenes de compra registradas</p>
@@ -1051,7 +1051,7 @@ const Reports: React.FC = () => {
 
                 {/* KPIs */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-7 h-7 bg-emerald-50 rounded-lg flex items-center justify-center">
                         <TrendingUp className="w-4 h-4 text-emerald-500" />
@@ -1062,7 +1062,7 @@ const Reports: React.FC = () => {
                     <p className="text-xs text-gray-400 mt-0.5">{orders.length} órdenes</p>
                   </div>
 
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-7 h-7 bg-orange-50 rounded-lg flex items-center justify-center">
                         <ShoppingCart className="w-4 h-4 text-orange-500" />
@@ -1073,7 +1073,7 @@ const Reports: React.FC = () => {
                     <p className="text-xs text-gray-400 mt-0.5">POs recibidas</p>
                   </div>
 
-                  <div className={`rounded-2xl border shadow-sm p-4 ${rentStats.grossProfit >= 0 ? 'bg-emerald-50 border-emerald-100' : 'bg-red-50 border-red-100'}`}>
+                  <div className={`rounded-xl border shadow-sm p-4 ${rentStats.grossProfit >= 0 ? 'bg-emerald-50 border-emerald-100' : 'bg-red-50 border-red-100'}`}>
                     <div className="flex items-center gap-2 mb-2">
                       <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${rentStats.grossProfit >= 0 ? 'bg-emerald-100' : 'bg-red-100'}`}>
                         <PiggyBank className={`w-4 h-4 ${rentStats.grossProfit >= 0 ? 'text-emerald-600' : 'text-red-500'}`} />
@@ -1086,7 +1086,7 @@ const Reports: React.FC = () => {
                     <p className="text-xs text-gray-400 mt-0.5">Ingresos − Costos</p>
                   </div>
 
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-7 h-7 bg-violet-50 rounded-lg flex items-center justify-center">
                         <DollarSign className="w-4 h-4 text-violet-500" />
@@ -1103,7 +1103,7 @@ const Reports: React.FC = () => {
                 </div>
 
                 {/* Este mes */}
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-6">
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-6">
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-sm font-semibold text-gray-700">Este mes</h3>
                     {rentStats.profitPct !== null && (
@@ -1137,7 +1137,7 @@ const Reports: React.FC = () => {
                 </div>
 
                 {/* Gráfica dual: Ingresos vs Costos 12 meses */}
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-6">
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-6">
                   <h3 className="text-sm font-semibold text-gray-700 mb-4">Ingresos vs Costos — últimos 12 meses</h3>
                   <ResponsiveContainer width="100%" height={220}>
                     <BarChart data={rentStats.monthlyChart} barGap={2} barCategoryGap="25%">
@@ -1156,7 +1156,7 @@ const Reports: React.FC = () => {
                 </div>
 
                 {/* Utilidad mensual */}
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-4">
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-4">
                   <h3 className="text-sm font-semibold text-gray-700 mb-4">Utilidad mensual</h3>
                   <ResponsiveContainer width="100%" height={160}>
                     <LineChart data={rentStats.monthlyChart}>
