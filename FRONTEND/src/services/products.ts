@@ -19,6 +19,12 @@ export class ProductService {
     return response.data;
   }
 
+  // Siguiente código sugerido (10001 → 10002, ASE003 → ASE004)
+  async getNextCode(): Promise<string | null> {
+    const response = await apiService.get<ApiResponse<{ nextCode: string | null }>>('/products/next-code');
+    return response.data.nextCode;
+  }
+
   // Products
   async searchProducts(query: string, includePrices: boolean = true): Promise<Product[]> {
     try {

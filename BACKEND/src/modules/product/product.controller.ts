@@ -69,6 +69,11 @@ export class ProductController {
     res.status(200).json({ status: 'success', data: result.products, pagination: result.pagination });
   });
 
+  getNextCode = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const result = await this.productService.getNextCode(req.user!.tenantId);
+    res.status(200).json({ status: 'success', data: result });
+  });
+
   getStockAlerts = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const tenantId = req.user!.tenantId;
     const products = await this.productService.getStockAlerts(tenantId);

@@ -10,6 +10,7 @@ router.get('/prices', isAuth, productController.getAllProductsPrices);
 router.get('/search', isAuth, productController.searchProducts);
 router.get('/search/prices', isAuth, productController.searchProductsPrices);
 router.get('/stock/alerts', isAuth, productController.getStockAlerts);
+router.get('/next-code', isAuth, productController.getNextCode);
 
 router.get('/:id', isAuth, productController.getProductById);
 router.get('/category/:categoryId', isAuth, productController.getProductsByCategory);

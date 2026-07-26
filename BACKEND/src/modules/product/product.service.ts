@@ -16,6 +16,34 @@ import { createProductSchema, updateProductSchema, searchProductSchema, adjustSt
 import { Op, literal } from 'sequelize';
 
 export class ProductService {
+  // Sugiere el siguiente código a partir del último producto creado del tenant:
+  // 10001 → 10002, ASE003 → ASE004 (conserva prefijo y ceros a la izquierda)
+  async getNextCode(tenantId: number): Promise<{ nextCode: string | null }> {
+    const last = await Product.findOne({
+      where: { tenantId },
+      order: [['createdAt', 'DESC']],
+      attributes: ['code'],
+    });
+    const match = last?.code?.match(/^(.*?)(\d+)$/);
+    if (!match) return { nextCode: null };
+
+    const prefix = match[1]!;
+    const digits = match[2]!;
+    let n = parseInt(digits, 10);
+    // Avanzar hasta un código libre (incluye soft-deleted: el índice único los cuenta)
+    for (let i = 0; i < 100; i++) {
+      n += 1;
+      const candidate = prefix + String(n).padStart(digits.length, '0');
+      const exists = await Product.findOne({
+        where: { tenantId, code: candidate },
+        attributes: ['id'],
+        paranoid: false,
+      });
+      if (!exists) return { nextCode: candidate };
+    }
+    return { nextCode: null };
+  }
+
   async createProduct(productData: CreateProductDto, tenantId: number): Promise<ProductResponseDto> {
     const validatedData = validateSchema(createProductSchema, productData);
 

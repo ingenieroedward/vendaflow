@@ -62,6 +62,17 @@ const ProductNew: React.FC = () => {
   
   const [includePrice, setIncludePrice] = useState(false);
 
+  // Sugerir el siguiente código (10001 → 10002) si el campo está vacío
+  useEffect(() => {
+    productService.getNextCode()
+      .then(code => {
+        if (code) {
+          setFormData(prev => (prev.code ? prev : { ...prev, code }));
+        }
+      })
+      .catch(() => {/* sin sugerencia si falla */});
+  }, []);
+
   // Load suppliers and categories on mount
   useEffect(() => {
     const loadSuppliers = async () => {
