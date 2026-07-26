@@ -40,6 +40,41 @@ export class PushService {
     await PushSubscription.destroy({ where: { endpoint } });
   }
 
+  // Envío de prueba al usuario actual con diagnóstico por suscripción
+  async sendTestToUser(userId: number): Promise<{
+    vapidConfigured: boolean;
+    subscriptions: number;
+    results: Array<{ endpoint: string; ok: boolean; statusCode?: number; error?: string }>;
+  }> {
+    const vapidConfigured = !!(config.vapid.publicKey && config.vapid.privateKey);
+    const subs = await PushSubscription.findAll({ where: { userId } });
+    const payload = JSON.stringify({
+      title: 'Prueba de notificaciones',
+      body: 'Si ves esto, las notificaciones push funcionan correctamente ✓',
+      data: { url: '/' },
+    });
+
+    const results = [];
+    for (const sub of subs) {
+      try {
+        await webpush.sendNotification(
+          { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+          payload,
+        );
+        results.push({ endpoint: sub.endpoint.slice(0, 60) + '…', ok: true });
+      } catch (err: any) {
+        results.push({
+          endpoint: sub.endpoint.slice(0, 60) + '…',
+          ok: false,
+          statusCode: err.statusCode,
+          error: String(err.body || err.message || err).slice(0, 300),
+        });
+        if (err.statusCode === 410) await sub.destroy();
+      }
+    }
+    return { vapidConfigured, subscriptions: subs.length, results };
+  }
+
   // Notifica solo a los usuarios indicados (todas sus suscripciones/dispositivos)
   async notifyUsers(userIds: number[], title: string, body: string, data?: Record<string, unknown>): Promise<void> {
     if (userIds.length === 0) return;

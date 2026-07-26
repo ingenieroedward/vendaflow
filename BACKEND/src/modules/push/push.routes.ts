@@ -8,6 +8,7 @@ const pushController = new PushController();
 
 router.get('/vapid-public-key', pushController.getVapidPublicKey);
 router.post('/subscribe', isAuth, tenantScope, pushController.subscribe);
+router.post('/test', isAuth, tenantScope, pushController.sendTest);
 router.delete('/unsubscribe', isAuth, tenantScope, pushController.unsubscribe);
 
 export default router;
