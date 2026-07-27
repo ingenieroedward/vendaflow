@@ -73,6 +73,50 @@ export class TenantController {
     res.json(tenant);
   });
 
+  getBilling = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    res.json({ status: 'success', data: await tenantService.getBilling(req.user!.tenantId) });
+  });
+
+  reportPayment = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const { plan, amount, reference, receiptBase64, receiptMime } = req.body ?? {};
+    if (!plan || !amount) throw new ValidationError('plan y amount son requeridos');
+    const result = await tenantService.reportPayment(req.user!.tenantId, {
+      plan: String(plan), amount: Number(amount), reference, receiptBase64, receiptMime,
+    });
+    res.status(201).json({ status: 'success', data: result });
+  });
+
+  listPayments = asyncHandler(async (_req: AuthenticatedRequest, res: Response) => {
+    res.json({ status: 'success', data: await tenantService.listPayments() });
+  });
+
+  getPaymentReceipt = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    res.json({ status: 'success', data: await tenantService.getPaymentReceipt(Number(req.params['id']!)) });
+  });
+
+  approvePayment = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    res.json({ status: 'success', data: await tenantService.decidePayment(Number(req.params['id']!), true) });
+  });
+
+  rejectPayment = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    res.json({ status: 'success', data: await tenantService.decidePayment(Number(req.params['id']!), false, req.body?.reason) });
+  });
+
+  listRequests = asyncHandler(async (_req: AuthenticatedRequest, res: Response) => {
+    res.json({ status: 'success', data: await tenantService.listRequests() });
+  });
+
+  approveRequest = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const { slug, adminUsername, adminPassword, plan, primaryColor } = req.body ?? {};
+    if (!slug || !adminUsername || !adminPassword) throw new ValidationError('slug, adminUsername y adminPassword son requeridos');
+    const result = await tenantService.approveRequest(Number(req.params['id']!), { slug, adminUsername, adminPassword, plan, primaryColor });
+    res.json({ status: 'success', data: result });
+  });
+
+  rejectRequest = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    res.json({ status: 'success', data: await tenantService.rejectRequest(Number(req.params['id']!)) });
+  });
+
   impersonate = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const result = await tenantService.impersonate(Number(req.params['id']!));
     res.json({ status: 'success', data: result });

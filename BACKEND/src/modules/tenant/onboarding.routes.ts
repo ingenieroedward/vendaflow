@@ -1,58 +1,96 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import { TenantService } from './tenant.service';
+import crypto from 'crypto';
+import rateLimit from 'express-rate-limit';
 import { asyncHandler } from '@/core/middlewares/asyncHandler';
-import { AuthService } from '@/modules/auth/auth.service';
 import { ValidationError } from '@/core/errors/AppError';
+import { config } from '@/config';
+import { TenantRequest } from './tenant-request.model';
+import { User } from '@/modules/user/user.model';
+import { pushService } from '@/modules/push/push.service';
+import logger from '@/core/logger';
 
 const router = Router();
-const tenantService = new TenantService();
-const authService = new AuthService();
 
-const registerSchema = z.object({
+// Rate limit estricto: es un formulario público
+const onboardingLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  message: { status: 'error', message: 'Demasiadas solicitudes, intenta más tarde.' },
+});
+
+// ── Captcha propio (sin servicios externos) ─────────────────────────────────
+// GET /captcha entrega una suma y un token HMAC firmado; POST /request la valida.
+const captchaSign = (a: number, b: number, exp: number) =>
+  crypto.createHmac('sha256', config.jwt.secret).update(`captcha:${a}:${b}:${exp}`).digest('hex');
+
+router.get('/captcha', onboardingLimiter, (_req: Request, res: Response) => {
+  const a = crypto.randomInt(2, 10);
+  const b = crypto.randomInt(2, 10);
+  const exp = Date.now() + 10 * 60 * 1000;
+  res.json({ question: `¿Cuánto es ${a} + ${b}?`, a, b, exp, token: captchaSign(a, b, exp) });
+});
+
+const requestSchema = z.object({
   companyName: z.string().min(2).max(255),
-  slug: z.string().min(2).max(50).regex(/^[a-z0-9-]+$/, 'Solo letras minúsculas, números y guiones'),
-  adminUsername: z.string().min(3).max(100),
-  adminPassword: z.string().min(8),
-  primaryColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
-  plan: z.enum(['trial', 'basic', 'pro', 'enterprise']).optional(),
+  contactName: z.string().min(2).max(255),
+  email: z.string().email().max(255),
+  phone: z.string().max(50).optional(),
+  message: z.string().max(1000).optional(),
+  // anti-bot
+  website: z.string().optional(), // honeypot: los humanos lo dejan vacío
+  captcha: z.object({ a: z.number(), b: z.number(), exp: z.number(), token: z.string(), answer: z.number() }),
 });
 
 /**
- * POST /api/onboarding/register
- * Crea un nuevo tenant + usuario admin en una transacción.
- * Devuelve token JWT listo para usar.
+ * POST /api/onboarding/request — solicitud pública de registro.
+ * NO crea el tenant: queda pendiente de aprobación del superadmin (push de aviso).
+ * (El antiguo POST /register que creaba tenants sin aprobación fue eliminado.)
  */
-router.post('/register', asyncHandler(async (req: Request, res: Response) => {
-  const data = registerSchema.safeParse(req.body);
-  if (!data.success) throw new ValidationError(data.error.errors[0]?.message ?? 'Datos inválidos');
+router.post('/request', onboardingLimiter, asyncHandler(async (req: Request, res: Response) => {
+  const parsed = requestSchema.safeParse(req.body);
+  if (!parsed.success) throw new ValidationError(parsed.error.errors[0]?.message ?? 'Datos inválidos');
+  const d = parsed.data;
 
-  const { companyName, slug, adminUsername, adminPassword, primaryColor, plan } = data.data;
+  // Honeypot: los bots lo rellenan — responder como éxito sin guardar
+  if (d.website && d.website.trim() !== '') {
+    res.status(201).json({ status: 'success', message: 'Solicitud recibida' });
+    return;
+  }
 
-  const tenant = await tenantService.create({
-    slug,
-    name: companyName,
-    ...(plan !== undefined && { plan }),
-    adminUsername,
-    adminPassword,
-    ...(primaryColor !== undefined && { primaryColor }),
-  });
+  // Captcha: firma válida, no expirado y respuesta correcta
+  const { a, b, exp, token, answer } = d.captcha;
+  if (exp < Date.now() || token !== captchaSign(a, b, exp) || answer !== a + b) {
+    throw new ValidationError('Verificación incorrecta — resuelve la suma de nuevo');
+  }
 
-  const tenantInfo = await tenantService.getInfo(tenant.id);
+  // Evitar duplicados pendientes del mismo email
+  const existing = await TenantRequest.findOne({ where: { email: d.email, status: 'pending' } });
+  if (!existing) {
+    await TenantRequest.create({
+      companyName: d.companyName,
+      contactName: d.contactName,
+      email: d.email,
+      phone: d.phone ?? null,
+      message: d.message ?? null,
+      status: 'pending',
+      tenantId: null,
+    });
 
-  // Find the created admin user to generate token
-  const { User } = await import('@/modules/user/user.model');
-  const admin = await User.findOne({ where: { tenantId: tenant.id, role: 'admin' } });
-  if (!admin) throw new Error('Error creating admin user');
+    try {
+      const superadmins = await User.findAll({ where: { role: 'superadmin' }, attributes: ['id'] });
+      await pushService.notifyUsers(
+        superadmins.map(u => u.id),
+        'Nueva solicitud de registro',
+        `${d.companyName} — ${d.contactName} (${d.email}${d.phone ? `, ${d.phone}` : ''})`,
+        { url: '/superadmin' },
+      );
+    } catch (err) {
+      logger.error('[onboarding] Error notificando solicitud:', err);
+    }
+  }
 
-  const token = authService.generateToken(admin.id, admin.username, admin.role, admin.tenantId);
-
-  res.status(201).json({
-    message: 'Empresa registrada exitosamente',
-    token,
-    user: { id: admin.id, username: admin.username, role: admin.role, tenantId: admin.tenantId },
-    tenant: tenantInfo,
-  });
+  res.status(201).json({ status: 'success', message: 'Solicitud recibida — te contactaremos pronto' });
 }));
 
 export default router;

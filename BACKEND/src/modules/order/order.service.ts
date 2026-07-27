@@ -151,6 +151,34 @@ export class OrderService {
     return { nextOrderNumber: nextNumber };
   }
 
+  // Registrar un abono parcial; si completa el total, marca la orden pagada
+  async addPayment(orderId: number, tenantId: number, userId: number, amount: number, notes?: string) {
+    const { OrderPayment } = await import('./order-payment.model');
+    const order = await Order.findOne({ where: { id: orderId, tenantId } });
+    if (!order) throw new NotFoundError('Order not found');
+    if (order.paymentType !== 'credit') throw new NotFoundError('La orden no es a crédito');
+    if (amount <= 0) throw new NotFoundError('El abono debe ser mayor a 0');
+
+    await OrderPayment.create({ tenantId, orderId, amount, notes: notes ?? null, userId });
+
+    const paid = Number(await OrderPayment.sum('amount', { where: { orderId } })) || 0;
+    const total = Number(order.totalAmount);
+    if (paid >= total - 0.01 && !order.paidAt) {
+      await order.update({ paidAt: new Date() });
+    }
+    logger.info(`Abono $${amount} a orden ${order.orderNumber} (pagado ${paid}/${total})`);
+    return { paidAmount: paid, balance: Math.max(0, total - paid), paidAt: order.paidAt };
+  }
+
+  async getPayments(orderId: number, tenantId: number) {
+    const { OrderPayment } = await import('./order-payment.model');
+    const order = await Order.findOne({ where: { id: orderId, tenantId }, attributes: ['id', 'totalAmount', 'paidAt'] });
+    if (!order) throw new NotFoundError('Order not found');
+    const payments = await OrderPayment.findAll({ where: { orderId }, order: [['createdAt', 'ASC']], raw: true });
+    const paidAmount = payments.reduce((s, p) => s + Number(p.amount), 0);
+    return { payments, paidAmount, balance: Math.max(0, Number(order.totalAmount) - paidAmount) };
+  }
+
   // Marcar una orden a crédito como pagada (o revertir con paid=false)
   async markPaid(id: number, tenantId: number, paid: boolean): Promise<OrderResponseDto> {
     const order = await Order.findOne({
@@ -181,11 +209,25 @@ export class OrderService {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    // Abonos por orden — el saldo real es total - abonado
+    const { OrderPayment } = await import('./order-payment.model');
+    const sums = orders.length
+      ? await OrderPayment.findAll({
+          where: { orderId: orders.map(o => o.id) },
+          attributes: ['orderId', [sequelize.fn('SUM', sequelize.col('amount')), 'paid']],
+          group: ['orderId'],
+          raw: true,
+        }) as unknown as Array<{ orderId: number; paid: string }>
+      : [];
+    const paidMap = new Map(sums.map(s => [s.orderId, Number(s.paid)]));
+
     let totalDue = 0;
     let overdueCount = 0;
     const items = orders.map(o => {
       const total = Number(o.totalAmount);
-      totalDue += total;
+      const paidAmount = paidMap.get(o.id) ?? 0;
+      const balance = Math.max(0, total - paidAmount);
+      totalDue += balance;
       const due = o.paymentDueDate ? new Date(`${o.paymentDueDate}T00:00:00`) : null;
       const daysUntilDue = due ? Math.round((due.getTime() - today.getTime()) / 86400000) : null;
       if (daysUntilDue !== null && daysUntilDue < 0) overdueCount++;
@@ -193,6 +235,8 @@ export class OrderService {
         id: o.id,
         orderNumber: o.orderNumber,
         totalAmount: total,
+        paidAmount,
+        balance,
         paymentDueDate: o.paymentDueDate,
         daysUntilDue,
         customer: o.customer ? { id: o.customer.id, name: o.customer.name } : null,

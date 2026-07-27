@@ -47,6 +47,13 @@ router.get(
     const name = tenant?.name || DEFAULT_NAME;
     const shortName = name.length <= 12 ? name : name.slice(0, 12).trimEnd();
     const themeColor = tenant?.primaryColor || DEFAULT_THEME_COLOR;
+    // Branding: si el tenant tiene logo, la PWA/APK instala con su logo
+    const icons = tenant?.logoUrl
+      ? [
+          { src: tenant.logoUrl, sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: tenant.logoUrl, sizes: '512x512', type: 'image/png', purpose: 'any' },
+        ]
+      : ICONS;
 
     res
       .set('Content-Type', 'application/manifest+json')
@@ -65,7 +72,7 @@ router.get(
         lang: 'es-ES',
         dir: 'ltr',
         prefer_related_applications: false,
-        icons: ICONS,
+        icons,
         shortcuts: [
           {
             name: 'Nueva Orden',

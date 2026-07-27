@@ -2,6 +2,9 @@ import { Sequelize } from 'sequelize-typescript';
 import { config } from '@/config';
 
 // Import models here
+import { TenantRequest } from '@/modules/tenant/tenant-request.model';
+import { PlanPayment } from '@/modules/tenant/plan-payment.model';
+import { OrderPayment } from '@/modules/order/order-payment.model';
 import { Tenant } from '@/modules/tenant/tenant.model';
 import { User } from '@/modules/user/user.model';
 import { Category } from '@/modules/category/category.model';
@@ -25,7 +28,7 @@ const sequelize = new Sequelize({
   username: config.database.user,
   password: config.database.password,
   logging: config.server.nodeEnv === 'development' ? console.log : false,
-  models: [Tenant, User, Category, Product, Supplier, Price, Customer, Order, OrderItem, PushSubscription, PurchaseOrder, PurchaseOrderItem, StockMovement],
+  models: [Tenant, TenantRequest, PlanPayment, OrderPayment, User, Category, Product, Supplier, Price, Customer, Order, OrderItem, PushSubscription, PurchaseOrder, PurchaseOrderItem, StockMovement],
   modelMatch: (filename, member) => {
     return filename.substring(0, filename.indexOf('.model')) === member.toLowerCase();
   },

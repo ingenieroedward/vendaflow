@@ -176,6 +176,146 @@ export class TenantService {
     return tenant;
   }
 
+  // ── Pagos de planes (Bre-B manual con aprobación) ───────────────────────
+  async getBilling(tenantId: number) {
+    const { PlanPayment } = await import('./plan-payment.model');
+    const { PLAN_PRICES, BREB_KEY, BREB_HOLDER } = await import('@/config/plans');
+    const tenant = await this.findById(tenantId);
+    const payments = await PlanPayment.findAll({
+      where: { tenantId },
+      attributes: { exclude: ['receiptBase64'] },
+      order: [['createdAt', 'DESC']],
+      limit: 24,
+    });
+    return {
+      brebKey: BREB_KEY,
+      brebHolder: BREB_HOLDER,
+      prices: PLAN_PRICES,
+      currentPlan: tenant.plan,
+      status: tenant.status,
+      trialEndsAt: tenant.trialEndsAt,
+      payments,
+    };
+  }
+
+  async reportPayment(tenantId: number, data: { plan: string; amount: number; reference?: string; receiptBase64?: string; receiptMime?: string }) {
+    const { PlanPayment } = await import('./plan-payment.model');
+    const { PLAN_PRICES } = await import('@/config/plans');
+    if (!PLAN_PRICES[data.plan]) throw new ConflictError('Plan inválido');
+    if (data.receiptBase64 && data.receiptBase64.length > 2_800_000) {
+      throw new ConflictError('El comprobante supera 2MB — usa una imagen más liviana');
+    }
+    const tenant = await this.findById(tenantId);
+    const payment = await PlanPayment.create({
+      tenantId,
+      plan: data.plan,
+      amount: data.amount,
+      reference: data.reference ?? null,
+      receiptBase64: data.receiptBase64 ?? null,
+      receiptMime: data.receiptMime ?? null,
+      status: 'pending',
+      receiptNumber: null,
+      rejectReason: null,
+      decidedAt: null,
+    });
+
+    const superadmins = await User.findAll({ where: { role: 'superadmin' }, attributes: ['id'] });
+    await pushService.notifyUsers(
+      superadmins.map(u => u.id),
+      'Pago reportado 💰',
+      `${tenant.name} reportó pago del plan ${data.plan}: $${Number(data.amount).toLocaleString('es-CO')}${data.reference ? ` (ref ${data.reference})` : ''}. Revisa el comprobante y aprueba.`,
+      { url: '/superadmin' },
+    );
+    return { id: payment.id, status: payment.status };
+  }
+
+  async listPayments() {
+    const { PlanPayment } = await import('./plan-payment.model');
+    const payments = await PlanPayment.findAll({
+      attributes: { exclude: ['receiptBase64'] },
+      order: [['createdAt', 'DESC']],
+      limit: 100,
+      raw: true,
+    });
+    const tenantIds = [...new Set(payments.map(p => p.tenantId))];
+    const tenants = await Tenant.findAll({ where: { id: tenantIds }, attributes: ['id', 'name', 'slug'], raw: true });
+    const tmap = new Map(tenants.map(t => [t.id, t]));
+    return payments.map(p => ({ ...p, tenant: tmap.get(p.tenantId) ?? null }));
+  }
+
+  async getPaymentReceipt(paymentId: number) {
+    const { PlanPayment } = await import('./plan-payment.model');
+    const payment = await PlanPayment.findByPk(paymentId);
+    if (!payment) throw new NotFoundError('Pago no encontrado');
+    return { receiptBase64: payment.receiptBase64, receiptMime: payment.receiptMime };
+  }
+
+  async decidePayment(paymentId: number, approve: boolean, reason?: string) {
+    const { PlanPayment } = await import('./plan-payment.model');
+    const payment = await PlanPayment.findByPk(paymentId);
+    if (!payment) throw new NotFoundError('Pago no encontrado');
+    if (payment.status !== 'pending') throw new ConflictError('El pago ya fue procesado');
+
+    const tenant = await this.findById(payment.tenantId);
+    const admins = await User.findAll({ where: { tenantId: tenant.id, role: 'admin' }, attributes: ['id'] });
+
+    if (approve) {
+      const approvedCount = await PlanPayment.count({ where: { status: 'approved' } });
+      const receiptNumber = `REC-${String(approvedCount + 1).padStart(4, '0')}`;
+      await payment.update({ status: 'approved', receiptNumber, decidedAt: new Date() });
+      // Activar el plan pagado
+      await tenant.update({ plan: payment.plan as TenantPlan, status: 'active', trialEndsAt: null });
+      await pushService.notifyUsers(
+        admins.map(u => u.id),
+        'Pago confirmado ✓',
+        `Tu pago del plan ${payment.plan} fue confirmado. Recibo ${receiptNumber}. ¡Gracias!`,
+        { url: '/settings' },
+      );
+    } else {
+      await payment.update({ status: 'rejected', rejectReason: reason ?? null, decidedAt: new Date() });
+      await pushService.notifyUsers(
+        admins.map(u => u.id),
+        'Pago no confirmado',
+        `No pudimos confirmar tu pago${reason ? `: ${reason}` : ''}. Repórtalo de nuevo o contáctanos.`,
+        { url: '/settings' },
+      );
+    }
+    return payment;
+  }
+
+  // ── Solicitudes de registro ──────────────────────────────────────────────
+  async listRequests() {
+    const { TenantRequest } = await import('./tenant-request.model');
+    return TenantRequest.findAll({ order: [['createdAt', 'DESC']], limit: 100 });
+  }
+
+  async approveRequest(requestId: number, data: { slug: string; adminUsername: string; adminPassword: string; plan?: TenantPlan; primaryColor?: string }) {
+    const { TenantRequest } = await import('./tenant-request.model');
+    const request = await TenantRequest.findByPk(requestId);
+    if (!request) throw new NotFoundError('Solicitud no encontrada');
+    if (request.status !== 'pending') throw new ConflictError('La solicitud ya fue procesada');
+
+    const tenant = await this.create({
+      slug: data.slug,
+      name: request.companyName,
+      adminUsername: data.adminUsername,
+      adminPassword: data.adminPassword,
+      ...(data.plan !== undefined && { plan: data.plan }),
+      ...(data.primaryColor !== undefined && { primaryColor: data.primaryColor }),
+    });
+
+    await request.update({ status: 'approved', tenantId: tenant.id });
+    return { request, tenant };
+  }
+
+  async rejectRequest(requestId: number) {
+    const { TenantRequest } = await import('./tenant-request.model');
+    const request = await TenantRequest.findByPk(requestId);
+    if (!request) throw new NotFoundError('Solicitud no encontrada');
+    await request.update({ status: 'rejected' });
+    return request;
+  }
+
   // Impersonar: token de sesión del primer admin del tenant (soporte superadmin)
   async impersonate(tenantId: number) {
     const tenant = await this.findById(tenantId);
