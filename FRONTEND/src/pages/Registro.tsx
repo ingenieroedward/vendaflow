@@ -129,7 +129,7 @@ const Registro: React.FC = () => {
               </Link>
             </div>
             <p className="mt-6 text-xs text-gray-400">
-              ¿Ya tienes cuenta? <Link to="/login" className="text-blue-600 font-semibold hover:underline underline-offset-2">Inicia sesión</Link>
+              ¿Ya eres cliente? Ingresa desde <span className="font-mono text-gray-500">tu-empresa.merco.edwsystem.com</span>
             </p>
           </div>
         </main>
@@ -154,9 +154,7 @@ const Registro: React.FC = () => {
               className="hidden sm:inline-flex px-4 py-2 text-sm font-semibold text-gray-700 rounded-lg hover:bg-gray-100 transition-colors">
               Ver demo
             </a>
-            <Link to="/login" className="px-4 py-2 text-sm font-semibold text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-              Inicia sesión
-            </Link>
+
           </div>
         </div>
       </nav>
@@ -307,7 +305,6 @@ const Registro: React.FC = () => {
 
             <p className="mt-5 text-center text-xs text-gray-400">
               ¿Ya eres cliente? Ingresa desde <span className="font-mono text-gray-500">tu-empresa.merco.edwsystem.com</span>
-              {' '}o <Link to="/login" className="text-blue-600 font-semibold hover:underline underline-offset-2">inicia sesión</Link>
             </p>
           </div>
         </div>
