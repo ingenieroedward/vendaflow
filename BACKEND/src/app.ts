@@ -95,6 +95,7 @@ app.get('/health', (_req, res) => {
     message: 'Server is running',
     timestamp: new Date().toISOString(),
     environment: config.server.nodeEnv,
+    version: '1.1.0', // bump manual al cambiar algo relevante — permite verificar deploys desde fuera
   });
 });
 

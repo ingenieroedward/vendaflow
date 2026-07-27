@@ -220,6 +220,10 @@ proxy_pass http://$backend_host:3005$request_uri;
 - Acceso VPS: `ssh -i ~/.ssh/id_ed25519_personal ubuntu@158.69.219.152` (docker/rclone requieren `sudo`)
 - **Restaurar**: `gunzip -c archivo.sql.gz | sudo docker exec -i merco-mysql sh -c 'exec mysql -uroot -p"$MYSQL_ROOT_PASSWORD" merco_db'` (descargar de B2 con `rclone copy b2-jjlm:jjlm-backups/db/<archivo> .`)
 
+### CI (configurado jul 2026)
+- Los tests corren dentro del Docker build (`RUN npm test` en ambos Dockerfiles): si fallan, el build falla y **Dokploy aborta el deploy** — queda corriendo la versión anterior
+- `/health` expone `version` (bump manual en app.ts) para verificar desde fuera qué build está en producción
+
 ### Monitoreo (configurado jul 2026)
 - Watchdog en el VPS: `/usr/local/bin/merco-healthcheck.sh` — cron cada 5 min, log en `/var/log/merco-health.log`
 - Vigila: API (`/health`), frontend (demo), backup fresco (<26h) y disco (<85%)
