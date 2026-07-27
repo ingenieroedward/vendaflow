@@ -7,6 +7,7 @@ import { ensureSuperadmin } from '@/core/startup/ensureSuperadmin';
 import { ensureDemoData } from '@/core/startup/ensureDemoData';
 import { ensureSchema } from '@/core/startup/ensureSchema';
 import { startPaymentReminderJob } from '@/core/jobs/paymentReminders';
+import { startTrialExpiryJob } from '@/core/jobs/trialExpiry';
 
 const PORT = config.server.port;
 
@@ -65,6 +66,9 @@ const startServer = async (): Promise<void> => {
 
     // Daily push reminders for credit orders about to expire
     startPaymentReminderJob();
+
+    // Daily trial management: suspend expired trials + expiry warnings
+    startTrialExpiryJob();
 
     console.log('✅ Database ready — all systems operational');
   } catch (error) {

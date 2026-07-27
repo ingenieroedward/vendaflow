@@ -24,6 +24,16 @@ export async function ensureSchema(): Promise<void> {
     logger.info(`[ensureSchema] Column orders.${col.name} added`);
   }
 
+  const poColumns = await qi.describeTable('purchase_orders');
+  if (!('affectsStock' in poColumns)) {
+    await qi.addColumn('purchase_orders', 'affectsStock', {
+      type: DataType.BOOLEAN,
+      allowNull: false,
+      defaultValue: true,
+    } as never);
+    logger.info('[ensureSchema] Column purchase_orders.affectsStock added');
+  }
+
   if (missing.length === 0) {
     logger.info('[ensureSchema] Schema up to date');
   }

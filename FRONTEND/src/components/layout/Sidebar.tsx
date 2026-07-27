@@ -1,8 +1,10 @@
-import { Package, ClipboardList, Users, LogOut, User, Shield, Truck, Tag, DollarSign, UserCheck, BarChart2, Warehouse, ShoppingCart, Settings, Bell, BellOff } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Package, ClipboardList, Users, LogOut, User, Shield, Truck, Tag, DollarSign, UserCheck, BarChart2, Warehouse, ShoppingCart, Settings, Bell, BellOff, AlertTriangle } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { useTenantStore } from '../../store/tenantStore';
 import { usePushNotifications } from '../../hooks/usePushNotifications';
+import { getMyTenant } from '../../services/tenant';
 
 interface NavItem {
   label: string;
@@ -28,6 +30,18 @@ const NAV_ITEMS: NavItem[] = [
 const Sidebar = () => {
   const { user, logout } = useAuthStore();
   const { isSupported: pushSupported, isSubscribed: pushSubscribed, isLoading: pushLoading, toggle: togglePush } = usePushNotifications();
+
+  // Aviso de trial por vencer (solo admin, ≤7 días)
+  const [trialDaysLeft, setTrialDaysLeft] = useState<number | null>(null);
+  useEffect(() => {
+    if (user?.role !== 'admin' || !navigator.onLine) return;
+    getMyTenant().then(t => {
+      if (t?.plan === 'trial' && t.trialEndsAt) {
+        const days = Math.ceil((new Date(t.trialEndsAt).getTime() - Date.now()) / 86400000);
+        if (days <= 7) setTrialDaysLeft(days);
+      }
+    }).catch(() => {/* silencioso */});
+  }, [user?.role]);
   const { tenant } = useTenantStore();
   const navigate = useNavigate();
   const location = useLocation();
@@ -84,6 +98,24 @@ const Sidebar = () => {
           );
         })}
       </nav>
+
+      {/* Trial por vencer */}
+      {trialDaysLeft !== null && (
+        <Link
+          to="/settings"
+          className="mx-3 mb-2 flex items-start gap-2 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-xl hover:bg-amber-100 transition-colors"
+        >
+          <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+          <span className="text-xs text-amber-800 leading-snug">
+            {trialDaysLeft <= 0
+              ? 'Tu período de prueba vence HOY'
+              : trialDaysLeft === 1
+                ? 'Tu prueba vence mañana'
+                : `Tu prueba vence en ${trialDaysLeft} días`}
+            <span className="block text-amber-600 font-medium mt-0.5">Activa un plan →</span>
+          </span>
+        </Link>
+      )}
 
       {/* User section */}
       {user && (

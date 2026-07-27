@@ -66,6 +66,7 @@ export class PurchaseOrderService {
               totalAmount,
               status: validatedData.status ?? 'draft',
               notes: validatedData.notes ?? null,
+              affectsStock: validatedData.affectsStock ?? true,
             },
             { transaction: t },
           );
@@ -84,7 +85,7 @@ export class PurchaseOrderService {
           }
 
           // If created directly as received, update stock immediately
-          if (po.status === 'received') {
+          if (po.status === 'received' && po.affectsStock) {
             for (const item of validatedData.items) {
               await this.stockMovementService.createMovement({
                 tenantId,
@@ -234,7 +235,7 @@ export class PurchaseOrderService {
       }
 
       // When transitioning to 'received', add stock for all items
-      if (newStatus === 'received') {
+      if (newStatus === 'received' && po.affectsStock) {
         const currentItems = await PurchaseOrderItem.findAll({ where: { purchaseOrderId: po.id }, transaction: t });
         for (const item of currentItems) {
           await this.stockMovementService.createMovement({
@@ -271,6 +272,7 @@ export class PurchaseOrderService {
       totalAmount: Number(po.totalAmount),
       status: po.status,
       notes: po.notes,
+      affectsStock: po.affectsStock ?? true,
       supplier: po.supplier
         ? { id: po.supplier.id, name: po.supplier.name, contact: po.supplier.contact, location: po.supplier.location }
         : undefined,

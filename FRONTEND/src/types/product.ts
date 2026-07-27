@@ -49,6 +49,7 @@ export interface PurchaseOrder {
   totalAmount: number;
   status: PurchaseOrderStatus;
   notes: string | null;
+  affectsStock?: boolean;
   supplier?: Supplier;
   user?: { id: number; username: string };
   items: PurchaseOrderItem[];
@@ -60,6 +61,7 @@ export interface CreatePurchaseOrderRequest {
   supplierId: number;
   status?: PurchaseOrderStatus;
   notes?: string;
+  affectsStock?: boolean;
   items: Array<{ productId: number; quantity: number; unitCost: number }>;
 }
 

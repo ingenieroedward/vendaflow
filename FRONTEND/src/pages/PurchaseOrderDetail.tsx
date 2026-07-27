@@ -36,7 +36,12 @@ const PurchaseOrderDetail: React.FC = () => {
     setUpdating(true);
     try {
       await markAsReceived(po.id);
-      addNotification({ type: 'success', message: `Stock actualizado — ${po.poNumber} marcada como recibida` });
+      addNotification({
+        type: 'success',
+        message: po.affectsStock === false
+          ? `${po.poNumber} marcada como recibida (sin afectar inventario)`
+          : `Stock actualizado — ${po.poNumber} marcada como recibida`,
+      });
     } catch {
       addNotification({ type: 'error', message: 'Error al marcar como recibida' });
     }
@@ -80,6 +85,11 @@ const PurchaseOrderDetail: React.FC = () => {
             <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${status.className}`}>
               {status.label}
             </span>
+            {po.affectsStock === false && (
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-500" title="Compra registrada solo por costos — el stock ya estaba cargado">
+                No suma inventario
+              </span>
+            )}
           </div>
           <p className="text-xs sm:text-sm text-gray-500 mt-1">
             {format(new Date(po.createdAt), "dd MMM yyyy", { locale: es })}

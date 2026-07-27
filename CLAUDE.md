@@ -230,6 +230,12 @@ Al arrancar el backend:
 3. `ensureSuperadmin()` — crea/actualiza superadmin desde vars de entorno
 4. `ensureDemoData()` — si `DEMO_ADMIN_PASSWORD` está seteado, garantiza tenant `demo` + `demo_admin`
 5. `startPaymentReminderJob()` — job diario: push a admin/sellers del tenant con órdenes a crédito por vencer (ventana = `reminderDays` de cada orden) o vencidas
+6. `startTrialExpiryJob()` — job diario (`core/jobs/trialExpiry.ts`): suspende tenants con trial vencido (el slug `demo` está exento) y avisa por push al admin del tenant y a los superadmins desde 3 días antes. El login ya rechaza tenants suspendidos
+
+## ÓRDENES DE COMPRA — affectsStock
+
+- `affectsStock` (boolean, default true) en `purchase_orders`: si es false, al recibir la orden NO se crean movimientos de stock — para registrar compras por costos cuando el inventario ya fue cargado (ej. carga inicial del cliente)
+- Checkbox "Sumar al inventario al recibir" en PurchaseOrderNew; badge "No suma inventario" en el detalle
 
 ## ÓRDENES A CRÉDITO (plazo de pago)
 
