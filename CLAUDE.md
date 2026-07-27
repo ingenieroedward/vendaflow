@@ -220,6 +220,13 @@ proxy_pass http://$backend_host:3005$request_uri;
 - Acceso VPS: `ssh -i ~/.ssh/id_ed25519_personal ubuntu@158.69.219.152` (docker/rclone requieren `sudo`)
 - **Restaurar**: `gunzip -c archivo.sql.gz | sudo docker exec -i merco-mysql sh -c 'exec mysql -uroot -p"$MYSQL_ROOT_PASSWORD" merco_db'` (descargar de B2 con `rclone copy b2-jjlm:jjlm-backups/db/<archivo> .`)
 
+### Monitoreo (configurado jul 2026)
+- Watchdog en el VPS: `/usr/local/bin/merco-healthcheck.sh` — cron cada 5 min, log en `/var/log/merco-health.log`
+- Vigila: API (`/health`), frontend (demo), backup fresco (<26h) y disco (<85%)
+- Alertas push vía **ntfy.sh**, canal `merco-alertas-0e4f4a1cec56` — suscribirse en la app ntfy (Android/iOS) o en `https://ntfy.sh/merco-alertas-0e4f4a1cec56`. Avisa caída (tras 2 fallos consecutivos = >5 min) y recuperación; backup/disco máximo 1 alerta al día
+- Estado anti-spam en `/var/run/merco-health/` (se limpia al reiniciar el VPS, inofensivo)
+- Pendiente opcional: Sentry para stack traces de errores 500 (requiere crear cuenta)
+
 ---
 
 ## STARTUP HOOKS (server.ts)
