@@ -331,6 +331,13 @@ Al arrancar el backend:
 - [x] Backend `PUT /tenants/:id` (superadmin only)
 - [x] Stats de uso real por tenant: columna "Uso" (`usado/límite` de usuarios, productos y órdenes del mes) con alerta ámbar ≥70% y roja ≥100%. `GET /tenants` incluye `usage` (3 queries agrupadas, sin N+1)
 - [x] KPI cards de plataforma (tenants con desglose, órdenes del mes, usuarios totales, trials por vencer) + panel "Actividad del mes" (top 5 tenants por órdenes con barras)
+- [x] **Impersonar**: `POST /tenants/:id/impersonate` genera JWT del primer admin del tenant; el panel abre `https://slug…/login?impersonate=<token>` y Login.tsx lo consume (sesión completa sin contraseña)
+- [x] **Extender trial 1-click**: chip "+7d" en la fila (suma sobre la fecha actual o hoy); extender un trial vencido **reactiva** el tenant suspendido automáticamente (lógica en `tenantService.update`)
+- [x] **Detalle por tenant** (ojo en la fila): usuarios, órdenes por mes (6m), cartera pendiente + acciones export/impersonar
+- [x] **Anuncio push** (`POST /tenants/broadcast`): a toda la plataforma o a un tenant, opcional solo admins
+- [x] **Crecimiento**: órdenes/mes de la plataforma y tenants nuevos/mes (`GET /tenants/platform/stats`)
+- [x] **Card Sistema**: versión desplegada (`APP_VERSION` en `config/version.ts` — bump manual) + última corrida de los jobs diarios (`core/jobs/jobStatus.ts`)
+- [x] **Export de tenant**: `GET /tenants/:id/export` → JSON completo (users sin password, productos, órdenes, etc.) para offboarding
 
 ### Home del cliente (`/`)
 - DECISIÓN (jul 2026): se probó un dashboard de KPIs en el Home y se revirtió — el Home es la página de búsqueda de productos y el dashboard le estorbaba. NO volver a ponerlo ahí; si se quiere dashboard del tenant, hacerlo como página aparte

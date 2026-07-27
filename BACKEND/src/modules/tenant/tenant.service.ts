@@ -3,9 +3,20 @@ import { User } from '../user/user.model';
 import { Category } from '../category/category.model';
 import { Product } from '../product/product.model';
 import { Order } from '../order/order.model';
+import { OrderItem } from '../order/order-item.model';
+import { Supplier } from '../supplier/supplier.model';
+import { Price } from '../price/price.model';
+import { Customer } from '../customer/customer.model';
+import { PurchaseOrder } from '../purchase-order/purchase-order.model';
+import { PurchaseOrderItem } from '../purchase-order/purchase-order-item/purchase-order-item.model';
+import { StockMovement } from '../stock-movement/stock-movement.model';
+import { AuthService } from '../auth/auth.service';
+import { pushService } from '../push/push.service';
+import { getJobStatuses } from '@/core/jobs/jobStatus';
+import { APP_VERSION } from '@/config/version';
 import { ConflictError, NotFoundError } from '@/core/errors/AppError';
 import sequelize from '@/database';
-import { Op } from 'sequelize';
+import { Op, fn, col } from 'sequelize';
 import bcrypt from 'bcryptjs';
 
 const PLAN_LIMITS: Record<TenantPlan, { maxUsers: number; maxProducts: number; maxOrdersPerMonth: number }> = {
@@ -135,7 +146,18 @@ export class TenantService {
     const updates: Partial<TenantAttributes> = {};
 
     if (data.name !== undefined) updates.name = data.name;
-    if (data.trialEndsAt !== undefined) updates.trialEndsAt = data.trialEndsAt ? new Date(data.trialEndsAt) : null;
+    if (data.trialEndsAt !== undefined) {
+      updates.trialEndsAt = data.trialEndsAt ? new Date(data.trialEndsAt) : null;
+      // Extender un trial vencido reactiva el tenant suspendido automáticamente
+      if (
+        tenant.status === 'suspended' &&
+        (data.plan ?? tenant.plan) === 'trial' &&
+        updates.trialEndsAt &&
+        updates.trialEndsAt > new Date()
+      ) {
+        updates.status = 'trial';
+      }
+    }
     if (data.maxUsers !== undefined) updates.maxUsers = data.maxUsers;
     if (data.maxProducts !== undefined) updates.maxProducts = data.maxProducts;
     if (data.maxOrdersPerMonth !== undefined) updates.maxOrdersPerMonth = data.maxOrdersPerMonth;
@@ -152,6 +174,156 @@ export class TenantService {
 
     await tenant.update(updates);
     return tenant;
+  }
+
+  // Impersonar: token de sesión del primer admin del tenant (soporte superadmin)
+  async impersonate(tenantId: number) {
+    const tenant = await this.findById(tenantId);
+    const admin = await User.findOne({
+      where: { tenantId, role: 'admin' },
+      order: [['createdAt', 'ASC']],
+    });
+    if (!admin) throw new NotFoundError('El tenant no tiene usuario admin');
+    const token = new AuthService().generateToken(admin.id, admin.username, admin.role, admin.tenantId);
+    return { token, slug: tenant.slug, username: admin.username };
+  }
+
+  // Detalle operativo del tenant para el panel superadmin
+  async getDetail(tenantId: number) {
+    const tenant = await this.findById(tenantId);
+
+    const since = new Date();
+    since.setMonth(since.getMonth() - 5);
+    since.setDate(1);
+    since.setHours(0, 0, 0, 0);
+
+    const [users, ordersByMonth, receivable] = await Promise.all([
+      User.findAll({
+        where: { tenantId },
+        attributes: ['id', 'username', 'role', 'createdAt'],
+        order: [['createdAt', 'ASC']],
+      }),
+      Order.findAll({
+        where: { tenantId, createdAt: { [Op.gte]: since } },
+        attributes: [
+          [fn('DATE_FORMAT', col('createdAt'), '%Y-%m'), 'month'],
+          [fn('COUNT', col('id')), 'count'],
+          [fn('SUM', col('totalAmount')), 'total'],
+        ],
+        group: ['month'],
+        order: [[col('month'), 'ASC']],
+        raw: true,
+      }) as unknown as Promise<Array<{ month: string; count: number; total: string }>>,
+      Order.sum('totalAmount', {
+        where: { tenantId, paymentType: 'credit', paidAt: null, status: { [Op.ne]: 'cancelled' } },
+      }),
+    ]);
+
+    return {
+      tenant: this.getInfoFromInstance(tenant),
+      users,
+      ordersByMonth: ordersByMonth.map(r => ({ month: r.month, count: Number(r.count), total: Number(r.total) })),
+      receivable: Number(receivable) || 0,
+    };
+  }
+
+  // Anuncio push: a un tenant específico o a toda la plataforma
+  async broadcast(data: { tenantId?: number; onlyAdmins?: boolean; title: string; body: string }) {
+    const where: Record<string, unknown> = {};
+    if (data.tenantId) where['tenantId'] = data.tenantId;
+    where['role'] = data.onlyAdmins ? 'admin' : { [Op.ne]: 'superadmin' };
+
+    const users = await User.findAll({ where: where as never, attributes: ['id'] });
+    await pushService.notifyUsers(users.map(u => u.id), data.title, data.body, { url: '/' });
+    return { recipients: users.length };
+  }
+
+  // Crecimiento de la plataforma + salud del sistema
+  async getPlatformStats() {
+    const since = new Date();
+    since.setMonth(since.getMonth() - 5);
+    since.setDate(1);
+    since.setHours(0, 0, 0, 0);
+
+    const [tenantsByMonth, ordersByMonth] = await Promise.all([
+      Tenant.findAll({
+        where: { createdAt: { [Op.gte]: since }, slug: { [Op.notIn]: ['platform'] } },
+        attributes: [[fn('DATE_FORMAT', col('createdAt'), '%Y-%m'), 'month'], [fn('COUNT', col('id')), 'count']],
+        group: ['month'],
+        order: [[col('month'), 'ASC']],
+        raw: true,
+      }) as unknown as Promise<Array<{ month: string; count: number }>>,
+      Order.findAll({
+        where: { createdAt: { [Op.gte]: since } },
+        attributes: [
+          [fn('DATE_FORMAT', col('createdAt'), '%Y-%m'), 'month'],
+          [fn('COUNT', col('id')), 'count'],
+          [fn('SUM', col('totalAmount')), 'total'],
+        ],
+        group: ['month'],
+        order: [[col('month'), 'ASC']],
+        raw: true,
+      }) as unknown as Promise<Array<{ month: string; count: number; total: string }>>,
+    ]);
+
+    return {
+      version: APP_VERSION,
+      jobs: getJobStatuses(),
+      tenantsByMonth: tenantsByMonth.map(r => ({ month: r.month, count: Number(r.count) })),
+      ordersByMonth: ordersByMonth.map(r => ({ month: r.month, count: Number(r.count), total: Number(r.total) })),
+    };
+  }
+
+  // Export completo de los datos de un tenant (offboarding / respaldo puntual)
+  async exportTenantData(tenantId: number) {
+    const tenant = await this.findById(tenantId);
+    const w = { tenantId };
+
+    const [users, categories, products, suppliers, prices, customers, orders, purchaseOrders, stockMovements] =
+      await Promise.all([
+        User.findAll({ where: w, attributes: { exclude: ['password'] }, raw: true }),
+        Category.findAll({ where: w, raw: true }),
+        Product.findAll({ where: w, raw: true }),
+        Supplier.findAll({ where: w, raw: true }),
+        Price.findAll({ where: w, raw: true }),
+        Customer.findAll({ where: w, raw: true }),
+        Order.findAll({ where: w, include: [{ model: OrderItem, as: 'orderItems' }] }),
+        PurchaseOrder.findAll({ where: w, include: [{ model: PurchaseOrderItem, as: 'items' }] }),
+        StockMovement.findAll({ where: w, raw: true }),
+      ]);
+
+    return {
+      exportedAt: new Date().toISOString(),
+      tenant: this.getInfoFromInstance(tenant),
+      data: {
+        users,
+        categories,
+        products,
+        suppliers,
+        prices,
+        customers,
+        orders: orders.map(o => o.toJSON()),
+        purchaseOrders: purchaseOrders.map(p => p.toJSON()),
+        stockMovements,
+      },
+    };
+  }
+
+  private getInfoFromInstance(tenant: Tenant) {
+    return {
+      id: tenant.id,
+      slug: tenant.slug,
+      name: tenant.name,
+      plan: tenant.plan,
+      status: tenant.status,
+      logoUrl: tenant.logoUrl,
+      primaryColor: tenant.primaryColor ?? '#2563eb',
+      trialEndsAt: tenant.trialEndsAt,
+      maxUsers: tenant.maxUsers,
+      maxProducts: tenant.maxProducts,
+      maxOrdersPerMonth: tenant.maxOrdersPerMonth,
+      createdAt: tenant.createdAt,
+    };
   }
 
   async listAll() {

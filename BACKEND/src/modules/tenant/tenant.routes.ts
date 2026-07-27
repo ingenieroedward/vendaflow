@@ -15,6 +15,11 @@ router.put('/me/theme', isAuth, isAdmin, ctrl.updateTheme);
 // Super-admin only
 router.post('/', isAuth, isSuperAdmin, ctrl.createTenant);
 router.get('/', isAuth, isSuperAdmin, ctrl.listAll);
+router.get('/platform/stats', isAuth, isSuperAdmin, ctrl.platformStats);
+router.post('/broadcast', isAuth, isSuperAdmin, ctrl.broadcast);
+router.post('/:id/impersonate', isAuth, isSuperAdmin, ctrl.impersonate);
+router.get('/:id/detail', isAuth, isSuperAdmin, ctrl.getDetail);
+router.get('/:id/export', isAuth, isSuperAdmin, ctrl.exportData);
 router.put('/:id/suspend', isAuth, isSuperAdmin, ctrl.suspend);
 router.put('/:id/activate', isAuth, isSuperAdmin, ctrl.activate);
 router.put('/:id', isAuth, isSuperAdmin, ctrl.updateTenant);

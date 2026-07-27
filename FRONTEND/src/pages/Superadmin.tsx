@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Plus, Power, PowerOff, LogOut, RefreshCw, X, Search, ExternalLink, Edit, AlertTriangle, ClipboardList, Users, TrendingUp } from 'lucide-react';
+import { Building2, Plus, Power, PowerOff, LogOut, RefreshCw, X, Search, ExternalLink, Edit, AlertTriangle, ClipboardList, Users, TrendingUp, Eye, LogIn, Megaphone, Download, Activity } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
-import { tenantAdminService, TenantSummary, CreateTenantPayload, UpdateTenantPayload } from '../services/tenantAdmin';
+import { tenantAdminService, TenantSummary, CreateTenantPayload, UpdateTenantPayload, TenantDetail, PlatformStats } from '../services/tenantAdmin';
 
 const PLAN_LABELS: Record<string, string> = {
   trial: 'Trial',
@@ -299,6 +299,102 @@ const EditTenantModal: React.FC<EditModalProps> = ({ tenant, onSave, onClose }) 
   );
 };
 
+// ---- Broadcast Modal ----
+
+const BroadcastModal: React.FC<{
+  tenants: TenantSummary[];
+  onClose: () => void;
+  onSent: (recipients: number) => void;
+}> = ({ tenants, onClose, onSent }) => {
+  const [tenantId, setTenantId] = useState<string>('');
+  const [onlyAdmins, setOnlyAdmins] = useState(true);
+  const [title, setTitle] = useState('');
+  const [body, setBody] = useState('');
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const send = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSending(true);
+    setError(null);
+    try {
+      const r = await tenantAdminService.broadcast({
+        ...(tenantId ? { tenantId: Number(tenantId) } : {}),
+        onlyAdmins,
+        title,
+        body,
+      });
+      onSent(r.recipients);
+    } catch (err: unknown) {
+      setError((err as { message?: string })?.message ?? 'No se pudo enviar');
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <form onSubmit={send} className="bg-white rounded-2xl shadow-xl w-full max-w-md p-5 sm:p-6 space-y-4" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between">
+          <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+            <Megaphone className="w-4 h-4 text-gray-400" /> Anuncio push
+          </h3>
+          <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">Destinatario</label>
+          <select
+            value={tenantId}
+            onChange={e => setTenantId(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+          >
+            <option value="">Toda la plataforma</option>
+            {tenants.filter(t => t.slug !== 'platform').map(t => (
+              <option key={t.id} value={t.id}>{t.name} ({t.slug})</option>
+            ))}
+          </select>
+        </div>
+
+        <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
+          <input type="checkbox" checked={onlyAdmins} onChange={e => setOnlyAdmins(e.target.checked)} className="w-4 h-4 rounded border-gray-300" />
+          Solo administradores
+        </label>
+
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">Título *</label>
+          <input
+            value={title} onChange={e => setTitle(e.target.value)} required maxLength={80}
+            placeholder="Mantenimiento programado"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">Mensaje *</label>
+          <textarea
+            value={body} onChange={e => setBody(e.target.value)} required rows={3} maxLength={300}
+            placeholder="El domingo 3 de agosto de 2 a 3 AM la plataforma estará en mantenimiento..."
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+          />
+        </div>
+
+        {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
+
+        <p className="text-[11px] text-gray-400">
+          Solo llega a usuarios con notificaciones push activadas en la app.
+        </p>
+
+        <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
+          <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">Cancelar</button>
+          <button type="submit" disabled={sending} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50">
+            {sending ? 'Enviando...' : 'Enviar'}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
 // ---- Main Page ----
 
 const Superadmin: React.FC = () => {
@@ -312,12 +408,18 @@ const Superadmin: React.FC = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [editTenant, setEditTenant] = useState<TenantSummary | null>(null);
+  const [detail, setDetail] = useState<TenantDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [showBroadcast, setShowBroadcast] = useState(false);
+  const [broadcastOk, setBroadcastOk] = useState<string | null>(null);
+  const [platform, setPlatform] = useState<PlatformStats | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       setTenants(await tenantAdminService.listAll());
+      tenantAdminService.platformStats().then(setPlatform).catch(() => setPlatform(null));
     } catch (e: unknown) {
       setError((e as { message?: string })?.message ?? 'Error al cargar tenants');
     } finally {
@@ -330,6 +432,52 @@ const Superadmin: React.FC = () => {
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  const handleImpersonate = async (t: TenantSummary) => {
+    try {
+      const r = await tenantAdminService.impersonate(t.id);
+      window.open(`${tenantAppUrl(r.slug)}/login?impersonate=${encodeURIComponent(r.token)}`, '_blank');
+    } catch (e: unknown) {
+      setError((e as { message?: string })?.message ?? 'No se pudo impersonar');
+    }
+  };
+
+  const handleExtendTrial = async (t: TenantSummary, days: number) => {
+    try {
+      const base = t.trialEndsAt && new Date(t.trialEndsAt) > new Date() ? new Date(t.trialEndsAt) : new Date();
+      base.setDate(base.getDate() + days);
+      await tenantAdminService.update(t.id, { trialEndsAt: base.toISOString().slice(0, 10) });
+      await load();
+    } catch (e: unknown) {
+      setError((e as { message?: string })?.message ?? 'No se pudo extender el trial');
+    }
+  };
+
+  const handleOpenDetail = async (t: TenantSummary) => {
+    setDetailLoading(true);
+    try {
+      setDetail(await tenantAdminService.getDetail(t.id));
+    } catch (e: unknown) {
+      setError((e as { message?: string })?.message ?? 'No se pudo cargar el detalle');
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  const handleExport = async (id: number, slug: string) => {
+    try {
+      const data = await tenantAdminService.exportData(id);
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `tenant-${slug}-export.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e: unknown) {
+      setError((e as { message?: string })?.message ?? 'No se pudo exportar');
+    }
   };
 
   const handleSuspend = async (id: number) => {
@@ -500,6 +648,77 @@ const Superadmin: React.FC = () => {
           </div>
         )}
 
+        {/* Crecimiento y salud del sistema */}
+        {platform && (
+          <div className="grid lg:grid-cols-3 gap-4">
+            <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <TrendingUp className="w-4 h-4 text-gray-400" />
+                <h3 className="text-sm font-semibold text-gray-900">Crecimiento</h3>
+                <span className="text-xs text-gray-400">últimos 6 meses</span>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-5">
+                <div>
+                  <p className="text-xs font-medium text-gray-500 mb-2">Órdenes por mes (plataforma)</p>
+                  <div className="flex items-end gap-1.5 h-24">
+                    {platform.ordersByMonth.map(m => {
+                      const max = Math.max(...platform.ordersByMonth.map(x => x.count), 1);
+                      return (
+                        <div key={m.month} className="flex-1 flex flex-col items-center gap-1" title={`${m.count} órdenes`}>
+                          <span className="text-[10px] text-gray-500 font-medium">{m.count}</span>
+                          <div className="w-full bg-blue-500 rounded-t" style={{ height: `${Math.max(8, (m.count / max) * 100)}%` }} />
+                          <span className="text-[10px] text-gray-400">{m.month.slice(5)}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-gray-500 mb-2">Tenants nuevos por mes</p>
+                  <div className="flex items-end gap-1.5 h-24">
+                    {platform.tenantsByMonth.length === 0 ? (
+                      <p className="text-xs text-gray-400 self-center">Sin registros en el período</p>
+                    ) : platform.tenantsByMonth.map(m => {
+                      const max = Math.max(...platform.tenantsByMonth.map(x => x.count), 1);
+                      return (
+                        <div key={m.month} className="flex-1 flex flex-col items-center gap-1" title={`${m.count} tenants`}>
+                          <span className="text-[10px] text-gray-500 font-medium">{m.count}</span>
+                          <div className="w-full bg-violet-500 rounded-t" style={{ height: `${Math.max(8, (m.count / max) * 100)}%` }} />
+                          <span className="text-[10px] text-gray-400">{m.month.slice(5)}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <Activity className="w-4 h-4 text-gray-400" />
+                <h3 className="text-sm font-semibold text-gray-900">Sistema</h3>
+              </div>
+              <p className="text-xs text-gray-500 mb-3">
+                Versión desplegada: <span className="font-mono font-semibold text-gray-800">{platform.version}</span>
+              </p>
+              <p className="text-xs font-medium text-gray-500 mb-1.5">Jobs diarios</p>
+              <div className="space-y-1.5">
+                {Object.keys(platform.jobs).length === 0 && (
+                  <p className="text-xs text-gray-400">Aún sin corridas (el backend arrancó hace poco)</p>
+                )}
+                {Object.entries(platform.jobs).map(([name, j]) => (
+                  <div key={name} className="flex items-center justify-between text-xs">
+                    <span className="text-gray-600">{name}</span>
+                    <span className={`flex items-center gap-1 font-medium ${j.ok ? 'text-green-600' : 'text-red-600'}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${j.ok ? 'bg-green-500' : 'bg-red-500'}`} />
+                      {new Date(j.at).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Trial expiry alerts */}
         {expiringTenants.length > 0 && (
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
@@ -558,6 +777,14 @@ const Superadmin: React.FC = () => {
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </button>
             <button
+              onClick={() => setShowBroadcast(true)}
+              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              title="Enviar anuncio push"
+            >
+              <Megaphone className="w-4 h-4" />
+              <span className="hidden sm:inline">Anuncio</span>
+            </button>
+            <button
               onClick={() => setShowCreate(v => !v)}
               className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
             >
@@ -570,6 +797,12 @@ const Superadmin: React.FC = () => {
         {/* Create form */}
         {showCreate && (
           <CreateTenantForm onSubmit={handleCreate} onCancel={() => setShowCreate(false)} />
+        )}
+
+        {broadcastOk && (
+          <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-3 text-sm text-green-700">
+            {broadcastOk}
+          </div>
         )}
 
         {/* Error banner */}
@@ -656,6 +889,15 @@ const Superadmin: React.FC = () => {
                                   ({trialDays <= 0 ? 'expiró' : `${trialDays}d`})
                                 </span>
                               )}
+                              {t.plan === 'trial' && (
+                                <button
+                                  onClick={() => handleExtendTrial(t, 7)}
+                                  className="ml-1.5 px-1.5 py-0.5 text-[10px] font-semibold text-blue-600 border border-blue-200 rounded hover:bg-blue-50 transition-colors"
+                                  title="Extender trial 7 días (reactiva si está suspendido)"
+                                >
+                                  +7d
+                                </button>
+                              )}
                             </span>
                           ) : '—'}
                         </td>
@@ -679,6 +921,23 @@ const Superadmin: React.FC = () => {
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => handleOpenDetail(t)}
+                              disabled={detailLoading}
+                              className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors disabled:opacity-40"
+                              title="Ver detalle"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                            </button>
+                            {t.slug !== 'platform' && (
+                              <button
+                                onClick={() => handleImpersonate(t)}
+                                className="p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                                title="Entrar como admin del tenant"
+                              >
+                                <LogIn className="w-3.5 h-3.5" />
+                              </button>
+                            )}
                             <button
                               onClick={() => setEditTenant(t)}
                               className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
@@ -728,6 +987,92 @@ const Superadmin: React.FC = () => {
           tenant={editTenant}
           onSave={handleEdit}
           onClose={() => setEditTenant(null)}
+        />
+      )}
+
+      {/* Detalle de tenant */}
+      {detail && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setDetail(null)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[85vh] overflow-y-auto p-5 sm:p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h3 className="text-base font-bold text-gray-900">{detail.tenant.name}</h3>
+                <p className="text-xs text-gray-400 font-mono">{detail.tenant.slug} · desde {new Date(detail.tenant.createdAt).toLocaleDateString('es-CO')}</p>
+              </div>
+              <button onClick={() => setDetail(null)} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3 mb-5">
+              <div className="bg-gray-50 rounded-lg p-3">
+                <p className="text-[11px] text-gray-400">Plan</p>
+                <p className="text-sm font-semibold text-gray-800">{PLAN_LABELS[detail.tenant.plan] ?? detail.tenant.plan}</p>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-3">
+                <p className="text-[11px] text-gray-400">Estado</p>
+                <p className="text-sm font-semibold text-gray-800">{STATUS_LABELS[detail.tenant.status] ?? detail.tenant.status}</p>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-3">
+                <p className="text-[11px] text-gray-400">Cartera pendiente</p>
+                <p className={`text-sm font-semibold ${detail.receivable > 0 ? 'text-amber-600' : 'text-gray-800'}`}>
+                  {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(detail.receivable)}
+                </p>
+              </div>
+            </div>
+
+            <p className="text-xs font-semibold text-gray-500 mb-2">Órdenes últimos 6 meses</p>
+            {detail.ordersByMonth.length === 0 ? (
+              <p className="text-xs text-gray-400 mb-5">Sin órdenes en el período</p>
+            ) : (
+              <div className="flex items-end gap-1.5 h-20 mb-5">
+                {detail.ordersByMonth.map(m => {
+                  const max = Math.max(...detail.ordersByMonth.map(x => x.count), 1);
+                  return (
+                    <div key={m.month} className="flex-1 flex flex-col items-center gap-1" title={`${m.count} órdenes`}>
+                      <span className="text-[10px] text-gray-500 font-medium">{m.count}</span>
+                      <div className="w-full bg-blue-500 rounded-t" style={{ height: `${Math.max(8, (m.count / max) * 100)}%` }} />
+                      <span className="text-[10px] text-gray-400">{m.month.slice(5)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <p className="text-xs font-semibold text-gray-500 mb-2">Usuarios ({detail.users.length})</p>
+            <div className="border border-gray-100 rounded-lg divide-y divide-gray-100 mb-5">
+              {detail.users.map(u => (
+                <div key={u.id} className="flex items-center justify-between px-3 py-2">
+                  <span className="text-sm text-gray-800">{u.username}</span>
+                  <span className="text-xs text-gray-400 capitalize">{u.role} · {new Date(u.createdAt).toLocaleDateString('es-CO')}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex flex-wrap items-center justify-end gap-2 pt-3 border-t border-gray-100">
+              <button
+                onClick={() => handleExport(detail.tenant.id, detail.tenant.slug)}
+                className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <Download className="w-3.5 h-3.5" /> Exportar datos
+              </button>
+              {detail.tenant.slug !== 'platform' && (
+                <button
+                  onClick={() => handleImpersonate(detail.tenant as unknown as TenantSummary)}
+                  className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors"
+                >
+                  <LogIn className="w-3.5 h-3.5" /> Entrar como admin
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Anuncio push */}
+      {showBroadcast && (
+        <BroadcastModal
+          tenants={tenants}
+          onClose={() => setShowBroadcast(false)}
+          onSent={n => { setShowBroadcast(false); setBroadcastOk(`Anuncio enviado a ${n} usuario${n === 1 ? '' : 's'} con push activo`); setTimeout(() => setBroadcastOk(null), 6000); }}
         />
       )}
     </div>

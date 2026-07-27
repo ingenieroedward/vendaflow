@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import { config } from '@/config';
+import { APP_VERSION } from '@/config/version';
 import { errorHandler, notFoundHandler } from '@/core/middlewares/errorHandler';
 import { httpLogger, requestLogger, errorLogger } from '@/core/middlewares/logger';
 import { isAuth } from '@/core/middlewares/auth';
@@ -95,7 +96,7 @@ app.get('/health', (_req, res) => {
     message: 'Server is running',
     timestamp: new Date().toISOString(),
     environment: config.server.nodeEnv,
-    version: '1.1.0', // bump manual al cambiar algo relevante — permite verificar deploys desde fuera
+    version: APP_VERSION,
   });
 });
 

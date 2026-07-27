@@ -73,6 +73,34 @@ export class TenantController {
     res.json(tenant);
   });
 
+  impersonate = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const result = await tenantService.impersonate(Number(req.params['id']!));
+    res.json({ status: 'success', data: result });
+  });
+
+  getDetail = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const result = await tenantService.getDetail(Number(req.params['id']!));
+    res.json({ status: 'success', data: result });
+  });
+
+  broadcast = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const { tenantId, onlyAdmins, title, body } = req.body ?? {};
+    if (!title || !body) throw new ValidationError('title y body son requeridos');
+    const result = await tenantService.broadcast({ tenantId, onlyAdmins, title: String(title), body: String(body) });
+    res.json({ status: 'success', data: result });
+  });
+
+  platformStats = asyncHandler(async (_req: AuthenticatedRequest, res: Response) => {
+    const result = await tenantService.getPlatformStats();
+    res.json({ status: 'success', data: result });
+  });
+
+  exportData = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const result = await tenantService.exportTenantData(Number(req.params['id']!));
+    res.setHeader('Content-Disposition', `attachment; filename="tenant-${result.tenant.slug}-export.json"`);
+    res.json(result);
+  });
+
   updateTenant = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const result = updateTenantSchema.safeParse(req.body);
     if (!result.success) throw new ValidationError(result.error.errors[0]?.message ?? 'Datos inválidos');

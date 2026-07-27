@@ -3,6 +3,7 @@ import { Tenant } from '@/modules/tenant/tenant.model';
 import { User } from '@/modules/user/user.model';
 import { pushService } from '@/modules/push/push.service';
 import logger from '@/core/logger';
+import { recordJobRun } from './jobStatus';
 
 const WARN_DAYS = 3; // avisar desde N días antes del vencimiento
 const RUN_EVERY_MS = 24 * 60 * 60 * 1000;
@@ -78,9 +79,9 @@ export async function checkTrialExpiry(): Promise<void> {
 
 export function startTrialExpiryJob(): void {
   setTimeout(() => {
-    checkTrialExpiry().catch(err => logger.error('[trialExpiry] Run failed:', err));
+    checkTrialExpiry().then(() => recordJobRun('trialExpiry', true)).catch(err => { recordJobRun('trialExpiry', false, String(err).slice(0, 120)); logger.error('[trialExpiry] Run failed:', err); });
     setInterval(
-      () => checkTrialExpiry().catch(err => logger.error('[trialExpiry] Run failed:', err)),
+      () => checkTrialExpiry().then(() => recordJobRun('trialExpiry', true)).catch(err => { recordJobRun('trialExpiry', false, String(err).slice(0, 120)); logger.error('[trialExpiry] Run failed:', err); }),
       RUN_EVERY_MS,
     );
   }, FIRST_RUN_DELAY_MS);

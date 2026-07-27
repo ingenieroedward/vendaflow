@@ -4,6 +4,7 @@ import { Customer } from '@/modules/customer/customer.model';
 import { User } from '@/modules/user/user.model';
 import { pushService } from '@/modules/push/push.service';
 import logger from '@/core/logger';
+import { recordJobRun } from './jobStatus';
 
 const DEFAULT_REMINDER_DAYS = 3;
 const RUN_EVERY_MS = 24 * 60 * 60 * 1000; // diario
@@ -83,9 +84,9 @@ export async function checkPaymentReminders(): Promise<void> {
 
 export function startPaymentReminderJob(): void {
   setTimeout(() => {
-    checkPaymentReminders().catch(err => logger.error('[paymentReminders] Run failed:', err));
+    checkPaymentReminders().then(() => recordJobRun('paymentReminders', true)).catch(err => { recordJobRun('paymentReminders', false, String(err).slice(0, 120)); logger.error('[paymentReminders] Run failed:', err); });
     setInterval(
-      () => checkPaymentReminders().catch(err => logger.error('[paymentReminders] Run failed:', err)),
+      () => checkPaymentReminders().then(() => recordJobRun('paymentReminders', true)).catch(err => { recordJobRun('paymentReminders', false, String(err).slice(0, 120)); logger.error('[paymentReminders] Run failed:', err); }),
       RUN_EVERY_MS,
     );
   }, FIRST_RUN_DELAY_MS);

@@ -27,6 +27,25 @@ const Login: React.FC = () => {
     }
   }, [isAuthenticated, navigate, user]);
 
+  // Impersonación desde el panel superadmin: /login?impersonate=<token>
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('impersonate');
+    if (!token) return;
+    (async () => {
+      const { STORAGE_KEYS } = await import('../utils/constants');
+      try {
+        localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
+        const { apiService } = await import('../services/api');
+        const me = await apiService.get<{ status: string; data: { id: number; username: string; role: string; tenantId: number } }>('/auth/me');
+        localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(me.data));
+        window.location.replace('/'); // recarga limpia con la sesión ya persistida
+      } catch {
+        localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+      }
+    })();
+  }, []);
+
   const validateForm = (): boolean => {
     const newErrors: Partial<LoginRequest> = {};
 
