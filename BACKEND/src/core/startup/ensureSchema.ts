@@ -24,6 +24,12 @@ export async function ensureSchema(): Promise<void> {
     logger.info(`[ensureSchema] Column orders.${col.name} added`);
   }
 
+  const tenantCols = await qi.describeTable('tenants');
+  if (!('customPrice' in tenantCols)) {
+    await qi.addColumn('tenants', 'customPrice', { type: DataType.DECIMAL(12, 2), allowNull: true } as never);
+    logger.info('[ensureSchema] Column tenants.customPrice added');
+  }
+
   const poColumns = await qi.describeTable('purchase_orders');
   if (!('affectsStock' in poColumns)) {
     await qi.addColumn('purchase_orders', 'affectsStock', {

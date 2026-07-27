@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Plus, Power, PowerOff, LogOut, RefreshCw, X, Search, ExternalLink, Edit, AlertTriangle, ClipboardList, Users, TrendingUp, Eye, LogIn, Megaphone, Download, Activity, LayoutDashboard, Inbox, Receipt, Check } from 'lucide-react';
+import { Building2, Plus, Power, PowerOff, LogOut, RefreshCw, X, Search, ExternalLink, Edit, AlertTriangle, ClipboardList, Users, TrendingUp, Eye, LogIn, Megaphone, Download, Activity, LayoutDashboard, Inbox, Receipt, Check, Bell, BellOff } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
+import { usePushNotifications } from '../hooks/usePushNotifications';
 import { tenantAdminService, TenantSummary, CreateTenantPayload, UpdateTenantPayload, TenantDetail, PlatformStats, TenantRequestItem, PlanPaymentItem } from '../services/tenantAdmin';
 
 const PLAN_LABELS: Record<string, string> = {
@@ -204,6 +205,7 @@ const EditTenantModal: React.FC<EditModalProps> = ({ tenant, onSave, onClose }) 
     maxUsers: String(tenant.maxUsers),
     maxProducts: String(tenant.maxProducts),
     maxOrdersPerMonth: String(tenant.maxOrdersPerMonth),
+    customPrice: tenant.customPrice != null ? String(tenant.customPrice) : '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -223,6 +225,7 @@ const EditTenantModal: React.FC<EditModalProps> = ({ tenant, onSave, onClose }) 
         maxUsers: parseInt(form.maxUsers, 10),
         maxProducts: parseInt(form.maxProducts, 10),
         maxOrdersPerMonth: parseInt(form.maxOrdersPerMonth, 10),
+        customPrice: form.customPrice.trim() === '' ? null : Number(form.customPrice),
       });
     } catch (err: unknown) {
       setError((err as { message?: string })?.message ?? 'Error al guardar');
@@ -277,6 +280,13 @@ const EditTenantModal: React.FC<EditModalProps> = ({ tenant, onSave, onClose }) 
               <input type="number" name="maxOrdersPerMonth" value={form.maxOrdersPerMonth} onChange={handle} min={1}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Precio especial (COP/mes)</label>
+            <input type="number" name="customPrice" value={form.customPrice} onChange={handle} min={0}
+              placeholder="Vacío = precio de lista del plan"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <p className="mt-0.5 text-[11px] text-gray-400">Descuento o tarifa negociada — es lo que este tenant verá y pagará</p>
           </div>
           {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
           <div className="flex gap-3 pt-2 border-t border-gray-100">
@@ -483,6 +493,7 @@ const Superadmin: React.FC = () => {
   const [showBroadcast, setShowBroadcast] = useState(false);
   const [broadcastOk, setBroadcastOk] = useState<string | null>(null);
   const [section, setSection] = useState<'dashboard' | 'tenants' | 'solicitudes' | 'pagos'>('dashboard');
+  const { isSupported: pushSupported, isSubscribed: pushSubscribed, isLoading: pushLoading, toggle: togglePush } = usePushNotifications();
   const [requests, setRequests] = useState<TenantRequestItem[]>([]);
   const [payments, setPayments] = useState<PlanPaymentItem[]>([]);
   const [approveReq, setApproveReq] = useState<TenantRequestItem | null>(null);
@@ -742,6 +753,18 @@ const Superadmin: React.FC = () => {
           </button>
         </nav>
         <div className="px-3 py-4 border-t border-white/10 flex-shrink-0">
+          {pushSupported && (
+            <button
+              onClick={togglePush}
+              disabled={pushLoading}
+              className="flex items-center gap-2.5 w-full px-3 py-2 mb-1 text-sm text-slate-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50"
+              title={pushSubscribed ? 'Desactivar notificaciones' : 'Activar notificaciones (pagos, solicitudes, trials)'}
+            >
+              {pushSubscribed ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
+              <span className="flex-1 text-left">Notificaciones</span>
+              <span className={`w-2 h-2 rounded-full ${pushSubscribed ? 'bg-green-500' : 'bg-slate-600'}`} />
+            </button>
+          )}
           <p className="px-3 text-xs text-slate-400 mb-2 truncate">{user?.username}</p>
           <button
             onClick={handleLogout}
@@ -762,6 +785,19 @@ const Superadmin: React.FC = () => {
           <button onClick={() => setSection('tenants')} className={`p-2 rounded-lg ${section === 'tenants' ? 'bg-white/10 text-white' : 'text-slate-300'}`}>
             <Building2 className="w-4 h-4" />
           </button>
+          <button onClick={() => setSection('solicitudes')} className={`relative p-2 rounded-lg ${section === 'solicitudes' ? 'bg-white/10 text-white' : 'text-slate-300'}`}>
+            <Inbox className="w-4 h-4" />
+            {pendingRequests.length > 0 && <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-amber-500 rounded-full" />}
+          </button>
+          <button onClick={() => setSection('pagos')} className={`relative p-2 rounded-lg ${section === 'pagos' ? 'bg-white/10 text-white' : 'text-slate-300'}`}>
+            <Receipt className="w-4 h-4" />
+            {pendingPayments.length > 0 && <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full" />}
+          </button>
+          {pushSupported && (
+            <button onClick={togglePush} disabled={pushLoading} className={`p-2 rounded-lg ${pushSubscribed ? 'text-green-400' : 'text-slate-300'}`}>
+              {pushSubscribed ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
+            </button>
+          )}
           <button onClick={handleLogout} className="p-2 rounded-lg text-red-400">
             <LogOut className="w-4 h-4" />
           </button>

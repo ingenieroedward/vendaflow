@@ -143,6 +143,7 @@ export class TenantService {
     maxUsers?: number | undefined;
     maxProducts?: number | undefined;
     maxOrdersPerMonth?: number | undefined;
+    customPrice?: number | null | undefined;
   }) {
     const tenant = await this.findById(tenantId);
     const updates: Partial<TenantAttributes> = {};
@@ -163,6 +164,7 @@ export class TenantService {
     if (data.maxUsers !== undefined) updates.maxUsers = data.maxUsers;
     if (data.maxProducts !== undefined) updates.maxProducts = data.maxProducts;
     if (data.maxOrdersPerMonth !== undefined) updates.maxOrdersPerMonth = data.maxOrdersPerMonth;
+    if (data.customPrice !== undefined) updates.customPrice = data.customPrice;
 
     if (data.plan !== undefined && data.plan !== tenant.plan) {
       const limits = PLAN_LIMITS[data.plan];
@@ -195,6 +197,7 @@ export class TenantService {
       brebHolder: cfg.brebHolder,
       prices: cfg.prices,
       currentPlan: tenant.plan,
+      customPrice: tenant.customPrice != null ? Number(tenant.customPrice) : null,
       status: tenant.status,
       trialEndsAt: tenant.trialEndsAt,
       payments,

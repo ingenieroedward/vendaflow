@@ -31,6 +31,13 @@ router.get('/captcha', onboardingLimiter, (_req: Request, res: Response) => {
   res.json({ question: `¿Cuánto es ${a} + ${b}?`, a, b, exp, token: captchaSign(a, b, exp) });
 });
 
+// Precios públicos para la landing (sin llave Bre-B)
+router.get('/plans', asyncHandler(async (_req: Request, res: Response) => {
+  const { getPlanConfig } = await import('@/config/plans');
+  const cfg = await getPlanConfig();
+  res.set('Cache-Control', 'public, max-age=300').json({ prices: cfg.prices });
+}));
+
 const requestSchema = z.object({
   companyName: z.string().min(2).max(255),
   contactName: z.string().min(2).max(255),

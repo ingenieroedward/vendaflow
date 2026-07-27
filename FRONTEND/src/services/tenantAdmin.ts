@@ -12,6 +12,7 @@ export interface TenantSummary {
   maxUsers: number;
   maxProducts: number;
   maxOrdersPerMonth: number;
+  customPrice?: number | null;
   createdAt: string;
   updatedAt: string;
   usage?: {
@@ -32,6 +33,7 @@ export interface CreateTenantPayload {
 
 export interface UpdateTenantPayload {
   name?: string;
+  customPrice?: number | null;
   plan?: 'trial' | 'basic' | 'pro' | 'enterprise';
   trialEndsAt?: string | null;
   maxUsers?: number;

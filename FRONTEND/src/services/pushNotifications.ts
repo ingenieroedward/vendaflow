@@ -15,7 +15,7 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 
 async function getRegistration(): Promise<ServiceWorkerRegistration | null> {
   if (!('serviceWorker' in navigator)) return null;
-  return navigator.serviceWorker.getRegistration('/sw.js');
+  return navigator.serviceWorker.getRegistration();
 }
 
 export async function isSubscribed(): Promise<boolean> {

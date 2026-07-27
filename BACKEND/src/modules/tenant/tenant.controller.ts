@@ -14,6 +14,7 @@ const updateTenantSchema = z.object({
   maxUsers: z.number().int().positive().optional(),
   maxProducts: z.number().int().positive().optional(),
   maxOrdersPerMonth: z.number().int().positive().optional(),
+  customPrice: z.number().nonnegative().nullable().optional(),
 });
 
 const createTenantSchema = z.object({

@@ -25,6 +25,7 @@ export interface TenantAttributes {
   maxUsers: number;
   maxProducts: number;
   maxOrdersPerMonth: number;
+  customPrice: number | null; // precio especial COP/mes (null = precio de lista del plan)
   createdAt: Date;
   updatedAt: Date;
   deletedAt?: Date;
@@ -70,6 +71,9 @@ export class Tenant extends Model<TenantAttributes, TenantCreationAttributes> {
 
   @Column({ type: DataType.INTEGER, allowNull: false, defaultValue: 50 })
   maxOrdersPerMonth!: number;
+
+  @Column({ type: DataType.DECIMAL(12, 2), allowNull: true })
+  customPrice!: number | null;
 
   @CreatedAt override createdAt!: Date;
   @UpdatedAt override updatedAt!: Date;

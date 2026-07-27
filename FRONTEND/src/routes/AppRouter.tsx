@@ -4,6 +4,8 @@ import { useAuthStore } from '../store/authStore';
 import Layout from '../components/layout/Layout';
 import Login from '../pages/Login';
 import Registro from '../pages/Registro';
+import Landing from '../pages/Landing';
+import { detectTenantSlug } from '../services/tenant';
 import Home from '../pages/Home';
 import ProductDetail from '../pages/ProductDetail';
 import ProductNew from '../pages/ProductNew';
@@ -126,13 +128,17 @@ const InnerRoutes: React.FC = () => (
           <Route path="/registro" element={<Registro />} />
 
           {/* Protected Routes */}
-          <Route 
-            path="/" 
+          <Route
+            path="/"
             element={
-              <BuyerRoute>
-                <Home />
-              </BuyerRoute>
-            } 
+              detectTenantSlug() ? (
+                <BuyerRoute>
+                  <Home />
+                </BuyerRoute>
+              ) : (
+                <Landing />
+              )
+            }
           />
 
           {/* Product Routes - Solo admin y buyer */}

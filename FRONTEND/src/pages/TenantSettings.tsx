@@ -47,9 +47,10 @@ const TenantSettings: React.FC = () => {
     setPaySending(true);
     setPayMsg(null);
     try {
+      const effectiveAmount = billing.customPrice ?? billing.prices[payForm.plan];
       await apiService.post('/tenants/me/payments', {
         plan: payForm.plan,
-        amount: billing.prices[payForm.plan],
+        amount: effectiveAmount,
         reference: payForm.reference || undefined,
         receiptBase64: payForm.receiptBase64 || undefined,
         receiptMime: payForm.receiptMime || undefined,
@@ -280,6 +281,11 @@ const TenantSettings: React.FC = () => {
             <h2 className="text-sm font-semibold text-gray-700">Pagar plan (Bre-B)</h2>
           </div>
 
+          {billing.customPrice != null && (
+            <p className="text-xs text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+              Tienes un precio especial: {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(billing.customPrice)}/mes
+            </p>
+          )}
           {billing.brebKey ? (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
               Transfiere por <b>Bre-B</b> a la llave <b className="font-mono">{billing.brebKey}</b> ({billing.brebHolder}) y reporta tu pago aquí con el comprobante.
@@ -295,7 +301,7 @@ const TenantSettings: React.FC = () => {
                 <select value={payForm.plan} onChange={e => setPayForm(prev => ({ ...prev, plan: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                   {Object.entries(billing.prices as Record<string, number>).map(([k, v]) => (
-                    <option key={k} value={k}>{PLAN_LABELS[k] ?? k} — {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(v)}/mes</option>
+                    <option key={k} value={k}>{PLAN_LABELS[k] ?? k} — {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(billing.customPrice ?? v)}/mes</option>
                   ))}
                 </select>
               </div>

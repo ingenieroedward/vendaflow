@@ -83,6 +83,13 @@ const AdminApp: React.FC = () => {
   );
 };
 
+// PWA: service worker exclusivo del admin (push, sin cache offline)
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/admin-sw.js').catch(() => {/* sin SW */});
+  });
+}
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <AdminApp />
