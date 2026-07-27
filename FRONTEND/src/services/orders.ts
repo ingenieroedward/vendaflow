@@ -82,6 +82,11 @@ export async function getHomeStats(): Promise<HomeStats> {
   return response.data;
 }
 
+export async function searchOrdersServer(q: string): Promise<Order[]> {
+  const response = await apiService.get<ApiResponse<Order[]>>(`/orders/search?q=${encodeURIComponent(q)}`);
+  return response.data;
+}
+
 export async function getReceivables(): Promise<Receivables> {
   const response = await apiService.get<ApiResponse<Receivables>>('/orders/receivables');
   return response.data;

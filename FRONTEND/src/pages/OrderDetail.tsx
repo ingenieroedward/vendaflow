@@ -50,6 +50,39 @@ const OrderDetail: React.FC = () => {
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [generatingPdf, setGeneratingPdf] = useState(false);
   const [markingPaid, setMarkingPaid] = useState(false);
+  const [abonos, setAbonos] = useState<{ payments: Array<{ id: number; amount: number; notes: string | null; createdAt: string }>; paidAmount: number; balance: number } | null>(null);
+  const [abonoMonto, setAbonoMonto] = useState('');
+  const [abonoSaving, setAbonoSaving] = useState(false);
+
+  const loadAbonos = async (orderId: number) => {
+    try {
+      const { apiService } = await import('../services/api');
+      const r = await apiService.get<{ status: string; data: { payments: never[]; paidAmount: number; balance: number } }>(`/orders/${orderId}/payments`);
+      setAbonos(r.data);
+    } catch { setAbonos(null); }
+  };
+
+  useEffect(() => {
+    if (currentOrder?.paymentType === 'credit' && navigator.onLine) loadAbonos(currentOrder.id);
+  }, [currentOrder?.id, currentOrder?.paymentType, currentOrder?.paidAt]);
+
+  const handleAddAbono = async () => {
+    const monto = Number(abonoMonto);
+    if (!currentOrder || !monto || monto <= 0 || abonoSaving) return;
+    setAbonoSaving(true);
+    try {
+      const { apiService } = await import('../services/api');
+      await apiService.post(`/orders/${currentOrder.id}/payments`, { amount: monto });
+      setAbonoMonto('');
+      await loadAbonos(currentOrder.id);
+      await getOrderById(currentOrder.id);
+      addNotification({ type: 'success', message: 'Abono registrado' });
+    } catch {
+      addNotification({ type: 'error', message: 'No se pudo registrar el abono' });
+    } finally {
+      setAbonoSaving(false);
+    }
+  };
 
   const handleMarkPaid = async (paid: boolean) => {
     if (!currentOrder || markingPaid) return;
@@ -546,6 +579,48 @@ const OrderDetail: React.FC = () => {
               )
             )}
           </div>
+
+          {/* Abonos parciales */}
+          {currentOrder.paymentType === "credit" && !currentOrder.paidAt && abonos && (
+            <div className="mt-3 pt-3 border-t border-gray-100">
+              <div className="flex items-center justify-between text-xs mb-2">
+                <span className="text-gray-500">
+                  Abonado <b className="text-gray-800">{new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(abonos.paidAmount)}</b> de {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(Number(currentOrder.totalAmount))}
+                </span>
+                <span className="font-semibold text-amber-700">
+                  Saldo {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(abonos.balance)}
+                </span>
+              </div>
+              <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden mb-2">
+                <div className="h-full bg-green-500 rounded-full" style={{ width: `${Math.min(100, (abonos.paidAmount / Number(currentOrder.totalAmount)) * 100)}%` }} />
+              </div>
+              {(user?.role === "admin" || user?.role === "seller") && (
+                <div className="flex gap-2">
+                  <input
+                    type="number" min="1" value={abonoMonto} onChange={e => setAbonoMonto(e.target.value)}
+                    placeholder="Monto del abono"
+                    className="flex-1 px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                  />
+                  <button
+                    onClick={handleAddAbono} disabled={abonoSaving || !abonoMonto}
+                    className="px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 disabled:opacity-50"
+                  >
+                    {abonoSaving ? '...' : 'Abonar'}
+                  </button>
+                </div>
+              )}
+              {abonos.payments.length > 0 && (
+                <ul className="mt-2 space-y-0.5">
+                  {abonos.payments.map(a => (
+                    <li key={a.id} className="flex justify-between text-[11px] text-gray-400">
+                      <span>{format(new Date(a.createdAt), "d MMM yyyy", { locale: es })}{a.notes ? ` · ${a.notes}` : ''}</span>
+                      <span className="text-gray-600">{new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(Number(a.amount))}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Notas compactas */}

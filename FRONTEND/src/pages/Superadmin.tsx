@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Plus, Power, PowerOff, LogOut, RefreshCw, X, Search, ExternalLink, Edit, AlertTriangle, ClipboardList, Users, TrendingUp, Eye, LogIn, Megaphone, Download, Activity, LayoutDashboard } from 'lucide-react';
+import { Building2, Plus, Power, PowerOff, LogOut, RefreshCw, X, Search, ExternalLink, Edit, AlertTriangle, ClipboardList, Users, TrendingUp, Eye, LogIn, Megaphone, Download, Activity, LayoutDashboard, Inbox, Receipt, Check } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
-import { tenantAdminService, TenantSummary, CreateTenantPayload, UpdateTenantPayload, TenantDetail, PlatformStats } from '../services/tenantAdmin';
+import { tenantAdminService, TenantSummary, CreateTenantPayload, UpdateTenantPayload, TenantDetail, PlatformStats, TenantRequestItem, PlanPaymentItem } from '../services/tenantAdmin';
 
 const PLAN_LABELS: Record<string, string> = {
   trial: 'Trial',
@@ -395,6 +395,80 @@ const BroadcastModal: React.FC<{
   );
 };
 
+// ---- Approve Request Modal ----
+
+const ApproveRequestModal: React.FC<{
+  request: TenantRequestItem;
+  onApprove: (data: { slug: string; adminUsername: string; adminPassword: string; plan?: string }) => Promise<void>;
+  onClose: () => void;
+}> = ({ request, onApprove, onClose }) => {
+  const suggestedSlug = request.companyName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 30);
+  const [slug, setSlug] = useState(suggestedSlug);
+  const [adminUsername, setAdminUsername] = useState('admin');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [plan, setPlan] = useState('trial');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setError(null);
+    try {
+      await onApprove({ slug, adminUsername, adminPassword, plan });
+    } catch (err: unknown) {
+      setError((err as { message?: string })?.message ?? 'Error al aprobar');
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <form onSubmit={submit} className="bg-white rounded-2xl shadow-xl w-full max-w-md p-5 sm:p-6 space-y-4" onClick={e => e.stopPropagation()}>
+        <div>
+          <h3 className="text-base font-bold text-gray-900">Aprobar solicitud</h3>
+          <p className="text-xs text-gray-400">{request.companyName} · {request.contactName} ({request.email})</p>
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">Slug (subdominio) *</label>
+          <input value={slug} onChange={e => setSlug(e.target.value)} required pattern="[a-z0-9-]+"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          <p className="mt-0.5 text-[11px] text-gray-400">{slug || 'slug'}.merco.edwsystem.com</p>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Usuario admin *</label>
+            <input value={adminUsername} onChange={e => setAdminUsername(e.target.value)} required
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Contraseña *</label>
+            <input value={adminPassword} onChange={e => setAdminPassword(e.target.value)} required minLength={8}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">Plan</label>
+          <select value={plan} onChange={e => setPlan(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="trial">Trial (14 días)</option>
+            <option value="basic">Básico</option>
+            <option value="pro">Pro</option>
+            <option value="enterprise">Enterprise</option>
+          </select>
+        </div>
+        {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
+        <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
+          <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">Cancelar</button>
+          <button type="submit" disabled={saving} className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg disabled:opacity-50">
+            {saving ? 'Creando...' : 'Aprobar y crear tenant'}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
 // ---- Main Page ----
 
 const Superadmin: React.FC = () => {
@@ -412,7 +486,11 @@ const Superadmin: React.FC = () => {
   const [detailLoading, setDetailLoading] = useState(false);
   const [showBroadcast, setShowBroadcast] = useState(false);
   const [broadcastOk, setBroadcastOk] = useState<string | null>(null);
-  const [section, setSection] = useState<'dashboard' | 'tenants'>('dashboard');
+  const [section, setSection] = useState<'dashboard' | 'tenants' | 'solicitudes' | 'pagos'>('dashboard');
+  const [requests, setRequests] = useState<TenantRequestItem[]>([]);
+  const [payments, setPayments] = useState<PlanPaymentItem[]>([]);
+  const [approveReq, setApproveReq] = useState<TenantRequestItem | null>(null);
+  const [receiptView, setReceiptView] = useState<{ payment: PlanPaymentItem; src: string | null } | null>(null);
   const [platform, setPlatform] = useState<PlatformStats | null>(null);
 
   const load = useCallback(async () => {
@@ -421,6 +499,8 @@ const Superadmin: React.FC = () => {
     try {
       setTenants(await tenantAdminService.listAll());
       tenantAdminService.platformStats().then(setPlatform).catch(() => setPlatform(null));
+      tenantAdminService.listRequests().then(setRequests).catch(() => setRequests([]));
+      tenantAdminService.listPayments().then(setPayments).catch(() => setPayments([]));
     } catch (e: unknown) {
       setError((e as { message?: string })?.message ?? 'Error al cargar tenants');
     } finally {
@@ -464,6 +544,38 @@ const Superadmin: React.FC = () => {
     } finally {
       setDetailLoading(false);
     }
+  };
+
+  const pendingRequests = requests.filter(r => r.status === 'pending');
+  const pendingPayments = payments.filter(p => p.status === 'pending');
+
+  const handleApproveRequest = async (data: { slug: string; adminUsername: string; adminPassword: string; plan?: string }) => {
+    if (!approveReq) return;
+    await tenantAdminService.approveRequest(approveReq.id, data);
+    setApproveReq(null);
+    await load();
+  };
+
+  const handleRejectRequest = async (id: number) => {
+    try { await tenantAdminService.rejectRequest(id); setRequests(await tenantAdminService.listRequests()); }
+    catch (e: unknown) { setError((e as { message?: string })?.message ?? 'Error'); }
+  };
+
+  const handleViewReceipt = async (payment: PlanPaymentItem) => {
+    try {
+      const r = await tenantAdminService.getPaymentReceipt(payment.id);
+      setReceiptView({ payment, src: r.receiptBase64 ? `data:${r.receiptMime ?? 'image/jpeg'};base64,${r.receiptBase64}` : null });
+    } catch (e: unknown) { setError((e as { message?: string })?.message ?? 'Error'); }
+  };
+
+  const handleDecidePayment = async (id: number, approve: boolean) => {
+    try {
+      if (approve) await tenantAdminService.approvePayment(id);
+      else await tenantAdminService.rejectPayment(id, prompt('Motivo del rechazo (opcional):') ?? undefined);
+      setReceiptView(null);
+      await load();
+      setPayments(await tenantAdminService.listPayments());
+    } catch (e: unknown) { setError((e as { message?: string })?.message ?? 'Error'); }
   };
 
   const handleExport = async (id: number, slug: string) => {
@@ -596,6 +708,18 @@ const Superadmin: React.FC = () => {
           <button onClick={() => setSection('tenants')} className={navCls(section === 'tenants')}>
             <Building2 className="w-4 h-4 flex-shrink-0" /> Tenants
             <span className="ml-auto text-xs bg-white/10 px-1.5 py-0.5 rounded-full">{tenants.length}</span>
+          </button>
+          <button onClick={() => setSection('solicitudes')} className={navCls(section === 'solicitudes')}>
+            <Inbox className="w-4 h-4 flex-shrink-0" /> Solicitudes
+            {pendingRequests.length > 0 && (
+              <span className="ml-auto text-xs bg-amber-500 text-white px-1.5 py-0.5 rounded-full">{pendingRequests.length}</span>
+            )}
+          </button>
+          <button onClick={() => setSection('pagos')} className={navCls(section === 'pagos')}>
+            <Receipt className="w-4 h-4 flex-shrink-0" /> Pagos
+            {pendingPayments.length > 0 && (
+              <span className="ml-auto text-xs bg-green-500 text-white px-1.5 py-0.5 rounded-full">{pendingPayments.length}</span>
+            )}
           </button>
           <button onClick={() => setShowBroadcast(true)} className={navCls(false)}>
             <Megaphone className="w-4 h-4 flex-shrink-0" /> Anuncio
@@ -1013,7 +1137,122 @@ const Superadmin: React.FC = () => {
           </div>
         )}
         </>)}
+
+        {section === 'solicitudes' && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="px-4 sm:px-5 py-3 border-b border-gray-100 flex items-center gap-2">
+              <Inbox className="w-4 h-4 text-gray-400" />
+              <h3 className="text-sm font-semibold text-gray-900">Solicitudes de registro</h3>
+            </div>
+            {requests.length === 0 ? (
+              <p className="text-sm text-gray-400 text-center py-12">Sin solicitudes aún — comparte merco.edwsystem.com/registro</p>
+            ) : (
+              <ul className="divide-y divide-gray-100">
+                {requests.map(r => (
+                  <li key={r.id} className="px-4 sm:px-5 py-3 flex flex-col sm:flex-row sm:items-center gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900">{r.companyName}</p>
+                      <p className="text-xs text-gray-500">{r.contactName} · {r.email}{r.phone ? ` · ${r.phone}` : ''}</p>
+                      {r.message && <p className="text-xs text-gray-400 mt-0.5 italic truncate">"{r.message}"</p>}
+                      <p className="text-[11px] text-gray-400 mt-0.5">{new Date(r.createdAt).toLocaleString('es-CO')}</p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {r.status === 'pending' ? (
+                        <>
+                          <button onClick={() => setApproveReq(r)} className="px-3 py-1.5 text-xs font-medium text-white bg-green-600 rounded-lg hover:bg-green-700">Aprobar</button>
+                          <button onClick={() => handleRejectRequest(r.id)} className="px-3 py-1.5 text-xs font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50">Rechazar</button>
+                        </>
+                      ) : (
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${r.status === 'approved' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                          {r.status === 'approved' ? 'Aprobada' : 'Rechazada'}
+                        </span>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+
+        {section === 'pagos' && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="px-4 sm:px-5 py-3 border-b border-gray-100 flex items-center gap-2">
+              <Receipt className="w-4 h-4 text-gray-400" />
+              <h3 className="text-sm font-semibold text-gray-900">Pagos de planes (Bre-B)</h3>
+            </div>
+            {payments.length === 0 ? (
+              <p className="text-sm text-gray-400 text-center py-12">Sin pagos reportados aún</p>
+            ) : (
+              <ul className="divide-y divide-gray-100">
+                {payments.map(pg => (
+                  <li key={pg.id} className="px-4 sm:px-5 py-3 flex flex-col sm:flex-row sm:items-center gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900">
+                        {pg.tenant?.name ?? `Tenant #${pg.tenantId}`}
+                        <span className="ml-2 font-normal text-gray-500">plan {pg.plan}</span>
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(Number(pg.amount))}
+                        {pg.reference ? ` · ref ${pg.reference}` : ''} · {new Date(pg.createdAt).toLocaleString('es-CO')}
+                      </p>
+                      {pg.receiptNumber && <p className="text-[11px] text-green-600 font-medium">Recibo {pg.receiptNumber}</p>}
+                      {pg.rejectReason && <p className="text-[11px] text-red-500">Rechazado: {pg.rejectReason}</p>}
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {pg.receiptMime && (
+                        <button onClick={() => handleViewReceipt(pg)} className="px-3 py-1.5 text-xs font-medium text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">Comprobante</button>
+                      )}
+                      {pg.status === 'pending' ? (
+                        <>
+                          <button onClick={() => handleDecidePayment(pg.id, true)} className="px-3 py-1.5 text-xs font-medium text-white bg-green-600 rounded-lg hover:bg-green-700">Aprobar</button>
+                          <button onClick={() => handleDecidePayment(pg.id, false)} className="px-3 py-1.5 text-xs font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50">Rechazar</button>
+                        </>
+                      ) : (
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${pg.status === 'approved' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                          {pg.status === 'approved' ? 'Aprobado' : 'Rechazado'}
+                        </span>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
       </div>
+
+      {/* Aprobar solicitud */}
+      {approveReq && (
+        <ApproveRequestModal request={approveReq} onApprove={handleApproveRequest} onClose={() => setApproveReq(null)} />
+      )}
+
+      {/* Ver comprobante */}
+      {receiptView && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setReceiptView(null)}>
+          <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[85vh] overflow-y-auto p-4" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-semibold text-gray-900">
+                Comprobante — {receiptView.payment.tenant?.name} ({new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(Number(receiptView.payment.amount))})
+              </p>
+              <button onClick={() => setReceiptView(null)} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
+            </div>
+            {receiptView.src ? (
+              <img src={receiptView.src} alt="Comprobante de pago" className="w-full rounded-lg border border-gray-200" />
+            ) : (
+              <p className="text-sm text-gray-400 py-8 text-center">Sin comprobante adjunto</p>
+            )}
+            {receiptView.payment.status === 'pending' && (
+              <div className="flex justify-end gap-2 mt-4">
+                <button onClick={() => handleDecidePayment(receiptView.payment.id, false)} className="px-3 py-2 text-xs font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50">Rechazar</button>
+                <button onClick={() => handleDecidePayment(receiptView.payment.id, true)} className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-green-600 rounded-lg hover:bg-green-700">
+                  <Check className="w-3.5 h-3.5" /> Aprobar pago
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Edit Modal */}
       {editTenant && (

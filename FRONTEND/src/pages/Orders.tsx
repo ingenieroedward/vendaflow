@@ -52,6 +52,20 @@ const Orders: React.FC = () => {
 
   // Cartera: órdenes a crédito sin pagar
   const [receivables, setReceivables] = useState<Receivables | null>(null);
+
+  // Búsqueda en servidor (cubre órdenes no cargadas en la página actual)
+  const [serverResults, setServerResults] = useState<Order[] | null>(null);
+  useEffect(() => {
+    if (!navigator.onLine || search.trim().length < 2) { setServerResults(null); return; }
+    const t = setTimeout(async () => {
+      try {
+        const { searchOrdersServer } = await import('../services/orders');
+        const r = await searchOrdersServer(search.trim());
+        setServerResults(r);
+      } catch { setServerResults(null); }
+    }, 400);
+    return () => clearTimeout(t);
+  }, [search]);
   const [receivablesDismissed, setReceivablesDismissed] = useState(
     () => sessionStorage.getItem('receivablesBannerDismissed') === '1'
   );
@@ -188,7 +202,10 @@ const Orders: React.FC = () => {
     activeTab === 'completed' ? order.status === 'completed' : order.status !== 'completed'
   );
 
-  const filteredOrders = tabOrders.filter((order) => {
+  const searchBase = serverResults
+    ? serverResults.filter((order) => activeTab === 'completed' ? order.status === 'completed' : order.status !== 'completed')
+    : tabOrders;
+  const filteredOrders = searchBase.filter((order) => {
     const searchLower = search.toLowerCase();
     return (
       order.orderNumber.toString().includes(searchLower) ||

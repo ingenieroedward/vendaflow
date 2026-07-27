@@ -3,7 +3,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import { useAuthStore } from '../store/authStore';
 import Layout from '../components/layout/Layout';
 import Login from '../pages/Login';
-import Superadmin from '../pages/Superadmin';
+import Registro from '../pages/Registro';
+const Superadmin = React.lazy(() => import('../pages/Superadmin'));
 import Home from '../pages/Home';
 import ProductDetail from '../pages/ProductDetail';
 import ProductNew from '../pages/ProductNew';
@@ -110,7 +111,7 @@ const AppRouter: React.FC = () => {
         {/* Superadmin panel — rendered without app chrome (no Sidebar/Header/BottomNav) */}
         <Route
           path="/superadmin"
-          element={<SuperadminRoute><Superadmin /></SuperadminRoute>}
+          element={<SuperadminRoute><React.Suspense fallback={<div className="min-h-screen bg-gray-50" />}><Superadmin /></React.Suspense></SuperadminRoute>}
         />
 
         {/* All other routes inside Layout */}
@@ -135,6 +136,8 @@ const InnerRoutes: React.FC = () => (
               </PublicRoute>
             } 
           />
+
+          <Route path="/registro" element={<Registro />} />
 
           {/* Protected Routes */}
           <Route 
