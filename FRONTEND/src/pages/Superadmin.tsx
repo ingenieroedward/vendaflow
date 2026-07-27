@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Plus, Power, PowerOff, LogOut, RefreshCw, X, Search, ExternalLink, Edit, AlertTriangle, ClipboardList, Users, TrendingUp, Eye, LogIn, Megaphone, Download, Activity } from 'lucide-react';
+import { Building2, Plus, Power, PowerOff, LogOut, RefreshCw, X, Search, ExternalLink, Edit, AlertTriangle, ClipboardList, Users, TrendingUp, Eye, LogIn, Megaphone, Download, Activity, LayoutDashboard } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { tenantAdminService, TenantSummary, CreateTenantPayload, UpdateTenantPayload, TenantDetail, PlatformStats } from '../services/tenantAdmin';
 
@@ -412,6 +412,7 @@ const Superadmin: React.FC = () => {
   const [detailLoading, setDetailLoading] = useState(false);
   const [showBroadcast, setShowBroadcast] = useState(false);
   const [broadcastOk, setBroadcastOk] = useState<string | null>(null);
+  const [section, setSection] = useState<'dashboard' | 'tenants'>('dashboard');
   const [platform, setPlatform] = useState<PlatformStats | null>(null);
 
   const load = useCallback(async () => {
@@ -570,34 +571,79 @@ const Superadmin: React.FC = () => {
     .slice(0, 5);
   const maxOrders = topTenants[0]?.usage?.ordersThisMonth ?? 1;
 
+  const navCls = (active: boolean) =>
+    `flex items-center gap-2.5 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+      active ? 'bg-white/10 text-white' : 'text-slate-300 hover:bg-white/5 hover:text-white'
+    }`;
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header — dark to signal elevated infrastructure context */}
-      <header className="bg-slate-900 sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center flex-shrink-0">
-              <Building2 className="w-4 h-4 text-white" />
-            </div>
-            <div>
-              <p className="text-sm font-bold text-white leading-none">Merco</p>
-              <p className="text-xs text-slate-400 leading-none mt-0.5">Panel superadmin</p>
-            </div>
+      {/* Sidebar — dark to signal elevated infrastructure context */}
+      <aside className="hidden md:flex md:flex-col w-60 bg-slate-900 fixed inset-y-0 left-0 z-20">
+        <div className="flex items-center gap-3 px-5 h-16 border-b border-white/10 flex-shrink-0">
+          <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center flex-shrink-0">
+            <Building2 className="w-4 h-4 text-white" />
           </div>
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-slate-400 hidden sm:block">{user?.username}</span>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-red-400 hover:text-red-300 hover:bg-white/10 rounded-lg transition-colors"
-            >
-              <LogOut className="w-4 h-4" />
-              <span className="hidden sm:block">Salir</span>
-            </button>
+          <div>
+            <p className="text-sm font-bold text-white leading-none">Merco</p>
+            <p className="text-xs text-slate-400 leading-none mt-0.5">Superadmin</p>
           </div>
+        </div>
+        <nav className="flex-1 px-3 py-4 space-y-1">
+          <button onClick={() => setSection('dashboard')} className={navCls(section === 'dashboard')}>
+            <LayoutDashboard className="w-4 h-4 flex-shrink-0" /> Dashboard
+          </button>
+          <button onClick={() => setSection('tenants')} className={navCls(section === 'tenants')}>
+            <Building2 className="w-4 h-4 flex-shrink-0" /> Tenants
+            <span className="ml-auto text-xs bg-white/10 px-1.5 py-0.5 rounded-full">{tenants.length}</span>
+          </button>
+          <button onClick={() => setShowBroadcast(true)} className={navCls(false)}>
+            <Megaphone className="w-4 h-4 flex-shrink-0" /> Anuncio
+          </button>
+        </nav>
+        <div className="px-3 py-4 border-t border-white/10 flex-shrink-0">
+          <p className="px-3 text-xs text-slate-400 mb-2 truncate">{user?.username}</p>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-white/10 rounded-lg transition-colors"
+          >
+            <LogOut className="w-4 h-4" /> Salir
+          </button>
+        </div>
+      </aside>
+
+      {/* Barra superior móvil */}
+      <header className="md:hidden bg-slate-900 sticky top-0 z-20 px-4 h-14 flex items-center justify-between">
+        <p className="text-sm font-bold text-white">Merco · Superadmin</p>
+        <div className="flex items-center gap-1">
+          <button onClick={() => setSection('dashboard')} className={`p-2 rounded-lg ${section === 'dashboard' ? 'bg-white/10 text-white' : 'text-slate-300'}`}>
+            <LayoutDashboard className="w-4 h-4" />
+          </button>
+          <button onClick={() => setSection('tenants')} className={`p-2 rounded-lg ${section === 'tenants' ? 'bg-white/10 text-white' : 'text-slate-300'}`}>
+            <Building2 className="w-4 h-4" />
+          </button>
+          <button onClick={handleLogout} className="p-2 rounded-lg text-red-400">
+            <LogOut className="w-4 h-4" />
+          </button>
         </div>
       </header>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+      <div className="md:ml-60 px-4 sm:px-6 lg:px-8 py-6 space-y-6 min-w-0">
+        {broadcastOk && (
+          <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-3 text-sm text-green-700">
+            {broadcastOk}
+          </div>
+        )}
+        {error && (
+          <div className="flex items-center justify-between bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700">
+            <span>{error}</span>
+            <button onClick={() => setError(null)} className="ml-3 text-red-400 hover:text-red-600">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
+        {section === 'dashboard' && (<>
         {/* KPIs de la plataforma */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {kpis.map(k => (
@@ -666,7 +712,7 @@ const Superadmin: React.FC = () => {
                       return (
                         <div key={m.month} className="flex-1 flex flex-col items-center gap-1" title={`${m.count} órdenes`}>
                           <span className="text-[10px] text-gray-500 font-medium">{m.count}</span>
-                          <div className="w-full bg-blue-500 rounded-t" style={{ height: `${Math.max(8, (m.count / max) * 100)}%` }} />
+                          <div className="w-full bg-blue-500 rounded-t" style={{ height: `${Math.max(6, Math.round((m.count / max) * 52))}px` }} />
                           <span className="text-[10px] text-gray-400">{m.month.slice(5)}</span>
                         </div>
                       );
@@ -683,7 +729,7 @@ const Superadmin: React.FC = () => {
                       return (
                         <div key={m.month} className="flex-1 flex flex-col items-center gap-1" title={`${m.count} tenants`}>
                           <span className="text-[10px] text-gray-500 font-medium">{m.count}</span>
-                          <div className="w-full bg-violet-500 rounded-t" style={{ height: `${Math.max(8, (m.count / max) * 100)}%` }} />
+                          <div className="w-full bg-violet-500 rounded-t" style={{ height: `${Math.max(6, Math.round((m.count / max) * 52))}px` }} />
                           <span className="text-[10px] text-gray-400">{m.month.slice(5)}</span>
                         </div>
                       );
@@ -745,6 +791,9 @@ const Superadmin: React.FC = () => {
           </div>
         )}
 
+        </>)}
+
+        {section === 'tenants' && (<>
         {/* Toolbar */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
           <div className="relative flex-1 w-full sm:max-w-sm">
@@ -797,22 +846,6 @@ const Superadmin: React.FC = () => {
         {/* Create form */}
         {showCreate && (
           <CreateTenantForm onSubmit={handleCreate} onCancel={() => setShowCreate(false)} />
-        )}
-
-        {broadcastOk && (
-          <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-3 text-sm text-green-700">
-            {broadcastOk}
-          </div>
-        )}
-
-        {/* Error banner */}
-        {error && (
-          <div className="flex items-center justify-between bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700">
-            <span>{error}</span>
-            <button onClick={() => setError(null)} className="ml-3 text-red-400 hover:text-red-600">
-              <X className="w-4 h-4" />
-            </button>
-          </div>
         )}
 
         {/* Tenant list */}
@@ -949,19 +982,19 @@ const Superadmin: React.FC = () => {
                               <button
                                 onClick={() => handleActivate(t.id)}
                                 disabled={actionId === t.id}
-                                className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-green-700 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-40"
+                                className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-40"
+                                title="Activar tenant"
                               >
                                 <Power className="w-3.5 h-3.5" />
-                                Activar
                               </button>
                             ) : (
                               <button
                                 onClick={() => handleSuspend(t.id)}
                                 disabled={actionId === t.id || t.status === 'cancelled'}
-                                className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-40"
+                                className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-40"
+                                title="Suspender tenant"
                               >
                                 <PowerOff className="w-3.5 h-3.5" />
-                                Suspender
                               </button>
                             )}
                           </div>
@@ -979,6 +1012,7 @@ const Superadmin: React.FC = () => {
             )}
           </div>
         )}
+        </>)}
       </div>
 
       {/* Edit Modal */}
@@ -1023,13 +1057,13 @@ const Superadmin: React.FC = () => {
             {detail.ordersByMonth.length === 0 ? (
               <p className="text-xs text-gray-400 mb-5">Sin órdenes en el período</p>
             ) : (
-              <div className="flex items-end gap-1.5 h-20 mb-5">
+              <div className="flex items-end gap-1.5 h-24 mb-5">
                 {detail.ordersByMonth.map(m => {
                   const max = Math.max(...detail.ordersByMonth.map(x => x.count), 1);
                   return (
                     <div key={m.month} className="flex-1 flex flex-col items-center gap-1" title={`${m.count} órdenes`}>
                       <span className="text-[10px] text-gray-500 font-medium">{m.count}</span>
-                      <div className="w-full bg-blue-500 rounded-t" style={{ height: `${Math.max(8, (m.count / max) * 100)}%` }} />
+                      <div className="w-full bg-blue-500 rounded-t" style={{ height: `${Math.max(6, Math.round((m.count / max) * 52))}px` }} />
                       <span className="text-[10px] text-gray-400">{m.month.slice(5)}</span>
                     </div>
                   );
