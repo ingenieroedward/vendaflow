@@ -270,21 +270,18 @@ const Registro: React.FC = () => {
                 <label htmlFor="reg-captcha" className={`${labelCls} flex items-center gap-1.5`}>
                   <ShieldCheck className="w-3.5 h-3.5 text-blue-600" /> Verificación rápida *
                 </label>
-                <div className="flex items-stretch gap-2">
-                  <div className="flex items-center justify-center min-w-[7rem] px-4 rounded-xl bg-gray-50 border border-gray-200">
-                    {captcha ? (
-                      <span className="text-sm font-bold text-gray-900 tabular-nums whitespace-nowrap">{captcha.question}</span>
-                    ) : (
-                      <span className="text-xs text-gray-400">cargando...</span>
-                    )}
-                  </div>
+                <div className="flex items-center gap-2 rounded-xl border border-gray-300 bg-white pl-3.5 pr-1.5 py-1.5 focus-within:ring-2 focus-within:ring-blue-600 focus-within:border-blue-600 transition-shadow">
+                  <span className="text-sm font-bold text-gray-900 tabular-nums whitespace-nowrap shrink-0">
+                    {captcha ? captcha.question : 'cargando...'}
+                  </span>
                   <input
                     id="reg-captcha" type="number" inputMode="numeric" value={answer}
                     onChange={e => setAnswer(e.target.value)} required
-                    placeholder="Respuesta" className={inputCls}
+                    placeholder="Respuesta"
+                    className="flex-1 min-w-0 bg-transparent border-0 px-2 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
                   />
                   <button type="button" onClick={loadCaptcha} aria-label="Cambiar pregunta de verificación"
-                    className="shrink-0 w-11 rounded-xl border border-gray-200 text-gray-400 hover:text-gray-700 hover:bg-gray-50 transition-colors flex items-center justify-center">
+                    className="shrink-0 w-9 h-9 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors flex items-center justify-center">
                     <RefreshCw className="w-4 h-4" />
                   </button>
                 </div>
