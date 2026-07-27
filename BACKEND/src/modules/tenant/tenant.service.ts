@@ -179,7 +179,8 @@ export class TenantService {
   // ── Pagos de planes (Bre-B manual con aprobación) ───────────────────────
   async getBilling(tenantId: number) {
     const { PlanPayment } = await import('./plan-payment.model');
-    const { PLAN_PRICES, BREB_KEY, BREB_HOLDER } = await import('@/config/plans');
+    const { getPlanConfig } = await import('@/config/plans');
+    const cfg = await getPlanConfig();
     const tenant = await this.findById(tenantId);
     const payments = await PlanPayment.findAll({
       where: { tenantId },
@@ -188,9 +189,9 @@ export class TenantService {
       limit: 24,
     });
     return {
-      brebKey: BREB_KEY,
-      brebHolder: BREB_HOLDER,
-      prices: PLAN_PRICES,
+      brebKey: cfg.brebKey,
+      brebHolder: cfg.brebHolder,
+      prices: cfg.prices,
       currentPlan: tenant.plan,
       status: tenant.status,
       trialEndsAt: tenant.trialEndsAt,
@@ -200,8 +201,9 @@ export class TenantService {
 
   async reportPayment(tenantId: number, data: { plan: string; amount: number; reference?: string; receiptBase64?: string; receiptMime?: string }) {
     const { PlanPayment } = await import('./plan-payment.model');
-    const { PLAN_PRICES } = await import('@/config/plans');
-    if (!PLAN_PRICES[data.plan]) throw new ConflictError('Plan inválido');
+    const { getPlanConfig } = await import('@/config/plans');
+    const cfg = await getPlanConfig();
+    if (!cfg.prices[data.plan]) throw new ConflictError('Plan inválido');
     if (data.receiptBase64 && data.receiptBase64.length > 2_800_000) {
       throw new ConflictError('El comprobante supera 2MB — usa una imagen más liviana');
     }
@@ -281,6 +283,16 @@ export class TenantService {
       );
     }
     return payment;
+  }
+
+  async getPlatformSettings() {
+    const { getPlanConfig } = await import('@/config/plans');
+    return getPlanConfig();
+  }
+
+  async updatePlatformSettings(data: { brebKey?: string; brebHolder?: string; prices?: Record<string, number> }) {
+    const { setPlanConfig } = await import('@/config/plans');
+    return setPlanConfig(data);
   }
 
   // ── Solicitudes de registro ──────────────────────────────────────────────

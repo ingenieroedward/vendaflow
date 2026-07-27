@@ -491,6 +491,9 @@ const Superadmin: React.FC = () => {
   const [payments, setPayments] = useState<PlanPaymentItem[]>([]);
   const [approveReq, setApproveReq] = useState<TenantRequestItem | null>(null);
   const [receiptView, setReceiptView] = useState<{ payment: PlanPaymentItem; src: string | null } | null>(null);
+  const [payCfg, setPayCfg] = useState<{ brebKey: string; brebHolder: string; prices: Record<string, number> } | null>(null);
+  const [payCfgSaving, setPayCfgSaving] = useState(false);
+  const [payCfgMsg, setPayCfgMsg] = useState<string | null>(null);
   const [platform, setPlatform] = useState<PlatformStats | null>(null);
 
   const load = useCallback(async () => {
@@ -501,6 +504,7 @@ const Superadmin: React.FC = () => {
       tenantAdminService.platformStats().then(setPlatform).catch(() => setPlatform(null));
       tenantAdminService.listRequests().then(setRequests).catch(() => setRequests([]));
       tenantAdminService.listPayments().then(setPayments).catch(() => setPayments([]));
+      tenantAdminService.getPlatformSettings().then(setPayCfg).catch(() => setPayCfg(null));
     } catch (e: unknown) {
       setError((e as { message?: string })?.message ?? 'Error al cargar tenants');
     } finally {
@@ -559,6 +563,22 @@ const Superadmin: React.FC = () => {
   const handleRejectRequest = async (id: number) => {
     try { await tenantAdminService.rejectRequest(id); setRequests(await tenantAdminService.listRequests()); }
     catch (e: unknown) { setError((e as { message?: string })?.message ?? 'Error'); }
+  };
+
+  const handleSavePayCfg = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!payCfg) return;
+    setPayCfgSaving(true);
+    setPayCfgMsg(null);
+    try {
+      setPayCfg(await tenantAdminService.updatePlatformSettings(payCfg));
+      setPayCfgMsg('Configuración guardada');
+      setTimeout(() => setPayCfgMsg(null), 4000);
+    } catch (err: unknown) {
+      setPayCfgMsg((err as { message?: string })?.message ?? 'Error al guardar');
+    } finally {
+      setPayCfgSaving(false);
+    }
   };
 
   const handleViewReceipt = async (payment: PlanPaymentItem) => {
@@ -1175,7 +1195,42 @@ const Superadmin: React.FC = () => {
           </div>
         )}
 
-        {section === 'pagos' && (
+        {section === 'pagos' && (<>
+          {payCfg && (
+            <form onSubmit={handleSavePayCfg} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-5 space-y-3">
+              <h3 className="text-sm font-semibold text-gray-900">Configuración de pagos</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Llave Bre-B</label>
+                  <input value={payCfg.brebKey} onChange={e => setPayCfg({ ...payCfg, brebKey: e.target.value })}
+                    placeholder="@tullave / celular / cédula"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Titular</label>
+                  <input value={payCfg.brebHolder} onChange={e => setPayCfg({ ...payCfg, brebHolder: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                {(['basic', 'pro', 'enterprise'] as const).map(pl => (
+                  <div key={pl}>
+                    <label className="block text-xs font-medium text-gray-700 mb-1 capitalize">{PLAN_LABELS[pl]} (COP/mes)</label>
+                    <input type="number" min="0" value={payCfg.prices[pl] ?? 0}
+                      onChange={e => setPayCfg({ ...payCfg, prices: { ...payCfg.prices, [pl]: Number(e.target.value) } })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-center justify-end gap-3">
+                {payCfgMsg && <span className={`text-xs ${payCfgMsg.includes('guardada') ? 'text-green-600' : 'text-red-600'}`}>{payCfgMsg}</span>}
+                <button type="submit" disabled={payCfgSaving}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50">
+                  {payCfgSaving ? 'Guardando...' : 'Guardar'}
+                </button>
+              </div>
+            </form>
+          )}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div className="px-4 sm:px-5 py-3 border-b border-gray-100 flex items-center gap-2">
               <Receipt className="w-4 h-4 text-gray-400" />
@@ -1219,7 +1274,7 @@ const Superadmin: React.FC = () => {
               </ul>
             )}
           </div>
-        )}
+        </>)}
       </div>
 
       {/* Aprobar solicitud */}

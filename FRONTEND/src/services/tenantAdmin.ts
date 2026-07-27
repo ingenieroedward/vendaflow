@@ -94,6 +94,10 @@ export const tenantAdminService = {
     (await apiService.post<Wrapped<{ recipients: number }>>('/tenants/broadcast', payload)).data,
   platformStats: async () => (await apiService.get<Wrapped<PlatformStats>>('/tenants/platform/stats')).data,
   exportData: (id: number) => apiService.get<unknown>(`/tenants/${id}/export`),
+  getPlatformSettings: async () =>
+    (await apiService.get<Wrapped<{ brebKey: string; brebHolder: string; prices: Record<string, number> }>>('/tenants/platform/settings')).data,
+  updatePlatformSettings: async (payload: { brebKey?: string; brebHolder?: string; prices?: Record<string, number> }) =>
+    (await apiService.put<Wrapped<{ brebKey: string; brebHolder: string; prices: Record<string, number> }>>('/tenants/platform/settings', payload)).data,
   listRequests: async () => (await apiService.get<Wrapped<TenantRequestItem[]>>('/tenants/requests')).data,
   approveRequest: async (id: number, payload: { slug: string; adminUsername: string; adminPassword: string; plan?: string; primaryColor?: string }) =>
     (await apiService.post<Wrapped<unknown>>(`/tenants/requests/${id}/approve`, payload)).data,

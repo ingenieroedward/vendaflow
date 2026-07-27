@@ -18,6 +18,8 @@ router.post('/me/payments', isAuth, isAdmin, ctrl.reportPayment);
 router.post('/', isAuth, isSuperAdmin, ctrl.createTenant);
 router.get('/', isAuth, isSuperAdmin, ctrl.listAll);
 router.get('/platform/stats', isAuth, isSuperAdmin, ctrl.platformStats);
+router.get('/platform/settings', isAuth, isSuperAdmin, ctrl.getPlatformSettings);
+router.put('/platform/settings', isAuth, isSuperAdmin, ctrl.updatePlatformSettings);
 router.get('/requests', isAuth, isSuperAdmin, ctrl.listRequests);
 router.get('/payments', isAuth, isSuperAdmin, ctrl.listPayments);
 router.get('/payments/:id/receipt', isAuth, isSuperAdmin, ctrl.getPaymentReceipt);

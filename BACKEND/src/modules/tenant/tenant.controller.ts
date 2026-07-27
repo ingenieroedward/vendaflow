@@ -102,6 +102,15 @@ export class TenantController {
     res.json({ status: 'success', data: await tenantService.decidePayment(Number(req.params['id']!), false, req.body?.reason) });
   });
 
+  getPlatformSettings = asyncHandler(async (_req: AuthenticatedRequest, res: Response) => {
+    res.json({ status: 'success', data: await tenantService.getPlatformSettings() });
+  });
+
+  updatePlatformSettings = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const { brebKey, brebHolder, prices } = req.body ?? {};
+    res.json({ status: 'success', data: await tenantService.updatePlatformSettings({ brebKey, brebHolder, prices }) });
+  });
+
   listRequests = asyncHandler(async (_req: AuthenticatedRequest, res: Response) => {
     res.json({ status: 'success', data: await tenantService.listRequests() });
   });
