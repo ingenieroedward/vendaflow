@@ -243,6 +243,15 @@ Al arrancar el backend:
 5. `startPaymentReminderJob()` — job diario: push a admin/sellers del tenant con órdenes a crédito por vencer (ventana = `reminderDays` de cada orden) o vencidas
 6. `startTrialExpiryJob()` — job diario (`core/jobs/trialExpiry.ts`): suspende tenants con trial vencido (el slug `demo` está exento) y avisa por push al admin del tenant y a los superadmins desde 3 días antes. El login ya rechaza tenants suspendidos
 
+## REGISTRO PÚBLICO Y PAGOS (jul 2026)
+
+- **/registro** (frontend, cualquier subdominio): solicitud pública → `POST /api/onboarding/request` con captcha propio (HMAC con JWT_SECRET, `GET /api/onboarding/captcha`), honeypot `website` y rate limit 10/h. NO crea tenant: push al superadmin, quien aprueba desde la sección Solicitudes (crea tenant con slug/admin) o rechaza. El antiguo `/register` público fue eliminado
+- **Pagos Bre-B**: precios por env (`PLAN_PRICE_BASIC/PRO/ENTERPRISE`, defaults 50k/100k/200k COP) + `BREB_KEY`/`BREB_HOLDER` en `config/plans.ts`. Tenant reporta pago con comprobante (base64 ≤2MB) desde Configuración → push al superadmin → aprueba en sección Pagos (activa plan, recibo `REC-####`, push al tenant) o rechaza con motivo. Tablas `tenant_requests` y `plan_payments` (sync las crea solo)
+- **Abonos parciales**: tabla `order_payments`; `POST/GET /orders/:id/payments` (isSeller); auto-marca `paidAt` al completar; receivables usa saldo (total − abonado). UI en OrderDetail
+- **Branding PWA**: si el tenant tiene `logoUrl`, el manifest usa su logo como ícono de instalación
+- **Búsqueda de órdenes**: con ≥2 chars y online, Orders consulta `GET /orders/search` (debounce 400ms); offline filtra local
+- **Superadmin lazy**: `React.lazy` en AppRouter — su bundle no se envía a usuarios tenant
+
 ## ÓRDENES DE COMPRA — affectsStock
 
 - `affectsStock` (boolean, default true) en `purchase_orders`: si es false, al recibir la orden NO se crean movimientos de stock — para registrar compras por costos cuando el inventario ya fue cargado (ej. carga inicial del cliente)
