@@ -31,13 +31,9 @@ function daysUntil(dateStr: string): number {
 }
 
 function tenantAppUrl(slug: string): string {
-  const hostname = window.location.hostname;
-  const parts = hostname.split('.');
-  if (parts.length >= 2) {
-    const base = parts.slice(-2).join('.');
-    return `https://${slug}.${base}`;
-  }
-  return `https://${slug}.merco.edwsystem.com`;
+  // Funciona desde merco.edwsystem.com y admin.merco.edwsystem.com
+  const base = 'merco.edwsystem.com';
+  return `https://${slug}.${base}`;
 }
 
 // ---- Usage pill: usado/límite con alerta al acercarse al tope ----
@@ -516,7 +512,7 @@ const Superadmin: React.FC = () => {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    window.location.reload();
   };
 
   const handleImpersonate = async (t: TenantSummary) => {

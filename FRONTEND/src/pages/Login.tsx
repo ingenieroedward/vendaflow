@@ -23,7 +23,8 @@ const Login: React.FC = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate(user?.role === 'superadmin' ? '/superadmin' : '/');
+      if (user?.role === 'superadmin') { window.location.replace('https://admin.merco.edwsystem.com'); return; }
+      navigate('/');
     }
   }, [isAuthenticated, navigate, user]);
 
@@ -86,7 +87,8 @@ const Login: React.FC = () => {
         message: 'Has iniciado sesión correctamente',
       });
       const { user: loggedUser } = useAuthStore.getState();
-      navigate(loggedUser?.role === 'superadmin' ? '/superadmin' : '/');
+      if (loggedUser?.role === 'superadmin') { window.location.replace('https://admin.merco.edwsystem.com'); return; }
+      navigate('/');
     } catch (error: unknown) {
       let errorMessage = 'Credenciales incorrectas';
       

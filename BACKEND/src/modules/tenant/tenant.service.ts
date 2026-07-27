@@ -35,6 +35,8 @@ export class TenantService {
     adminPassword: string;
     primaryColor?: string;
   }) {
+    const RESERVED_SLUGS = ['admin', 'api', 'www', 'app', 'platform', 'registro'];
+    if (RESERVED_SLUGS.includes(data.slug)) throw new ConflictError(`Slug "${data.slug}" está reservado`);
     const existing = await Tenant.findOne({ where: { slug: data.slug } });
     if (existing) throw new ConflictError(`Slug "${data.slug}" ya está en uso`);
 

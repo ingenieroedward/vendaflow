@@ -4,7 +4,6 @@ import { useAuthStore } from '../store/authStore';
 import Layout from '../components/layout/Layout';
 import Login from '../pages/Login';
 import Registro from '../pages/Registro';
-const Superadmin = React.lazy(() => import('../pages/Superadmin'));
 import Home from '../pages/Home';
 import ProductDetail from '../pages/ProductDetail';
 import ProductNew from '../pages/ProductNew';
@@ -46,13 +45,6 @@ const AdminRoute: React.FC<RouteProps> = ({ children }) => {
   return <>{children}</>;
 };
 
-// Superadmin Route — standalone, no app chrome
-const SuperadminRoute: React.FC<RouteProps> = ({ children }) => {
-  const { isAuthenticated, user } = useAuthStore();
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
-  if (user?.role !== 'superadmin') return <Navigate to="/" replace />;
-  return <>{children}</>;
-};
 
 // Buyer Route Component (admin or buyer) - Acceso a productos
 const BuyerRoute: React.FC<RouteProps> = ({ children }) => {
@@ -91,7 +83,7 @@ const PublicRoute: React.FC<RouteProps> = ({ children }) => {
   const { isAuthenticated, user } = useAuthStore();
 
   if (isAuthenticated) {
-    return <Navigate to={user?.role === 'superadmin' ? '/superadmin' : '/'} replace />;
+    return <Navigate to={'/'} replace />;
   }
 
   return <>{children}</>;
@@ -108,12 +100,6 @@ const AppRouter: React.FC = () => {
   return (
     <Router>
       <Routes>
-        {/* Superadmin panel — rendered without app chrome (no Sidebar/Header/BottomNav) */}
-        <Route
-          path="/superadmin"
-          element={<SuperadminRoute><React.Suspense fallback={<div className="min-h-screen bg-gray-50" />}><Superadmin /></React.Suspense></SuperadminRoute>}
-        />
-
         {/* All other routes inside Layout */}
         <Route path="*" element={
           <Layout>
