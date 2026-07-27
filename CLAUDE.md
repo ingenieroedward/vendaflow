@@ -22,7 +22,8 @@ Proyecto: **Merco** (vendaflow).
 - Frontend: `https://<slug>.merco.edwsystem.com`
 - API: `https://api.merco.edwsystem.com`
 - Demo: `https://demo.merco.edwsystem.com` (usuario: `demo_admin` / `Demo2024!`)
-- Superadmin: login sin tenantSlug, usuario: `superadmin`
+- Superadmin: **app separada en `https://admin.merco.edwsystem.com`** (build multi-entry: `admin.html` + `src/admin.tsx`; login propio sin tenantSlug). La app de tenants NO contiene código superadmin
+- **IMPORTANTE — dominios**: cada subdominio (tenants nuevos incluidos) debe registrarse a mano en Dokploy → compose Merco → Domains (frontend, puerto 80, HTTPS/letsencrypt) + redeploy. El "wildcard" del docker-compose no funciona (sintaxis Traefik v2 en un Traefik v3)
 
 **Rama de despliegue:** `feature/multitenant-phase1` — Dokploy escucha esta rama y despliega automáticamente en cada push. (Ojo: CONTRIBUTING.md describe un flujo `main`/`dev` que ya no refleja la práctica actual — la rama activa de trabajo y deploy es esta.)
 
