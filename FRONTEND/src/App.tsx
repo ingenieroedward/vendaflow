@@ -111,6 +111,13 @@ function App() {
   const { seedAllProducts, seedPricesData } = useProductStore();
   const { getUsers } = useUserStore();
 
+  // Título de pestaña: nombre del tenant en su subdominio; el de marketing solo en la raíz
+  const tenantForTitle = useTenantStore(s => s.tenant);
+  useEffect(() => {
+    if (tenantForTitle?.name) document.title = tenantForTitle.name;
+    else if (detectTenantSlug()) document.title = 'Merco';
+  }, [tenantForTitle?.name]);
+
   useEffect(() => {
     // Apply stored tenant theme immediately to avoid flash of default color
     useTenantStore.getState().loadFromStorage();
