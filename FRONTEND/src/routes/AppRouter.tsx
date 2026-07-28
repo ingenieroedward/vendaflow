@@ -6,27 +6,27 @@ import Login from '../pages/Login';
 import Registro from '../pages/Registro';
 import Landing from '../pages/Landing';
 import { detectTenantSlug } from '../services/tenant';
-import Home from '../pages/Home';
-import ProductDetail from '../pages/ProductDetail';
-import ProductNew from '../pages/ProductNew';
-import ProductEdit from '../pages/ProductEdit';
-import OrderDetail from '../pages/OrderDetail';
-import OrderNew from '../pages/OrderNew';
-import Orders from '../pages/Orders';
-import Users from '../pages/Users';
-import UserNew from '../pages/UserNew';
-import UserEdit from '../pages/UserEdit';
-import OrderEdit from '../pages/OrderEdit';
-import Suppliers from '../pages/Suppliers';
-import Categories from '../pages/Categories';
-import Prices from '../pages/Prices';
-import Customers from '../pages/Customers';
-import Reports from '../pages/Reports';
-import Inventory from '../pages/Inventory';
-import PurchaseOrders from '../pages/PurchaseOrders';
-import PurchaseOrderNew from '../pages/PurchaseOrderNew';
-import PurchaseOrderDetail from '../pages/PurchaseOrderDetail';
-import TenantSettings from '../pages/TenantSettings';
+const Home = React.lazy(() => import('../pages/Home'));
+const ProductDetail = React.lazy(() => import('../pages/ProductDetail'));
+const ProductNew = React.lazy(() => import('../pages/ProductNew'));
+const ProductEdit = React.lazy(() => import('../pages/ProductEdit'));
+const OrderDetail = React.lazy(() => import('../pages/OrderDetail'));
+const OrderNew = React.lazy(() => import('../pages/OrderNew'));
+const Orders = React.lazy(() => import('../pages/Orders'));
+const Users = React.lazy(() => import('../pages/Users'));
+const UserNew = React.lazy(() => import('../pages/UserNew'));
+const UserEdit = React.lazy(() => import('../pages/UserEdit'));
+const OrderEdit = React.lazy(() => import('../pages/OrderEdit'));
+const Suppliers = React.lazy(() => import('../pages/Suppliers'));
+const Categories = React.lazy(() => import('../pages/Categories'));
+const Prices = React.lazy(() => import('../pages/Prices'));
+const Customers = React.lazy(() => import('../pages/Customers'));
+const Reports = React.lazy(() => import('../pages/Reports'));
+const Inventory = React.lazy(() => import('../pages/Inventory'));
+const PurchaseOrders = React.lazy(() => import('../pages/PurchaseOrders'));
+const PurchaseOrderNew = React.lazy(() => import('../pages/PurchaseOrderNew'));
+const PurchaseOrderDetail = React.lazy(() => import('../pages/PurchaseOrderDetail'));
+const TenantSettings = React.lazy(() => import('../pages/TenantSettings'));
 
 // Protected Route Component
 interface RouteProps {
@@ -113,7 +113,14 @@ const AppRouter: React.FC = () => {
   );
 };
 
+const PageFallback = (
+  <div className="flex items-center justify-center py-24">
+    <div className="animate-spin w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full" />
+  </div>
+);
+
 const InnerRoutes: React.FC = () => (
+  <React.Suspense fallback={PageFallback}>
   <Routes>
     {/* Public Routes */}
     <Route
@@ -324,6 +331,7 @@ const InnerRoutes: React.FC = () => (
     {/* Redirect any unknown routes to home */}
     <Route path="*" element={<Navigate to="/" replace />} />
   </Routes>
+  </React.Suspense>
 );
 
 export default AppRouter;
