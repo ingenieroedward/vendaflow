@@ -381,6 +381,78 @@ const Reports: React.FC = () => {
     };
   }, [orders, purchaseOrders]);
 
+  // Rentabilidad real desde el servidor: utilidad = ventas − costo de lo vendido (COGS).
+  // Reemplaza el cálculo viejo (ventas − compras del período) que castigaba la carga de inventario.
+  const [profit, setProfit] = useState<{
+    months: Array<{ month: string; revenue: number; cogs: number; profit: number; margin: number }>;
+    current: { month: string; revenue: number; cogs: number; profit: number; margin: number };
+    purchasesThisMonth: number;
+    productsWithoutCost: number;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!navigator.onLine) return;
+    apiService.get<{ status: string; data: never }>('/orders/stats/profit')
+      .then(r => setProfit(r.data as never))
+      .catch(() => setProfit(null));
+  }, []);
+
+  const rent = useMemo(() => {
+    if (!profit) return rentStats;
+    const byMonth = new Map(profit.months.map(m => [m.month, m]));
+    const now = new Date();
+    const monthlyChart = Array.from({ length: 12 }, (_, i) => {
+      const d = subMonths(now, 11 - i);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const m = byMonth.get(key);
+      return {
+        label: format(colStartOfMonth(d), 'MMM yy', { locale: es }),
+        ingresos: m?.revenue ?? 0,
+        costos: m?.cogs ?? 0,
+        utilidad: m?.profit ?? 0,
+      };
+    });
+    const totalRevenue = profit.months.reduce((s, m) => s + m.revenue, 0);
+    const totalCost = profit.months.reduce((s, m) => s + m.cogs, 0);
+    const grossProfit = totalRevenue - totalCost;
+    const prevKey = (() => { const d = subMonths(now, 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; })();
+    const prev = byMonth.get(prevKey);
+    return {
+      ...rentStats,
+      totalRevenue,
+      totalCost,
+      grossProfit,
+      grossMargin: totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0,
+      monthRevenue: profit.current.revenue,
+      monthCost: profit.current.cogs,
+      monthProfit: profit.current.profit,
+      monthMargin: profit.current.margin,
+      profitPct: prev && prev.profit !== 0 ? Math.round(((profit.current.profit - prev.profit) / Math.abs(prev.profit)) * 100) : null,
+      monthlyChart,
+      hasCostData: profit.months.some(m => m.cogs > 0),
+    };
+  }, [profit, rentStats]);
+
+  const downloadMonthlyReport = async (month: string) => {
+    try {
+      const token = localStorage.getItem('vf_token');
+      const r = await fetch(`/api/orders/report/monthly?month=${month}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!r.ok) throw new Error('error');
+      const blob = await r.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `reporte-ventas-${month}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      alert('No se pudo descargar el reporte');
+    }
+  };
+  const [reportMonth, setReportMonth] = useState(() => new Date().toISOString().slice(0, 7));
+
   const hasData = orders.length > 0;
 
   const periods: { key: Period; label: string }[] = [
@@ -1042,7 +1114,37 @@ const Reports: React.FC = () => {
             {/* ════════════════ TAB: RENTABILIDAD ════════════════ */}
             {tab === 'rentabilidad' && (
               <>
-                {!rentStats.hasCostData && (
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:justify-between mb-4">
+                  <p className="text-xs text-gray-400">
+                    Utilidad = ventas − costo de lo vendido. Las compras de inventario no se restan.
+                    {profit && profit.purchasesThisMonth > 0 && (
+                      <span className="block sm:inline sm:ml-1">Compras recibidas este mes: <b className="text-gray-600">{COPShort(profit.purchasesThisMonth)}</b> (informativo)</span>
+                    )}
+                  </p>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <input
+                      type="month" value={reportMonth} onChange={e => setReportMonth(e.target.value)}
+                      max={new Date().toISOString().slice(0, 7)}
+                      className="px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-600 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <button
+                      onClick={() => downloadMonthlyReport(reportMonth)}
+                      className="px-3 py-1.5 text-xs font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-700 transition-colors whitespace-nowrap"
+                    >
+                      Descargar reporte del mes
+                    </button>
+                  </div>
+                </div>
+                {profit && profit.productsWithoutCost > 0 && (
+                  <div className="mb-4 flex items-start gap-2 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700">
+                    <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                    <span>
+                      {profit.productsWithoutCost} producto{profit.productsWithoutCost !== 1 ? 's' : ''} vendido{profit.productsWithoutCost !== 1 ? 's' : ''} sin costo registrado — su utilidad se calcula con costo $0.
+                      Registra sus compras o el precio del proveedor para afinar el margen.
+                    </span>
+                  </div>
+                )}
+                {!rent.hasCostData && (
                   <div className="mb-4 flex items-start gap-2 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700">
                     <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
                     Sin órdenes de compra recibidas — los costos aparecen en $0. Registra compras para ver el margen real.
@@ -1058,7 +1160,7 @@ const Reports: React.FC = () => {
                       </div>
                       <span className="text-xs font-medium text-gray-500">Ingresos totales</span>
                     </div>
-                    <p className="text-lg font-bold text-gray-900">{COPShort(rentStats.totalRevenue)}</p>
+                    <p className="text-lg font-bold text-gray-900">{COPShort(rent.totalRevenue)}</p>
                     <p className="text-xs text-gray-400 mt-0.5">{orders.length} órdenes</p>
                   </div>
 
@@ -1067,21 +1169,21 @@ const Reports: React.FC = () => {
                       <div className="w-7 h-7 bg-orange-50 rounded-lg flex items-center justify-center">
                         <ShoppingCart className="w-4 h-4 text-orange-500" />
                       </div>
-                      <span className="text-xs font-medium text-gray-500">Costo compras</span>
+                      <span className="text-xs font-medium text-gray-500">Costo de lo vendido</span>
                     </div>
-                    <p className="text-lg font-bold text-gray-900">{COPShort(rentStats.totalCost)}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">POs recibidas</p>
+                    <p className="text-lg font-bold text-gray-900">{COPShort(rent.totalCost)}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">de las ventas (no incluye inventario comprado)</p>
                   </div>
 
-                  <div className={`rounded-xl border shadow-sm p-4 ${rentStats.grossProfit >= 0 ? 'bg-emerald-50 border-emerald-100' : 'bg-red-50 border-red-100'}`}>
+                  <div className={`rounded-xl border shadow-sm p-4 ${rent.grossProfit >= 0 ? 'bg-emerald-50 border-emerald-100' : 'bg-red-50 border-red-100'}`}>
                     <div className="flex items-center gap-2 mb-2">
-                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${rentStats.grossProfit >= 0 ? 'bg-emerald-100' : 'bg-red-100'}`}>
-                        <PiggyBank className={`w-4 h-4 ${rentStats.grossProfit >= 0 ? 'text-emerald-600' : 'text-red-500'}`} />
+                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${rent.grossProfit >= 0 ? 'bg-emerald-100' : 'bg-red-100'}`}>
+                        <PiggyBank className={`w-4 h-4 ${rent.grossProfit >= 0 ? 'text-emerald-600' : 'text-red-500'}`} />
                       </div>
                       <span className="text-xs font-medium text-gray-500">Utilidad bruta</span>
                     </div>
-                    <p className={`text-lg font-bold ${rentStats.grossProfit >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>
-                      {COPShort(rentStats.grossProfit)}
+                    <p className={`text-lg font-bold ${rent.grossProfit >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>
+                      {COPShort(rent.grossProfit)}
                     </p>
                     <p className="text-xs text-gray-400 mt-0.5">Ingresos − Costos</p>
                   </div>
@@ -1093,11 +1195,11 @@ const Reports: React.FC = () => {
                       </div>
                       <span className="text-xs font-medium text-gray-500">Margen bruto</span>
                     </div>
-                    <p className={`text-lg font-bold ${rentStats.grossMargin >= 30 ? 'text-emerald-700' : rentStats.grossMargin >= 10 ? 'text-amber-600' : 'text-red-600'}`}>
-                      {rentStats.grossMargin.toFixed(1)}%
+                    <p className={`text-lg font-bold ${rent.grossMargin >= 30 ? 'text-emerald-700' : rent.grossMargin >= 10 ? 'text-amber-600' : 'text-red-600'}`}>
+                      {rent.grossMargin.toFixed(1)}%
                     </p>
                     <p className="text-xs text-gray-400 mt-0.5">
-                      {rentStats.grossMargin >= 30 ? 'Saludable' : rentStats.grossMargin >= 10 ? 'Aceptable' : 'Bajo'}
+                      {rent.grossMargin >= 30 ? 'Saludable' : rent.grossMargin >= 10 ? 'Aceptable' : 'Bajo'}
                     </p>
                   </div>
                 </div>
@@ -1106,11 +1208,11 @@ const Reports: React.FC = () => {
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-6">
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-sm font-semibold text-gray-700">Este mes</h3>
-                    {rentStats.profitPct !== null && (
+                    {rent.profitPct !== null && (
                       <span className={`text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ml-2 ${
-                        rentStats.profitPct >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'
+                        rent.profitPct >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'
                       }`}>
-                        {rentStats.profitPct >= 0 ? '+' : ''}{rentStats.profitPct}%
+                        {rent.profitPct >= 0 ? '+' : ''}{rent.profitPct}%
                         <span className="hidden sm:inline"> vs mes anterior</span>
                       </span>
                     )}
@@ -1118,19 +1220,19 @@ const Reports: React.FC = () => {
                   <div className="grid grid-cols-3 gap-2">
                     <div>
                       <p className="text-xs text-gray-400 mb-0.5">Ingresos</p>
-                      <p className="text-sm font-bold text-gray-900">{COPShort(rentStats.monthRevenue)}</p>
+                      <p className="text-sm font-bold text-gray-900">{COPShort(rent.monthRevenue)}</p>
                     </div>
                     <div>
                       <p className="text-xs text-gray-400 mb-0.5">Costos</p>
-                      <p className="text-sm font-bold text-orange-600">{COPShort(rentStats.monthCost)}</p>
+                      <p className="text-sm font-bold text-orange-600">{COPShort(rent.monthCost)}</p>
                     </div>
                     <div>
                       <p className="text-xs text-gray-400 mb-0.5">Utilidad</p>
-                      <p className={`text-sm font-bold ${rentStats.monthProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                        {COPShort(rentStats.monthProfit)}
+                      <p className={`text-sm font-bold ${rent.monthProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                        {COPShort(rent.monthProfit)}
                       </p>
                       <p className="text-xs text-gray-400">
-                        {rentStats.monthMargin.toFixed(0)}% margen
+                        {rent.monthMargin.toFixed(0)}% margen
                       </p>
                     </div>
                   </div>
@@ -1140,7 +1242,7 @@ const Reports: React.FC = () => {
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-6">
                   <h3 className="text-sm font-semibold text-gray-700 mb-4">Ingresos vs Costos — últimos 12 meses</h3>
                   <ResponsiveContainer width="100%" height={220}>
-                    <BarChart data={rentStats.monthlyChart} barGap={2} barCategoryGap="25%">
+                    <BarChart data={rent.monthlyChart} barGap={2} barCategoryGap="25%">
                       <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
                       <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
                       <YAxis tickFormatter={COPShort} tick={{ fontSize: 10, fill: '#9ca3af' }} tickLine={false} axisLine={false} width={48} />
@@ -1159,7 +1261,7 @@ const Reports: React.FC = () => {
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-4">
                   <h3 className="text-sm font-semibold text-gray-700 mb-4">Utilidad mensual</h3>
                   <ResponsiveContainer width="100%" height={160}>
-                    <LineChart data={rentStats.monthlyChart}>
+                    <LineChart data={rent.monthlyChart}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
                       <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
                       <YAxis tickFormatter={COPShort} tick={{ fontSize: 10, fill: '#9ca3af' }} tickLine={false} axisLine={false} width={48} />
@@ -1179,9 +1281,9 @@ const Reports: React.FC = () => {
                       />
                     </LineChart>
                   </ResponsiveContainer>
-                  {rentStats.bestMonth && rentStats.bestMonth.utilidad > 0 && (
+                  {rent.bestMonth && rent.bestMonth.utilidad > 0 && (
                     <p className="text-xs text-gray-400 mt-2 text-center">
-                      Mejor mes: <span className="font-semibold text-emerald-600">{rentStats.bestMonth.label}</span> — {COP(rentStats.bestMonth.utilidad)}
+                      Mejor mes: <span className="font-semibold text-emerald-600">{rent.bestMonth.label}</span> — {COP(rent.bestMonth.utilidad)}
                     </p>
                   )}
                 </div>

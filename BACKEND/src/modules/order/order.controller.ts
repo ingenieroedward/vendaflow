@@ -30,6 +30,23 @@ export class OrderController {
     res.status(200).json({ status: 'success', data: stats });
   });
 
+  getProfitStats = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const stats = await this.orderService.getProfitStats(req.user!.tenantId);
+    res.status(200).json({ status: 'success', data: stats });
+  });
+
+  getMonthlyReport = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const month = String(req.query['month'] ?? new Date().toISOString().slice(0, 7));
+    if (!/^\d{4}-\d{2}$/.test(month)) {
+      res.status(400).json({ status: 'error', message: 'month debe ser YYYY-MM' });
+      return;
+    }
+    const { filename, csv } = await this.orderService.getMonthlyReportCsv(req.user!.tenantId, month);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.status(200).send(csv);
+  });
+
   addPayment = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const { amount, notes } = req.body ?? {};
     const result = await this.orderService.addPayment(

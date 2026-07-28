@@ -11,6 +11,8 @@ router.get('/search', isAuth, isSeller, orderController.searchOrders);
 router.get('/next-number', isAuth, isSeller, orderController.getNextOrderNumber);
 router.get('/stats/home', isAuth, isSeller, orderController.getHomeStats);
 router.get('/receivables', isAuth, isSeller, orderController.getReceivables);
+router.get('/stats/profit', isAuth, isSeller, orderController.getProfitStats);
+router.get('/report/monthly', isAuth, isSeller, orderController.getMonthlyReport);
 router.get('/trash', isAuth, isAdmin, orderController.getDeletedOrders);
 router.get('/customer/:customerId', isAuth, isSeller, orderController.getOrdersByCustomer);
 router.get('/:id', isAuth, isSeller, orderController.getOrderById);

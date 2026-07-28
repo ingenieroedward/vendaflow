@@ -246,6 +246,155 @@ export class OrderService {
     return { totalDue, count: items.length, overdueCount, orders: items };
   }
 
+  // Costo por producto: último costo de compra; si no hay, el menor precio de proveedor
+  private async getProductCostMap(tenantId: number): Promise<Map<number, number>> {
+    const { PurchaseOrder } = await import('@/modules/purchase-order/purchase-order.model');
+    const { PurchaseOrderItem } = await import('@/modules/purchase-order/purchase-order-item/purchase-order-item.model');
+    const { Price } = await import('@/modules/price/price.model');
+
+    const costMap = new Map<number, number>();
+
+    // Último costo de compra por producto (incluye compras históricas affectsStock=false)
+    const poItems = await PurchaseOrderItem.findAll({
+      include: [{
+        model: PurchaseOrder,
+        as: 'purchaseOrder',
+        attributes: [],
+        where: { tenantId, status: { [Op.ne]: 'cancelled' } },
+        required: true,
+      }],
+      attributes: ['productId', 'unitCost', 'createdAt'],
+      order: [['createdAt', 'DESC']],
+      raw: true,
+    }) as unknown as Array<{ productId: number; unitCost: string }>;
+    for (const it of poItems) {
+      if (!costMap.has(it.productId)) costMap.set(it.productId, Number(it.unitCost));
+    }
+
+    // Fallback: menor precio de proveedor registrado
+    const prices = await Price.findAll({
+      where: { tenantId },
+      attributes: ['productId', [sequelize.fn('MIN', sequelize.col('price')), 'minPrice']],
+      group: ['productId'],
+      raw: true,
+    }) as unknown as Array<{ productId: number; minPrice: string }>;
+    for (const p of prices) {
+      if (!costMap.has(p.productId)) costMap.set(p.productId, Number(p.minPrice));
+    }
+
+    return costMap;
+  }
+
+  // Rentabilidad real: utilidad = venta de items − costo de lo vendido (COGS),
+  // NO ventas − compras del período (eso castiga la carga de inventario)
+  async getProfitStats(tenantId: number) {
+    const { PurchaseOrder } = await import('@/modules/purchase-order/purchase-order.model');
+    const costMap = await this.getProductCostMap(tenantId);
+
+    const since = new Date();
+    since.setMonth(since.getMonth() - 11);
+    since.setDate(1);
+    since.setHours(0, 0, 0, 0);
+
+    const items = await OrderItem.findAll({
+      include: [{
+        model: Order,
+        as: 'order',
+        attributes: ['createdAt'],
+        where: { tenantId, status: { [Op.ne]: 'cancelled' }, createdAt: { [Op.gte]: since } },
+        required: true,
+      }],
+      attributes: ['productId', 'quantity', 'unitPrice'],
+      raw: true,
+      nest: true,
+    }) as unknown as Array<{ productId: number; quantity: number; unitPrice: string; order: { createdAt: Date } }>;
+
+    const byMonth = new Map<string, { revenue: number; cogs: number }>();
+    const noCost = new Set<number>();
+    for (const it of items) {
+      const month = new Date(it.order.createdAt).toISOString().slice(0, 7);
+      const entry = byMonth.get(month) ?? { revenue: 0, cogs: 0 };
+      const qty = Number(it.quantity);
+      entry.revenue += qty * Number(it.unitPrice);
+      const cost = costMap.get(it.productId);
+      if (cost === undefined) noCost.add(it.productId);
+      entry.cogs += qty * (cost ?? 0);
+      byMonth.set(month, entry);
+    }
+
+    const months = [...byMonth.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([month, v]) => ({
+        month,
+        revenue: Math.round(v.revenue),
+        cogs: Math.round(v.cogs),
+        profit: Math.round(v.revenue - v.cogs),
+        margin: v.revenue > 0 ? Math.round(((v.revenue - v.cogs) / v.revenue) * 1000) / 10 : 0,
+      }));
+
+    const nowMonth = new Date().toISOString().slice(0, 7);
+    const current = months.find(m => m.month === nowMonth) ?? { month: nowMonth, revenue: 0, cogs: 0, profit: 0, margin: 0 };
+
+    // Compras del mes: informativo (flujo de caja), NO se resta de la utilidad
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+    const purchasesThisMonth = Number(await PurchaseOrder.sum('totalAmount', {
+      where: { tenantId, status: 'received', createdAt: { [Op.gte]: startOfMonth } },
+    })) || 0;
+
+    return { months, current, purchasesThisMonth, productsWithoutCost: noCost.size };
+  }
+
+  // Reporte mensual de ventas en CSV (abre en Excel)
+  async getMonthlyReportCsv(tenantId: number, month: string): Promise<{ filename: string; csv: string }> {
+    const costMap = await this.getProductCostMap(tenantId);
+    const start = new Date(`${month}-01T00:00:00`);
+    const end = new Date(start);
+    end.setMonth(end.getMonth() + 1);
+
+    const orders = await Order.findAll({
+      where: { tenantId, createdAt: { [Op.gte]: start, [Op.lt]: end } },
+      include: [
+        { model: Customer, as: 'customer', attributes: ['name'] },
+        { model: OrderItem, as: 'orderItems', attributes: ['productId', 'quantity', 'unitPrice'] },
+      ],
+      order: [['createdAt', 'ASC']],
+    });
+
+    const esc = (s: unknown) => `"${String(s ?? '').replace(/"/g, '""')}"`;
+    const num = (n: number) => Math.round(n);
+    const rows = [
+      ['Orden', 'Fecha', 'Cliente', 'Estado', 'Pago', 'Total venta', 'Costo estimado', 'Utilidad', 'Margen %'].join(';'),
+    ];
+
+    let tRev = 0, tCost = 0;
+    for (const o of orders) {
+      const items = o.orderItems ?? [];
+      const rev = items.reduce((s, it) => s + Number(it.quantity) * Number(it.unitPrice), 0);
+      const cost = items.reduce((s, it) => s + Number(it.quantity) * (costMap.get(it.productId) ?? 0), 0);
+      const cancelled = o.status === 'cancelled';
+      if (!cancelled) { tRev += rev; tCost += cost; }
+      rows.push([
+        esc(o.orderNumber),
+        esc(new Date(o.createdAt).toLocaleDateString('es-CO')),
+        esc(o.customer?.name ?? ''),
+        esc(o.status),
+        esc(o.paymentType === 'credit' ? (o.paidAt ? 'crédito (pagada)' : 'crédito (pendiente)') : 'contado'),
+        num(Number(o.totalAmount)),
+        cancelled ? 0 : num(cost),
+        cancelled ? 0 : num(rev - cost),
+        !cancelled && rev > 0 ? (((rev - cost) / rev) * 100).toFixed(1) : '0',
+      ].join(';'));
+    }
+    rows.push('');
+    rows.push(['TOTALES (sin canceladas)', '', '', '', '', num(tRev), num(tCost), num(tRev - tCost),
+      tRev > 0 ? (((tRev - tCost) / tRev) * 100).toFixed(1) : '0'].join(';'));
+
+    // BOM para que Excel abra acentos bien
+    return { filename: `reporte-ventas-${month}.csv`, csv: '﻿' + rows.join('\r\n') };
+  }
+
   // KPIs del Home: órdenes pendientes, ventas del mes y actividad reciente
   async getHomeStats(tenantId: number) {
     const startOfMonth = new Date();
