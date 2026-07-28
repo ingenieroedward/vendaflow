@@ -12,7 +12,8 @@ RUN npm ci
 
 COPY . .
 
-# CI: los tests corren en el build — si fallan, el deploy se aborta
+# CI: typecheck + tests en el build — si fallan, el deploy se aborta
+RUN npm run typecheck
 RUN npm test
 
 RUN npm run build
