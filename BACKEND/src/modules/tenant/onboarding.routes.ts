@@ -31,6 +31,19 @@ router.get('/captcha', onboardingLimiter, (_req: Request, res: Response) => {
   res.json({ question: `¿Cuánto es ${a} + ${b}?`, a, b, exp, token: captchaSign(a, b, exp) });
 });
 
+// Tracking del embudo público (contador diario, sin cookies ni datos personales)
+const VALID_EVENTS = new Set(['landing_view', 'registro_view']);
+router.post('/track', asyncHandler(async (req: Request, res: Response) => {
+  const event = String(req.body?.event ?? '');
+  if (VALID_EVENTS.has(event)) {
+    const { MetricDaily } = await import('./metric-daily.model');
+    const today = new Date().toISOString().slice(0, 10);
+    const [row] = await MetricDaily.findOrCreate({ where: { date: today, key: event }, defaults: { date: today, key: event, count: 0 } });
+    await row.increment('count');
+  }
+  res.status(204).end();
+}));
+
 // Precios públicos para la landing (sin llave Bre-B)
 router.get('/plans', asyncHandler(async (_req: Request, res: Response) => {
   const { getPlanConfig } = await import('@/config/plans');

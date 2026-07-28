@@ -19,6 +19,7 @@ router.post('/', isAuth, isSuperAdmin, ctrl.createTenant);
 router.get('/', isAuth, isSuperAdmin, ctrl.listAll);
 router.get('/platform/stats', isAuth, isSuperAdmin, ctrl.platformStats);
 router.get('/platform/settings', isAuth, isSuperAdmin, ctrl.getPlatformSettings);
+router.get('/platform/funnel', isAuth, isSuperAdmin, ctrl.getFunnel);
 router.put('/platform/settings', isAuth, isSuperAdmin, ctrl.updatePlatformSettings);
 router.get('/requests', isAuth, isSuperAdmin, ctrl.listRequests);
 router.get('/payments', isAuth, isSuperAdmin, ctrl.listPayments);

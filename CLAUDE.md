@@ -252,6 +252,7 @@ Al arrancar el backend:
 - **Branding PWA**: si el tenant tiene `logoUrl`, el manifest usa su logo como ícono de instalación
 - **Búsqueda de órdenes**: con ≥2 chars y online, Orders consulta `GET /orders/search` (debounce 400ms); offline filtra local
 - **Superadmin lazy**: `React.lazy` en AppRouter — su bundle no se envía a usuarios tenant
+- **Embudo comercial**: tabla `metrics_daily` (contadores diarios, sin cookies). `POST /api/onboarding/track` (público, eventos `landing_view`/`registro_view` — Landing y Registro lo disparan al montar); `GET /tenants/platform/funnel` (superadmin, 30 días): visitas → registro → solicitudes → aprobadas con % de conversión. Card "Embudo comercial" en el dashboard del superadmin
 
 ## ÓRDENES DE COMPRA — affectsStock
 

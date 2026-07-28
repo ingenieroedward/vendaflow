@@ -103,6 +103,10 @@ export class TenantController {
     res.json({ status: 'success', data: await tenantService.decidePayment(Number(req.params['id']!), false, req.body?.reason) });
   });
 
+  getFunnel = asyncHandler(async (_req: AuthenticatedRequest, res: Response) => {
+    res.json({ status: 'success', data: await tenantService.getFunnel() });
+  });
+
   getPlatformSettings = asyncHandler(async (_req: AuthenticatedRequest, res: Response) => {
     res.json({ status: 'success', data: await tenantService.getPlatformSettings() });
   });

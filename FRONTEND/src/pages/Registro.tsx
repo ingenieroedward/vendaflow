@@ -40,7 +40,10 @@ const Registro: React.FC = () => {
   const loadCaptcha = () => {
     apiService.get<Captcha>('/onboarding/captcha').then(setCaptcha).catch(() => setCaptcha(null));
   };
-  useEffect(loadCaptcha, []);
+  useEffect(() => {
+    loadCaptcha();
+    apiService.post('/onboarding/track', { event: 'registro_view' }).catch(() => {});
+  }, []);
 
   const handle = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));

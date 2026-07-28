@@ -499,6 +499,7 @@ const Superadmin: React.FC = () => {
   const [approveReq, setApproveReq] = useState<TenantRequestItem | null>(null);
   const [receiptView, setReceiptView] = useState<{ payment: PlanPaymentItem; src: string | null } | null>(null);
   const [payCfg, setPayCfg] = useState<{ brebKey: string; brebHolder: string; prices: Record<string, number> } | null>(null);
+  const [funnel, setFunnel] = useState<{ days: number; landingViews: number; registroViews: number; requests: number; approved: number } | null>(null);
   const [payCfgSaving, setPayCfgSaving] = useState(false);
   const [payCfgMsg, setPayCfgMsg] = useState<string | null>(null);
   const [platform, setPlatform] = useState<PlatformStats | null>(null);
@@ -512,6 +513,7 @@ const Superadmin: React.FC = () => {
       tenantAdminService.listRequests().then(setRequests).catch(() => setRequests([]));
       tenantAdminService.listPayments().then(setPayments).catch(() => setPayments([]));
       tenantAdminService.getPlatformSettings().then(setPayCfg).catch(() => setPayCfg(null));
+      tenantAdminService.getFunnel().then(setFunnel).catch(() => setFunnel(null));
     } catch (e: unknown) {
       setError((e as { message?: string })?.message ?? 'Error al cargar tenants');
     } finally {
@@ -937,6 +939,32 @@ const Superadmin: React.FC = () => {
                   </div>
                 ))}
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Embudo comercial */}
+        {funnel && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <TrendingUp className="w-4 h-4 text-gray-400" />
+              <h3 className="text-sm font-semibold text-gray-900">Embudo comercial</h3>
+              <span className="text-xs text-gray-400">últimos {funnel.days} días</span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[
+                { label: 'Visitas landing', value: funnel.landingViews, sub: 'merco.edwsystem.com' },
+                { label: 'Abrieron registro', value: funnel.registroViews, sub: funnel.landingViews > 0 ? `${Math.round((funnel.registroViews / funnel.landingViews) * 100)}% de visitas` : '—' },
+                { label: 'Solicitudes', value: funnel.requests, sub: funnel.registroViews > 0 ? `${Math.round((funnel.requests / funnel.registroViews) * 100)}% de registros` : '—' },
+                { label: 'Aprobadas', value: funnel.approved, sub: funnel.requests > 0 ? `${Math.round((funnel.approved / funnel.requests) * 100)}% de solicitudes` : '—' },
+              ].map((s, i) => (
+                <div key={s.label} className="relative bg-gray-50 rounded-lg p-3">
+                  <p className="text-xl font-bold text-gray-900">{s.value}</p>
+                  <p className="text-xs font-medium text-gray-500">{s.label}</p>
+                  <p className="text-[11px] text-gray-400 mt-0.5">{s.sub}</p>
+                  {i < 3 && <span className="hidden sm:block absolute -right-2.5 top-1/2 -translate-y-1/2 text-gray-300 text-sm">→</span>}
+                </div>
+              ))}
             </div>
           </div>
         )}

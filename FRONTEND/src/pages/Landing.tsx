@@ -138,6 +138,7 @@ const Landing: React.FC = () => {
   const [prices, setPrices] = useState<Record<string, number> | null>(null);
 
   useEffect(() => {
+    apiService.post('/onboarding/track', { event: 'landing_view' }).catch(() => {});
     apiService.get<{ prices: Record<string, number> }>('/onboarding/plans')
       .then(r => setPrices(r.prices)).catch(() => setPrices(null));
   }, []);

@@ -300,6 +300,31 @@ export class TenantService {
     return setPlanConfig(data);
   }
 
+  // Embudo público de los últimos 30 días
+  async getFunnel() {
+    const { MetricDaily } = await import('./metric-daily.model');
+    const { TenantRequest } = await import('./tenant-request.model');
+    const since = new Date();
+    since.setDate(since.getDate() - 29);
+    const sinceStr = since.toISOString().slice(0, 10);
+
+    const metrics = await MetricDaily.findAll({ where: { date: { [Op.gte]: sinceStr } }, raw: true });
+    const sum = (key: string) => metrics.filter(m => m.key === key).reduce((s, m) => s + m.count, 0);
+
+    const [requests, approved] = await Promise.all([
+      TenantRequest.count({ where: { createdAt: { [Op.gte]: since } } }),
+      TenantRequest.count({ where: { createdAt: { [Op.gte]: since }, status: 'approved' } }),
+    ]);
+
+    return {
+      days: 30,
+      landingViews: sum('landing_view'),
+      registroViews: sum('registro_view'),
+      requests,
+      approved,
+    };
+  }
+
   // ── Solicitudes de registro ──────────────────────────────────────────────
   async listRequests() {
     const { TenantRequest } = await import('./tenant-request.model');
