@@ -35,7 +35,8 @@ export class PriceService {
       updatedByUserId: userId,
     } as PriceAttributes);
 
-    pushService.notifyAll(
+    pushService.notifyTenant(
+      tenantId,
       '💰 Precio actualizado',
       `${product.name}: $${validatedData.price}`,
       { productId: product.id, price: validatedData.price },
@@ -110,7 +111,8 @@ export class PriceService {
 
     const updatedProduct = await Product.findOne({ where: { id: price.productId, tenantId } });
     if (updatedProduct && validatedData.price !== undefined) {
-      pushService.notifyAll(
+      pushService.notifyTenant(
+        tenantId,
         '💰 Precio actualizado',
         `${updatedProduct.name}: $${validatedData.price}`,
         { productId: updatedProduct.id, price: validatedData.price },

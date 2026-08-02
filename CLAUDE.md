@@ -321,6 +321,19 @@ Al arrancar el backend:
 
 ## SEGURIDAD — NOTAS IMPORTANTES
 
+### Auditoría ago 2026 (v1.8.0) — corregido
+- Purchase-orders: TODO el módulo filtraba sin `tenantId` (list/get/update/delete exponían y mutaban datos de otros tenants) — cerrado
+- Order create: `customerId`/`productId` se validan contra el tenant del JWT (antes IDOR: cliente/producto ajeno)
+- `createMovement` filtra producto por tenant y usa `lock: t.LOCK.UPDATE` (evita lost updates concurrentes)
+- Push de precios: `notifyTenant()` (antes `notifyAll` mandaba precios de un tenant a TODA la plataforma); `unsubscribe` solo borra suscripciones propias
+- `JWT_SECRET` ausente en producción → `process.exit(1)` (antes fallback público del repo)
+- IndexedDB: al hacer login con un tenant distinto al último usado en el dispositivo, se limpia la BD local (aislamiento en equipos compartidos)
+- Totales de orden **incluyen IVA por línea** (antes la BD guardaba base y factura/cartera/pagos no cuadraban; reportes de utilidad siguen sobre base sin IVA)
+- Stock se reconcilia al editar/cancelar/eliminar/restaurar órdenes (movimientos `adjustment` con nota; antes el stock quedaba descuadrado para siempre)
+- Cuotas de plan aplicadas: `maxUsers`/`maxProducts`/`maxOrdersPerMonth` se verifican en cada create (409 con mensaje de upgrade)
+- Ruta `/customers/trash` antes de `/:id` (Express casa por orden; la papelera era inalcanzable)
+- Pendiente conocido: `FRONTEND/src/utils/backgroundSync.ts` es código muerto roto (no importado; no conectar sin reescribirlo). No existe flujo de cambio de contraseña propio (solo admin vía PUT /users/:id)
+
 - `PUT /orders/:id` debe tener `isSeller` (sin él, cualquier buyer puede modificar órdenes) — aplicado
 - No poner contraseñas con fallback hardcodeado en docker-compose (`:-valor`) — el fallback `:-Demo2024!` fue eliminado; `DEMO_ADMIN_PASSWORD` debe estar seteado en Dokploy
 - `ensureSuperadmin` actualiza la contraseña desde el env var si el usuario ya existe (permite rotarla con redeploy)

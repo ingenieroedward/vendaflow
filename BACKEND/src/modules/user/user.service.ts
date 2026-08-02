@@ -16,9 +16,21 @@ import { createUserSchema, updateUserSchema } from "./user.dto";
 import { Order } from "../order/order.model";
 import { Price } from "../price/price.model";
 
+async function assertUserQuota(tenantId: number) {
+  const { Tenant } = await import('@/modules/tenant/tenant.model');
+  const { User } = await import('./user.model');
+  const tenant = await Tenant.findByPk(tenantId);
+  if (!tenant) return;
+  const count = await User.count({ where: { tenantId } });
+  if (count >= tenant.maxUsers) {
+    throw new ConflictError(`Tu plan permite máximo ${tenant.maxUsers} usuarios. Actualiza el plan para agregar más.`);
+  }
+}
+
 export class UserService {
   async createUser(userData: CreateUserDto, tenantId: number): Promise<UserResponseDto> {
     const validatedData = validateSchema(createUserSchema, userData);
+    await assertUserQuota(tenantId);
 
     const existingUser = await User.findOne({
       where: { tenantId, username: validatedData.username },

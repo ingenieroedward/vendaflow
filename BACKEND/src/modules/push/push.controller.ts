@@ -34,7 +34,7 @@ export class PushController {
       throw new AppError('Endpoint required', 400);
     }
 
-    await pushService.unsubscribe(endpoint);
+    await pushService.unsubscribe(endpoint, req.user!.id);
     res.json({ message: 'Unsubscribed successfully' });
   });
 }

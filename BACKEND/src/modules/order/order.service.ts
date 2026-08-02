@@ -10,7 +10,7 @@ import {
   OrdersListResponseDto,
   SearchOrderDto
 } from './order.dto';
-import { NotFoundError } from '@/core/errors/AppError';
+import { NotFoundError, ConflictError } from '@/core/errors/AppError';
 import logger from '@/core/logger';
 import { validateSchema, validatePartialSchema, paginationSchema, PaginationQuery } from '@/core/utils/validation';
 import { createOrderSchema, updateOrderSchema, searchOrderSchema } from './order.dto';
@@ -54,8 +54,20 @@ export class OrderService {
   async createOrder(orderData: CreateOrderDto, userId: number, tenantId: number): Promise<OrderResponseDto> {
     const validatedData = validateSchema(createOrderSchema, orderData);
 
-    // Check if customer exists
-    const customer = await Customer.findByPk(validatedData.customerId);
+    // Cuota mensual del plan
+    const { Tenant } = await import('@/modules/tenant/tenant.model');
+    const tenant = await Tenant.findByPk(tenantId);
+    if (tenant) {
+      const monthStart = new Date();
+      monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
+      const count = await Order.count({ where: { tenantId, createdAt: { [Op.gte]: monthStart } } });
+      if (count >= tenant.maxOrdersPerMonth) {
+        throw new ConflictError(`Tu plan permite máximo ${tenant.maxOrdersPerMonth} órdenes por mes. Actualiza el plan para continuar.`);
+      }
+    }
+
+    // Check if customer exists (del mismo tenant)
+    const customer = await Customer.findOne({ where: { id: validatedData.customerId, tenantId } });
     if (!customer) {
       throw new NotFoundError('Customer not found');
     }
@@ -66,17 +78,20 @@ export class OrderService {
       throw new NotFoundError('User not found');
     }
 
-    // Check if all products exist
+    // Check if all products exist (del mismo tenant)
     for (const item of validatedData.items) {
-      const product = await Product.findByPk(item.productId);
+      const product = await Product.findOne({ where: { id: item.productId, tenantId } });
       if (!product) {
         throw new NotFoundError(`Product with ID ${item.productId} not found`);
       }
     }
 
-    // Calculate total amount
+    // Calculate total amount — incluye IVA por línea, igual que la factura
+    // que ve el cliente (antes se guardaba sin IVA y cartera/pagos quedaban cortos)
+    const lineTotal = (qty: number, price: number, taxRate: number) =>
+      Math.round(qty * price * (1 + (taxRate || 0) / 100) * 100) / 100;
     const totalAmount = validatedData.items.reduce((sum, item) => {
-      return sum + (item.quantity * item.unitPrice);
+      return sum + lineTotal(item.quantity, item.unitPrice, item.taxRate);
     }, 0);
 
     // Create order + items inside a transaction, retrying up to 3 times on duplicate order number
@@ -106,7 +121,7 @@ export class OrderService {
               productId: item.productId,
               quantity: item.quantity,
               unitPrice: item.unitPrice,
-              totalPrice: item.quantity * item.unitPrice,
+              totalPrice: lineTotal(item.quantity, item.unitPrice, item.taxRate),
             } as OrderItemAttributes, { transaction: t })
           )
         );
@@ -520,7 +535,7 @@ export class OrderService {
    *  4. Recalcula totalAmount sumando los totalPrice actuales.
    * Si cualquier paso falla, hace rollback completo.
    */
-  async updateOrder(id: number, updateData: UpdateOrderDto, tenantId: number): Promise<OrderResponseDto> {
+  async updateOrder(id: number, updateData: UpdateOrderDto, tenantId: number, editorUserId?: number): Promise<OrderResponseDto> {
     const validatedData = validatePartialSchema(updateOrderSchema, updateData) as Partial<UpdateOrderDto>;
 
     const transaction = await sequelize.transaction();
@@ -529,6 +544,9 @@ export class OrderService {
       if (!order) {
         throw new NotFoundError('Order not found');
       }
+      // Estado previo para reconciliar stock al final (cancelación o cambio de items)
+      const prevStatus = order.status;
+      const prevItems = await OrderItem.findAll({ where: { orderId: id }, transaction, raw: true });
 
       // Al pasar a contado, limpiar los campos de crédito
       if (validatedData.paymentType === 'cash') {
@@ -570,7 +588,7 @@ export class OrderService {
                   quantity: item.quantity,
                   unitPrice: item.unitPrice,
                   taxRate: item.taxRate,
-                  totalPrice: item.quantity * item.unitPrice,
+                  totalPrice: Math.round(item.quantity * item.unitPrice * (1 + (item.taxRate || 0) / 100) * 100) / 100,
                 },
                 { where: { id: item.id }, transaction }
               );
@@ -583,7 +601,7 @@ export class OrderService {
                   quantity: item.quantity,
                   unitPrice: item.unitPrice,
                   taxRate: item.taxRate,
-                  totalPrice: item.quantity * item.unitPrice,
+                  totalPrice: Math.round(item.quantity * item.unitPrice * (1 + (item.taxRate || 0) / 100) * 100) / 100,
                 },
                 { transaction }
               );
@@ -597,6 +615,42 @@ export class OrderService {
         const updatedItems = await OrderItem.findAll({ where: { orderId: id }, transaction });
         const totalAmount = updatedItems.reduce((sum, item) => sum + Number(item.totalPrice), 0);
         await order.update({ totalAmount }, { transaction });
+      }
+
+      // ── Reconciliar stock ──
+      // Impacto en stock de una orden activa = -cantidad por producto; una orden
+      // cancelada no descuenta. Se compara el impacto antes vs. después y la
+      // diferencia se registra como ajuste (devuelve o descuenta lo justo).
+      const currentItems = validatedData.items
+        ? await OrderItem.findAll({ where: { orderId: id }, transaction, raw: true })
+        : prevItems;
+      const sumByProduct = (items: Array<{ productId: number; quantity: number }>) => {
+        const m = new Map<number, number>();
+        for (const it of items) m.set(it.productId, (m.get(it.productId) ?? 0) + Number(it.quantity));
+        return m;
+      };
+      const before = prevStatus !== 'cancelled' ? sumByProduct(prevItems) : new Map<number, number>();
+      const after = order.status !== 'cancelled' ? sumByProduct(currentItems) : new Map<number, number>();
+      const productIds = new Set([...before.keys(), ...after.keys()]);
+      for (const productId of productIds) {
+        const delta = (before.get(productId) ?? 0) - (after.get(productId) ?? 0); // >0 devuelve stock
+        if (delta !== 0) {
+          await this.stockMovementService.createMovement({
+            tenantId,
+            productId,
+            type: 'adjustment',
+            quantity: delta,
+            referenceId: id,
+            referenceType: 'order',
+            userId: editorUserId ?? order.userId,
+            notes: order.status === 'cancelled' && prevStatus !== 'cancelled'
+              ? `Orden ${order.orderNumber} cancelada — stock devuelto`
+              : prevStatus === 'cancelled' && order.status !== 'cancelled'
+                ? `Orden ${order.orderNumber} reactivada — stock descontado`
+                : `Edición de orden ${order.orderNumber}`,
+            transaction,
+          });
+        }
       }
 
       await transaction.commit();
@@ -640,7 +694,31 @@ export class OrderService {
     if (!order) {
       throw new NotFoundError('Order not found');
     }
-    await order.destroy();
+    const t = await sequelize.transaction();
+    try {
+      // Devolver el stock que la orden había descontado (si estaba activa)
+      if (order.status !== 'cancelled') {
+        const items = await OrderItem.findAll({ where: { orderId: id }, transaction: t, raw: true });
+        for (const item of items) {
+          await this.stockMovementService.createMovement({
+            tenantId,
+            productId: item.productId,
+            type: 'adjustment',
+            quantity: Number(item.quantity),
+            referenceId: id,
+            referenceType: 'order',
+            userId: order.userId,
+            notes: `Orden ${order.orderNumber} eliminada — stock devuelto`,
+            transaction: t,
+          });
+        }
+      }
+      await order.destroy({ transaction: t });
+      await t.commit();
+    } catch (err) {
+      await t.rollback();
+      throw err;
+    }
   }
 
   async getDeletedOrders(tenantId: number): Promise<OrderResponseDto[]> {
@@ -662,7 +740,31 @@ export class OrderService {
       paranoid: false,
     });
     if (!order) throw new NotFoundError('Order not found in trash');
-    await order.restore();
+    const t = await sequelize.transaction();
+    try {
+      await order.restore({ transaction: t });
+      // La eliminación devolvió el stock; al restaurar se descuenta de nuevo
+      if (order.status !== 'cancelled') {
+        const items = await OrderItem.findAll({ where: { orderId: id }, transaction: t, raw: true });
+        for (const item of items) {
+          await this.stockMovementService.createMovement({
+            tenantId,
+            productId: item.productId,
+            type: 'adjustment',
+            quantity: -Number(item.quantity),
+            referenceId: id,
+            referenceType: 'order',
+            userId: order.userId,
+            notes: `Orden ${order.orderNumber} restaurada — stock descontado`,
+            transaction: t,
+          });
+        }
+      }
+      await t.commit();
+    } catch (err) {
+      await t.rollback();
+      throw err;
+    }
     return this.mapToResponseDto(order, []);
   }
 

@@ -10,7 +10,7 @@ import {
   ProductsListResponseDto,
   SearchProductDto
 } from './product.dto';
-import { NotFoundError } from '@/core/errors/AppError';
+import { NotFoundError, ConflictError } from '@/core/errors/AppError';
 import { validateSchema, validatePartialSchema, paginationSchema, PaginationQuery } from '@/core/utils/validation';
 import { createProductSchema, updateProductSchema, searchProductSchema, adjustStockSchema } from './product.dto';
 import { StockMovementService } from '@/modules/stock-movement/stock-movement.service';
@@ -49,6 +49,16 @@ export class ProductService {
 
   async createProduct(productData: CreateProductDto, tenantId: number): Promise<ProductResponseDto> {
     const validatedData = validateSchema(createProductSchema, productData);
+
+    // Cuota del plan
+    const { Tenant } = await import('@/modules/tenant/tenant.model');
+    const tenant = await Tenant.findByPk(tenantId);
+    if (tenant) {
+      const count = await Product.count({ where: { tenantId } });
+      if (count >= tenant.maxProducts) {
+        throw new ConflictError(`Tu plan permite máximo ${tenant.maxProducts} productos. Actualiza el plan para agregar más.`);
+      }
+    }
 
     if (validatedData.categoryId) {
       const category = await Category.findOne({ where: { id: validatedData.categoryId, tenantId } });

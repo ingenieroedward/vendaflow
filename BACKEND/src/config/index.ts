@@ -25,12 +25,13 @@ export const config = {
     secret: (() => {
       const secret = process.env['JWT_SECRET'];
       if (!secret) {
-        const fallback = 'dev_jwt_secret_change_in_production';
+        // En producción arrancar sin secreto sería fatal: el fallback está en el
+        // repo público y cualquiera podría firmar un JWT de superadmin
         if (process.env['NODE_ENV'] === 'production') {
-          // Log warning but don't crash — let the health check pass so logs are visible
-          console.error('[CONFIG] WARNING: JWT_SECRET not set in production — using insecure fallback');
+          console.error('[CONFIG] FATAL: JWT_SECRET no está definido en producción — abortando');
+          process.exit(1);
         }
-        return fallback;
+        return 'dev_jwt_secret_change_in_production';
       }
       return secret;
     })(),

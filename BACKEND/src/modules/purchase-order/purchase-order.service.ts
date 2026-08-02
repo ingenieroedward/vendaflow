@@ -37,11 +37,11 @@ export class PurchaseOrderService {
   async createPurchaseOrder(data: CreatePurchaseOrderDto, userId: number, tenantId: number): Promise<PurchaseOrderResponseDto> {
     const validatedData = validateSchema(createPurchaseOrderSchema, data);
 
-    const supplier = await Supplier.findByPk(validatedData.supplierId);
+    const supplier = await Supplier.findOne({ where: { id: validatedData.supplierId, tenantId } });
     if (!supplier) throw new NotFoundError('Supplier not found');
 
     for (const item of validatedData.items) {
-      const product = await Product.findByPk(item.productId);
+      const product = await Product.findOne({ where: { id: item.productId, tenantId } });
       if (!product) throw new NotFoundError(`Product with ID ${item.productId} not found`);
     }
 
@@ -105,7 +105,7 @@ export class PurchaseOrderService {
           return po;
         });
 
-        const full = await this.getPurchaseOrderById(purchaseOrder.id);
+        const full = await this.getPurchaseOrderById(purchaseOrder.id, tenantId);
         return full;
       } catch (error: any) {
         if (error?.name === 'SequelizeUniqueConstraintError') {
@@ -121,13 +121,14 @@ export class PurchaseOrderService {
     throw new BadRequestError('Could not generate unique PO number');
   }
 
-  async getAllPurchaseOrders(query: PaginationQuery): Promise<PurchaseOrdersListResponseDto> {
+  async getAllPurchaseOrders(query: PaginationQuery, tenantId: number): Promise<PurchaseOrdersListResponseDto> {
     const { page, limit } = validateSchema(paginationSchema, query);
     const validatedPage = page || 1;
     const validatedLimit = limit || 10;
     const offset = (validatedPage - 1) * validatedLimit;
 
     const { count, rows } = await PurchaseOrder.findAndCountAll({
+      where: { tenantId },
       include: [
         { model: Supplier, as: 'supplier', attributes: ['id', 'name', 'contact', 'location'] },
         { model: User, as: 'user', attributes: ['id', 'username'] },
@@ -153,9 +154,9 @@ export class PurchaseOrderService {
     };
   }
 
-  async getPurchaseOrderById(id: number): Promise<PurchaseOrderResponseDto> {
+  async getPurchaseOrderById(id: number, tenantId: number): Promise<PurchaseOrderResponseDto> {
     const po = await PurchaseOrder.findOne({
-      where: { id },
+      where: { id, tenantId },
       include: [
         { model: Supplier, as: 'supplier', attributes: ['id', 'name', 'contact', 'location'] },
         { model: User, as: 'user', attributes: ['id', 'username'] },
@@ -170,9 +171,10 @@ export class PurchaseOrderService {
     return this.mapToResponseDto(po);
   }
 
-  async updatePurchaseOrder(id: number, data: UpdatePurchaseOrderDto, userId: number): Promise<PurchaseOrderResponseDto> {
+  async updatePurchaseOrder(id: number, data: UpdatePurchaseOrderDto, userId: number, tenantId: number): Promise<PurchaseOrderResponseDto> {
     const validatedData = validateSchema(updatePurchaseOrderSchema, data);
-    const po = await PurchaseOrder.findByPk(id, {
+    const po = await PurchaseOrder.findOne({
+      where: { id, tenantId },
       include: [{ model: PurchaseOrderItem, as: 'items' }],
     });
     if (!po) throw new NotFoundError('Purchase order not found');
@@ -219,7 +221,7 @@ export class PurchaseOrderService {
               );
             }
           } else {
-            const product = await Product.findByPk(item.productId);
+            const product = await Product.findOne({ where: { id: item.productId, tenantId } });
             if (!product) throw new NotFoundError(`Product ${item.productId} not found`);
             await PurchaseOrderItem.create(
               {
@@ -254,11 +256,11 @@ export class PurchaseOrderService {
       }
     });
 
-    return this.getPurchaseOrderById(id);
+    return this.getPurchaseOrderById(id, tenantId);
   }
 
-  async deletePurchaseOrder(id: number): Promise<void> {
-    const po = await PurchaseOrder.findByPk(id);
+  async deletePurchaseOrder(id: number, tenantId: number): Promise<void> {
+    const po = await PurchaseOrder.findOne({ where: { id, tenantId } });
     if (!po) throw new NotFoundError('Purchase order not found');
     if (po.status === 'received') throw new BadRequestError('Cannot delete a received purchase order');
     await po.destroy();

@@ -18,7 +18,13 @@ export interface CreateMovementData {
 export class StockMovementService {
   async createMovement(data: CreateMovementData): Promise<StockMovement> {
     const t = data.transaction ?? null;
-    const product = await Product.findByPk(data.productId, { transaction: t });
+    // Filtra por tenant (evita mutar stock ajeno) y bloquea la fila dentro de
+    // la transacción para que dos ventas simultáneas no pisen el mismo stock
+    const product = await Product.findOne({
+      where: { id: data.productId, tenantId: data.tenantId },
+      transaction: t,
+      ...(t ? { lock: t.LOCK.UPDATE } : {}),
+    });
     if (!product) throw new Error(`Product ${data.productId} not found`);
 
     // Los DECIMAL de MySQL llegan como string desde Sequelize — sin coerción,

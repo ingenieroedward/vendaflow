@@ -15,6 +15,15 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       const response = await authService.login(credentials);
       const user = response.data.user;
+      // Aislar datos locales entre tenants: si en este dispositivo la última
+      // sesión fue de otro tenant, limpiar IndexedDB antes de usarla (evita que
+      // un usuario vea productos/clientes/órdenes del tenant anterior)
+      const tenantKey = String(response.data.tenant?.id ?? response.data.tenant?.slug ?? '');
+      const prevTenantKey = localStorage.getItem('vf_last_tenant');
+      if (tenantKey && prevTenantKey && prevTenantKey !== tenantKey) {
+        await db.resetDatabase().catch(() => {});
+      }
+      if (tenantKey) localStorage.setItem('vf_last_tenant', tenantKey);
       set({ user, token: response.data.token, isAuthenticated: true, isLoading: false });
       if (response.data.tenant) {
         useTenantStore.getState().setTenant(response.data.tenant);

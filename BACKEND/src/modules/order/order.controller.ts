@@ -80,7 +80,7 @@ export class OrderController {
   updateOrder = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const tenantId = req.user!.tenantId;
     const updateData: UpdateOrderDto = req.body;
-    const order = await this.orderService.updateOrder(Number(req.params['id']), updateData, tenantId);
+    const order = await this.orderService.updateOrder(Number(req.params['id']), updateData, tenantId, req.user!.id);
     res.status(200).json({ status: 'success', data: order });
   });
 

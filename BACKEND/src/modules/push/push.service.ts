@@ -36,8 +36,8 @@ export class PushService {
     }
   }
 
-  async unsubscribe(endpoint: string): Promise<void> {
-    await PushSubscription.destroy({ where: { endpoint } });
+  async unsubscribe(endpoint: string, userId: number): Promise<void> {
+    await PushSubscription.destroy({ where: { endpoint, userId } });
   }
 
   // Envío de prueba al usuario actual con diagnóstico por suscripción
@@ -85,6 +85,14 @@ export class PushService {
   async notifyAll(title: string, body: string, data?: Record<string, unknown>): Promise<void> {
     const subscriptions = await PushSubscription.findAll();
     await this.sendToSubscriptions(subscriptions, title, body, data);
+  }
+
+  // Notifica a todos los usuarios de UN tenant (las suscripciones no guardan
+  // tenantId, así que se resuelve vía los usuarios del tenant)
+  async notifyTenant(tenantId: number, title: string, body: string, data?: Record<string, unknown>): Promise<void> {
+    const { User } = await import('@/modules/user/user.model');
+    const users = await User.findAll({ where: { tenantId }, attributes: ['id'] });
+    await this.notifyUsers(users.map(u => u.id), title, body, data);
   }
 
   private async sendToSubscriptions(
