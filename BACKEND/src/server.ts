@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import '@/core/sentry'; // init antes que la app para capturar todo
 
 import app from './app';
 import { config } from '@/config';
