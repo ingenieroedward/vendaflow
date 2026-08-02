@@ -21,8 +21,12 @@ export class StockMovementService {
     const product = await Product.findByPk(data.productId, { transaction: t });
     if (!product) throw new Error(`Product ${data.productId} not found`);
 
+    // Los DECIMAL de MySQL llegan como string desde Sequelize — sin coerción,
+    // stockBefore + quantity concatena texto ("100" + "5.00" = "1005.00")
+    const quantity = Number(data.quantity);
+    if (!Number.isFinite(quantity)) throw new Error(`Cantidad inválida para producto ${data.productId}`);
     const stockBefore = Number(product.stock);
-    const stockAfter = stockBefore + data.quantity;
+    const stockAfter = stockBefore + quantity;
 
     await product.update({ stock: stockAfter }, { transaction: t });
 
@@ -31,7 +35,7 @@ export class StockMovementService {
         tenantId: data.tenantId,
         productId: data.productId,
         type: data.type,
-        quantity: data.quantity,
+        quantity,
         stockBefore,
         stockAfter,
         referenceId: data.referenceId ?? null,
