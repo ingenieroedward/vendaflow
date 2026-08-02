@@ -186,7 +186,7 @@ const Orders: React.FC = () => {
 
   const handleDeleteLocal = async (localId: number) => {
     await db.orderItems.where('orderId').equals(localId).delete();
-    await db.syncQueue.where('entityLocalId').equals(localId).delete();
+    await db.syncQueue.where('entityLocalId').equals(localId).filter(e => e.entityType === 'order').delete();
     await db.orders.delete(localId);
     setLocalDeleteConfirm(null);
     loadLocalOrders();

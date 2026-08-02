@@ -529,10 +529,16 @@ const Superadmin: React.FC = () => {
   };
 
   const handleImpersonate = async (t: TenantSummary) => {
+    // Abrir la pestaña DENTRO del gesto del usuario (síncrono) — si se abre
+    // después del await, el bloqueador de popups la mata sin error visible
+    const win = window.open('', '_blank');
     try {
       const r = await tenantAdminService.impersonate(t.id);
-      window.open(`${tenantAppUrl(r.slug)}/login?impersonate=${encodeURIComponent(r.token)}`, '_blank');
+      const url = `${tenantAppUrl(r.slug)}/login?impersonate=${encodeURIComponent(r.token)}`;
+      if (win) win.location.href = url;
+      else window.location.href = url;
     } catch (e: unknown) {
+      win?.close();
       setError((e as { message?: string })?.message ?? 'No se pudo impersonar');
     }
   };

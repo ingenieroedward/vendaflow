@@ -332,7 +332,16 @@ Al arrancar el backend:
 - Stock se reconcilia al editar/cancelar/eliminar/restaurar órdenes (movimientos `adjustment` con nota; antes el stock quedaba descuadrado para siempre)
 - Cuotas de plan aplicadas: `maxUsers`/`maxProducts`/`maxOrdersPerMonth` se verifican en cada create (409 con mensaje de upgrade)
 - Ruta `/customers/trash` antes de `/:id` (Express casa por orden; la papelera era inalcanzable)
-- Pendiente conocido: `FRONTEND/src/utils/backgroundSync.ts` es código muerto roto (no importado; no conectar sin reescribirlo)
+### Auditoría ronda 3 (v1.10.0) — corregido
+- **Errores de API como `Error` real** (`ApiRequestError` en `services/api.ts`): antes el interceptor rechazaba con objeto literal y TODOS los mensajes del backend caían al genérico. `isNetworkError` marca red caída/timeout/502-504 → habilita el fallback offline de órdenes (estaba muerto). El 401 de `/auth/login` ya NO recarga la página
+- **Idempotencia de órdenes**: `clientRef` (STRING(64) en orders + ensureSchema) — el cliente genera UUID por orden; POST repetido devuelve la existente. Lock `navigator.locks` entre pestañas en syncPendingOrders
+- **Abonos endurecidos**: rechaza NaN/negativos/exceso sobre saldo/órdenes canceladas; `DELETE /orders/:id/payments/:paymentId` (isAdmin) para corregir; editar orden a crédito recalcula `paidAt` contra abonos (la deuda ya no desaparece de cartera)
+- **creditBalance de clientes y receivable de superadmin restan abonos** (igual que cartera)
+- **Jobs diarios**: `core/jobs/dailyScheduler.ts` — corre ≥7:00 hora local con dedup persistido en platform_settings (`job_last_run_*`): un redeploy ya no re-envía los push del día. `TZ: America/Bogota` en compose + tzdata en Dockerfile; paymentReminders calcula la fecha en JS (no CURDATE de MySQL en UTC)
+- **syncQueue**: deletes y conteos filtran por `entityType` (antes borrar una orden local podía matar la entrada de un cliente con el mismo id local y dejarlo pendiente para siempre)
+- **nginx**: X-Frame-Options/nosniff/Referrer-Policy en ambos server blocks + `client_max_body_size 8m` (los comprobantes base64 daban 413 con el default 1m). `BACKEND/nginx/` (config muerta) eliminado
+- **Impersonar**: `window.open` síncrono (el bloqueador de popups lo mataba en silencio)
+- `FRONTEND/src/utils/backgroundSync.ts` (código muerto roto) eliminado
 - **Cambio de contraseña propia** (v1.9.0): `PUT /users/me/password` (isAuth, cualquier rol; exige currentPassword) — la ruta va ANTES del `router.use(isAuth, isAdmin)`. UI: `ChangePasswordModal` accesible desde Sidebar (desktop) y menú de usuario del Header (móvil)
 - **Sentry** (v1.8.x): `@sentry/node` init en `core/sentry.ts` solo si `SENTRY_DSN` está seteado (Dokploy + passthrough en docker-compose). errorHandler reporta 500s con url/método/usuario/tenant. Proyecto `merco-backend` en edwsystem.sentry.io, GitHub app instalada solo en el repo vendaflow (suspect commits + stack trace linking)
 

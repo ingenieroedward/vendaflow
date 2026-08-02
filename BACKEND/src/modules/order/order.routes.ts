@@ -23,6 +23,7 @@ router.put('/:id', isAuth, isSeller, orderController.updateOrder);
 router.patch('/:id/pay', isAuth, isSeller, orderController.markPaid);
 router.get('/:id/payments', isAuth, isSeller, orderController.getPayments);
 router.post('/:id/payments', isAuth, isSeller, orderController.addPayment);
+router.delete('/:id/payments/:paymentId', isAuth, isAdmin, orderController.deletePayment);
 router.delete('/:id/permanent', isAuth, isAdmin, orderController.hardDeleteOrder);
 router.delete('/:id', isAuth, isAdmin, orderController.deleteOrder);
 

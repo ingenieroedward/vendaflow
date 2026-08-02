@@ -3,11 +3,9 @@ import { Tenant } from '@/modules/tenant/tenant.model';
 import { User } from '@/modules/user/user.model';
 import { pushService } from '@/modules/push/push.service';
 import logger from '@/core/logger';
-import { recordJobRun } from './jobStatus';
+import { scheduleDailyJob } from './dailyScheduler';
 
 const WARN_DAYS = 3; // avisar desde N días antes del vencimiento
-const RUN_EVERY_MS = 24 * 60 * 60 * 1000;
-const FIRST_RUN_DELAY_MS = 90 * 1000; // tras el arranque, después del job de cobros
 
 async function notifyTenantAdmins(tenantId: number, title: string, body: string): Promise<void> {
   const admins = await User.findAll({ where: { tenantId, role: 'admin' }, attributes: ['id'] });
@@ -78,12 +76,5 @@ export async function checkTrialExpiry(): Promise<void> {
 }
 
 export function startTrialExpiryJob(): void {
-  setTimeout(() => {
-    checkTrialExpiry().then(() => recordJobRun('trialExpiry', true)).catch(err => { recordJobRun('trialExpiry', false, String(err).slice(0, 120)); logger.error('[trialExpiry] Run failed:', err); });
-    setInterval(
-      () => checkTrialExpiry().then(() => recordJobRun('trialExpiry', true)).catch(err => { recordJobRun('trialExpiry', false, String(err).slice(0, 120)); logger.error('[trialExpiry] Run failed:', err); }),
-      RUN_EVERY_MS,
-    );
-  }, FIRST_RUN_DELAY_MS);
-  logger.info('[trialExpiry] Job programado (diario)');
+  scheduleDailyJob('trialExpiry', checkTrialExpiry);
 }

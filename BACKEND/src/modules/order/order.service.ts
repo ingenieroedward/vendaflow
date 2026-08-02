@@ -10,7 +10,7 @@ import {
   OrdersListResponseDto,
   SearchOrderDto
 } from './order.dto';
-import { NotFoundError, ConflictError } from '@/core/errors/AppError';
+import { NotFoundError, ConflictError, BadRequestError } from '@/core/errors/AppError';
 import logger from '@/core/logger';
 import { validateSchema, validatePartialSchema, paginationSchema, PaginationQuery } from '@/core/utils/validation';
 import { createOrderSchema, updateOrderSchema, searchOrderSchema } from './order.dto';
@@ -53,6 +53,19 @@ export class OrderService {
    */
   async createOrder(orderData: CreateOrderDto, userId: number, tenantId: number): Promise<OrderResponseDto> {
     const validatedData = validateSchema(createOrderSchema, orderData);
+
+    // Idempotencia: si este clientRef ya creó una orden (reintento tras timeout,
+    // doble pestaña sincronizando), devolver la existente en vez de duplicar
+    if (validatedData.clientRef) {
+      const existing = await Order.findOne({
+        where: { tenantId, clientRef: validatedData.clientRef },
+        paranoid: false,
+      });
+      if (existing) {
+        const items = await OrderItem.findAll({ where: { orderId: existing.id } });
+        return this.mapToResponseDto(existing, items);
+      }
+    }
 
     // Cuota mensual del plan
     const { Tenant } = await import('@/modules/tenant/tenant.model');
@@ -102,6 +115,7 @@ export class OrderService {
         const order = await Order.create({
           tenantId,
           orderNumber,
+          clientRef: validatedData.clientRef ?? null,
           customerId: validatedData.customerId,
           userId,
           totalAmount,
@@ -171,10 +185,17 @@ export class OrderService {
     const { OrderPayment } = await import('./order-payment.model');
     const order = await Order.findOne({ where: { id: orderId, tenantId } });
     if (!order) throw new NotFoundError('Order not found');
-    if (order.paymentType !== 'credit') throw new NotFoundError('La orden no es a crédito');
-    if (amount <= 0) throw new NotFoundError('El abono debe ser mayor a 0');
+    if (order.paymentType !== 'credit') throw new BadRequestError('La orden no es a crédito');
+    if (order.status === 'cancelled') throw new BadRequestError('La orden está cancelada — no admite abonos');
+    if (!Number.isFinite(amount) || amount <= 0) throw new BadRequestError('El abono debe ser un monto mayor a 0');
 
-    await OrderPayment.create({ tenantId, orderId, amount, notes: notes ?? null, userId });
+    const alreadyPaid = Number(await OrderPayment.sum('amount', { where: { orderId } })) || 0;
+    const balance = Number(order.totalAmount) - alreadyPaid;
+    if (amount > balance + 0.01) {
+      throw new BadRequestError(`El abono ($${amount.toLocaleString('es-CO')}) supera el saldo pendiente ($${Math.max(0, balance).toLocaleString('es-CO')})`);
+    }
+
+    await OrderPayment.create({ tenantId, orderId, amount, notes: (notes ?? '').slice(0, 255) || null, userId });
 
     const paid = Number(await OrderPayment.sum('amount', { where: { orderId } })) || 0;
     const total = Number(order.totalAmount);
@@ -183,6 +204,20 @@ export class OrderService {
     }
     logger.info(`Abono $${amount} a orden ${order.orderNumber} (pagado ${paid}/${total})`);
     return { paidAmount: paid, balance: Math.max(0, total - paid), paidAt: order.paidAt };
+  }
+
+  // Eliminar un abono mal registrado (solo admin) — recalcula paidAt
+  async deletePayment(orderId: number, paymentId: number, tenantId: number) {
+    const { OrderPayment } = await import('./order-payment.model');
+    const order = await Order.findOne({ where: { id: orderId, tenantId } });
+    if (!order) throw new NotFoundError('Order not found');
+    const payment = await OrderPayment.findOne({ where: { id: paymentId, orderId, tenantId } });
+    if (!payment) throw new NotFoundError('Abono no encontrado');
+    await payment.destroy();
+    const paid = Number(await OrderPayment.sum('amount', { where: { orderId } })) || 0;
+    const fullyPaid = paid >= Number(order.totalAmount) - 0.01;
+    if (!fullyPaid && order.paidAt) await order.update({ paidAt: null });
+    return { paidAmount: paid, balance: Math.max(0, Number(order.totalAmount) - paid) };
   }
 
   async getPayments(orderId: number, tenantId: number) {
@@ -615,6 +650,17 @@ export class OrderService {
         const updatedItems = await OrderItem.findAll({ where: { orderId: id }, transaction });
         const totalAmount = updatedItems.reduce((sum, item) => sum + Number(item.totalPrice), 0);
         await order.update({ totalAmount }, { transaction });
+      }
+
+      // Si es a crédito y cambió el total, recalcular paidAt contra los abonos:
+      // sin esto, agrandar una orden ya pagada dejaba la deuda nueva invisible
+      // para cartera y recordatorios (filtran por paidAt null)
+      if (order.paymentType === 'credit' && validatedData.items) {
+        const { OrderPayment } = await import('./order-payment.model');
+        const paid = Number(await OrderPayment.sum('amount', { where: { orderId: id }, transaction })) || 0;
+        const fullyPaid = paid >= Number(order.totalAmount) - 0.01;
+        if (fullyPaid && !order.paidAt) await order.update({ paidAt: new Date() }, { transaction });
+        if (!fullyPaid && order.paidAt) await order.update({ paidAt: null }, { transaction });
       }
 
       // ── Reconciliar stock ──

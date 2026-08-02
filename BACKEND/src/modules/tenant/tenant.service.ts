@@ -396,9 +396,18 @@ export class TenantService {
         order: [[col('month'), 'ASC']],
         raw: true,
       }) as unknown as Promise<Array<{ month: string; count: number; total: string }>>,
-      Order.sum('totalAmount', {
-        where: { tenantId, paymentType: 'credit', paidAt: null, status: { [Op.ne]: 'cancelled' } },
-      }),
+      // Cartera = total a crédito sin pagar − abonos registrados
+      (async () => {
+        const { OrderPayment } = await import('../order/order-payment.model');
+        const unpaid = await Order.findAll({
+          where: { tenantId, paymentType: 'credit', paidAt: null, status: { [Op.ne]: 'cancelled' } },
+          attributes: ['id', 'totalAmount'],
+          raw: true,
+        }) as unknown as Array<{ id: number; totalAmount: string }>;
+        if (unpaid.length === 0) return 0;
+        const paid = Number(await OrderPayment.sum('amount', { where: { orderId: unpaid.map(o => o.id) } })) || 0;
+        return Math.max(0, unpaid.reduce((s, o) => s + Number(o.totalAmount), 0) - paid);
+      })(),
     ]);
 
     return {

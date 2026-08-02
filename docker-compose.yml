@@ -28,6 +28,7 @@ services:
     container_name: merco-backend
     environment:
       NODE_ENV: production
+      TZ: America/Bogota
       PORT: 3005
       DB_HOST: mysql
       DB_PORT: 3306

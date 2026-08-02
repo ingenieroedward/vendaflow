@@ -30,3 +30,8 @@ test-results/
 
 # APK builds por tenant (TWA) — contienen keystores, no commitear
 apk-builds/
+
+# Artefactos locales de pruebas/browser — nunca commitear
+.playwright-mcp/
+*.png
+demo-acceso.txt

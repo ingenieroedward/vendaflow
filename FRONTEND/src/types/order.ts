@@ -48,6 +48,8 @@ export interface Order {
 export interface CreateOrderRequest {
   customerId: number;
   userId?: number;
+  /** Clave de idempotencia: el server no crea dos órdenes con el mismo ref */
+  clientRef?: string;
   items: {
     productId: number;
     quantity: number;

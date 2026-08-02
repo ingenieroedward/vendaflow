@@ -19,6 +19,7 @@ const paymentFields = {
 
 // Create Order DTO
 export const createOrderSchema = z.object({
+  clientRef: z.string().max(64).optional(),
   customerId: z.number().positive('Customer ID must be positive'),
   orderNumber: z.string().max(50, 'Order number too long').optional(),
   status: z.enum(['pending', 'processing', 'completed', 'cancelled']).default('pending'),

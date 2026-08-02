@@ -55,6 +55,13 @@ export class OrderController {
     res.status(201).json({ status: 'success', data: result });
   });
 
+  deletePayment = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const result = await this.orderService.deletePayment(
+      Number(req.params['id']), Number(req.params['paymentId']), req.user!.tenantId,
+    );
+    res.status(200).json({ status: 'success', data: result });
+  });
+
   getPayments = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const result = await this.orderService.getPayments(Number(req.params['id']), req.user!.tenantId);
     res.status(200).json({ status: 'success', data: result });

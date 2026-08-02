@@ -63,6 +63,7 @@ export interface LocalCustomer extends BaseLocalModel {
 }
 
 export interface LocalOrder extends BaseLocalModel {
+  _clientRef?: string; // clave de idempotencia para el sync (evita duplicados al reintentar)
   orderNumber: string;
   customerId: number;
   userId: number;

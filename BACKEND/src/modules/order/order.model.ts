@@ -19,6 +19,7 @@ export interface OrderAttributes {
   id: number;
   tenantId: number;
   orderNumber: string;
+  clientRef?: string | null;
   customerId: number;
   userId: number;
   totalAmount: number;
@@ -59,6 +60,11 @@ export class Order extends Model<OrderAttributes, OrderCreationAttributes> {
     validate: { notEmpty: true, len: [1, 50] },
   })
   orderNumber!: string;
+
+  // Clave de idempotencia enviada por el cliente offline-first: dos POST con
+  // el mismo ref devuelven la misma orden (evita duplicados al reintentar sync)
+  @Column({ type: DataType.STRING(64), allowNull: true })
+  clientRef!: string | null;
 
   @ForeignKey(() => Customer)
   @Column({

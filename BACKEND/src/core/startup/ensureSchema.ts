@@ -17,6 +17,7 @@ export async function ensureSchema(): Promise<void> {
     { name: 'paymentDueDate', spec: { type: DataType.DATEONLY, allowNull: true } },
     { name: 'reminderDays', spec: { type: DataType.INTEGER, allowNull: true } },
     { name: 'paidAt', spec: { type: DataType.DATE, allowNull: true } },
+    { name: 'clientRef', spec: { type: DataType.STRING(64), allowNull: true } },
   ].filter(c => !(c.name in orderColumns));
 
   for (const col of missing) {

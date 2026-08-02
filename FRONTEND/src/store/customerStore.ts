@@ -157,7 +157,7 @@ export const useCustomerStore = create<CustomerState>((set) => ({
           operation: 'create', data: customerData,
           attempts: 0, createdAt: Date.now(),
         });
-        const pendingSync = await db.syncQueue.count();
+        const pendingSync = await db.syncQueue.filter(e => e.entityType === 'customer').count();
         const customer = mapLocalToCustomer((await db.customers.get(localId))!);
         set(state => ({ customers: [...state.customers, customer], loading: false, pendingSync }));
         return customer;
@@ -203,7 +203,7 @@ export const useCustomerStore = create<CustomerState>((set) => ({
             attempts: 0, createdAt: Date.now(),
           });
         }
-        const pendingSync = await db.syncQueue.count();
+        const pendingSync = await db.syncQueue.filter(e => e.entityType === 'customer').count();
         set(state => ({
           customers: state.customers.map(c => c.id === id ? { ...c, ...customerData } : c),
           currentCustomer: state.currentCustomer?.id === id ? { ...state.currentCustomer, ...customerData } : state.currentCustomer,
@@ -254,11 +254,11 @@ export const useCustomerStore = create<CustomerState>((set) => ({
             }
           } else {
             // Only local — delete directly
-            await db.syncQueue.where('entityLocalId').equals(local.id).delete();
+            await db.syncQueue.where('entityLocalId').equals(local.id).filter(e => e.entityType === 'customer').delete();
             await db.customers.delete(local.id);
           }
         }
-        const pendingSync = await db.syncQueue.count();
+        const pendingSync = await db.syncQueue.filter(e => e.entityType === 'customer').count();
         set(state => ({
           customers: state.customers.filter(c => c.id !== id),
           pagination: { ...state.pagination, total: Math.max(0, state.pagination.total - 1) },
@@ -382,7 +382,7 @@ export const useCustomerStore = create<CustomerState>((set) => ({
           .filter(e => e.entityType === 'customer' && e.operation === 'delete').first();
         if (deleteQ && deleteQ.attempts >= MAX_SYNC_ATTEMPTS) { failed++; continue; }
         await customerService.deleteCustomer(local.serverId);
-        await db.syncQueue.where('entityLocalId').equals(local.id!).delete();
+        await db.syncQueue.where('entityLocalId').equals(local.id!).filter(e => e.entityType === 'customer').delete();
         await db.customers.delete(local.id!);
         synced++;
       } catch (err) {

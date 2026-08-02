@@ -19,6 +19,9 @@ RUN npm run build
 # ── Stage 2: Production ──────────────────────────────────────────────────────
 FROM node:18-alpine
 
+# tzdata para TZ=America/Bogota (jobs y cortes de mes en hora Colombia)
+RUN apk add --no-cache tzdata
+
 WORKDIR /app
 
 # Crear usuario no-root

@@ -15,10 +15,14 @@ let isSeedingOrders = false;
 function isNetworkError(err: unknown): boolean {
   if (!err || typeof err !== 'object') return false;
   const e = err as any;
+  if (e.isNetworkError === true) return true;      // ApiRequestError del interceptor
   if (e.isAxiosError && !e.response) return true; // Axios sin respuesta = red caída
   if (err instanceof TypeError) return true;       // Fetch: network failure
   return false;
 }
+
+const newClientRef = () =>
+  (crypto as any).randomUUID?.() ?? `ref-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 
 // Guarda una orden localmente con PENDING_CREATE (offline o fallback de red)
 async function saveOrderLocal(data: CreateOrderRequest): Promise<Order> {
@@ -37,6 +41,7 @@ async function saveOrderLocal(data: CreateOrderRequest): Promise<Order> {
     _syncStatus: SyncStatus.PENDING_CREATE,
     _version: 1,
     _lastModifiedAt: Date.now(),
+    _clientRef: data.clientRef ?? newClientRef(),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -297,12 +302,15 @@ export const useOrderStore = create<OrderState>((set, get) => ({
       if (!navigator.onLine) {
         // === OFFLINE CONFIRMADO: guardar en IndexedDB ===
         const order = await saveOrderLocal(data);
-        const pendingSync = await db.syncQueue.count();
+        const pendingSync = await db.syncQueue.filter(e => e.entityType === 'order').count();
         set({ loading: false, pendingSync });
         return order;
       }
 
       // === ONLINE: intentar servidor, fallback a local si falla la red ===
+      // El mismo clientRef viaja en el intento directo y en el fallback local:
+      // si el POST llegó pero la respuesta se perdió, el sync no duplica
+      if (!data.clientRef) data = { ...data, clientRef: newClientRef() };
       try {
         const order = await orderService.createOrder(data);
         set({ loading: false });
@@ -311,7 +319,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
         if (!isNetworkError(apiError)) throw apiError; // 400/422/etc → propagar al usuario
         // Sin respuesta del servidor (señal débil, servidor caído) → guardar localmente
         const order = await saveOrderLocal(data);
-        const pendingSync = await db.syncQueue.count();
+        const pendingSync = await db.syncQueue.filter(e => e.entityType === 'order').count();
         set({ loading: false, pendingSync });
         return order;
       }
@@ -332,6 +340,17 @@ export const useOrderStore = create<OrderState>((set, get) => ({
    */
   syncPendingOrders: async () => {
     if (!navigator.onLine) return { synced: 0, failed: 0 };
+    // Lock entre pestañas: dos tabs comparten IndexedDB pero no las variables
+    // de módulo — sin esto pueden enviar la misma orden en paralelo
+    const locks = (navigator as any).locks;
+    if (locks?.request && !(useOrderStore as any).__inLock) {
+      return locks.request('merco-sync-orders', { ifAvailable: true }, async (lock: unknown) => {
+        if (!lock) return { synced: 0, failed: 0 }; // otra pestaña está sincronizando
+        (useOrderStore as any).__inLock = true;
+        try { return await useOrderStore.getState().syncPendingOrders(); }
+        finally { (useOrderStore as any).__inLock = false; }
+      });
+    }
     if (isSyncingOrders) return { synced: 0, failed: 0 };
     isSyncingOrders = true;
     try {
@@ -457,7 +476,15 @@ export const useOrderStore = create<OrderState>((set, get) => ({
         // para evitar conflicto de unique constraint con órdenes soft-deleted
         const { orderNumber: _on, totalAmount: _ta, status: _st, ...cleanData } = rawData as any;
 
-        const order = await orderService.createOrder({ ...cleanData, customerId: resolvedCustomerId, items: resolvedItems });
+        // Clave de idempotencia persistida: si este POST se reintenta (timeout,
+        // doble pestaña), el server devuelve la orden existente en vez de duplicar
+        let clientRef = fresh._clientRef;
+        if (!clientRef) {
+          clientRef = newClientRef();
+          await db.orders.update(localOrder.id!, { _clientRef: clientRef });
+        }
+
+        const order = await orderService.createOrder({ ...cleanData, clientRef, customerId: resolvedCustomerId, items: resolvedItems });
 
         // Actualizar orden local con ID del servidor
         await db.orders.update(localOrder.id!, {
@@ -591,7 +618,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
         if (deleteEntry && deleteEntry.attempts >= MAX_SYNC_ATTEMPTS) { failed++; continue; }
         await orderService.deleteOrder(localOrder.serverId);
         await db.orderItems.where('orderId').equals(localOrder.id!).delete();
-        await db.syncQueue.where('entityLocalId').equals(localOrder.id!).delete();
+        await db.syncQueue.where('entityLocalId').equals(localOrder.id!).filter(e => e.entityType === 'order').delete();
         await db.orders.delete(localOrder.id!);
         synced++;
       } catch (err) {
@@ -606,7 +633,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
       }
     }
 
-    const pendingSync = await db.syncQueue.count();
+    const pendingSync = await db.syncQueue.filter(e => e.entityType === 'order').count();
 
     // Refrescar lista desde el servidor si se sincronizó algo
     if (synced > 0) {
@@ -666,7 +693,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
           });
         }
 
-        const pendingSync = await db.syncQueue.count();
+        const pendingSync = await db.syncQueue.filter(e => e.entityType === 'order').count();
         let mergedOrder: Order | null = null;
         set(state => {
           const cur = state.orders.find(o => o.id === id) ?? state.currentOrder;
@@ -724,11 +751,11 @@ export const useOrderStore = create<OrderState>((set, get) => ({
           } else {
             // Only local (never synced) — delete directly
             await db.orderItems.where('orderId').equals(localOrder.id).delete();
-            await db.syncQueue.where('entityLocalId').equals(localOrder.id).delete();
+            await db.syncQueue.where('entityLocalId').equals(localOrder.id).filter(e => e.entityType === 'order').delete();
             await db.orders.delete(localOrder.id);
           }
         }
-        const pendingSync = await db.syncQueue.count();
+        const pendingSync = await db.syncQueue.filter(e => e.entityType === 'order').count();
         set(state => ({
           orders: state.orders.filter(o => o.id !== id),
           currentOrder: state.currentOrder?.id === id ? null : state.currentOrder,
@@ -743,7 +770,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
       }
       if (localOrder?.id) {
         await db.orderItems.where('orderId').equals(localOrder.id).delete();
-        await db.syncQueue.where('entityLocalId').equals(localOrder.id).delete();
+        await db.syncQueue.where('entityLocalId').equals(localOrder.id).filter(e => e.entityType === 'order').delete();
         await db.orders.delete(localOrder.id);
       }
       set(state => ({

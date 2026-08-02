@@ -1,6 +1,23 @@
 import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
 import { API_BASE_URL, STORAGE_KEYS } from '../utils/constants';
-import { ApiError } from '../types';
+
+// Error real (instanceof Error) para que los stores muestren el mensaje del
+// backend — antes el interceptor rechazaba con un objeto literal y TODOS los
+// mensajes ("cuota del plan", "cliente no existe", …) caían al genérico
+export class ApiRequestError extends Error {
+  status: number;
+  code?: string | undefined;
+  /** true si el server no respondió (red caída, timeout) o está caído (502/503/504) */
+  isNetworkError: boolean;
+
+  constructor(message: string, status: number, code: string | undefined, isNetworkError: boolean) {
+    super(message);
+    this.name = 'ApiRequestError';
+    this.status = status;
+    this.code = code;
+    this.isNetworkError = isNetworkError;
+  }
+}
 
 class ApiService {
   private api: AxiosInstance;
@@ -34,14 +51,17 @@ class ApiService {
     this.api.interceptors.response.use(
       (response: AxiosResponse) => response,
       (error: AxiosError) => {
-        const apiError: ApiError = {
-          message: (error.response?.data as { message?: string })?.message || error.message || 'Error desconocido',
-          status: error.response?.status || 500,
-          code: error.code,
-        };
+        const status = error.response?.status ?? 0;
+        const serverDown = !error.response || status === 502 || status === 503 || status === 504;
+        const message = serverDown
+          ? 'Sin conexión con el servidor'
+          : (error.response?.data as { message?: string })?.message || error.message || 'Error desconocido';
+        const apiError = new ApiRequestError(message, status || 500, error.code, serverDown);
 
-        // Auto logout on 401 — lazy import avoids circular dep with authStore → authService → api
-        if (error.response?.status === 401) {
+        // Auto logout on 401 — pero NO en el login (contraseña errada no debe
+        // recargar la página y tragarse la notificación de error)
+        const url = error.config?.url ?? '';
+        if (status === 401 && !url.includes('/auth/login') && window.location.pathname !== '/login') {
           import('../store/authStore').then(({ useAuthStore }) => {
             useAuthStore.getState().logout();
           });

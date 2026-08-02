@@ -32,8 +32,9 @@ export class CustomerService {
       order: [['createdAt', 'DESC']],
     });
 
-    // Saldo pendiente (cartera) por cliente — crédito sin pagar, una sola query agrupada
-    const balances = rows.length
+    // Saldo pendiente (cartera) por cliente: total a crédito sin pagar MENOS
+    // abonos registrados (antes ignoraba order_payments y mostraba de más)
+    const creditOrders = rows.length
       ? await Order.findAll({
           where: {
             tenantId,
@@ -42,12 +43,25 @@ export class CustomerService {
             paidAt: null,
             status: { [Op.ne]: 'cancelled' },
           },
-          attributes: ['customerId', [fn('SUM', col('totalAmount')), 'due']],
-          group: ['customerId'],
+          attributes: ['id', 'customerId', 'totalAmount'],
           raw: true,
-        }) as unknown as Array<{ customerId: number; due: string }>
+        }) as unknown as Array<{ id: number; customerId: number; totalAmount: string }>
       : [];
-    const balanceMap = new Map(balances.map(b => [b.customerId, Number(b.due)]));
+    const { OrderPayment } = await import('../order/order-payment.model');
+    const paidRows = creditOrders.length
+      ? await OrderPayment.findAll({
+          where: { orderId: creditOrders.map(o => o.id) },
+          attributes: ['orderId', [fn('SUM', col('amount')), 'paid']],
+          group: ['orderId'],
+          raw: true,
+        }) as unknown as Array<{ orderId: number; paid: string }>
+      : [];
+    const paidMap = new Map(paidRows.map(pr => [pr.orderId, Number(pr.paid)]));
+    const balanceMap = new Map<number, number>();
+    for (const o of creditOrders) {
+      const balance = Math.max(0, Number(o.totalAmount) - (paidMap.get(o.id) ?? 0));
+      balanceMap.set(o.customerId, (balanceMap.get(o.customerId) ?? 0) + balance);
+    }
 
     const customers = rows.map(customer => ({
       ...this.mapToResponseDto(customer),
