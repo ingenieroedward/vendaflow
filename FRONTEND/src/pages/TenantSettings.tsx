@@ -19,7 +19,7 @@ const TenantSettings: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [tenantInfo, setTenantInfo] = useState<any>(null);
   const [billing, setBilling] = useState<any>(null);
-  const [payForm, setPayForm] = useState({ plan: 'basic', reference: '', receiptBase64: '', receiptMime: '' });
+  const [payForm, setPayForm] = useState({ plan: 'basic', months: 1, reference: '', receiptBase64: '', receiptMime: '' });
   const [paySending, setPaySending] = useState(false);
   const [payMsg, setPayMsg] = useState<string | null>(null);
 
@@ -47,16 +47,17 @@ const TenantSettings: React.FC = () => {
     setPaySending(true);
     setPayMsg(null);
     try {
-      const effectiveAmount = billing.customPrice ?? billing.prices[payForm.plan];
+      const effectiveAmount = (billing.customPrice ?? billing.prices[payForm.plan]) * payForm.months;
       await apiService.post('/tenants/me/payments', {
         plan: payForm.plan,
         amount: effectiveAmount,
+        months: payForm.months,
         reference: payForm.reference || undefined,
         receiptBase64: payForm.receiptBase64 || undefined,
         receiptMime: payForm.receiptMime || undefined,
       });
       setPayMsg('Pago reportado — te confirmaremos apenas lo verifiquemos.');
-      setPayForm({ plan: payForm.plan, reference: '', receiptBase64: '', receiptMime: '' });
+      setPayForm({ plan: payForm.plan, months: 1, reference: '', receiptBase64: '', receiptMime: '' });
       loadBilling();
     } catch (err: any) {
       setPayMsg(err?.message ?? 'No se pudo reportar el pago');
@@ -167,6 +168,11 @@ const TenantSettings: React.FC = () => {
               <p className="text-sm font-bold text-gray-700">hasta {tenantInfo.maxOrdersPerMonth?.toLocaleString('es-CO')}</p>
             </div>
           </div>
+          {(tenantInfo as { paidUntil?: string | null }).paidUntil && (
+            <p className="mt-2 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 inline-block">
+              Plan activo hasta el {new Date(`${(tenantInfo as { paidUntil?: string }).paidUntil}T00:00:00`).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' })}
+            </p>
+          )}
           {tenantInfo.trialEndsAt && tenantInfo.plan === 'trial' && (
             <p className="text-xs text-amber-600 mt-3 text-center">
               Trial vence el {new Date(tenantInfo.trialEndsAt).toLocaleDateString('es-CO')}
@@ -302,6 +308,15 @@ const TenantSettings: React.FC = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                   {Object.entries(billing.prices as Record<string, number>).map(([k, v]) => (
                     <option key={k} value={k}>{PLAN_LABELS[k] ?? k} — {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(billing.customPrice ?? v)}/mes</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Meses a pagar</label>
+                <select value={payForm.months} onChange={e => setPayForm(prev => ({ ...prev, months: Number(e.target.value) }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  {[1, 2, 3, 6, 12].map(m => (
+                    <option key={m} value={m}>{m} {m === 1 ? 'mes' : 'meses'} — {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format((billing.customPrice ?? billing.prices[payForm.plan] ?? 0) * m)}</option>
                   ))}
                 </select>
               </div>

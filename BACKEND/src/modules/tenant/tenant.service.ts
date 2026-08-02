@@ -14,7 +14,8 @@ import { AuthService } from '../auth/auth.service';
 import { pushService } from '../push/push.service';
 import { getJobStatuses } from '@/core/jobs/jobStatus';
 import { APP_VERSION } from '@/config/version';
-import { ConflictError, NotFoundError } from '@/core/errors/AppError';
+import { ConflictError, NotFoundError, BadRequestError } from '@/core/errors/AppError';
+import { computePaymentPeriod, toDateOnly } from './subscription';
 import sequelize from '@/database';
 import { Op, fn, col } from 'sequelize';
 import bcrypt from 'bcryptjs';
@@ -112,6 +113,7 @@ export class TenantService {
       logoUrl: tenant.logoUrl,
       primaryColor: tenant.primaryColor ?? '#2563eb',
       trialEndsAt: tenant.trialEndsAt,
+      paidUntil: tenant.paidUntil,
       maxUsers: tenant.maxUsers,
       maxProducts: tenant.maxProducts,
       maxOrdersPerMonth: tenant.maxOrdersPerMonth,
@@ -126,14 +128,93 @@ export class TenantService {
 
   async suspend(tenantId: number) {
     const tenant = await this.findById(tenantId);
-    await tenant.update({ status: 'suspended' });
+    await tenant.update({ status: 'suspended', suspendedReason: 'manual' });
     return tenant;
   }
 
   async activate(tenantId: number) {
     const tenant = await this.findById(tenantId);
-    await tenant.update({ status: 'active' });
+    await tenant.update({ status: 'active', suspendedReason: null });
     return tenant;
+  }
+
+  /**
+   * Aplica un pago de N meses al ciclo del tenant: fija paidUntil, activa el
+   * plan, y reactiva suspensiones por trial/no-pago (NO las manuales).
+   * Usado por el registro manual del superadmin y por la aprobación de pagos
+   * reportados — mismo camino de código para ambos flujos.
+   */
+  private async applyPaymentToTenant(tenant: Tenant, plan: TenantPlan, months: number) {
+    const { periodStart, periodEnd } = computePaymentPeriod(tenant.paidUntil, months);
+    const updates: Partial<TenantAttributes> = { paidUntil: toDateOnly(periodEnd), plan };
+
+    if (tenant.status === 'trial') {
+      updates.status = 'active';
+      updates.trialEndsAt = null;
+    }
+    if (tenant.status === 'suspended' && ['nonpayment', 'trial_expired'].includes(tenant.suspendedReason ?? '')) {
+      updates.status = 'active';
+      updates.suspendedReason = null;
+    }
+    if (tenant.plan !== plan) {
+      const limits = PLAN_LIMITS[plan];
+      updates.maxUsers = limits.maxUsers;
+      updates.maxProducts = limits.maxProducts;
+      updates.maxOrdersPerMonth = limits.maxOrdersPerMonth;
+    }
+    await tenant.update(updates);
+    return { periodStart, periodEnd };
+  }
+
+  // Registro manual de pago por el superadmin (ej. transferencia recibida por fuera)
+  async registerManualPayment(tenantId: number, data: {
+    plan?: TenantPlan; amount: number; months?: number;
+    method?: string; paidAt?: string; reference?: string; notes?: string;
+  }) {
+    const { PlanPayment } = await import('./plan-payment.model');
+    const tenant = await this.findById(tenantId);
+
+    const months = Math.min(24, Math.max(1, Math.trunc(Number(data.months ?? 1))));
+    const amount = Number(data.amount);
+    if (!Number.isFinite(amount) || amount < 0) throw new BadRequestError('Monto inválido');
+    const plan: TenantPlan = data.plan ?? (tenant.plan === 'trial' ? 'basic' : tenant.plan);
+    if (!['basic', 'pro', 'enterprise'].includes(plan)) throw new BadRequestError('Plan inválido');
+    const paidAt = data.paidAt && /^\d{4}-\d{2}-\d{2}$/.test(data.paidAt) ? data.paidAt : toDateOnly(new Date());
+
+    const payment = await sequelize.transaction(async (t: any) => {
+      const approvedCount = await PlanPayment.count({ where: { status: 'approved' }, transaction: t });
+      const receiptNumber = `REC-${String(approvedCount + 1).padStart(4, '0')}`;
+      const { periodStart, periodEnd } = await this.applyPaymentToTenant(tenant, plan, months);
+      return PlanPayment.create({
+        tenantId: tenant.id,
+        plan,
+        amount,
+        reference: data.reference?.slice(0, 120) ?? null,
+        receiptBase64: null,
+        receiptMime: null,
+        status: 'approved',
+        receiptNumber,
+        rejectReason: null,
+        decidedAt: new Date(),
+        source: 'superadmin',
+        method: data.method?.slice(0, 20) ?? 'transferencia',
+        months,
+        paidAt,
+        periodStart: toDateOnly(periodStart),
+        periodEnd: toDateOnly(periodEnd),
+        notes: data.notes?.slice(0, 255) ?? null,
+      }, { transaction: t });
+    });
+
+    const admins = await User.findAll({ where: { tenantId: tenant.id, role: 'admin' }, attributes: ['id'] });
+    pushService.notifyUsers(
+      admins.map(u => u.id),
+      'Pago recibido ✓',
+      `Registramos tu pago del plan ${plan}. Recibo ${payment.receiptNumber}. Activo hasta ${payment.periodEnd}. ¡Gracias!`,
+      { url: '/settings' },
+    ).catch(() => {});
+
+    return payment;
   }
 
   async update(tenantId: number, data: {
@@ -200,11 +281,12 @@ export class TenantService {
       customPrice: tenant.customPrice != null ? Number(tenant.customPrice) : null,
       status: tenant.status,
       trialEndsAt: tenant.trialEndsAt,
+      paidUntil: tenant.paidUntil,
       payments,
     };
   }
 
-  async reportPayment(tenantId: number, data: { plan: string; amount: number; reference?: string; receiptBase64?: string; receiptMime?: string }) {
+  async reportPayment(tenantId: number, data: { plan: string; amount: number; months?: number; reference?: string; receiptBase64?: string; receiptMime?: string }) {
     const { PlanPayment } = await import('./plan-payment.model');
     const { getPlanConfig } = await import('@/config/plans');
     const cfg = await getPlanConfig();
@@ -223,6 +305,13 @@ export class TenantService {
       status: 'pending',
       receiptNumber: null,
       rejectReason: null,
+      source: 'tenant',
+      method: 'breb',
+      months: Math.min(12, Math.max(1, Math.trunc(Number(data.months ?? 1)))),
+      paidAt: null,
+      periodStart: null,
+      periodEnd: null,
+      notes: null,
       decidedAt: null,
     });
 
@@ -269,13 +358,18 @@ export class TenantService {
     if (approve) {
       const approvedCount = await PlanPayment.count({ where: { status: 'approved' } });
       const receiptNumber = `REC-${String(approvedCount + 1).padStart(4, '0')}`;
-      await payment.update({ status: 'approved', receiptNumber, decidedAt: new Date() });
-      // Activar el plan pagado
-      await tenant.update({ plan: payment.plan as TenantPlan, status: 'active', trialEndsAt: null });
+      // Aprobar extiende el ciclo igual que un registro manual
+      const { periodStart, periodEnd } = await this.applyPaymentToTenant(
+        tenant, payment.plan as TenantPlan, payment.months ?? 1,
+      );
+      await payment.update({
+        status: 'approved', receiptNumber, decidedAt: new Date(),
+        periodStart: toDateOnly(periodStart), periodEnd: toDateOnly(periodEnd),
+      });
       await pushService.notifyUsers(
         admins.map(u => u.id),
         'Pago confirmado ✓',
-        `Tu pago del plan ${payment.plan} fue confirmado. Recibo ${receiptNumber}. ¡Gracias!`,
+        `Tu pago del plan ${payment.plan} fue confirmado. Recibo ${receiptNumber}. Activo hasta ${toDateOnly(periodEnd)}. ¡Gracias!`,
         { url: '/settings' },
       );
     } else {
@@ -295,9 +389,82 @@ export class TenantService {
     return getPlanConfig();
   }
 
-  async updatePlatformSettings(data: { brebKey?: string; brebHolder?: string; prices?: Record<string, number> }) {
+  async updatePlatformSettings(data: { brebKey?: string; brebHolder?: string; prices?: Record<string, number>; renewalWarnDays?: number; graceDays?: number }) {
     const { setPlanConfig } = await import('@/config/plans');
     return setPlanConfig(data);
+  }
+
+  // Dashboard financiero del superadmin: MRR, cobrado, vencimientos, morosos, LTV
+  async getFinance() {
+    const { PlanPayment } = await import('./plan-payment.model');
+    const { getPlanConfig } = await import('@/config/plans');
+    const cfg = await getPlanConfig();
+
+    const today = toDateOnly(new Date());
+    const plus30 = toDateOnly(new Date(Date.now() + 30 * 86400_000));
+
+    const tenants = await Tenant.findAll({ where: { slug: { [Op.ne]: 'demo' } } });
+    const priceOf = (t: Tenant) => Number(t.customPrice ?? cfg.prices[t.plan] ?? 0);
+    const activePaying = tenants.filter(t => t.status === 'active' && t.plan !== 'trial');
+    const mrr = activePaying.reduce((s, t) => s + priceOf(t), 0);
+
+    const daysBetween = (a: string, b: string) =>
+      Math.round((new Date(`${b}T00:00:00`).getTime() - new Date(`${a}T00:00:00`).getTime()) / 86400_000);
+
+    const upcoming = activePaying
+      .filter(t => t.paidUntil && t.paidUntil >= today && t.paidUntil <= plus30)
+      .map(t => ({ id: t.id, name: t.name, slug: t.slug, plan: t.plan, paidUntil: t.paidUntil, amount: priceOf(t), daysLeft: daysBetween(today, t.paidUntil!) }))
+      .sort((a, b) => a.paidUntil!.localeCompare(b.paidUntil!));
+
+    const overdue = tenants
+      .filter(t =>
+        (t.status === 'active' && t.plan !== 'trial' && t.paidUntil && t.paidUntil < today) ||
+        (t.status === 'suspended' && t.suspendedReason === 'nonpayment'))
+      .map(t => ({
+        id: t.id, name: t.name, slug: t.slug, plan: t.plan, paidUntil: t.paidUntil,
+        amount: priceOf(t), daysOverdue: t.paidUntil ? daysBetween(t.paidUntil, today) : null,
+        suspended: t.status === 'suspended',
+      }))
+      .sort((a, b) => (b.daysOverdue ?? 0) - (a.daysOverdue ?? 0));
+
+    const noPaidUntil = activePaying
+      .filter(t => !t.paidUntil)
+      .map(t => ({ id: t.id, name: t.name, slug: t.slug, plan: t.plan, amount: priceOf(t) }));
+
+    // Ingresos por mes (últimos 6) — fecha real del pago si existe
+    const revRows = await PlanPayment.findAll({
+      where: { status: 'approved' },
+      attributes: [
+        [fn('DATE_FORMAT', fn('COALESCE', col('paidAt'), col('decidedAt')), '%Y-%m'), 'month'],
+        [fn('SUM', col('amount')), 'total'],
+        [fn('COUNT', col('id')), 'count'],
+      ],
+      group: ['month'],
+      order: [[col('month'), 'ASC']],
+      raw: true,
+    }) as unknown as Array<{ month: string; total: string; count: number }>;
+    const revenueByMonth = revRows.slice(-6).map(r => ({ month: r.month, total: Number(r.total), count: Number(r.count) }));
+
+    // LTV simple por tenant pagador
+    const ltvRows = await PlanPayment.findAll({
+      where: { status: 'approved' },
+      attributes: ['tenantId', [fn('SUM', col('amount')), 'total'], [fn('COUNT', col('id')), 'count'], [fn('MIN', col('decidedAt')), 'firstAt']],
+      group: ['tenantId'],
+      raw: true,
+    }) as unknown as Array<{ tenantId: number; total: string; count: number; firstAt: Date }>;
+    const nameById = new Map(tenants.map(t => [t.id, { name: t.name, slug: t.slug }]));
+    const ltv = ltvRows
+      .map(r => ({
+        tenantId: r.tenantId,
+        name: nameById.get(r.tenantId)?.name ?? `#${r.tenantId}`,
+        slug: nameById.get(r.tenantId)?.slug ?? '',
+        totalPaid: Number(r.total),
+        payments: Number(r.count),
+        since: r.firstAt,
+      }))
+      .sort((a, b) => b.totalPaid - a.totalPaid);
+
+    return { mrr, activePaying: activePaying.length, revenueByMonth, upcoming, overdue, noPaidUntil, ltv, graceDays: cfg.graceDays, renewalWarnDays: cfg.renewalWarnDays };
   }
 
   // Embudo público de los últimos 30 días
@@ -510,6 +677,7 @@ export class TenantService {
       logoUrl: tenant.logoUrl,
       primaryColor: tenant.primaryColor ?? '#2563eb',
       trialEndsAt: tenant.trialEndsAt,
+      paidUntil: tenant.paidUntil,
       maxUsers: tenant.maxUsers,
       maxProducts: tenant.maxProducts,
       maxOrdersPerMonth: tenant.maxOrdersPerMonth,

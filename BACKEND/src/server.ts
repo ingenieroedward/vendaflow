@@ -9,6 +9,7 @@ import { ensureDemoData } from '@/core/startup/ensureDemoData';
 import { ensureSchema } from '@/core/startup/ensureSchema';
 import { startPaymentReminderJob } from '@/core/jobs/paymentReminders';
 import { startTrialExpiryJob } from '@/core/jobs/trialExpiry';
+import { startSubscriptionRenewalJob } from '@/core/jobs/subscriptionRenewal';
 
 const PORT = config.server.port;
 
@@ -70,6 +71,7 @@ const startServer = async (): Promise<void> => {
 
     // Daily trial management: suspend expired trials + expiry warnings
     startTrialExpiryJob();
+    startSubscriptionRenewalJob();
 
     console.log('✅ Database ready — all systems operational');
   } catch (error) {

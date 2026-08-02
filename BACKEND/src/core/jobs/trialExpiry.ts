@@ -32,7 +32,7 @@ export async function checkTrialExpiry(): Promise<void> {
   });
 
   for (const tenant of expired) {
-    await tenant.update({ status: 'suspended' });
+    await tenant.update({ status: 'suspended', suspendedReason: 'trial_expired' });
     logger.info(`[trialExpiry] Tenant "${tenant.slug}" suspendido (trial venció ${tenant.trialEndsAt?.toISOString().slice(0, 10)})`);
     try {
       await notifyTenantAdmins(

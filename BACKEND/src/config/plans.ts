@@ -7,6 +7,8 @@ export interface PlanConfig {
   brebKey: string;
   brebHolder: string;
   prices: Record<string, number>;
+  renewalWarnDays: number; // días antes del vencimiento para avisar al tenant
+  graceDays: number; // días de gracia tras vencer antes de suspender
 }
 
 const DEFAULTS: PlanConfig = {
@@ -17,6 +19,8 @@ const DEFAULTS: PlanConfig = {
     pro: Number(process.env['PLAN_PRICE_PRO'] ?? 100000),
     enterprise: Number(process.env['PLAN_PRICE_ENTERPRISE'] ?? 200000),
   },
+  renewalWarnDays: 5,
+  graceDays: 5,
 };
 
 let cache: { at: number; value: PlanConfig } | null = null;
@@ -33,12 +37,14 @@ export async function getPlanConfig(): Promise<PlanConfig> {
       pro: Number(s['price_pro'] ?? DEFAULTS.prices['pro']),
       enterprise: Number(s['price_enterprise'] ?? DEFAULTS.prices['enterprise']),
     },
+    renewalWarnDays: Number(s['renewal_warn_days'] ?? DEFAULTS.renewalWarnDays),
+    graceDays: Number(s['grace_days'] ?? DEFAULTS.graceDays),
   };
   cache = { at: Date.now(), value };
   return value;
 }
 
-export async function setPlanConfig(data: { brebKey?: string; brebHolder?: string; prices?: Record<string, number> }): Promise<PlanConfig> {
+export async function setPlanConfig(data: { brebKey?: string; brebHolder?: string; prices?: Record<string, number>; renewalWarnDays?: number; graceDays?: number }): Promise<PlanConfig> {
   const entries: Array<[string, string]> = [];
   if (data.brebKey !== undefined) entries.push(['breb_key', data.brebKey]);
   if (data.brebHolder !== undefined) entries.push(['breb_holder', data.brebHolder]);
@@ -46,6 +52,8 @@ export async function setPlanConfig(data: { brebKey?: string; brebHolder?: strin
     const v = data.prices?.[plan];
     if (v !== undefined && !Number.isNaN(Number(v))) entries.push([`price_${plan}`, String(v)]);
   }
+  if (data.renewalWarnDays !== undefined && Number.isFinite(Number(data.renewalWarnDays))) entries.push(['renewal_warn_days', String(data.renewalWarnDays)]);
+  if (data.graceDays !== undefined && Number.isFinite(Number(data.graceDays))) entries.push(['grace_days', String(data.graceDays)]);
   for (const [key, value] of entries) {
     await PlatformSetting.upsert({ key, value });
   }

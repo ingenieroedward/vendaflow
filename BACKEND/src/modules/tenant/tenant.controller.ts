@@ -79,10 +79,10 @@ export class TenantController {
   });
 
   reportPayment = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const { plan, amount, reference, receiptBase64, receiptMime } = req.body ?? {};
+    const { plan, amount, months, reference, receiptBase64, receiptMime } = req.body ?? {};
     if (!plan || !amount) throw new ValidationError('plan y amount son requeridos');
     const result = await tenantService.reportPayment(req.user!.tenantId, {
-      plan: String(plan), amount: Number(amount), reference, receiptBase64, receiptMime,
+      plan: String(plan), amount: Number(amount), months: Number(months ?? 1), reference, receiptBase64, receiptMime,
     });
     res.status(201).json({ status: 'success', data: result });
   });
@@ -103,6 +103,19 @@ export class TenantController {
     res.json({ status: 'success', data: await tenantService.decidePayment(Number(req.params['id']!), false, req.body?.reason) });
   });
 
+  registerPayment = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const { plan, amount, months, method, paidAt, reference, notes } = req.body ?? {};
+    if (amount === undefined) throw new ValidationError('amount es requerido');
+    const result = await tenantService.registerManualPayment(Number(req.params['id']), {
+      plan, amount: Number(amount), months, method, paidAt, reference, notes,
+    });
+    res.status(201).json({ status: 'success', data: result });
+  });
+
+  getFinance = asyncHandler(async (_req: AuthenticatedRequest, res: Response) => {
+    res.json({ status: 'success', data: await tenantService.getFinance() });
+  });
+
   getFunnel = asyncHandler(async (_req: AuthenticatedRequest, res: Response) => {
     res.json({ status: 'success', data: await tenantService.getFunnel() });
   });
@@ -112,8 +125,8 @@ export class TenantController {
   });
 
   updatePlatformSettings = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const { brebKey, brebHolder, prices } = req.body ?? {};
-    res.json({ status: 'success', data: await tenantService.updatePlatformSettings({ brebKey, brebHolder, prices }) });
+    const { brebKey, brebHolder, prices, renewalWarnDays, graceDays } = req.body ?? {};
+    res.json({ status: 'success', data: await tenantService.updatePlatformSettings({ brebKey, brebHolder, prices, renewalWarnDays, graceDays }) });
   });
 
   listRequests = asyncHandler(async (_req: AuthenticatedRequest, res: Response) => {

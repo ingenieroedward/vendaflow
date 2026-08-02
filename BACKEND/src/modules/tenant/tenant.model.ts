@@ -26,6 +26,8 @@ export interface TenantAttributes {
   maxProducts: number;
   maxOrdersPerMonth: number;
   customPrice: number | null; // precio especial COP/mes (null = precio de lista del plan)
+  paidUntil: string | null; // DATEONLY — pagado hasta (inclusive). null = fuera del ciclo (cortesía/legado)
+  suspendedReason: string | null; // trial_expired | nonpayment | manual
   createdAt: Date;
   updatedAt: Date;
   deletedAt?: Date;
@@ -74,6 +76,12 @@ export class Tenant extends Model<TenantAttributes, TenantCreationAttributes> {
 
   @Column({ type: DataType.DECIMAL(12, 2), allowNull: true })
   customPrice!: number | null;
+
+  @Column({ type: DataType.DATEONLY, allowNull: true })
+  paidUntil!: string | null;
+
+  @Column({ type: DataType.STRING(20), allowNull: true })
+  suspendedReason!: string | null;
 
   @CreatedAt override createdAt!: Date;
   @UpdatedAt override updatedAt!: Date;

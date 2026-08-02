@@ -13,6 +13,8 @@ export interface TenantSummary {
   maxProducts: number;
   maxOrdersPerMonth: number;
   customPrice?: number | null;
+  paidUntil?: string | null;
+  suspendedReason?: string | null;
   createdAt: string;
   updatedAt: string;
   usage?: {
@@ -69,6 +71,34 @@ export interface TenantRequestItem {
   createdAt: string;
 }
 
+export interface FinanceTenantRow {
+  id: number; name: string; slug: string; plan: string;
+  paidUntil?: string | null; amount: number;
+  daysLeft?: number; daysOverdue?: number | null; suspended?: boolean;
+}
+
+export interface FinanceData {
+  mrr: number;
+  activePaying: number;
+  revenueByMonth: Array<{ month: string; total: number; count: number }>;
+  upcoming: FinanceTenantRow[];
+  overdue: FinanceTenantRow[];
+  noPaidUntil: FinanceTenantRow[];
+  ltv: Array<{ tenantId: number; name: string; slug: string; totalPaid: number; payments: number; since: string }>;
+  graceDays: number;
+  renewalWarnDays: number;
+}
+
+export interface RegisterPaymentPayload {
+  plan?: string;
+  amount: number;
+  months?: number;
+  method?: string;
+  paidAt?: string;
+  reference?: string;
+  notes?: string;
+}
+
 export interface PlanPaymentItem {
   id: number;
   tenantId: number;
@@ -96,6 +126,9 @@ export const tenantAdminService = {
     (await apiService.post<Wrapped<{ recipients: number }>>('/tenants/broadcast', payload)).data,
   platformStats: async () => (await apiService.get<Wrapped<PlatformStats>>('/tenants/platform/stats')).data,
   exportData: (id: number) => apiService.get<unknown>(`/tenants/${id}/export`),
+  getFinance: async () => (await apiService.get<Wrapped<FinanceData>>('/tenants/platform/finance')).data,
+  registerPayment: async (tenantId: number, payload: RegisterPaymentPayload) =>
+    (await apiService.post<Wrapped<PlanPaymentItem>>(`/tenants/${tenantId}/payments`, payload)).data,
   getFunnel: async () =>
     (await apiService.get<Wrapped<{ days: number; landingViews: number; registroViews: number; requests: number; approved: number }>>('/tenants/platform/funnel')).data,
   getPlatformSettings: async () =>

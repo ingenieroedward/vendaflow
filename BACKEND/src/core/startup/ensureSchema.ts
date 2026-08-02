@@ -30,6 +30,34 @@ export async function ensureSchema(): Promise<void> {
     await qi.addColumn('tenants', 'customPrice', { type: DataType.DECIMAL(12, 2), allowNull: true } as never);
     logger.info('[ensureSchema] Column tenants.customPrice added');
   }
+  if (!('paidUntil' in tenantCols)) {
+    await qi.addColumn('tenants', 'paidUntil', { type: DataType.DATEONLY, allowNull: true } as never);
+    logger.info('[ensureSchema] Column tenants.paidUntil added');
+  }
+  if (!('suspendedReason' in tenantCols)) {
+    await qi.addColumn('tenants', 'suspendedReason', { type: DataType.STRING(20), allowNull: true } as never);
+    logger.info('[ensureSchema] Column tenants.suspendedReason added');
+  }
+
+  // plan_payments: campos del ciclo de suscripción (v1.11)
+  try {
+    const ppCols = await qi.describeTable('plan_payments');
+    const ppMissing: Array<{ name: string; spec: object }> = [
+      { name: 'source', spec: { type: DataType.ENUM('tenant', 'superadmin'), allowNull: false, defaultValue: 'tenant' } },
+      { name: 'method', spec: { type: DataType.STRING(20), allowNull: true } },
+      { name: 'months', spec: { type: DataType.INTEGER, allowNull: false, defaultValue: 1 } },
+      { name: 'paidAt', spec: { type: DataType.DATEONLY, allowNull: true } },
+      { name: 'periodStart', spec: { type: DataType.DATEONLY, allowNull: true } },
+      { name: 'periodEnd', spec: { type: DataType.DATEONLY, allowNull: true } },
+      { name: 'notes', spec: { type: DataType.STRING(255), allowNull: true } },
+    ].filter(c => !(c.name in ppCols));
+    for (const col of ppMissing) {
+      await qi.addColumn('plan_payments', col.name, col.spec as never);
+      logger.info(`[ensureSchema] Column plan_payments.${col.name} added`);
+    }
+  } catch {
+    // la tabla aún no existe — sync la crea completa
+  }
 
   const poColumns = await qi.describeTable('purchase_orders');
   if (!('affectsStock' in poColumns)) {

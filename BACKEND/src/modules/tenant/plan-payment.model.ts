@@ -14,6 +14,13 @@ export interface PlanPaymentAttributes {
   receiptNumber: string | null; // REC-0001, asignado al aprobar
   rejectReason: string | null;
   decidedAt: Date | null;
+  source: 'tenant' | 'superadmin'; // quién originó el registro
+  method: string | null; // breb | transferencia | efectivo | otro
+  months: number; // meses cubiertos por este pago
+  paidAt: string | null; // DATEONLY — fecha real del pago
+  periodStart: string | null; // DATEONLY — cobertura
+  periodEnd: string | null;
+  notes: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -47,6 +54,27 @@ export class PlanPayment extends Model<PlanPaymentAttributes, PlanPaymentCreatio
 
   @Column({ type: DataType.ENUM('pending', 'approved', 'rejected'), allowNull: false, defaultValue: 'pending' })
   status!: PlanPaymentStatus;
+
+  @Column({ type: DataType.ENUM('tenant', 'superadmin'), allowNull: false, defaultValue: 'tenant' })
+  source!: 'tenant' | 'superadmin';
+
+  @Column({ type: DataType.STRING(20), allowNull: true })
+  method!: string | null;
+
+  @Column({ type: DataType.INTEGER, allowNull: false, defaultValue: 1 })
+  months!: number;
+
+  @Column({ type: DataType.DATEONLY, allowNull: true })
+  paidAt!: string | null;
+
+  @Column({ type: DataType.DATEONLY, allowNull: true })
+  periodStart!: string | null;
+
+  @Column({ type: DataType.DATEONLY, allowNull: true })
+  periodEnd!: string | null;
+
+  @Column({ type: DataType.STRING(255), allowNull: true })
+  notes!: string | null;
 
   @Column({ type: DataType.STRING(20), allowNull: true })
   receiptNumber!: string | null;
