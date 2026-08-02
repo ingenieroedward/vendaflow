@@ -97,8 +97,8 @@ export class OrderController {
     res.status(200).json({ status: 'success', data: orders });
   });
 
-  getNextOrderNumber = asyncHandler(async (_req: AuthenticatedRequest, res: Response) => {
-    const result = await this.orderService.getNextOrderNumber();
+  getNextOrderNumber = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const result = await this.orderService.getNextOrderNumber(req.user!.tenantId);
     res.status(200).json({ status: 'success', data: result });
   });
 

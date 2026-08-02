@@ -25,12 +25,12 @@ export class OrderService {
    * Busca la última orden existente (incluyendo soft-deleted) y suma 1.
    * El contador empieza en 1. Si ocurre algún error usa el timestamp como fallback.
    */
-  private async generateOrderNumber(): Promise<string> {
+  private async generateOrderNumber(tenantId: number): Promise<string> {
     try {
       // Numeric MAX to avoid alphabetical sort issues with ORD-9X > ORD-1XX
       const result = await Order.findOne({
         attributes: [[literal('MAX(CAST(SUBSTRING(orderNumber, 5) AS UNSIGNED))'), 'maxNum']],
-        where: { orderNumber: { [Op.like]: 'ORD-%' } },
+        where: { tenantId, orderNumber: { [Op.like]: 'ORD-%' } },
         paranoid: false,
         raw: true,
       }) as any;
@@ -81,7 +81,7 @@ export class OrderService {
 
     // Create order + items inside a transaction, retrying up to 3 times on duplicate order number
     for (let attempt = 0; attempt < 3; attempt++) {
-      const orderNumber = validatedData.orderNumber ?? await this.generateOrderNumber();
+      const orderNumber = validatedData.orderNumber ?? await this.generateOrderNumber(tenantId);
       const t = await sequelize.transaction();
       try {
         const order = await Order.create({
@@ -146,8 +146,8 @@ export class OrderService {
     throw new Error('Failed to generate a unique order number after 3 attempts');
   }
 
-  async getNextOrderNumber(): Promise<{ nextOrderNumber: string }> {
-    const nextNumber = await this.generateOrderNumber();
+  async getNextOrderNumber(tenantId: number): Promise<{ nextOrderNumber: string }> {
+    const nextNumber = await this.generateOrderNumber(tenantId);
     return { nextOrderNumber: nextNumber };
   }
 

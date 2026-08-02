@@ -13,9 +13,12 @@ import {
 import { NotFoundError } from '@/core/errors/AppError';
 import { validateSchema, validatePartialSchema, paginationSchema, PaginationQuery } from '@/core/utils/validation';
 import { createProductSchema, updateProductSchema, searchProductSchema, adjustStockSchema } from './product.dto';
+import { StockMovementService } from '@/modules/stock-movement/stock-movement.service';
 import { Op, literal } from 'sequelize';
 
 export class ProductService {
+  private stockMovementService = new StockMovementService();
+
   // Sugiere el siguiente código a partir del último producto creado del tenant:
   // 10001 → 10002, ASE003 → ASE004 (conserva prefijo y ceros a la izquierda)
   async getNextCode(tenantId: number): Promise<{ nextCode: string | null }> {
@@ -124,7 +127,7 @@ export class ProductService {
     return this.mapToResponseDto(product);
   }
 
-  async updateProduct(id: number, updateData: UpdateProductDto, tenantId: number): Promise<ProductResponseDto> {
+  async updateProduct(id: number, updateData: UpdateProductDto, tenantId: number, userId?: number): Promise<ProductResponseDto> {
     const validatedData = validatePartialSchema(updateProductSchema, updateData) as Partial<UpdateProductDto>;
 
     const product = await Product.findOne({ where: { id, tenantId } });
@@ -139,7 +142,29 @@ export class ProductService {
       }
     }
 
-    await product.update(validatedData as any);
+    // Si la edición cambia el stock, registrarlo como ajuste en el kardex
+    // en vez de sobreescribir en silencio (el movimiento aplica el nuevo stock)
+    const stockDiff = validatedData.stock !== undefined && userId !== undefined
+      ? validatedData.stock - Number(product.stock)
+      : 0;
+    if (stockDiff !== 0) delete validatedData.stock;
+
+    await Product.sequelize!.transaction(async (t) => {
+      await product.update(validatedData as any, { transaction: t });
+      if (stockDiff !== 0) {
+        await this.stockMovementService.createMovement({
+          tenantId,
+          productId: product.id,
+          type: 'adjustment',
+          quantity: stockDiff,
+          referenceType: 'adjustment',
+          userId: userId!,
+          notes: 'Ajuste desde edición de producto',
+          transaction: t,
+        });
+      }
+    });
+    await product.reload();
     return this.mapToResponseDto(product);
   }
 
@@ -239,11 +264,24 @@ export class ProductService {
     return products.map(p => this.mapToResponseDto(p));
   }
 
-  async adjustStock(id: number, data: AdjustStockDto, tenantId: number): Promise<ProductResponseDto> {
+  async adjustStock(id: number, data: AdjustStockDto, tenantId: number, userId: number): Promise<ProductResponseDto> {
     const validatedData = validateSchema(adjustStockSchema, data);
     const product = await Product.findOne({ where: { id, tenantId } });
     if (!product) throw new NotFoundError('Product not found');
-    await product.update({ stock: Number(product.stock) + validatedData.quantity });
+    // El movimiento actualiza el stock del producto y deja rastro en el kardex
+    await Product.sequelize!.transaction(async (t) => {
+      await this.stockMovementService.createMovement({
+        tenantId,
+        productId: product.id,
+        type: 'adjustment',
+        quantity: validatedData.quantity,
+        referenceType: 'adjustment',
+        userId,
+        notes: validatedData.notes ?? 'Ajuste manual de inventario',
+        transaction: t,
+      });
+    });
+    await product.reload();
     return this.mapToResponseDto(product);
   }
 

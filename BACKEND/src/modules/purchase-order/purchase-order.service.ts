@@ -21,8 +21,9 @@ import logger from '@/core/logger';
 export class PurchaseOrderService {
   private stockMovementService = new StockMovementService();
 
-  private async generatePoNumber(): Promise<string> {
+  private async generatePoNumber(tenantId: number): Promise<string> {
     const last = await PurchaseOrder.findOne({
+      where: { tenantId },
       order: [['id', 'DESC']],
       paranoid: false,
     });
@@ -49,7 +50,7 @@ export class PurchaseOrderService {
 
     while (attempts < 3) {
       try {
-        const poNumber: string = poNumberBase ?? await this.generatePoNumber();
+        const poNumber: string = poNumberBase ?? await this.generatePoNumber(tenantId);
 
         const purchaseOrder = await sequelize.transaction(async (t: Transaction) => {
           const totalAmount = validatedData.items.reduce(

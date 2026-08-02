@@ -254,6 +254,14 @@ Al arrancar el backend:
 - **Superadmin lazy**: `React.lazy` en AppRouter — su bundle no se envía a usuarios tenant
 - **Embudo comercial**: tabla `metrics_daily` (contadores diarios, sin cookies). `POST /api/onboarding/track` (público, eventos `landing_view`/`registro_view` — Landing y Registro lo disparan al montar); `GET /tenants/platform/funnel` (superadmin, 30 días): visitas → registro → solicitudes → aprobadas con % de conversión. Card "Embudo comercial" en el dashboard del superadmin
 
+## INVENTARIO Y KARDEX (ago 2026)
+
+- **DECIMAL como número**: `dialectOptions: { decimalNumbers: true }` en `database/index.ts` — sin esto MySQL devuelve DECIMAL como string y las sumas concatenan texto (bug real: recibir compra dejaba stock "-1620"). `createMovement` además valida/coacciona `quantity`
+- **Todo cambio de stock deja movimiento**: ventas/compras ya lo hacían; ahora también `PATCH /products/:id/stock` y editar `stock` en `PUT /products/:id` generan movimiento `adjustment` (vía `StockMovementService`, transaccional). No sobreescribir stock en silencio
+- **Kardex visible**: pestaña "Movimientos" en Inventario (`components/features/InventoryMovements.tsx`) — tipo (Venta/Compra/Ajuste), cantidad, stock antes→después, detalle, "Cargar más"
+- **Numeración por tenant**: ORD-#### y POC-#### se generan filtrando por `tenantId` (el índice único ya era compuesto). Antes eran globales y los consecutivos saltaban entre clientes
+- **Seguridad**: `GET /stock-movements` y `GET /stock-movements/product/:id` filtran por `tenantId` del JWT (antes exponían movimientos de todos los tenants)
+
 ## ÓRDENES DE COMPRA — affectsStock
 
 - `affectsStock` (boolean, default true) en `purchase_orders`: si es false, al recibir la orden NO se crean movimientos de stock — para registrar compras por costos cuando el inventario ya fue cargado (ej. carga inicial del cliente)

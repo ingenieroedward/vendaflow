@@ -24,6 +24,8 @@ import { StockMovement } from '@/modules/stock-movement/stock-movement.model';
 
 const sequelize = new Sequelize({
   dialect: config.database.dialect,
+  // MySQL devuelve DECIMAL como string; sin esto, sumas con esos campos concatenan texto
+  dialectOptions: { decimalNumbers: true },
   host: config.database.host,
   port: config.database.port,
   database: config.database.name,

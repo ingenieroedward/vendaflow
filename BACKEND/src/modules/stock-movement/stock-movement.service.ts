@@ -47,14 +47,14 @@ export class StockMovementService {
     );
   }
 
-  async getMovementsByProduct(productId: number, query: PaginationQuery) {
+  async getMovementsByProduct(productId: number, query: PaginationQuery, tenantId: number) {
     const { page, limit } = validateSchema(paginationSchema, query);
     const validatedPage = page || 1;
     const validatedLimit = limit || 20;
     const offset = (validatedPage - 1) * validatedLimit;
 
     const { count, rows } = await StockMovement.findAndCountAll({
-      where: { productId },
+      where: { productId, tenantId },
       order: [['createdAt', 'DESC']],
       limit: validatedLimit,
       offset,
@@ -71,13 +71,14 @@ export class StockMovementService {
     };
   }
 
-  async getAllMovements(query: PaginationQuery) {
+  async getAllMovements(query: PaginationQuery, tenantId: number) {
     const { page, limit } = validateSchema(paginationSchema, query);
     const validatedPage = page || 1;
     const validatedLimit = limit || 20;
     const offset = (validatedPage - 1) * validatedLimit;
 
     const { count, rows } = await StockMovement.findAndCountAll({
+      where: { tenantId },
       include: [
         { model: Product, as: 'product', attributes: ['id', 'name', 'code', 'unit'] },
       ],
