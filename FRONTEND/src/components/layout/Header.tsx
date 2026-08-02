@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { User, LogOut, Package, Shield, Bell, BellOff, CloudOff, Download } from 'lucide-react';
+import { User, LogOut, Package, Shield, Bell, BellOff, CloudOff, Download, KeyRound } from 'lucide-react';
+import ChangePasswordModal from '../features/ChangePasswordModal';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { useSyncStore } from '../../store/syncStore';
@@ -16,6 +17,7 @@ const Header = () => {
   const navigate = useNavigate();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isInstallOpen, setIsInstallOpen] = useState(false);
+  const [pwdOpen, setPwdOpen] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const { status, current, total } = useSyncStore();
   const { pendingSync: pendingOrders } = useOrderStore();
@@ -177,6 +179,18 @@ const Header = () => {
                         </button>
                       </div>
 
+                      <div className="pt-1">
+                        <button
+                          onClick={() => { closeUserMenu(); setPwdOpen(true); }}
+                          className="flex items-center gap-3 w-full px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-xl transition-colors"
+                        >
+                          <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
+                            <KeyRound className="w-4 h-4 text-gray-600" />
+                          </div>
+                          <span>Cambiar contraseña</span>
+                        </button>
+                      </div>
+
                       {/* Logout */}
                       <div className="pt-1">
                         <button
@@ -205,6 +219,7 @@ const Header = () => {
       deferredPrompt={deferredPrompt}
       onInstalled={() => setDeferredPrompt(null)}
     />
+    <ChangePasswordModal isOpen={pwdOpen} onClose={() => setPwdOpen(false)} />
     </>
   );
 };

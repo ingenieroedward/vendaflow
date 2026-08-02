@@ -7,6 +7,12 @@ export const createUserSchema = z.object({
   role: z.enum(['buyer', 'admin', 'seller']).default('buyer'),
 });
 
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, 'La contraseña actual es requerida'),
+  newPassword: z.string().min(6, 'La nueva contraseña debe tener al menos 6 caracteres'),
+});
+export type ChangePasswordDto = z.infer<typeof changePasswordSchema>;
+
 export const updateUserSchema = z.object({
   username: z.string().min(3, 'Username must be at least 3 characters').max(255).optional(),
   role: z.enum(['buyer', 'admin', 'seller']).optional(),

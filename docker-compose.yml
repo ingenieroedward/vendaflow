@@ -36,6 +36,7 @@ services:
       DB_PASSWORD: ${MYSQL_PASSWORD:-merco_password}
       DB_DIALECT: mysql
       JWT_SECRET: ${JWT_SECRET}
+      SENTRY_DSN: ${SENTRY_DSN}
       JWT_EXPIRES_IN: 24h
       CORS_ORIGIN: https://merco.edwsystem.com,https://api.merco.edwsystem.com,https://localhost,capacitor://localhost
       CORS_WILDCARD_ORIGIN: "*.merco.edwsystem.com"

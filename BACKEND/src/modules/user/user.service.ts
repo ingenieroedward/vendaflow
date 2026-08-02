@@ -5,14 +5,14 @@ import {
   UserResponseDto,
   UsersListResponseDto,
 } from "./user.dto";
-import { NotFoundError, ConflictError } from "@/core/errors/AppError";
+import { NotFoundError, ConflictError, UnauthorizedError } from "@/core/errors/AppError";
 import {
   validateSchema,
   validatePartialSchema,
   paginationSchema,
   PaginationQuery,
 } from "@/core/utils/validation";
-import { createUserSchema, updateUserSchema } from "./user.dto";
+import { createUserSchema, updateUserSchema, changePasswordSchema, ChangePasswordDto } from "./user.dto";
 import { Order } from "../order/order.model";
 import { Price } from "../price/price.model";
 
@@ -77,6 +77,16 @@ export class UserService {
       throw new NotFoundError("User not found");
     }
     return this.mapToResponseDto(user);
+  }
+
+  // Cambio de contraseña propia: cualquier rol, exige la contraseña actual
+  async changeOwnPassword(userId: number, data: ChangePasswordDto): Promise<void> {
+    const validatedData = validateSchema(changePasswordSchema, data);
+    const user = await User.findByPk(userId);
+    if (!user) throw new NotFoundError('User not found');
+    const valid = await user.comparePassword(validatedData.currentPassword);
+    if (!valid) throw new UnauthorizedError('La contraseña actual es incorrecta');
+    await user.update({ password: validatedData.newPassword }); // @BeforeUpdate la hashea
   }
 
   async updateUser(id: number, updateData: UpdateUserDto, tenantId: number): Promise<UserResponseDto> {

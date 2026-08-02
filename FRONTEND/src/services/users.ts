@@ -43,8 +43,8 @@ export class UsersService {
     await apiService.get(`/users/${id}/restore`);
   }
 
-  async changePassword(id: number, currentPassword: string, newPassword: string): Promise<void> {
-    await apiService.put(`/users/${id}/password`, {
+  async changePassword(currentPassword: string, newPassword: string): Promise<void> {
+    await apiService.put('/users/me/password', {
       currentPassword,
       newPassword,
     });

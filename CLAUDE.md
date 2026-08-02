@@ -332,7 +332,9 @@ Al arrancar el backend:
 - Stock se reconcilia al editar/cancelar/eliminar/restaurar órdenes (movimientos `adjustment` con nota; antes el stock quedaba descuadrado para siempre)
 - Cuotas de plan aplicadas: `maxUsers`/`maxProducts`/`maxOrdersPerMonth` se verifican en cada create (409 con mensaje de upgrade)
 - Ruta `/customers/trash` antes de `/:id` (Express casa por orden; la papelera era inalcanzable)
-- Pendiente conocido: `FRONTEND/src/utils/backgroundSync.ts` es código muerto roto (no importado; no conectar sin reescribirlo). No existe flujo de cambio de contraseña propio (solo admin vía PUT /users/:id)
+- Pendiente conocido: `FRONTEND/src/utils/backgroundSync.ts` es código muerto roto (no importado; no conectar sin reescribirlo)
+- **Cambio de contraseña propia** (v1.9.0): `PUT /users/me/password` (isAuth, cualquier rol; exige currentPassword) — la ruta va ANTES del `router.use(isAuth, isAdmin)`. UI: `ChangePasswordModal` accesible desde Sidebar (desktop) y menú de usuario del Header (móvil)
+- **Sentry** (v1.8.x): `@sentry/node` init en `core/sentry.ts` solo si `SENTRY_DSN` está seteado (Dokploy + passthrough en docker-compose). errorHandler reporta 500s con url/método/usuario/tenant. Proyecto `merco-backend` en edwsystem.sentry.io, GitHub app instalada solo en el repo vendaflow (suspect commits + stack trace linking)
 
 - `PUT /orders/:id` debe tener `isSeller` (sin él, cualquier buyer puede modificar órdenes) — aplicado
 - No poner contraseñas con fallback hardcodeado en docker-compose (`:-valor`) — el fallback `:-Demo2024!` fue eliminado; `DEMO_ADMIN_PASSWORD` debe estar seteado en Dokploy

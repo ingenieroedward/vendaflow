@@ -5,6 +5,11 @@ import { AuthenticatedRequest } from '@/core/middlewares/auth';
 import { validateSchema, idParamSchema, IdParam } from '@/core/utils/validation';
 
 export class UserController {
+  changeOwnPassword = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    await this.userService.changeOwnPassword(req.user!.id, req.body);
+    res.status(200).json({ status: 'success', message: 'Contraseña actualizada' });
+  });
+
   private userService: UserService;
 
   constructor() {
