@@ -38,6 +38,16 @@ export async function ensureSchema(): Promise<void> {
     await qi.addColumn('tenants', 'suspendedReason', { type: DataType.STRING(20), allowNull: true } as never);
     logger.info('[ensureSchema] Column tenants.suspendedReason added');
   }
+  for (const [name, spec] of [
+    ['contactName', { type: DataType.STRING(120), allowNull: true }],
+    ['contactEmail', { type: DataType.STRING(255), allowNull: true }],
+    ['contactPhone', { type: DataType.STRING(30), allowNull: true }],
+  ] as const) {
+    if (!(name in tenantCols)) {
+      await qi.addColumn('tenants', name, spec as never);
+      logger.info(`[ensureSchema] Column tenants.${name} added`);
+    }
+  }
 
   // plan_payments: campos del ciclo de suscripción (v1.11)
   try {

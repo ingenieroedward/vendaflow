@@ -206,6 +206,9 @@ const EditTenantModal: React.FC<EditModalProps> = ({ tenant, onSave, onClose }) 
     maxProducts: String(tenant.maxProducts),
     maxOrdersPerMonth: String(tenant.maxOrdersPerMonth),
     customPrice: tenant.customPrice != null ? String(tenant.customPrice) : '',
+    contactName: tenant.contactName ?? '',
+    contactEmail: tenant.contactEmail ?? '',
+    contactPhone: tenant.contactPhone ?? '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -226,6 +229,9 @@ const EditTenantModal: React.FC<EditModalProps> = ({ tenant, onSave, onClose }) 
         maxProducts: parseInt(form.maxProducts, 10),
         maxOrdersPerMonth: parseInt(form.maxOrdersPerMonth, 10),
         customPrice: form.customPrice.trim() === '' ? null : Number(form.customPrice),
+        contactName: form.contactName.trim() || null,
+        contactEmail: form.contactEmail.trim() || null,
+        contactPhone: form.contactPhone.trim() || null,
       });
     } catch (err: unknown) {
       setError((err as { message?: string })?.message ?? 'Error al guardar');
@@ -287,6 +293,26 @@ const EditTenantModal: React.FC<EditModalProps> = ({ tenant, onSave, onClose }) 
               placeholder="Vacío = precio de lista del plan"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             <p className="mt-0.5 text-[11px] text-gray-400">Descuento o tarifa negociada — es lo que este tenant verá y pagará</p>
+          </div>
+          <div className="pt-1 border-t border-gray-100">
+            <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Contacto (avisos de cobro por email y WhatsApp)</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Nombre</label>
+                <input name="contactName" value={form.contactName} onChange={handle}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">WhatsApp</label>
+                <input name="contactPhone" value={form.contactPhone} onChange={handle} placeholder="57300…"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+            </div>
+            <div className="mt-3">
+              <label className="block text-xs font-medium text-gray-700 mb-1">Email</label>
+              <input name="contactEmail" type="email" value={form.contactEmail} onChange={handle}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
           </div>
           {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
           <div className="flex gap-3 pt-2 border-t border-gray-100">
@@ -1032,13 +1058,26 @@ const Superadmin: React.FC = () => {
                         </td>
                         <td className="px-4 py-2.5 text-gray-500 text-xs">venció {t.paidUntil ?? '—'}{t.daysOverdue != null ? ` (hace ${t.daysOverdue}d)` : ''}</td>
                         <td className="px-4 py-2.5 text-right font-semibold text-gray-900">${t.amount.toLocaleString('es-CO')}</td>
-                        <td className="px-4 py-2.5 text-right">
-                          <button
-                            onClick={() => { const full = tenants.find(x => x.id === t.id); if (full) setPayTenant(full); }}
-                            className="px-2.5 py-1 text-xs font-semibold bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
-                          >
-                            Registrar pago
-                          </button>
+                        <td className="px-4 py-2.5 text-right whitespace-nowrap">
+                          {(() => {
+                            const full = tenants.find(x => x.id === t.id);
+                            const phone = full?.contactPhone?.replace(/\D/g, '');
+                            return (<>
+                              {phone && (
+                                <a href={`https://wa.me/${phone}?text=${encodeURIComponent(`Hola${full?.contactName ? ` ${full.contactName}` : ''}, te escribo de Merco: el plan de ${t.name} venció el ${t.paidUntil}. ¿Te ayudo con la renovación? Valor: $${t.amount.toLocaleString('es-CO')}`)}`}
+                                  target="_blank" rel="noopener noreferrer"
+                                  className="mr-1.5 px-2.5 py-1 text-xs font-semibold text-green-700 border border-green-300 rounded-lg hover:bg-green-50">
+                                  WhatsApp
+                                </a>
+                              )}
+                              <button
+                                onClick={() => { if (full) setPayTenant(full); }}
+                                className="px-2.5 py-1 text-xs font-semibold bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
+                              >
+                                Registrar pago
+                              </button>
+                            </>);
+                          })()}
                         </td>
                       </tr>
                     ))}

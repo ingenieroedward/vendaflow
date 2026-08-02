@@ -38,6 +38,11 @@ services:
       DB_DIALECT: mysql
       JWT_SECRET: ${JWT_SECRET}
       SENTRY_DSN: ${SENTRY_DSN}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      SMTP_FROM: ${SMTP_FROM}
       JWT_EXPIRES_IN: 24h
       CORS_ORIGIN: https://merco.edwsystem.com,https://api.merco.edwsystem.com,https://localhost,capacitor://localhost
       CORS_WILDCARD_ORIGIN: "*.merco.edwsystem.com"

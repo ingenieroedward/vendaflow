@@ -16,6 +16,7 @@ import { getJobStatuses } from '@/core/jobs/jobStatus';
 import { APP_VERSION } from '@/config/version';
 import { ConflictError, NotFoundError, BadRequestError } from '@/core/errors/AppError';
 import { computePaymentPeriod, toDateOnly } from './subscription';
+import { sendEmail, renderEmail } from '@/core/email';
 import sequelize from '@/database';
 import { Op, fn, col } from 'sequelize';
 import bcrypt from 'bcryptjs';
@@ -213,6 +214,11 @@ export class TenantService {
       `Registramos tu pago del plan ${plan}. Recibo ${payment.receiptNumber}. Activo hasta ${payment.periodEnd}. ¡Gracias!`,
       { url: '/settings' },
     ).catch(() => {});
+    sendEmail(tenant.contactEmail, `Recibo ${payment.receiptNumber} — Merco`, renderEmail('Pago recibido ✓', [
+      `Registramos tu pago de <b>$${amount.toLocaleString('es-CO')}</b> del plan <b>${plan}</b> de <b>${tenant.name}</b>.`,
+      `Recibo: <b>${payment.receiptNumber}</b> · Fecha: ${paidAt} · Cubre hasta: <b>${payment.periodEnd}</b>.`,
+      '¡Gracias por tu pago!',
+    ])).catch(() => {});
 
     return payment;
   }
@@ -225,6 +231,9 @@ export class TenantService {
     maxProducts?: number | undefined;
     maxOrdersPerMonth?: number | undefined;
     customPrice?: number | null | undefined;
+    contactName?: string | null | undefined;
+    contactEmail?: string | null | undefined;
+    contactPhone?: string | null | undefined;
   }) {
     const tenant = await this.findById(tenantId);
     const updates: Partial<TenantAttributes> = {};
@@ -246,6 +255,9 @@ export class TenantService {
     if (data.maxProducts !== undefined) updates.maxProducts = data.maxProducts;
     if (data.maxOrdersPerMonth !== undefined) updates.maxOrdersPerMonth = data.maxOrdersPerMonth;
     if (data.customPrice !== undefined) updates.customPrice = data.customPrice;
+    if (data.contactName !== undefined) updates.contactName = data.contactName;
+    if (data.contactEmail !== undefined) updates.contactEmail = data.contactEmail;
+    if (data.contactPhone !== undefined) updates.contactPhone = data.contactPhone;
 
     if (data.plan !== undefined && data.plan !== tenant.plan) {
       const limits = PLAN_LIMITS[data.plan];
@@ -372,6 +384,11 @@ export class TenantService {
         `Tu pago del plan ${payment.plan} fue confirmado. Recibo ${receiptNumber}. Activo hasta ${toDateOnly(periodEnd)}. ¡Gracias!`,
         { url: '/settings' },
       );
+      sendEmail(tenant.contactEmail, `Recibo ${receiptNumber} — Merco`, renderEmail('Pago confirmado ✓', [
+        `Confirmamos tu pago de <b>$${Number(payment.amount).toLocaleString('es-CO')}</b> del plan <b>${payment.plan}</b> de <b>${tenant.name}</b>.`,
+        `Recibo: <b>${receiptNumber}</b> · Cubre hasta: <b>${toDateOnly(periodEnd)}</b>.`,
+        '¡Gracias por tu pago!',
+      ])).catch(() => {});
     } else {
       await payment.update({ status: 'rejected', rejectReason: reason ?? null, decidedAt: new Date() });
       await pushService.notifyUsers(
@@ -513,6 +530,12 @@ export class TenantService {
       ...(data.primaryColor !== undefined && { primaryColor: data.primaryColor }),
     });
 
+    // Conservar el contacto de la solicitud — antes se perdía al aprobar
+    await tenant.update({
+      contactName: request.contactName ?? null,
+      contactEmail: request.email ?? null,
+      contactPhone: request.phone ?? null,
+    });
     await request.update({ status: 'approved', tenantId: tenant.id });
     return { request, tenant };
   }

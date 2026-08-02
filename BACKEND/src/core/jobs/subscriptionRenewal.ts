@@ -6,6 +6,7 @@ import { getPlanConfig } from '@/config/plans';
 import { toDateOnly } from '@/modules/tenant/subscription';
 import logger from '@/core/logger';
 import { scheduleDailyJob } from './dailyScheduler';
+import { sendEmail, renderEmail } from '@/core/email';
 
 async function notifyTenantAdmins(tenantId: number, title: string, body: string): Promise<void> {
   const admins = await User.findAll({ where: { tenantId, role: 'admin' }, attributes: ['id'] });
@@ -51,11 +52,14 @@ export async function checkSubscriptionRenewal(): Promise<void> {
       if (daysLeft > 0) {
         // 1. Por vencer — solo en los hitos para no ametrallar a diario
         if (daysLeft === cfg.renewalWarnDays || daysLeft === 1) {
-          await notifyTenantAdmins(
-            tenant.id,
-            daysLeft === 1 ? 'Tu plan vence mañana' : `Tu plan vence en ${daysLeft} días`,
-            `Renueva tu plan ${tenant.plan} de ${tenant.name}: ${fmtCop(amount)} vía Bre-B a la llave ${cfg.brebKey} (${cfg.brebHolder}). Repórtalo en Configuración → Plan.`,
-          );
+          const title = daysLeft === 1 ? 'Tu plan vence mañana' : `Tu plan vence en ${daysLeft} días`;
+          const body = `Renueva tu plan ${tenant.plan} de ${tenant.name}: ${fmtCop(amount)} vía Bre-B a la llave ${cfg.brebKey} (${cfg.brebHolder}). Repórtalo en Configuración → Plan.`;
+          await notifyTenantAdmins(tenant.id, title, body);
+          await sendEmail(tenant.contactEmail, `${title} — Merco`, renderEmail(title, [
+            `Hola${tenant.contactName ? ` ${tenant.contactName}` : ''}, el plan <b>${tenant.plan}</b> de <b>${tenant.name}</b> vence el <b>${tenant.paidUntil}</b>.`,
+            `Valor a pagar: <b>${fmtCop(amount)}</b> vía Bre-B a la llave <b>${cfg.brebKey}</b> (${cfg.brebHolder}).`,
+            'Cuando pagues, repórtalo desde la app en Configuración → Plan y te confirmamos el recibo.',
+          ], { label: 'Ir a mi configuración', url: `https://${tenant.slug}.merco.edwsystem.com/settings` }));
         }
       } else {
         const daysOverdue = -daysLeft;
@@ -64,11 +68,12 @@ export async function checkSubscriptionRenewal(): Promise<void> {
           overdueLines.push(`${tenant.name} — venció hace ${daysOverdue} día${daysOverdue === 1 ? '' : 's'}, ${fmtCop(amount)}`);
           if (daysOverdue === 1 || daysOverdue === cfg.graceDays) {
             const cutoff = toDateOnly(new Date(new Date(`${tenant.paidUntil}T00:00:00`).getTime() + (cfg.graceDays + 1) * 86400_000));
-            await notifyTenantAdmins(
-              tenant.id,
-              'Tu plan está vencido',
-              `El plan ${tenant.plan} de ${tenant.name} venció hace ${daysOverdue} día${daysOverdue === 1 ? '' : 's'}. Renueva por ${fmtCop(amount)} (Bre-B: ${cfg.brebKey}) antes del ${cutoff} para evitar la suspensión.`,
-            );
+            const body = `El plan ${tenant.plan} de ${tenant.name} venció hace ${daysOverdue} día${daysOverdue === 1 ? '' : 's'}. Renueva por ${fmtCop(amount)} (Bre-B: ${cfg.brebKey}) antes del ${cutoff} para evitar la suspensión.`;
+            await notifyTenantAdmins(tenant.id, 'Tu plan está vencido', body);
+            await sendEmail(tenant.contactEmail, 'Tu plan está vencido — Merco', renderEmail('Tu plan está vencido', [
+              `El plan <b>${tenant.plan}</b> de <b>${tenant.name}</b> venció el <b>${tenant.paidUntil}</b>.`,
+              `Renueva por <b>${fmtCop(amount)}</b> vía Bre-B a la llave <b>${cfg.brebKey}</b> (${cfg.brebHolder}) antes del <b>${cutoff}</b> para evitar la suspensión del servicio.`,
+            ], { label: 'Reportar mi pago', url: `https://${tenant.slug}.merco.edwsystem.com/settings` }));
           }
         } else {
           // 3. Corte
@@ -79,6 +84,10 @@ export async function checkSubscriptionRenewal(): Promise<void> {
             'Cuenta suspendida por falta de pago',
             `El plan de ${tenant.name} venció hace ${daysOverdue} días y la cuenta fue suspendida. Al registrar tu pago se reactiva de inmediato.`,
           );
+          await sendEmail(tenant.contactEmail, 'Cuenta suspendida por falta de pago — Merco', renderEmail('Cuenta suspendida', [
+            `El plan de <b>${tenant.name}</b> venció hace ${daysOverdue} días y la cuenta fue suspendida.`,
+            `Para reactivarla de inmediato, paga <b>${fmtCop(amount)}</b> vía Bre-B a la llave <b>${cfg.brebKey}</b> (${cfg.brebHolder}) y avísanos.`,
+          ]));
           await notifySuperadmins('Tenant suspendido por no pago', `${tenant.name} (${tenant.slug}) — venció ${tenant.paidUntil}, ${fmtCop(amount)}/mes.`);
         }
       }

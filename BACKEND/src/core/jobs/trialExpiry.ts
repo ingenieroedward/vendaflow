@@ -4,6 +4,7 @@ import { User } from '@/modules/user/user.model';
 import { pushService } from '@/modules/push/push.service';
 import logger from '@/core/logger';
 import { scheduleDailyJob } from './dailyScheduler';
+import { sendEmail, renderEmail } from '@/core/email';
 
 const WARN_DAYS = 3; // avisar desde N días antes del vencimiento
 
@@ -40,6 +41,10 @@ export async function checkTrialExpiry(): Promise<void> {
         'Período de prueba finalizado',
         `Tu prueba de ${tenant.name} terminó y la cuenta fue suspendida. Contáctanos para activar un plan.`,
       );
+      await sendEmail(tenant.contactEmail, 'Tu período de prueba terminó — Merco', renderEmail('Período de prueba finalizado', [
+        `La prueba de <b>${tenant.name}</b> terminó y la cuenta fue suspendida.`,
+        'Responde este correo o escríbenos para activar un plan y seguir donde quedaste — tus datos están intactos.',
+      ]));
       await notifySuperadmins('Trial vencido — tenant suspendido', `${tenant.name} (${tenant.slug}) fue suspendido automáticamente.`);
     } catch (err) {
       logger.error(`[trialExpiry] Error notificando suspensión de ${tenant.slug}:`, err);

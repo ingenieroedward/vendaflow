@@ -15,6 +15,9 @@ export interface TenantSummary {
   customPrice?: number | null;
   paidUntil?: string | null;
   suspendedReason?: string | null;
+  contactName?: string | null;
+  contactEmail?: string | null;
+  contactPhone?: string | null;
   createdAt: string;
   updatedAt: string;
   usage?: {
@@ -36,6 +39,9 @@ export interface CreateTenantPayload {
 export interface UpdateTenantPayload {
   name?: string;
   customPrice?: number | null;
+  contactName?: string | null;
+  contactEmail?: string | null;
+  contactPhone?: string | null;
   plan?: 'trial' | 'basic' | 'pro' | 'enterprise';
   trialEndsAt?: string | null;
   maxUsers?: number;

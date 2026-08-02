@@ -28,6 +28,9 @@ export interface TenantAttributes {
   customPrice: number | null; // precio especial COP/mes (null = precio de lista del plan)
   paidUntil: string | null; // DATEONLY — pagado hasta (inclusive). null = fuera del ciclo (cortesía/legado)
   suspendedReason: string | null; // trial_expired | nonpayment | manual
+  contactName: string | null;
+  contactEmail: string | null; // canal de respaldo para avisos de cobro/suspensión
+  contactPhone: string | null; // WhatsApp
   createdAt: Date;
   updatedAt: Date;
   deletedAt?: Date;
@@ -82,6 +85,15 @@ export class Tenant extends Model<TenantAttributes, TenantCreationAttributes> {
 
   @Column({ type: DataType.STRING(20), allowNull: true })
   suspendedReason!: string | null;
+
+  @Column({ type: DataType.STRING(120), allowNull: true })
+  contactName!: string | null;
+
+  @Column({ type: DataType.STRING(255), allowNull: true })
+  contactEmail!: string | null;
+
+  @Column({ type: DataType.STRING(30), allowNull: true })
+  contactPhone!: string | null;
 
   @CreatedAt override createdAt!: Date;
   @UpdatedAt override updatedAt!: Date;
