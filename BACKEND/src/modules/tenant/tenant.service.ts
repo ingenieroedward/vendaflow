@@ -135,8 +135,56 @@ export class TenantService {
 
   async activate(tenantId: number) {
     const tenant = await this.findById(tenantId);
-    await tenant.update({ status: 'active', suspendedReason: null });
+    await tenant.update({ status: 'active', suspendedReason: null, cancelledAt: null });
     return tenant;
+  }
+
+  // Offboarding: marca el tenant como cancelado (los datos se conservan 90 días)
+  async cancelTenant(tenantId: number) {
+    const tenant = await this.findById(tenantId);
+    if (tenant.slug === 'demo') throw new ConflictError('El tenant demo no se puede cancelar');
+    await tenant.update({ status: 'cancelled', cancelledAt: new Date(), suspendedReason: null, paidUntil: null });
+    return tenant;
+  }
+
+  /**
+   * Purga los datos de negocio de un tenant CANCELADO (irreversible).
+   * Conserva: la fila del tenant (histórico) y sus plan_payments (contabilidad).
+   * Borra: usuarios, productos, precios, clientes, órdenes/items/abonos,
+   * proveedores, compras, movimientos, categorías y suscripciones push.
+   */
+  async purgeTenant(tenantId: number) {
+    const tenant = await this.findById(tenantId);
+    if (tenant.status !== 'cancelled') throw new ConflictError('Solo se pueden purgar tenants cancelados');
+    const { OrderPayment } = await import('../order/order-payment.model');
+    const { PushSubscription } = await import('../push/push-subscription.model');
+
+    return sequelize.transaction(async (t: any) => {
+      const orders = await Order.findAll({ where: { tenantId }, attributes: ['id'], paranoid: false, transaction: t, raw: true });
+      const orderIds = orders.map(o => o.id);
+      const pos = await PurchaseOrder.findAll({ where: { tenantId }, attributes: ['id'], paranoid: false, transaction: t, raw: true });
+      const poIds = pos.map(o => o.id);
+      const users = await User.findAll({ where: { tenantId }, attributes: ['id'], paranoid: false, transaction: t, raw: true });
+      const userIds = users.map(u => u.id);
+
+      if (orderIds.length) {
+        await OrderPayment.destroy({ where: { orderId: orderIds }, force: true, transaction: t });
+        await OrderItem.destroy({ where: { orderId: orderIds }, force: true, transaction: t });
+      }
+      await Order.destroy({ where: { tenantId }, force: true, transaction: t });
+      if (poIds.length) await PurchaseOrderItem.destroy({ where: { purchaseOrderId: poIds }, force: true, transaction: t });
+      await PurchaseOrder.destroy({ where: { tenantId }, force: true, transaction: t });
+      await StockMovement.destroy({ where: { tenantId }, force: true, transaction: t });
+      await Price.destroy({ where: { tenantId }, force: true, transaction: t });
+      await Product.destroy({ where: { tenantId }, force: true, transaction: t });
+      await Customer.destroy({ where: { tenantId }, force: true, transaction: t });
+      await Supplier.destroy({ where: { tenantId }, force: true, transaction: t });
+      await Category.destroy({ where: { tenantId }, force: true, transaction: t });
+      if (userIds.length) await PushSubscription.destroy({ where: { userId: userIds }, force: true, transaction: t });
+      await User.destroy({ where: { tenantId }, force: true, transaction: t });
+
+      return { purged: true, tenantId, slug: tenant.slug };
+    });
   }
 
   /**
@@ -214,11 +262,13 @@ export class TenantService {
       `Registramos tu pago del plan ${plan}. Recibo ${payment.receiptNumber}. Activo hasta ${payment.periodEnd}. ¡Gracias!`,
       { url: '/settings' },
     ).catch(() => {});
-    sendEmail(tenant.contactEmail, `Recibo ${payment.receiptNumber} — Merco`, renderEmail('Pago recibido ✓', [
-      `Registramos tu pago de <b>$${amount.toLocaleString('es-CO')}</b> del plan <b>${plan}</b> de <b>${tenant.name}</b>.`,
-      `Recibo: <b>${payment.receiptNumber}</b> · Fecha: ${paidAt} · Cubre hasta: <b>${payment.periodEnd}</b>.`,
-      '¡Gracias por tu pago!',
-    ])).catch(() => {});
+    import('./receipt.routes').then(({ receiptUrl: rUrl }) =>
+      sendEmail(tenant.contactEmail, `Recibo ${payment.receiptNumber} — Merco`, renderEmail('Pago recibido ✓', [
+        `Registramos tu pago de <b>$${amount.toLocaleString('es-CO')}</b> del plan <b>${plan}</b> de <b>${tenant.name}</b>.`,
+        `Recibo: <b>${payment.receiptNumber}</b> · Fecha: ${paidAt} · Cubre hasta: <b>${payment.periodEnd}</b>.`,
+        '¡Gracias por tu pago!',
+      ], { label: 'Ver recibo', url: rUrl(payment.id) }))
+    ).catch(() => {});
 
     return payment;
   }
@@ -279,12 +329,18 @@ export class TenantService {
     const { getPlanConfig } = await import('@/config/plans');
     const cfg = await getPlanConfig();
     const tenant = await this.findById(tenantId);
-    const payments = await PlanPayment.findAll({
+    const { receiptUrl } = await import('./receipt.routes');
+    const rows = await PlanPayment.findAll({
       where: { tenantId },
       attributes: { exclude: ['receiptBase64'] },
       order: [['createdAt', 'DESC']],
       limit: 24,
+      raw: true,
     });
+    const payments = rows.map(p => ({
+      ...p,
+      receiptUrl: p.status === 'approved' ? receiptUrl(p.id) : null,
+    }));
     return {
       brebKey: cfg.brebKey,
       brebHolder: cfg.brebHolder,
@@ -338,6 +394,7 @@ export class TenantService {
   }
 
   async listPayments() {
+    const { receiptUrl } = await import('./receipt.routes');
     const { PlanPayment } = await import('./plan-payment.model');
     const payments = await PlanPayment.findAll({
       attributes: { exclude: ['receiptBase64'] },
@@ -348,7 +405,11 @@ export class TenantService {
     const tenantIds = [...new Set(payments.map(p => p.tenantId))];
     const tenants = await Tenant.findAll({ where: { id: tenantIds }, attributes: ['id', 'name', 'slug'], raw: true });
     const tmap = new Map(tenants.map(t => [t.id, t]));
-    return payments.map(p => ({ ...p, tenant: tmap.get(p.tenantId) ?? null }));
+    return payments.map(p => ({
+      ...p,
+      tenant: tmap.get(p.tenantId) ?? null,
+      receiptUrl: p.status === 'approved' ? receiptUrl(p.id) : null,
+    }));
   }
 
   async getPaymentReceipt(paymentId: number) {
@@ -384,11 +445,13 @@ export class TenantService {
         `Tu pago del plan ${payment.plan} fue confirmado. Recibo ${receiptNumber}. Activo hasta ${toDateOnly(periodEnd)}. ¡Gracias!`,
         { url: '/settings' },
       );
-      sendEmail(tenant.contactEmail, `Recibo ${receiptNumber} — Merco`, renderEmail('Pago confirmado ✓', [
-        `Confirmamos tu pago de <b>$${Number(payment.amount).toLocaleString('es-CO')}</b> del plan <b>${payment.plan}</b> de <b>${tenant.name}</b>.`,
-        `Recibo: <b>${receiptNumber}</b> · Cubre hasta: <b>${toDateOnly(periodEnd)}</b>.`,
-        '¡Gracias por tu pago!',
-      ])).catch(() => {});
+      import('./receipt.routes').then(({ receiptUrl: rUrl }) =>
+        sendEmail(tenant.contactEmail, `Recibo ${receiptNumber} — Merco`, renderEmail('Pago confirmado ✓', [
+          `Confirmamos tu pago de <b>$${Number(payment.amount).toLocaleString('es-CO')}</b> del plan <b>${payment.plan}</b> de <b>${tenant.name}</b>.`,
+          `Recibo: <b>${receiptNumber}</b> · Cubre hasta: <b>${toDateOnly(periodEnd)}</b>.`,
+          '¡Gracias por tu pago!',
+        ], { label: 'Ver recibo', url: rUrl(payment.id) }))
+      ).catch(() => {});
     } else {
       await payment.update({ status: 'rejected', rejectReason: reason ?? null, decidedAt: new Date() });
       await pushService.notifyUsers(

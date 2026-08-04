@@ -31,6 +31,7 @@ export interface TenantAttributes {
   contactName: string | null;
   contactEmail: string | null; // canal de respaldo para avisos de cobro/suspensión
   contactPhone: string | null; // WhatsApp
+  cancelledAt: Date | null; // fecha de cancelación (offboarding; purga elegible a los 90 días)
   createdAt: Date;
   updatedAt: Date;
   deletedAt?: Date;
@@ -94,6 +95,9 @@ export class Tenant extends Model<TenantAttributes, TenantCreationAttributes> {
 
   @Column({ type: DataType.STRING(30), allowNull: true })
   contactPhone!: string | null;
+
+  @Column({ type: DataType.DATE, allowNull: true })
+  cancelledAt!: Date | null;
 
   @CreatedAt override createdAt!: Date;
   @UpdatedAt override updatedAt!: Date;

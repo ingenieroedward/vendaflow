@@ -105,6 +105,17 @@ export interface RegisterPaymentPayload {
   notes?: string;
 }
 
+export interface AuditLogItem {
+  id: number;
+  username: string;
+  action: string;
+  tenantId: number | null;
+  tenantSlug: string | null;
+  meta: string | null;
+  ip: string | null;
+  createdAt: string;
+}
+
 export interface PlanPaymentItem {
   id: number;
   tenantId: number;
@@ -118,6 +129,12 @@ export interface PlanPaymentItem {
   createdAt: string;
   decidedAt: string | null;
   tenant: { id: number; name: string; slug: string } | null;
+  receiptUrl?: string | null;
+  source?: string;
+  months?: number;
+  method?: string | null;
+  paidAt?: string | null;
+  periodEnd?: string | null;
 }
 
 export const tenantAdminService = {
@@ -132,6 +149,13 @@ export const tenantAdminService = {
     (await apiService.post<Wrapped<{ recipients: number }>>('/tenants/broadcast', payload)).data,
   platformStats: async () => (await apiService.get<Wrapped<PlatformStats>>('/tenants/platform/stats')).data,
   exportData: (id: number) => apiService.get<unknown>(`/tenants/${id}/export`),
+  listAudit: async () => (await apiService.get<Wrapped<AuditLogItem[]>>('/tenants/platform/audit')).data,
+  cancelTenant: (id: number) => apiService.post<TenantSummary>(`/tenants/${id}/cancel`, {}),
+  purgeTenant: (id: number) => apiService.delete<unknown>(`/tenants/${id}/purge`),
+  totpStatus: async () => (await apiService.get<Wrapped<{ enabled: boolean }>>('/auth/totp/status')).data,
+  totpSetup: async () => (await apiService.post<Wrapped<{ secret: string; uri: string }>>('/auth/totp/setup', {})).data,
+  totpEnable: (secret: string, code: string) => apiService.post<unknown>('/auth/totp/enable', { secret, code }),
+  totpDisable: (code: string) => apiService.post<unknown>('/auth/totp/disable', { code }),
   getFinance: async () => (await apiService.get<Wrapped<FinanceData>>('/tenants/platform/finance')).data,
   registerPayment: async (tenantId: number, payload: RegisterPaymentPayload) =>
     (await apiService.post<Wrapped<PlanPaymentItem>>(`/tenants/${tenantId}/payments`, payload)).data,

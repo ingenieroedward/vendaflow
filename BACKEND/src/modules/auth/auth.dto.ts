@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 // Login DTO
 export const loginSchema = z.object({
+  totp: z.string().max(10).optional(),
   username: z.string().min(3, 'Username must be at least 3 characters').max(255),
   password: z.string().min(6, 'Password must be at least 6 characters'),
   tenantSlug: z.string().optional(),

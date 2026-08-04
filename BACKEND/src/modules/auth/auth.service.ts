@@ -43,6 +43,14 @@ export class AuthService {
     const isPasswordValid = await user.comparePassword(validatedData.password);
     if (!isPasswordValid) throw new UnauthorizedError('Invalid username or password');
 
+    // 2FA: si el superadmin tiene TOTP activo, exigir el código de 6 dígitos
+    if (user.role === 'superadmin' && user.totpSecret) {
+      const { verifyTotp } = await import('@/core/totp');
+      const code = (validatedData as { totp?: string }).totp;
+      if (!code) throw new UnauthorizedError('TOTP_REQUIRED');
+      if (!verifyTotp(user.totpSecret, code)) throw new UnauthorizedError('Código de verificación incorrecto');
+    }
+
     // Fetch tenant separately to avoid association alias issues
     const tenantData = user.tenantId ? await Tenant.findByPk(user.tenantId) : null;
 

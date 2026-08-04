@@ -38,6 +38,15 @@ export async function ensureSchema(): Promise<void> {
     await qi.addColumn('tenants', 'suspendedReason', { type: DataType.STRING(20), allowNull: true } as never);
     logger.info('[ensureSchema] Column tenants.suspendedReason added');
   }
+  if (!('cancelledAt' in tenantCols)) {
+    await qi.addColumn('tenants', 'cancelledAt', { type: DataType.DATE, allowNull: true } as never);
+    logger.info('[ensureSchema] Column tenants.cancelledAt added');
+  }
+  const userCols = await qi.describeTable('users');
+  if (!('totpSecret' in userCols)) {
+    await qi.addColumn('users', 'totpSecret', { type: DataType.STRING(64), allowNull: true } as never);
+    logger.info('[ensureSchema] Column users.totpSecret added');
+  }
   for (const [name, spec] of [
     ['contactName', { type: DataType.STRING(120), allowNull: true }],
     ['contactEmail', { type: DataType.STRING(255), allowNull: true }],

@@ -12,6 +12,8 @@ import { STORAGE_KEYS } from './utils/constants';
 const AdminLogin: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [totp, setTotp] = useState('');
+  const [needsTotp, setNeedsTotp] = useState(false);
   const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,7 +24,7 @@ const AdminLogin: React.FC = () => {
     setError(null);
     try {
       const r = await apiService.post<{ data: { token: string; user: { id: number; username: string; role: string; tenantId: number } } }>(
-        '/auth/login', { username, password },
+        '/auth/login', needsTotp ? { username, password, totp } : { username, password },
       );
       if (r.data.user.role !== 'superadmin') {
         setError('Este acceso es solo para el superadmin');
@@ -33,7 +35,14 @@ const AdminLogin: React.FC = () => {
       localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(r.data.user));
       window.location.reload();
     } catch (err: unknown) {
-      setError((err as { message?: string })?.message ?? 'Credenciales incorrectas');
+      const msg = (err as { message?: string })?.message ?? 'Credenciales incorrectas';
+      if (msg === 'TOTP_REQUIRED') {
+        // Contraseña correcta y 2FA activo — pedir el código
+        setNeedsTotp(true);
+        setError(null);
+      } else {
+        setError(msg);
+      }
       setLoading(false);
     }
   };
@@ -61,6 +70,14 @@ const AdminLogin: React.FC = () => {
             {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
           </button>
         </div>
+        {needsTotp && (
+          <div>
+            <label className="block text-xs font-medium text-slate-300 mb-1">Código de verificación (app autenticadora)</label>
+            <input value={totp} onChange={e => setTotp(e.target.value)} required autoFocus inputMode="numeric" maxLength={7}
+              placeholder="000000"
+              className="w-full px-3 py-2.5 bg-slate-900 border border-blue-500/40 rounded-lg text-lg text-white text-center tracking-[0.4em] focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+        )}
         {error && <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{error}</p>}
         <button type="submit" disabled={loading}
           className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50">

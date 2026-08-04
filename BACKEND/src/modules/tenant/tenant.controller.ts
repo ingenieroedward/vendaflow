@@ -7,6 +7,16 @@ import { ValidationError } from '@/core/errors/AppError';
 
 const tenantService = new TenantService();
 
+// Auditoría best-effort de acciones del superadmin (nunca rompe la acción)
+const audit = (req: AuthenticatedRequest, action: string, tenantId?: number | null, tenantSlug?: string | null, meta?: Record<string, unknown>) => {
+  import('./audit-log.model').then(({ logAudit }) => logAudit({
+    userId: req.user!.id, username: req.user!.username, action,
+    tenantId: tenantId ?? null, tenantSlug: tenantSlug ?? null,
+    ...(meta !== undefined && { meta }),
+    ip: req.ip ?? null,
+  })).catch(() => {});
+};
+
 const updateTenantSchema = z.object({
   name: z.string().min(2).max(255).optional(),
   plan: z.enum(['trial', 'basic', 'pro', 'enterprise']).optional(),
@@ -59,6 +69,7 @@ export class TenantController {
       ...(plan !== undefined && { plan }),
       ...(primaryColor !== undefined && { primaryColor }),
     });
+    audit(req, 'tenant_create', tenant.id, tenant.slug, { plan: tenant.plan });
     res.status(201).json(tenant);
   });
 
@@ -69,12 +80,26 @@ export class TenantController {
 
   suspend = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const tenant = await tenantService.suspend(Number(req.params['id']!));
+    audit(req, 'tenant_suspend', tenant.id, tenant.slug);
     res.json(tenant);
   });
 
   activate = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const tenant = await tenantService.activate(Number(req.params['id']!));
+    audit(req, 'tenant_activate', tenant.id, tenant.slug);
     res.json(tenant);
+  });
+
+  cancelTenant = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const tenant = await tenantService.cancelTenant(Number(req.params['id']!));
+    audit(req, 'tenant_cancel', tenant.id, tenant.slug);
+    res.json(tenant);
+  });
+
+  purgeTenant = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const result = await tenantService.purgeTenant(Number(req.params['id']!));
+    audit(req, 'tenant_purge', result.tenantId, result.slug);
+    res.json({ status: 'success', data: result });
   });
 
   getBilling = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
@@ -99,11 +124,15 @@ export class TenantController {
   });
 
   approvePayment = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    res.json({ status: 'success', data: await tenantService.decidePayment(Number(req.params['id']!), true) });
+    const payment = await tenantService.decidePayment(Number(req.params['id']!), true);
+    audit(req, 'payment_approve', payment.tenantId, null, { receipt: payment.receiptNumber, amount: Number(payment.amount) });
+    res.json({ status: 'success', data: payment });
   });
 
   rejectPayment = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    res.json({ status: 'success', data: await tenantService.decidePayment(Number(req.params['id']!), false, req.body?.reason) });
+    const payment = await tenantService.decidePayment(Number(req.params['id']!), false, req.body?.reason);
+    audit(req, 'payment_reject', payment.tenantId, null, { reason: req.body?.reason ?? null });
+    res.json({ status: 'success', data: payment });
   });
 
   registerPayment = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
@@ -112,7 +141,17 @@ export class TenantController {
     const result = await tenantService.registerManualPayment(Number(req.params['id']), {
       plan, amount: Number(amount), months, method, paidAt, reference, notes,
     });
+    audit(req, 'payment_register', Number(req.params['id']), null, {
+      receipt: result.receiptNumber, amount: Number(amount), months: result.months, plan: result.plan,
+    });
     res.status(201).json({ status: 'success', data: result });
+  });
+
+  listAudit = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const { PlatformAuditLog } = await import('./audit-log.model');
+    const limit = Math.min(200, Math.max(1, Number(req.query['limit'] ?? 100)));
+    const rows = await PlatformAuditLog.findAll({ order: [['id', 'DESC']], limit, raw: true });
+    res.json({ status: 'success', data: rows });
   });
 
   getFinance = asyncHandler(async (_req: AuthenticatedRequest, res: Response) => {
@@ -140,15 +179,19 @@ export class TenantController {
     const { slug, adminUsername, adminPassword, plan, primaryColor } = req.body ?? {};
     if (!slug || !adminUsername || !adminPassword) throw new ValidationError('slug, adminUsername y adminPassword son requeridos');
     const result = await tenantService.approveRequest(Number(req.params['id']!), { slug, adminUsername, adminPassword, plan, primaryColor });
+    audit(req, 'request_approve', null, slug);
     res.json({ status: 'success', data: result });
   });
 
   rejectRequest = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    res.json({ status: 'success', data: await tenantService.rejectRequest(Number(req.params['id']!)) });
+    const result = await tenantService.rejectRequest(Number(req.params['id']!));
+    audit(req, 'request_reject', null, null, { requestId: Number(req.params['id']) });
+    res.json({ status: 'success', data: result });
   });
 
   impersonate = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const result = await tenantService.impersonate(Number(req.params['id']!));
+    audit(req, 'impersonate', Number(req.params['id']), result.slug, { asUser: result.username });
     res.json({ status: 'success', data: result });
   });
 
@@ -161,6 +204,7 @@ export class TenantController {
     const { tenantId, onlyAdmins, title, body } = req.body ?? {};
     if (!title || !body) throw new ValidationError('title y body son requeridos');
     const result = await tenantService.broadcast({ tenantId, onlyAdmins, title: String(title), body: String(body) });
+    audit(req, 'broadcast', tenantId ?? null, null, { title: String(title).slice(0, 80), recipients: result.recipients });
     res.json({ status: 'success', data: result });
   });
 
@@ -171,6 +215,7 @@ export class TenantController {
 
   exportData = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const result = await tenantService.exportTenantData(Number(req.params['id']!));
+    audit(req, 'tenant_export', Number(req.params['id']), result.tenant.slug);
     res.setHeader('Content-Disposition', `attachment; filename="tenant-${result.tenant.slug}-export.json"`);
     res.json(result);
   });
@@ -179,6 +224,7 @@ export class TenantController {
     const result = updateTenantSchema.safeParse(req.body);
     if (!result.success) throw new ValidationError(result.error.errors[0]?.message ?? 'Datos inválidos');
     const tenant = await tenantService.update(Number(req.params['id']!), result.data);
+    audit(req, 'tenant_update', tenant.id, tenant.slug, { fields: Object.keys(result.data) });
     res.json(tenant);
   });
 }

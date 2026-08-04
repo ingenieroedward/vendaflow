@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Plus, Power, PowerOff, LogOut, RefreshCw, X, Search, ExternalLink, Edit, AlertTriangle, ClipboardList, Users, TrendingUp, Eye, LogIn, Megaphone, Download, Activity, LayoutDashboard, Inbox, Receipt, Check, Bell, BellOff, Wallet, DollarSign } from 'lucide-react';
+import { Building2, Plus, Power, PowerOff, LogOut, RefreshCw, X, Search, ExternalLink, Edit, AlertTriangle, ClipboardList, Users, TrendingUp, Eye, LogIn, Megaphone, Download, Activity, LayoutDashboard, Inbox, Receipt, Check, Bell, BellOff, Wallet, DollarSign, ScrollText, KeyRound, Trash2, FileText, XCircle } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { usePushNotifications } from '../hooks/usePushNotifications';
-import { tenantAdminService, TenantSummary, CreateTenantPayload, UpdateTenantPayload, TenantDetail, PlatformStats, TenantRequestItem, PlanPaymentItem, FinanceData } from '../services/tenantAdmin';
+import { tenantAdminService, TenantSummary, CreateTenantPayload, UpdateTenantPayload, TenantDetail, PlatformStats, TenantRequestItem, PlanPaymentItem, FinanceData, AuditLogItem } from '../services/tenantAdmin';
 
 const PLAN_LABELS: Record<string, string> = {
   trial: 'Trial',
@@ -637,9 +637,14 @@ const Superadmin: React.FC = () => {
   const [detailLoading, setDetailLoading] = useState(false);
   const [showBroadcast, setShowBroadcast] = useState(false);
   const [broadcastOk, setBroadcastOk] = useState<string | null>(null);
-  const [section, setSection] = useState<'dashboard' | 'tenants' | 'solicitudes' | 'pagos' | 'finanzas'>('dashboard');
+  const [section, setSection] = useState<'dashboard' | 'tenants' | 'solicitudes' | 'pagos' | 'finanzas' | 'auditoria'>('dashboard');
   const [finance, setFinance] = useState<FinanceData | null>(null);
   const [payTenant, setPayTenant] = useState<TenantSummary | null>(null);
+  const [auditLogs, setAuditLogs] = useState<AuditLogItem[]>([]);
+  const [totpEnabled, setTotpEnabled] = useState<boolean | null>(null);
+  const [totpSetup, setTotpSetup] = useState<{ secret: string; uri: string } | null>(null);
+  const [totpCode, setTotpCode] = useState('');
+  const [totpMsg, setTotpMsg] = useState<string | null>(null);
   const { isSupported: pushSupported, isSubscribed: pushSubscribed, isLoading: pushLoading, toggle: togglePush } = usePushNotifications();
   const [requests, setRequests] = useState<TenantRequestItem[]>([]);
   const [payments, setPayments] = useState<PlanPaymentItem[]>([]);
@@ -662,6 +667,8 @@ const Superadmin: React.FC = () => {
       tenantAdminService.getPlatformSettings().then(setPayCfg).catch(() => setPayCfg(null));
       tenantAdminService.getFunnel().then(setFunnel).catch(() => setFunnel(null));
       tenantAdminService.getFinance().then(setFinance).catch(() => setFinance(null));
+      tenantAdminService.listAudit().then(setAuditLogs).catch(() => setAuditLogs([]));
+      tenantAdminService.totpStatus().then(r => setTotpEnabled(r.enabled)).catch(() => setTotpEnabled(null));
     } catch (e: unknown) {
       setError((e as { message?: string })?.message ?? 'Error al cargar tenants');
     } finally {
@@ -790,6 +797,47 @@ const Superadmin: React.FC = () => {
     finally { setActionId(null); }
   };
 
+  const handleCancelTenant = async (t: TenantSummary) => {
+    if (!window.confirm(`¿Cancelar el tenant "${t.name}"?\n\nQueda bloqueado y sus datos se conservan 90 días por si vuelve. Puedes exportar antes desde el detalle.`)) return;
+    setActionId(t.id);
+    try { await tenantAdminService.cancelTenant(t.id); await load(); }
+    catch (e: unknown) { setError((e as { message?: string })?.message ?? 'Error'); }
+    finally { setActionId(null); }
+  };
+
+  const handlePurgeTenant = async (t: TenantSummary) => {
+    if (!window.confirm(`⚠ PURGAR "${t.name}" — IRREVERSIBLE\n\nBorra usuarios, productos, clientes, órdenes y todo su inventario. Se conserva solo el histórico de pagos.\n\n¿Continuar?`)) return;
+    if (!window.confirm(`Última confirmación: escribe mentalmente "${t.slug}" y confirma que exportaste sus datos si los necesitas.`)) return;
+    setActionId(t.id);
+    try { await tenantAdminService.purgeTenant(t.id); await load(); }
+    catch (e: unknown) { setError((e as { message?: string })?.message ?? 'Error'); }
+    finally { setActionId(null); }
+  };
+
+  const handleTotpStart = async () => {
+    setTotpMsg(null);
+    try { setTotpSetup(await tenantAdminService.totpSetup()); setTotpCode(''); }
+    catch (e: unknown) { setTotpMsg((e as { message?: string })?.message ?? 'Error'); }
+  };
+
+  const handleTotpEnable = async () => {
+    if (!totpSetup) return;
+    setTotpMsg(null);
+    try {
+      await tenantAdminService.totpEnable(totpSetup.secret, totpCode);
+      setTotpEnabled(true); setTotpSetup(null); setTotpCode('');
+      setTotpMsg('2FA activado — desde ahora el login pedirá el código');
+    } catch (e: unknown) { setTotpMsg((e as { message?: string })?.message ?? 'Código incorrecto'); }
+  };
+
+  const handleTotpDisable = async () => {
+    const code = window.prompt('Para desactivar el 2FA, escribe el código actual de tu app autenticadora:');
+    if (!code) return;
+    setTotpMsg(null);
+    try { await tenantAdminService.totpDisable(code); setTotpEnabled(false); setTotpMsg('2FA desactivado'); }
+    catch (e: unknown) { setTotpMsg((e as { message?: string })?.message ?? 'Código incorrecto'); }
+  };
+
   const handleCreate = async (data: CreateTenantPayload) => {
     await tenantAdminService.create(data);
     setShowCreate(false);
@@ -910,6 +958,9 @@ const Superadmin: React.FC = () => {
               <span className="ml-auto text-xs bg-red-500 text-white px-1.5 py-0.5 rounded-full">{finance.overdue.length}</span>
             )}
           </button>
+          <button onClick={() => setSection('auditoria')} className={navCls(section === 'auditoria')}>
+            <ScrollText className="w-4 h-4 flex-shrink-0" /> Auditoría
+          </button>
           <button onClick={() => setShowBroadcast(true)} className={navCls(false)}>
             <Megaphone className="w-4 h-4 flex-shrink-0" /> Anuncio
           </button>
@@ -982,6 +1033,63 @@ const Superadmin: React.FC = () => {
             <button onClick={() => setError(null)} className="ml-3 text-red-400 hover:text-red-600">
               <X className="w-4 h-4" />
             </button>
+          </div>
+        )}
+
+        {section === 'auditoria' && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
+              <ScrollText className="w-4 h-4 text-gray-400" />
+              <h3 className="text-sm font-semibold text-gray-900">Auditoría de la plataforma</h3>
+              <span className="text-xs text-gray-400">últimas {auditLogs.length} acciones</span>
+            </div>
+            {auditLogs.length === 0 ? (
+              <p className="text-sm text-gray-400 text-center py-12">Aún no hay acciones registradas</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-200 text-left text-xs text-gray-500 uppercase tracking-wide">
+                      <th className="px-4 py-2.5 font-medium">Fecha</th>
+                      <th className="px-4 py-2.5 font-medium">Acción</th>
+                      <th className="px-4 py-2.5 font-medium">Tenant</th>
+                      <th className="px-4 py-2.5 font-medium">Detalle</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {auditLogs.map(a => {
+                      const labels: Record<string, { label: string; cls: string }> = {
+                        impersonate: { label: 'Impersonar', cls: 'bg-purple-100 text-purple-700' },
+                        payment_register: { label: 'Pago registrado', cls: 'bg-emerald-100 text-emerald-700' },
+                        payment_approve: { label: 'Pago aprobado', cls: 'bg-green-100 text-green-700' },
+                        payment_reject: { label: 'Pago rechazado', cls: 'bg-red-100 text-red-700' },
+                        tenant_suspend: { label: 'Suspensión', cls: 'bg-red-100 text-red-700' },
+                        tenant_activate: { label: 'Reactivación', cls: 'bg-green-100 text-green-700' },
+                        tenant_create: { label: 'Tenant creado', cls: 'bg-blue-100 text-blue-700' },
+                        tenant_update: { label: 'Tenant editado', cls: 'bg-gray-100 text-gray-600' },
+                        tenant_cancel: { label: 'Cancelación', cls: 'bg-orange-100 text-orange-700' },
+                        tenant_purge: { label: 'Purga de datos', cls: 'bg-red-200 text-red-800' },
+                        tenant_export: { label: 'Export', cls: 'bg-gray-100 text-gray-600' },
+                        request_approve: { label: 'Solicitud aprobada', cls: 'bg-blue-100 text-blue-700' },
+                        request_reject: { label: 'Solicitud rechazada', cls: 'bg-gray-100 text-gray-600' },
+                        broadcast: { label: 'Anuncio push', cls: 'bg-indigo-100 text-indigo-700' },
+                      };
+                      const meta = labels[a.action] ?? { label: a.action, cls: 'bg-gray-100 text-gray-600' };
+                      let detail = '';
+                      try { detail = a.meta ? Object.entries(JSON.parse(a.meta)).map(([k, v]) => `${k}: ${v}`).join(' · ') : ''; } catch { detail = a.meta ?? ''; }
+                      return (
+                        <tr key={a.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-2.5 text-xs text-gray-500 whitespace-nowrap">{new Date(a.createdAt).toLocaleString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</td>
+                          <td className="px-4 py-2.5"><span className={`px-2 py-0.5 rounded-full text-xs font-medium ${meta.cls}`}>{meta.label}</span></td>
+                          <td className="px-4 py-2.5 text-gray-700">{a.tenantSlug ?? (a.tenantId ? `#${a.tenantId}` : '—')}</td>
+                          <td className="px-4 py-2.5 text-xs text-gray-500 max-w-[22rem] truncate">{detail}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 
@@ -1537,23 +1645,43 @@ const Superadmin: React.FC = () => {
                             >
                               <Edit className="w-3.5 h-3.5" />
                             </button>
-                            {t.status === 'suspended' ? (
+                            {t.status === 'suspended' || t.status === 'cancelled' ? (
                               <button
                                 onClick={() => handleActivate(t.id)}
                                 disabled={actionId === t.id}
                                 className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-40"
-                                title="Activar tenant"
+                                title="Reactivar tenant"
                               >
                                 <Power className="w-3.5 h-3.5" />
                               </button>
                             ) : (
                               <button
                                 onClick={() => handleSuspend(t.id)}
-                                disabled={actionId === t.id || t.status === 'cancelled'}
+                                disabled={actionId === t.id}
                                 className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-40"
                                 title="Suspender tenant"
                               >
                                 <PowerOff className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                            {t.status !== 'cancelled' && t.slug !== 'demo' && t.slug !== 'platform' && (
+                              <button
+                                onClick={() => handleCancelTenant(t)}
+                                disabled={actionId === t.id}
+                                className="p-1.5 text-gray-300 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors disabled:opacity-40"
+                                title="Cancelar tenant (offboarding — datos 90 días)"
+                              >
+                                <XCircle className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                            {t.status === 'cancelled' && (
+                              <button
+                                onClick={() => handlePurgeTenant(t)}
+                                disabled={actionId === t.id}
+                                className="p-1.5 text-gray-300 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-40"
+                                title="Purgar datos (irreversible)"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             )}
                           </div>
@@ -1646,6 +1774,56 @@ const Superadmin: React.FC = () => {
               </div>
             </form>
           )}
+          {/* Seguridad: 2FA de la cuenta superadmin */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-5">
+            <div className="flex items-center gap-2 mb-2">
+              <KeyRound className="w-4 h-4 text-gray-400" />
+              <h3 className="text-sm font-semibold text-gray-900">Verificación en dos pasos (2FA)</h3>
+              {totpEnabled != null && (
+                <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${totpEnabled ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                  {totpEnabled ? 'Activo' : 'Inactivo'}
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-gray-500 mb-3">
+              Protege esta cuenta (que administra todos los tenants y registra pagos) con un código de una app
+              autenticadora — Google Authenticator, Authy o 1Password.
+            </p>
+            {!totpEnabled && !totpSetup && (
+              <button onClick={handleTotpStart}
+                className="px-4 py-2 text-sm font-semibold bg-slate-900 text-white rounded-lg hover:bg-slate-800">
+                Activar 2FA
+              </button>
+            )}
+            {totpSetup && (
+              <div className="space-y-3 bg-gray-50 rounded-lg p-4">
+                <p className="text-xs text-gray-600">
+                  1. En tu app autenticadora elige <b>agregar cuenta → entrada manual</b> y pega esta clave
+                  (cuenta: <b>Merco</b>):
+                </p>
+                <p className="font-mono text-sm bg-white border border-gray-200 rounded-lg px-3 py-2 break-all select-all">{totpSetup.secret}</p>
+                <p className="text-xs text-gray-600">2. Escribe el código de 6 dígitos que te muestra la app:</p>
+                <div className="flex gap-2">
+                  <input value={totpCode} onChange={e => setTotpCode(e.target.value)} inputMode="numeric" maxLength={7} placeholder="000000"
+                    className="w-32 px-3 py-2 border border-gray-300 rounded-lg text-center text-lg tracking-[0.3em] focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  <button onClick={handleTotpEnable} disabled={totpCode.length < 6}
+                    className="px-4 py-2 text-sm font-semibold bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50">
+                    Confirmar y activar
+                  </button>
+                  <button onClick={() => { setTotpSetup(null); setTotpCode(''); }}
+                    className="px-3 py-2 text-sm text-gray-500 hover:bg-gray-100 rounded-lg">Cancelar</button>
+                </div>
+              </div>
+            )}
+            {totpEnabled && (
+              <button onClick={handleTotpDisable}
+                className="px-4 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50">
+                Desactivar 2FA
+              </button>
+            )}
+            {totpMsg && <p className="mt-2 text-xs font-medium text-blue-700">{totpMsg}</p>}
+          </div>
+
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div className="px-4 sm:px-5 py-3 border-b border-gray-100 flex items-center gap-2">
               <Receipt className="w-4 h-4 text-gray-400" />
@@ -1666,7 +1844,17 @@ const Superadmin: React.FC = () => {
                         {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(Number(pg.amount))}
                         {pg.reference ? ` · ref ${pg.reference}` : ''} · {new Date(pg.createdAt).toLocaleString('es-CO')}
                       </p>
-                      {pg.receiptNumber && <p className="text-[11px] text-green-600 font-medium">Recibo {pg.receiptNumber}</p>}
+                      {pg.receiptNumber && (
+                        <p className="text-[11px] text-green-600 font-medium">
+                          Recibo {pg.receiptNumber}
+                          {pg.receiptUrl && (
+                            <a href={pg.receiptUrl} target="_blank" rel="noopener noreferrer"
+                              className="ml-2 inline-flex items-center gap-0.5 text-blue-600 hover:underline font-semibold">
+                              <FileText className="w-3 h-3" /> Ver recibo
+                            </a>
+                          )}
+                        </p>
+                      )}
                       {pg.rejectReason && <p className="text-[11px] text-red-500">Rechazado: {pg.rejectReason}</p>}
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">

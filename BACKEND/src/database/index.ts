@@ -6,6 +6,7 @@ import { TenantRequest } from '@/modules/tenant/tenant-request.model';
 import { PlanPayment } from '@/modules/tenant/plan-payment.model';
 import { PlatformSetting } from '@/modules/tenant/platform-setting.model';
 import { MetricDaily } from '@/modules/tenant/metric-daily.model';
+import { PlatformAuditLog } from '@/modules/tenant/audit-log.model';
 import { OrderPayment } from '@/modules/order/order-payment.model';
 import { Tenant } from '@/modules/tenant/tenant.model';
 import { User } from '@/modules/user/user.model';
@@ -32,7 +33,7 @@ const sequelize = new Sequelize({
   username: config.database.user,
   password: config.database.password,
   logging: config.server.nodeEnv === 'development' ? console.log : false,
-  models: [Tenant, TenantRequest, PlanPayment, PlatformSetting, MetricDaily, OrderPayment, User, Category, Product, Supplier, Price, Customer, Order, OrderItem, PushSubscription, PurchaseOrder, PurchaseOrderItem, StockMovement],
+  models: [Tenant, TenantRequest, PlanPayment, PlatformSetting, MetricDaily, PlatformAuditLog, OrderPayment, User, Category, Product, Supplier, Price, Customer, Order, OrderItem, PushSubscription, PurchaseOrder, PurchaseOrderItem, StockMovement],
   modelMatch: (filename, member) => {
     return filename.substring(0, filename.indexOf('.model')) === member.toLowerCase();
   },

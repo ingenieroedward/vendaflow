@@ -351,6 +351,9 @@ const TenantSettings: React.FC = () => {
                     <span className="text-gray-700">
                       {new Date(pg.createdAt).toLocaleDateString('es-CO')} · plan {pg.plan} · {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(Number(pg.amount))}
                       {pg.receiptNumber && <span className="text-green-600 font-medium"> · {pg.receiptNumber}</span>}
+                      {pg.receiptUrl && (
+                        <a href={pg.receiptUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline font-medium"> · Ver recibo</a>
+                      )}
                     </span>
                     <span className={`px-2 py-0.5 rounded-full font-medium ${pg.status === 'approved' ? 'bg-green-100 text-green-700' : pg.status === 'rejected' ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-700'}`}>
                       {pg.status === 'approved' ? 'Confirmado' : pg.status === 'rejected' ? 'Rechazado' : 'En revisión'}

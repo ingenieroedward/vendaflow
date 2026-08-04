@@ -6,6 +6,7 @@ import rateLimit from 'express-rate-limit';
 import { config } from '@/config';
 import { APP_VERSION } from '@/config/version';
 import { errorHandler, notFoundHandler } from '@/core/middlewares/errorHandler';
+import receiptRoutes from '@/modules/tenant/receipt.routes';
 import { httpLogger, requestLogger, errorLogger } from '@/core/middlewares/logger';
 import { isAuth } from '@/core/middlewares/auth';
 import { tenantScope } from '@/core/middlewares/tenantScope';
@@ -111,6 +112,7 @@ app.use('/api', apiLimiter);
 const tenantGuard = [isAuth, tenantScope];
 
 app.use('/api/auth', authLimiter, authRoutes);
+app.use('/api/receipts', receiptRoutes); // público con token firmado por recibo
 app.use('/api/users', tenantGuard, userRoutes);
 app.use('/api/categories', tenantGuard, categoryRoutes);
 app.use('/api/products', tenantGuard, productRoutes);
