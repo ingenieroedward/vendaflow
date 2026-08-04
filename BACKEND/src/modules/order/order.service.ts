@@ -14,7 +14,7 @@ import { NotFoundError, ConflictError, BadRequestError } from '@/core/errors/App
 import logger from '@/core/logger';
 import { validateSchema, validatePartialSchema, paginationSchema, PaginationQuery } from '@/core/utils/validation';
 import { createOrderSchema, updateOrderSchema, searchOrderSchema } from './order.dto';
-import { Op, UniqueConstraintError, literal } from 'sequelize';
+import { Op, UniqueConstraintError, literal, fn, col } from 'sequelize';
 import sequelize from '@/database';
 import { StockMovementService } from '@/modules/stock-movement/stock-movement.service';
 
@@ -397,7 +397,13 @@ export class OrderService {
   }
 
   // Reporte mensual de ventas en CSV (abre en Excel)
-  async getMonthlyReportCsv(tenantId: number, month: string): Promise<{ filename: string; csv: string }> {
+  /**
+   * Reporte mensual en Excel (.xlsx) con 4 hojas: Resumen, Órdenes,
+   * Productos y Clientes. Utilidad sobre base sin IVA; totales con IVA.
+   */
+  async getMonthlyReportXlsx(tenantId: number, month: string): Promise<{ filename: string; buffer: Buffer }> {
+    const ExcelJS = (await import('exceljs')).default;
+    const { OrderPayment } = await import('./order-payment.model');
     const costMap = await this.getProductCostMap(tenantId);
     const start = new Date(`${month}-01T00:00:00`);
     const end = new Date(start);
@@ -406,43 +412,227 @@ export class OrderService {
     const orders = await Order.findAll({
       where: { tenantId, createdAt: { [Op.gte]: start, [Op.lt]: end } },
       include: [
-        { model: Customer, as: 'customer', attributes: ['name'] },
-        { model: OrderItem, as: 'orderItems', attributes: ['productId', 'quantity', 'unitPrice'] },
+        { model: Customer, as: 'customer', attributes: ['id', 'name'] },
+        { model: User, as: 'user', attributes: ['username'] },
+        {
+          model: OrderItem,
+          as: 'orderItems',
+          attributes: ['productId', 'quantity', 'unitPrice', 'taxRate', 'totalPrice'],
+          include: [{ model: Product, as: 'product', attributes: ['name', 'code', 'unit', 'stock'] }],
+        },
       ],
       order: [['createdAt', 'ASC']],
     });
 
-    const esc = (s: unknown) => `"${String(s ?? '').replace(/"/g, '""')}"`;
-    const num = (n: number) => Math.round(n);
-    const rows = [
-      ['Orden', 'Fecha', 'Cliente', 'Estado', 'Pago', 'Total venta', 'Costo estimado', 'Utilidad', 'Margen %'].join(';'),
+    // Abonos de las órdenes del mes (para columna Abonado/Saldo)
+    const orderIds = orders.map(o => o.id);
+    const paidRows = orderIds.length
+      ? await OrderPayment.findAll({
+          where: { orderId: orderIds },
+          attributes: ['orderId', [fn('SUM', col('amount')), 'paid']],
+          group: ['orderId'],
+          raw: true,
+        }) as unknown as Array<{ orderId: number; paid: string }>
+      : [];
+    const paidMap = new Map(paidRows.map(r => [r.orderId, Number(r.paid)]));
+
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'Merco';
+    wb.created = new Date();
+
+    // Resumen se crea primero (queda como primera hoja) y se llena al final
+    const wsRes = wb.addWorksheet('Resumen');
+
+    const headerStyle = {
+      font: { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 },
+      fill: { type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb: 'FF0F172A' } },
+      alignment: { vertical: 'middle' as const },
+    };
+    const money = '#,##0';
+    const pct = '0.0%';
+    const styleHeader = (sheet: import('exceljs').Worksheet) => {
+      const row = sheet.getRow(1);
+      row.height = 22;
+      row.eachCell(c => { c.font = headerStyle.font; c.fill = headerStyle.fill; c.alignment = headerStyle.alignment; });
+      sheet.views = [{ state: 'frozen', ySplit: 1 }];
+      sheet.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: sheet.columnCount } };
+    };
+
+    // ── Acumuladores ──
+    type ProdAgg = { name: string; code: string; unit: string; stock: number; qty: number; revenue: number; cost: number };
+    type CustAgg = { name: string; orders: number; total: number; base: number; profit: number; balance: number };
+    const prodAgg = new Map<number, ProdAgg>();
+    const custAgg = new Map<number, CustAgg>();
+    let tBase = 0, tTax = 0, tTotal = 0, tCost = 0, cancelledCount = 0;
+    let cashCount = 0, cashTotal = 0, creditCount = 0, creditTotal = 0, creditPaid = 0, creditBalance = 0;
+
+    // ── Hoja 2: Órdenes ──
+    const wsOrders = wb.addWorksheet('Órdenes');
+    wsOrders.columns = [
+      { header: 'Orden', key: 'n', width: 12 },
+      { header: 'Fecha', key: 'f', width: 12 },
+      { header: 'Cliente', key: 'c', width: 28 },
+      { header: 'Vendedor', key: 'v', width: 16 },
+      { header: 'Estado', key: 'e', width: 12 },
+      { header: 'Tipo de pago', key: 'tp', width: 18 },
+      { header: 'Base (sin IVA)', key: 'b', width: 15, style: { numFmt: money } },
+      { header: 'IVA', key: 'i', width: 12, style: { numFmt: money } },
+      { header: 'Total facturado', key: 't', width: 15, style: { numFmt: money } },
+      { header: 'Abonado', key: 'a', width: 13, style: { numFmt: money } },
+      { header: 'Saldo', key: 's', width: 13, style: { numFmt: money } },
+      { header: 'Costo', key: 'co', width: 13, style: { numFmt: money } },
+      { header: 'Utilidad', key: 'u', width: 13, style: { numFmt: money } },
+      { header: 'Margen', key: 'm', width: 10, style: { numFmt: pct } },
     ];
 
-    let tRev = 0, tCost = 0;
+    const STATUS_ES: Record<string, string> = { pending: 'Pendiente', processing: 'En proceso', completed: 'Completada', cancelled: 'Cancelada' };
+
     for (const o of orders) {
       const items = o.orderItems ?? [];
-      const rev = items.reduce((s, it) => s + Number(it.quantity) * Number(it.unitPrice), 0);
+      const base = items.reduce((s, it) => s + Number(it.quantity) * Number(it.unitPrice), 0);
+      const total = Number(o.totalAmount);
+      const tax = Math.max(0, total - base);
       const cost = items.reduce((s, it) => s + Number(it.quantity) * (costMap.get(it.productId) ?? 0), 0);
       const cancelled = o.status === 'cancelled';
-      if (!cancelled) { tRev += rev; tCost += cost; }
-      rows.push([
-        esc(o.orderNumber),
-        esc(new Date(o.createdAt).toLocaleDateString('es-CO')),
-        esc(o.customer?.name ?? ''),
-        esc(o.status),
-        esc(o.paymentType === 'credit' ? (o.paidAt ? 'crédito (pagada)' : 'crédito (pendiente)') : 'contado'),
-        num(Number(o.totalAmount)),
-        cancelled ? 0 : num(cost),
-        cancelled ? 0 : num(rev - cost),
-        !cancelled && rev > 0 ? (((rev - cost) / rev) * 100).toFixed(1) : '0',
-      ].join(';'));
-    }
-    rows.push('');
-    rows.push(['TOTALES (sin canceladas)', '', '', '', '', num(tRev), num(tCost), num(tRev - tCost),
-      tRev > 0 ? (((tRev - tCost) / tRev) * 100).toFixed(1) : '0'].join(';'));
+      const isCredit = o.paymentType === 'credit';
+      const paid = isCredit ? (o.paidAt ? total : Math.min(total, paidMap.get(o.id) ?? 0)) : total;
+      const balance = cancelled ? 0 : Math.max(0, total - paid);
 
-    // BOM para que Excel abra acentos bien
-    return { filename: `reporte-ventas-${month}.csv`, csv: '﻿' + rows.join('\r\n') };
+      if (!cancelled) {
+        tBase += base; tTax += tax; tTotal += total; tCost += cost;
+        if (isCredit) { creditCount++; creditTotal += total; creditPaid += paid; creditBalance += balance; }
+        else { cashCount++; cashTotal += total; }
+        for (const it of items) {
+          const pid = it.productId;
+          const agg = prodAgg.get(pid) ?? {
+            name: it.product?.name ?? `#${pid}`, code: it.product?.code ?? '',
+            unit: it.product?.unit ?? '', stock: Number(it.product?.stock ?? 0),
+            qty: 0, revenue: 0, cost: 0,
+          };
+          agg.qty += Number(it.quantity);
+          agg.revenue += Number(it.quantity) * Number(it.unitPrice);
+          agg.cost += Number(it.quantity) * (costMap.get(pid) ?? 0);
+          prodAgg.set(pid, agg);
+        }
+        const cid = o.customerId;
+        const ca = custAgg.get(cid) ?? { name: o.customer?.name ?? `#${cid}`, orders: 0, total: 0, base: 0, profit: 0, balance: 0 };
+        ca.orders++; ca.total += total; ca.base += base; ca.profit += base - cost; ca.balance += balance;
+        custAgg.set(cid, ca);
+      } else {
+        cancelledCount++;
+      }
+
+      const row = wsOrders.addRow({
+        n: o.orderNumber,
+        f: new Date(o.createdAt).toLocaleDateString('es-CO'),
+        c: o.customer?.name ?? '',
+        v: o.user?.username ?? '',
+        e: STATUS_ES[o.status] ?? o.status,
+        tp: isCredit ? (o.paidAt ? 'Crédito (pagada)' : 'Crédito (pendiente)') : 'Contado',
+        b: cancelled ? 0 : Math.round(base),
+        i: cancelled ? 0 : Math.round(tax),
+        t: cancelled ? 0 : Math.round(total),
+        a: cancelled ? 0 : Math.round(paid),
+        s: Math.round(balance),
+        co: cancelled ? 0 : Math.round(cost),
+        u: cancelled ? 0 : Math.round(base - cost),
+        m: !cancelled && base > 0 ? (base - cost) / base : 0,
+      });
+      if (cancelled) row.font = { color: { argb: 'FF9CA3AF' }, strike: true };
+      if (!cancelled && balance > 0.01) row.getCell('s').font = { color: { argb: 'FFDC2626' }, bold: true };
+    }
+    // Fila de totales
+    const totalRow = wsOrders.addRow({
+      n: 'TOTALES', c: '(sin canceladas)',
+      b: Math.round(tBase), i: Math.round(tTax), t: Math.round(tTotal),
+      a: Math.round(cashTotal + creditPaid), s: Math.round(creditBalance),
+      co: Math.round(tCost), u: Math.round(tBase - tCost),
+      m: tBase > 0 ? (tBase - tCost) / tBase : 0,
+    });
+    totalRow.font = { bold: true };
+    totalRow.border = { top: { style: 'double' } };
+    styleHeader(wsOrders);
+
+    // ── Hoja 3: Productos ──
+    const wsProd = wb.addWorksheet('Productos');
+    wsProd.columns = [
+      { header: 'Código', key: 'c', width: 12 },
+      { header: 'Producto', key: 'p', width: 34 },
+      { header: 'Unidad', key: 'un', width: 10 },
+      { header: 'Cantidad vendida', key: 'q', width: 16, style: { numFmt: '#,##0.##' } },
+      { header: 'Ventas (base)', key: 'r', width: 15, style: { numFmt: money } },
+      { header: 'Costo', key: 'co', width: 13, style: { numFmt: money } },
+      { header: 'Utilidad', key: 'u', width: 13, style: { numFmt: money } },
+      { header: 'Margen', key: 'm', width: 10, style: { numFmt: pct } },
+      { header: '% de las ventas', key: 'sh', width: 14, style: { numFmt: pct } },
+      { header: 'Stock actual', key: 'st', width: 12, style: { numFmt: '#,##0.##' } },
+    ];
+    for (const agg of [...prodAgg.values()].sort((a, b) => b.revenue - a.revenue)) {
+      const row = wsProd.addRow({
+        c: agg.code, p: agg.name, un: agg.unit, q: agg.qty,
+        r: Math.round(agg.revenue), co: Math.round(agg.cost), u: Math.round(agg.revenue - agg.cost),
+        m: agg.revenue > 0 ? (agg.revenue - agg.cost) / agg.revenue : 0,
+        sh: tBase > 0 ? agg.revenue / tBase : 0,
+        st: agg.stock,
+      });
+      if (agg.revenue - agg.cost < 0) row.getCell('u').font = { color: { argb: 'FFDC2626' }, bold: true };
+    }
+    styleHeader(wsProd);
+
+    // ── Hoja 4: Clientes ──
+    const wsCust = wb.addWorksheet('Clientes');
+    wsCust.columns = [
+      { header: 'Cliente', key: 'c', width: 32 },
+      { header: 'Órdenes', key: 'o', width: 10 },
+      { header: 'Total comprado', key: 't', width: 15, style: { numFmt: money } },
+      { header: 'Utilidad generada', key: 'u', width: 16, style: { numFmt: money } },
+      { header: 'Saldo pendiente', key: 's', width: 15, style: { numFmt: money } },
+    ];
+    for (const ca of [...custAgg.values()].sort((a, b) => b.total - a.total)) {
+      const row = wsCust.addRow({ c: ca.name, o: ca.orders, t: Math.round(ca.total), u: Math.round(ca.profit), s: Math.round(ca.balance) });
+      if (ca.balance > 0.01) row.getCell('s').font = { color: { argb: 'FFDC2626' }, bold: true };
+    }
+    styleHeader(wsCust);
+
+    // ── Hoja 1: Resumen (con los acumulados) ──
+    wsRes.columns = [{ width: 30 }, { width: 20 }];
+    const monthName = start.toLocaleDateString('es-CO', { month: 'long', year: 'numeric' });
+    const title = wsRes.addRow([`Reporte de ventas — ${monthName}`]);
+    title.font = { bold: true, size: 14 };
+    wsRes.addRow([]);
+    const activeOrders = orders.length - cancelledCount;
+    const addKpi = (label: string, value: number | string, fmt?: string) => {
+      const r = wsRes.addRow([label, value]);
+      r.getCell(1).font = { color: { argb: 'FF6B7280' } };
+      r.getCell(2).font = { bold: true };
+      if (fmt) r.getCell(2).numFmt = fmt;
+      return r;
+    };
+    addKpi('Órdenes del mes', activeOrders);
+    addKpi('Órdenes canceladas', cancelledCount);
+    addKpi('Ticket promedio', activeOrders > 0 ? Math.round(tTotal / activeOrders) : 0, money);
+    wsRes.addRow([]);
+    addKpi('Ventas base (sin IVA)', Math.round(tBase), money);
+    addKpi('IVA facturado', Math.round(tTax), money);
+    addKpi('Total facturado', Math.round(tTotal), money);
+    wsRes.addRow([]);
+    addKpi('Costo de lo vendido', Math.round(tCost), money);
+    addKpi('Utilidad (sobre base)', Math.round(tBase - tCost), money);
+    addKpi('Margen', tBase > 0 ? (tBase - tCost) / tBase : 0, pct);
+    wsRes.addRow([]);
+    addKpi('Ventas de contado', Math.round(cashTotal), money);
+    addKpi('  órdenes de contado', cashCount);
+    addKpi('Ventas a crédito', Math.round(creditTotal), money);
+    addKpi('  órdenes a crédito', creditCount);
+    addKpi('Cobrado (contado + abonos)', Math.round(cashTotal + creditPaid), money);
+    addKpi('Por cobrar (saldo del mes)', Math.round(creditBalance), money);
+    wsRes.addRow([]);
+    const topProd = [...prodAgg.values()].sort((a, b) => b.revenue - a.revenue)[0];
+    const topCust = [...custAgg.values()].sort((a, b) => b.total - a.total)[0];
+    if (topProd) addKpi('Producto más vendido', `${topProd.name} ($${Math.round(topProd.revenue).toLocaleString('es-CO')})`);
+    if (topCust) addKpi('Mejor cliente', `${topCust.name} ($${Math.round(topCust.total).toLocaleString('es-CO')})`);
+    const buffer = Buffer.from(await wb.xlsx.writeBuffer());
+    return { filename: `reporte-ventas-${month}.xlsx`, buffer };
   }
 
   // KPIs del Home: órdenes pendientes, ventas del mes y actividad reciente

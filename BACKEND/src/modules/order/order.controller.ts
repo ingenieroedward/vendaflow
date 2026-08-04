@@ -41,10 +41,10 @@ export class OrderController {
       res.status(400).json({ status: 'error', message: 'month debe ser YYYY-MM' });
       return;
     }
-    const { filename, csv } = await this.orderService.getMonthlyReportCsv(req.user!.tenantId, month);
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    const { filename, buffer } = await this.orderService.getMonthlyReportXlsx(req.user!.tenantId, month);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    res.status(200).send(csv);
+    res.status(200).send(buffer);
   });
 
   addPayment = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {

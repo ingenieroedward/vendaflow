@@ -445,7 +445,7 @@ const Reports: React.FC = () => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `reporte-ventas-${month}.csv`;
+      a.download = `reporte-ventas-${month}.xlsx`;
       a.click();
       URL.revokeObjectURL(url);
     } catch {
@@ -1132,7 +1132,7 @@ const Reports: React.FC = () => {
                       onClick={() => downloadMonthlyReport(reportMonth)}
                       className="px-3 py-1.5 text-xs font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-700 transition-colors whitespace-nowrap"
                     >
-                      Descargar reporte del mes
+                      Descargar Excel del mes
                     </button>
                   </div>
                 </div>
