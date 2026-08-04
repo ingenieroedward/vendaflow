@@ -149,9 +149,7 @@ const Landing: React.FC = () => {
       <nav className="sticky top-0 z-40 bg-white/85 backdrop-blur border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <a href="#" className="flex items-center gap-2.5">
-            <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center">
-              <Package className="w-5 h-5 text-white" />
-            </div>
+            <img src="/brand/isotipo.png" alt="Merco" className="w-9 h-9 rounded-xl object-contain" />
             <span className="text-lg font-bold tracking-tight text-gray-900">Merco</span>
           </a>
           <div className="hidden md:flex items-center gap-7 text-sm font-medium text-gray-600">
@@ -393,9 +391,7 @@ const Landing: React.FC = () => {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <Package className="w-4 h-4 text-white" />
-              </div>
+              <img src="/brand/isotipo.png" alt="Merco" className="w-8 h-8 rounded-lg object-contain" />
               <span className="text-base font-bold text-gray-900">Merco</span>
             </div>
             <div className="flex items-center gap-6 text-sm text-gray-500">

@@ -49,8 +49,8 @@ router.get('/:id', asyncHandler(async (req: Request, res: Response) => {
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; background: #f3f4f6; color: #111827; padding: 24px 16px; }
   .card { max-width: 480px; margin: 0 auto; background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; overflow: hidden; }
-  .head { background: #0f172a; color: #fff; padding: 20px 28px; display: flex; justify-content: space-between; align-items: center; }
-  .head h1 { font-size: 18px; }
+  .head { background: #ffffff; border-bottom: 1px solid #e5e7eb; padding: 18px 28px; display: flex; justify-content: space-between; align-items: center; }
+  .head img { height: 40px; }
   .badge { background: #10b981; color: #fff; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 999px; letter-spacing: .05em; }
   .body { padding: 28px; }
   .num { font-size: 24px; font-weight: 800; margin-bottom: 2px; }
@@ -66,7 +66,7 @@ router.get('/:id', asyncHandler(async (req: Request, res: Response) => {
   @media print { body { background: #fff; padding: 0; } .card { border: none; } .print { display: none; } }
 </style></head><body>
 <div class="card">
-  <div class="head"><h1>Merco</h1><span class="badge">PAGADO</span></div>
+  <div class="head"><img src="https://merco.edwsystem.com/brand/logo-full.png" alt="Merco System"><span class="badge">PAGADO</span></div>
   <div class="body">
     <p class="num">Recibo ${payment.receiptNumber}</p>
     <p class="sub">${tenant?.name ?? ''}</p>

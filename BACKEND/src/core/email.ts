@@ -29,8 +29,8 @@ export function renderEmail(title: string, lines: string[], cta?: { label: strin
     : '';
   return `<!doctype html><html><body style="margin:0;padding:0;background:#f3f4f6;font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;">
   <div style="max-width:520px;margin:24px auto;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;">
-    <div style="background:#0f172a;padding:16px 24px;">
-      <span style="color:#ffffff;font-size:16px;font-weight:700;">Merco</span>
+    <div style="background:#ffffff;border-bottom:1px solid #e5e7eb;padding:16px 24px;">
+      <img src="https://merco.edwsystem.com/brand/logo-full.png" alt="Merco System" style="height:34px;display:block;" />
     </div>
     <div style="padding:24px;">
       <h1 style="margin:0 0 16px;color:#111827;font-size:18px;">${title}</h1>
