@@ -43,6 +43,8 @@ services:
       SMTP_USER: ${SMTP_USER}
       SMTP_PASS: ${SMTP_PASS}
       SMTP_FROM: ${SMTP_FROM}
+      DOKPLOY_API_TOKEN: ${DOKPLOY_API_TOKEN}
+      DOKPLOY_URL: ${DOKPLOY_URL:-http://dokploy:3000}
       JWT_EXPIRES_IN: 24h
       CORS_ORIGIN: https://merco.edwsystem.com,https://api.merco.edwsystem.com,https://localhost,capacitor://localhost
       CORS_WILDCARD_ORIGIN: "*.merco.edwsystem.com"

@@ -74,6 +74,21 @@ export class TenantService {
       );
 
       return tenant;
+    }).then(async (tenant: Tenant) => {
+      // Crear el subdominio en Dokploy automáticamente (antes era manual).
+      // Fire-and-forget: si falla, push al superadmin para hacerlo a mano.
+      import('@/core/dokploy').then(async ({ dokployEnabled, registerTenantDomain }) => {
+        if (!dokployEnabled || ['demo', 'platform'].includes(tenant.slug)) return;
+        const r = await registerTenantDomain(tenant.slug);
+        const superadmins = await User.findAll({ where: { role: 'superadmin' }, attributes: ['id'] });
+        await pushService.notifyUsers(
+          superadmins.map(u => u.id),
+          r.ok ? 'Dominio del tenant creado' : '⚠ Dominio del tenant NO creado',
+          r.detail,
+          { url: '/' },
+        );
+      }).catch(() => {});
+      return tenant;
     });
   }
 
