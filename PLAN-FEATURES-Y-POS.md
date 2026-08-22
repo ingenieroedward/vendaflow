@@ -1,13 +1,12 @@
 # 🎯 Plan: Planes por Feature + Módulo POS
 
-**Fecha:** 2026-08-20
-**Estado:** Planeado — listo para iniciar
-**Orden de trabajo:** Punto 2 (feature-gating) primero mañana, luego Punto 1 (POS) por fases.
-**Punto 3 (actualizaciones):** resuelto solo con entendimiento — ver nota al final, sin trabajo pendiente salvo que se pida el banner.
+**Fecha:** 2026-08-20 (actualizado 2026-08-21)
+**Estado:** Punto 2 completado y desplegado (v1.14.0). Punto 1 (POS) próximo, por fases.
+**Punto 3 (actualizaciones):** resuelto solo con entendimiento — ver nota al final. Hallazgo aparte: `UpdateNotification.tsx` existe pero está desconectado (no importado, SW no emite el mensaje) — pendiente opcional.
 
 ---
 
-## 🔑 PUNTO 2: Sistema de features por plan (base para vender módulos)
+## 🔑 PUNTO 2: Sistema de features por plan (base para vender módulos) ✅ COMPLETADO (v1.14.0)
 
 **Por qué primero:** el POS necesita algo que lo gatee por plan. Construir esto primero significa que el POS nace ya vendible, en vez de meterlo y luego tener que enchufarle el gating por encima.
 

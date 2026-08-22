@@ -25,6 +25,7 @@ const updateTenantSchema = z.object({
   maxProducts: z.number().int().positive().optional(),
   maxOrdersPerMonth: z.number().int().positive().optional(),
   customPrice: z.number().nonnegative().nullable().optional(),
+  customFeatures: z.array(z.string()).nullable().optional(), // null = usar default del plan
   contactName: z.string().max(120).nullable().optional(),
   contactEmail: z.string().email().max(255).nullable().optional().or(z.literal('').transform(() => null)),
   contactPhone: z.string().max(30).nullable().optional(),
@@ -167,8 +168,8 @@ export class TenantController {
   });
 
   updatePlatformSettings = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const { brebKey, brebHolder, prices, renewalWarnDays, graceDays } = req.body ?? {};
-    res.json({ status: 'success', data: await tenantService.updatePlatformSettings({ brebKey, brebHolder, prices, renewalWarnDays, graceDays }) });
+    const { brebKey, brebHolder, prices, renewalWarnDays, graceDays, planFeatures } = req.body ?? {};
+    res.json({ status: 'success', data: await tenantService.updatePlatformSettings({ brebKey, brebHolder, prices, renewalWarnDays, graceDays, planFeatures }) });
   });
 
   listRequests = asyncHandler(async (_req: AuthenticatedRequest, res: Response) => {

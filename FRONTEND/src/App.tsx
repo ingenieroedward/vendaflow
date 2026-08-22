@@ -7,7 +7,7 @@ import { useCustomerStore } from './store/customerStore';
 import { useProductStore } from './store/productStore';
 import { useUserStore } from './store/userStore';
 import { useTenantStore } from './store/tenantStore';
-import { detectTenantSlug, fetchTenantBySlug } from './services/tenant';
+import { detectTenantSlug, fetchTenantBySlug, getMyTenant } from './services/tenant';
 import ErrorBoundary from './components/ui/ErrorBoundary';
 import { Network } from '@capacitor/network';
 import { Download } from 'lucide-react';
@@ -132,6 +132,14 @@ function App() {
         .finally(() => useTenantStore.setState({ isLoading: false }));
     }
   }, [checkAuth]);
+
+  // Refrescar plan/features del tenant al autenticar (el login no las trae
+  // completas). Sin esto, FeatureGate y useFeature quedarían con datos
+  // parciales hasta que otra pantalla llamara a getMyTenant() por su cuenta.
+  useEffect(() => {
+    if (!isAuthenticated || !navigator.onLine) return;
+    getMyTenant().then(t => { if (t) useTenantStore.getState().setTenant(t); }).catch(() => {});
+  }, [isAuthenticated]);
 
   // Sincronizar al arrancar si ya hay conexión y el usuario está autenticado
   useEffect(() => {

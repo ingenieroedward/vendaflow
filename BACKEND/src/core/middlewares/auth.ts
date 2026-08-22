@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { AuthService } from '@/modules/auth/auth.service';
 import { UnauthorizedError, ForbiddenError } from '../errors/AppError';
+import type { FeatureKey } from '@/config/features';
 
 const authService = new AuthService();
 
@@ -59,6 +60,34 @@ export const isBuyer = (req: AuthenticatedRequest, _res: Response, next: NextFun
   }
   next();
 };
+
+/**
+ * Gatea una ruta por feature del plan (ej. 'pos'). Requiere isAuth antes en
+ * la cadena (usa req.user.tenantId). superadmin siempre pasa — administra
+ * la plataforma, no debe quedar bloqueado por el plan de ningún tenant.
+ */
+export const requireFeature = (feature: FeatureKey) =>
+  async (req: AuthenticatedRequest, _res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!req.user) { next(new UnauthorizedError('Authentication required')); return; }
+      if (req.user.role === 'superadmin') { next(); return; }
+
+      const { Tenant } = await import('@/modules/tenant/tenant.model');
+      const { resolveFeatures } = await import('@/config/features');
+      const { getPlanConfig } = await import('@/config/plans');
+      const [tenant, cfg] = await Promise.all([
+        Tenant.findByPk(req.user.tenantId, { attributes: ['plan', 'customFeatures'] }),
+        getPlanConfig(),
+      ]);
+      if (!tenant || !resolveFeatures(tenant, cfg.planFeatures).has(feature)) {
+        next(new ForbiddenError(`Esta función requiere un plan superior. Contáctanos para activar "${feature}".`));
+        return;
+      }
+      next();
+    } catch (err) {
+      next(err);
+    }
+  };
 
 export const optionalAuth = async (
   req: AuthenticatedRequest,

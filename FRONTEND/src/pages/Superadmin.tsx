@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Building2, Plus, Power, PowerOff, LogOut, RefreshCw, X, Search, ExternalLink, Edit, AlertTriangle, ClipboardList, Users, TrendingUp, Eye, LogIn, Megaphone, Download, Activity, LayoutDashboard, Inbox, Receipt, Check, Bell, BellOff, Wallet, DollarSign, ScrollText, KeyRound, Trash2, FileText, XCircle } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { usePushNotifications } from '../hooks/usePushNotifications';
-import { tenantAdminService, TenantSummary, CreateTenantPayload, UpdateTenantPayload, TenantDetail, PlatformStats, TenantRequestItem, PlanPaymentItem, FinanceData, AuditLogItem } from '../services/tenantAdmin';
+import { tenantAdminService, TenantSummary, CreateTenantPayload, UpdateTenantPayload, TenantDetail, PlatformStats, TenantRequestItem, PlanPaymentItem, FinanceData, AuditLogItem, PlatformSettings, ALL_FEATURES, FEATURE_LABELS } from '../services/tenantAdmin';
 
 const PLAN_LABELS: Record<string, string> = {
   trial: 'Trial',
@@ -210,6 +210,10 @@ const EditTenantModal: React.FC<EditModalProps> = ({ tenant, onSave, onClose }) 
     contactEmail: tenant.contactEmail ?? '',
     contactPhone: tenant.contactPhone ?? '',
   });
+  // null = usa el default del plan (no override); array = features específicas de este tenant
+  const [customFeatures, setCustomFeatures] = useState<string[] | null>(
+    tenant.customFeatures ? (JSON.parse(tenant.customFeatures) as string[]) : null,
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -229,6 +233,7 @@ const EditTenantModal: React.FC<EditModalProps> = ({ tenant, onSave, onClose }) 
         maxProducts: parseInt(form.maxProducts, 10),
         maxOrdersPerMonth: parseInt(form.maxOrdersPerMonth, 10),
         customPrice: form.customPrice.trim() === '' ? null : Number(form.customPrice),
+        customFeatures,
         contactName: form.contactName.trim() || null,
         contactEmail: form.contactEmail.trim() || null,
         contactPhone: form.contactPhone.trim() || null,
@@ -293,6 +298,34 @@ const EditTenantModal: React.FC<EditModalProps> = ({ tenant, onSave, onClose }) 
               placeholder="Vacío = precio de lista del plan"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             <p className="mt-0.5 text-[11px] text-gray-400">Descuento o tarifa negociada — es lo que este tenant verá y pagará</p>
+          </div>
+          <div className="pt-1 border-t border-gray-100">
+            <label className="flex items-center gap-2 text-xs font-medium text-gray-700 mb-2">
+              <input
+                type="checkbox"
+                checked={customFeatures !== null}
+                onChange={e => setCustomFeatures(e.target.checked ? [] : null)}
+                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              Funciones especiales (distintas a su plan)
+            </label>
+            {customFeatures !== null && (
+              <div className="grid grid-cols-2 gap-1.5 pl-6">
+                {ALL_FEATURES.map(f => (
+                  <label key={f} className="flex items-center gap-1.5 text-xs text-gray-600">
+                    <input
+                      type="checkbox"
+                      checked={customFeatures.includes(f)}
+                      onChange={e => setCustomFeatures(
+                        e.target.checked ? [...customFeatures, f] : customFeatures.filter(x => x !== f),
+                      )}
+                      className="w-3.5 h-3.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    {FEATURE_LABELS[f] ?? f}
+                  </label>
+                ))}
+              </div>
+            )}
           </div>
           <div className="pt-1 border-t border-gray-100">
             <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Contacto (avisos de cobro por email y WhatsApp)</p>
@@ -650,7 +683,7 @@ const Superadmin: React.FC = () => {
   const [payments, setPayments] = useState<PlanPaymentItem[]>([]);
   const [approveReq, setApproveReq] = useState<TenantRequestItem | null>(null);
   const [receiptView, setReceiptView] = useState<{ payment: PlanPaymentItem; src: string | null } | null>(null);
-  const [payCfg, setPayCfg] = useState<{ brebKey: string; brebHolder: string; prices: Record<string, number> } | null>(null);
+  const [payCfg, setPayCfg] = useState<PlatformSettings | null>(null);
   const [funnel, setFunnel] = useState<{ days: number; landingViews: number; registroViews: number; requests: number; approved: number } | null>(null);
   const [payCfgSaving, setPayCfgSaving] = useState(false);
   const [payCfgMsg, setPayCfgMsg] = useState<string | null>(null);
@@ -1764,6 +1797,45 @@ const Superadmin: React.FC = () => {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                   </div>
                 ))}
+              </div>
+              <div className="pt-2 border-t border-gray-100">
+                <p className="text-xs font-semibold text-gray-700 mb-2">Funciones incluidas por plan</p>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="text-left text-gray-400">
+                        <th className="font-medium pb-1.5 pr-3">Función</th>
+                        {(['trial', 'basic', 'pro', 'enterprise'] as const).map(pl => (
+                          <th key={pl} className="font-medium pb-1.5 px-2 text-center capitalize">{PLAN_LABELS[pl] ?? pl}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ALL_FEATURES.map(feature => (
+                        <tr key={feature} className="border-t border-gray-50">
+                          <td className="py-2 pr-3 text-gray-700">{FEATURE_LABELS[feature] ?? feature}</td>
+                          {(['trial', 'basic', 'pro', 'enterprise'] as const).map(pl => {
+                            const checked = payCfg.planFeatures[pl]?.includes(feature) ?? false;
+                            return (
+                              <td key={pl} className="py-2 px-2 text-center">
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  onChange={e => {
+                                    const list = new Set(payCfg.planFeatures[pl] ?? []);
+                                    if (e.target.checked) list.add(feature); else list.delete(feature);
+                                    setPayCfg({ ...payCfg, planFeatures: { ...payCfg.planFeatures, [pl]: [...list] } });
+                                  }}
+                                  className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                />
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
               <div className="flex items-center justify-end gap-3">
                 {payCfgMsg && <span className={`text-xs ${payCfgMsg.includes('guardada') ? 'text-green-600' : 'text-red-600'}`}>{payCfgMsg}</span>}

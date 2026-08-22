@@ -13,6 +13,7 @@ export interface TenantSummary {
   maxProducts: number;
   maxOrdersPerMonth: number;
   customPrice?: number | null;
+  customFeatures?: string | null; // JSON array — override de features por tenant, null = usa el default del plan
   paidUntil?: string | null;
   suspendedReason?: string | null;
   contactName?: string | null;
@@ -39,6 +40,7 @@ export interface CreateTenantPayload {
 export interface UpdateTenantPayload {
   name?: string;
   customPrice?: number | null;
+  customFeatures?: string[] | null; // null = usar default del plan
   contactName?: string | null;
   contactEmail?: string | null;
   contactPhone?: string | null;
@@ -93,6 +95,24 @@ export interface FinanceData {
   ltv: Array<{ tenantId: number; name: string; slug: string; totalPaid: number; payments: number; since: string }>;
   graceDays: number;
   renewalWarnDays: number;
+}
+
+// Debe reflejar ALL_FEATURES en BACKEND/src/config/features.ts
+export const ALL_FEATURES = ['pos', 'custom_branding', 'multi_warehouse', 'api_access'] as const;
+export const FEATURE_LABELS: Record<string, string> = {
+  pos: 'Punto de venta (POS)',
+  custom_branding: 'Marca propia (logo/color en la app)',
+  multi_warehouse: 'Múltiples bodegas',
+  api_access: 'Acceso API',
+};
+
+export interface PlatformSettings {
+  brebKey: string;
+  brebHolder: string;
+  prices: Record<string, number>;
+  renewalWarnDays: number;
+  graceDays: number;
+  planFeatures: Record<'trial' | 'basic' | 'pro' | 'enterprise', string[]>;
 }
 
 export interface RegisterPaymentPayload {
@@ -162,9 +182,9 @@ export const tenantAdminService = {
   getFunnel: async () =>
     (await apiService.get<Wrapped<{ days: number; landingViews: number; registroViews: number; requests: number; approved: number }>>('/tenants/platform/funnel')).data,
   getPlatformSettings: async () =>
-    (await apiService.get<Wrapped<{ brebKey: string; brebHolder: string; prices: Record<string, number> }>>('/tenants/platform/settings')).data,
-  updatePlatformSettings: async (payload: { brebKey?: string; brebHolder?: string; prices?: Record<string, number> }) =>
-    (await apiService.put<Wrapped<{ brebKey: string; brebHolder: string; prices: Record<string, number> }>>('/tenants/platform/settings', payload)).data,
+    (await apiService.get<Wrapped<PlatformSettings>>('/tenants/platform/settings')).data,
+  updatePlatformSettings: async (payload: Partial<PlatformSettings>) =>
+    (await apiService.put<Wrapped<PlatformSettings>>('/tenants/platform/settings', payload)).data,
   listRequests: async () => (await apiService.get<Wrapped<TenantRequestItem[]>>('/tenants/requests')).data,
   approveRequest: async (id: number, payload: { slug: string; adminUsername: string; adminPassword: string; plan?: string; primaryColor?: string }) =>
     (await apiService.post<Wrapped<unknown>>(`/tenants/requests/${id}/approve`, payload)).data,

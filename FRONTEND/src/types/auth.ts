@@ -32,6 +32,8 @@ export interface Tenant {
   logoUrl: string | null;
   primaryColor: string;
   trialEndsAt?: string | null;
+  // solo llega de /tenants/me (autenticado) — features del plan (ver FeatureGate/useFeature)
+  features?: string[];
 }
 
 export interface LoginResponse {

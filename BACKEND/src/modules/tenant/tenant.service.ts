@@ -120,6 +120,9 @@ export class TenantService {
 
   async getInfo(tenantId: number) {
     const tenant = await this.findById(tenantId);
+    const { resolveFeatures } = await import('@/config/features');
+    const { getPlanConfig } = await import('@/config/plans');
+    const cfg = await getPlanConfig();
     return {
       id: tenant.id,
       slug: tenant.slug,
@@ -133,6 +136,7 @@ export class TenantService {
       maxUsers: tenant.maxUsers,
       maxProducts: tenant.maxProducts,
       maxOrdersPerMonth: tenant.maxOrdersPerMonth,
+      features: [...resolveFeatures(tenant, cfg.planFeatures)],
     };
   }
 
@@ -296,6 +300,7 @@ export class TenantService {
     maxProducts?: number | undefined;
     maxOrdersPerMonth?: number | undefined;
     customPrice?: number | null | undefined;
+    customFeatures?: string[] | null | undefined; // null = usar default del plan
     contactName?: string | null | undefined;
     contactEmail?: string | null | undefined;
     contactPhone?: string | null | undefined;
@@ -320,6 +325,10 @@ export class TenantService {
     if (data.maxProducts !== undefined) updates.maxProducts = data.maxProducts;
     if (data.maxOrdersPerMonth !== undefined) updates.maxOrdersPerMonth = data.maxOrdersPerMonth;
     if (data.customPrice !== undefined) updates.customPrice = data.customPrice;
+    if (data.customFeatures !== undefined) {
+      const { isFeatureKey } = await import('@/config/features');
+      updates.customFeatures = data.customFeatures ? JSON.stringify(data.customFeatures.filter(isFeatureKey)) : null;
+    }
     if (data.contactName !== undefined) updates.contactName = data.contactName;
     if (data.contactEmail !== undefined) updates.contactEmail = data.contactEmail;
     if (data.contactPhone !== undefined) updates.contactPhone = data.contactPhone;
@@ -484,9 +493,19 @@ export class TenantService {
     return getPlanConfig();
   }
 
-  async updatePlatformSettings(data: { brebKey?: string; brebHolder?: string; prices?: Record<string, number>; renewalWarnDays?: number; graceDays?: number }) {
+  async updatePlatformSettings(data: {
+    brebKey?: string; brebHolder?: string; prices?: Record<string, number>;
+    renewalWarnDays?: number; graceDays?: number;
+    planFeatures?: Partial<Record<TenantPlan, string[]>>;
+  }) {
     const { setPlanConfig } = await import('@/config/plans');
-    return setPlanConfig(data);
+    const { isFeatureKey } = await import('@/config/features');
+    const planFeatures = data.planFeatures
+      ? Object.fromEntries(
+          Object.entries(data.planFeatures).map(([plan, list]) => [plan, (list ?? []).filter(isFeatureKey)]),
+        )
+      : undefined;
+    return setPlanConfig({ ...data, planFeatures } as Parameters<typeof setPlanConfig>[0]);
   }
 
   // Dashboard financiero del superadmin: MRR, cobrado, vencimientos, morosos, LTV

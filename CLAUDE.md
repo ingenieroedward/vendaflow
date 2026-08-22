@@ -258,6 +258,18 @@ Al arrancar el backend:
 - **Superadmin lazy**: `React.lazy` en AppRouter — su bundle no se envía a usuarios tenant
 - **Embudo comercial**: tabla `metrics_daily` (contadores diarios, sin cookies). `POST /api/onboarding/track` (público, eventos `landing_view`/`registro_view` — Landing y Registro lo disparan al montar); `GET /tenants/platform/funnel` (superadmin, 30 días): visitas → registro → solicitudes → aprobadas con % de conversión. Card "Embudo comercial" en el dashboard del superadmin
 
+## FEATURE-GATING POR PLAN (v1.14.0)
+
+Ver plan completo en `PLAN-FEATURES-Y-POS.md` — este es el Punto 2 (base para vender módulos como el POS).
+
+- Catálogo en `BACKEND/src/config/features.ts`: `ALL_FEATURES` + `PLAN_FEATURES` (default por plan). `resolveFeatures(tenant, planFeatures?)` es lógica pura y testeada (10 tests) — customFeatures del tenant manda completo sobre el default si está seteado
+- `tenants.customFeatures` (STRING(500), JSON array; `null` = usa el default del plan) — override por tenant, mismo patrón que `customPrice`. Editable en el modal del superadmin (checkbox "Funciones especiales")
+- Features por plan son **configurables desde el superadmin sin deploy**: `PlanConfig.planFeatures` en `config/plans.ts`, persistido en `platform_settings` como `features_<plan>` (CSV), mismo patrón que `renewal_warn_days`/`grace_days`. Grilla de checkboxes en Superadmin → Pagos → "Funciones incluidas por plan"
+- Middleware `requireFeature(key)` en `core/middlewares/auth.ts` — 403 con mensaje de upgrade si el tenant no la tiene; `superadmin` siempre pasa. Se monta después de `isAuth`: `router.use('/pos', tenantGuard, requireFeature('pos'), posRoutes)`
+- `GET /tenants/me` expone `features: string[]` (resuelto server-side). Frontend: `useFeature('pos')` (hook) y `<FeatureGate feature="pos" planLabel="Pro">` (bloquea con card de venta, no oculta sin explicar). `App.tsx` refresca el tenant completo vía `getMyTenant()` al autenticar — el login no trae `features`
+- Features actuales: `pos` (trial y ↑), `custom_branding` (pro ↑), `multi_warehouse`/`api_access` (enterprise) — ninguna tiene UI/rutas reales aún, solo el gating listo para usarse
+- Nota aparte hallada al revisar: `FRONTEND/src/components/ui/UpdateNotification.tsx` existe pero está desconectado (no se importa, y el Service Worker no emite `UPDATE_AVAILABLE`) — pendiente si se quiere activar el aviso de "nueva versión disponible"
+
 ## INVENTARIO Y KARDEX (ago 2026)
 
 - **DECIMAL como número**: `dialectOptions: { decimalNumbers: true }` en `database/index.ts` — sin esto MySQL devuelve DECIMAL como string y las sumas concatenan texto (bug real: recibir compra dejaba stock "-1620"). `createMovement` además valida/coacciona `quantity`
