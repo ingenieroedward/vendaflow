@@ -179,14 +179,14 @@ const Users: React.FC = () => {
 
     if (role === "seller") {
       return (
-        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary/15 text-primary">
           <User2 className="w-3 h-3 mr-1" />
           Vendedor
         </span>
       );
     }
     return (
-      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary/15 text-primary">
         <User className="w-3 h-3 mr-1" />
         Comprador
       </span>
@@ -262,8 +262,8 @@ const Users: React.FC = () => {
             <div className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3 flex-1 min-w-0">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <User className="w-6 h-6 text-blue-600" />
+                  <div className="w-12 h-12 bg-gradient-to-br from-primary/15 to-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <User className="w-6 h-6 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center space-x-2 mb-1">
@@ -344,8 +344,8 @@ const Users: React.FC = () => {
             <div className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3 flex-1 min-w-0">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <User className="w-6 h-6 text-blue-600" />
+                  <div className="w-12 h-12 bg-gradient-to-br from-primary/15 to-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <User className="w-6 h-6 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center space-x-2 mb-1">

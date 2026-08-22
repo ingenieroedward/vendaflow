@@ -107,7 +107,7 @@ const Home: React.FC = () => {
           <div className="grid grid-cols-3 gap-3 sm:gap-6 mb-6 sm:mb-8">
             <div className="bg-white  rounded-lg p-4 sm:p-6 shadow-sm border border-gray-200">
               <div className="flex items-center  gap-2 flex-wrap">
-                <Package className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 mr-3" />
+                <Package className="w-6 h-6 sm:w-8 sm:h-8 text-primary mr-3" />
                 <div>
                   <p className="text-xs sm:text-sm font-medium text-gray-600">P. Totales</p>
                   <p className="text-xl sm:text-2xl font-bold text-gray-900">{pagination.total}</p>

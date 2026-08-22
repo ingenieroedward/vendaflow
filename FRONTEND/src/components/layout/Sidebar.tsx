@@ -127,7 +127,7 @@ const Sidebar = () => {
       {user && (
         <div className="border-t border-gray-100 px-3 py-4">
           <div className="flex items-center space-x-3 px-2 py-2 mb-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center shadow-sm flex-shrink-0">
+            <div className="w-8 h-8 bg-gradient-to-br from-primary/70 to-primary rounded-full flex items-center justify-center shadow-sm flex-shrink-0">
               <User className="w-4 h-4 text-white" />
             </div>
             <div className="min-w-0">
@@ -143,7 +143,7 @@ const Sidebar = () => {
               onClick={togglePush}
               disabled={pushLoading}
               className={`flex items-center space-x-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-colors duration-150 disabled:opacity-50 ${
-                pushSubscribed ? 'text-blue-600 hover:bg-blue-50' : 'text-gray-500 hover:bg-gray-50'
+                pushSubscribed ? 'text-primary hover:bg-primary/10' : 'text-gray-500 hover:bg-gray-50'
               }`}
               title={pushSubscribed ? 'Desactivar notificaciones' : 'Activar notificaciones'}
             >

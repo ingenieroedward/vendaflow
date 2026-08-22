@@ -344,8 +344,8 @@ const ProductDetail: React.FC = () => {
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
             <div className="flex md:items-center  justify-between">
               <div className="flex items-start space-x-3 sm:space-x-4 mb-4 lg:mb-0">
-                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-blue-100 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
-                  <Package className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
+                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-primary/15 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Package className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 mb-1 sm:mb-2">
@@ -353,7 +353,7 @@ const ProductDetail: React.FC = () => {
                   </h1>
                   <div className="flex items-center gap-2 mt-1">
                     <span className="text-xs sm:text-sm text-gray-500">Precio de venta:</span>
-                    <span className="text-base sm:text-lg font-semibold text-blue-600">
+                    <span className="text-base sm:text-lg font-semibold text-primary">
                       {typeof product.salePrice === 'number' && !isNaN(product.salePrice)
                         ? formatCurrency(product.salePrice)
                         : '-'}
@@ -361,7 +361,7 @@ const ProductDetail: React.FC = () => {
                   </div>
                   <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-500">
                     <div className="flex items-center">
-                      <span className="font-medium text-blue-600">{product.code}</span>
+                      <span className="font-medium text-primary">{product.code}</span>
                     </div>
                     <div className="flex items-center">
                       <Tag className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
@@ -443,8 +443,8 @@ const ProductDetail: React.FC = () => {
                   <p className="text-xs sm:text-sm font-medium text-gray-600">Proveedores</p>
                   <p className="text-lg sm:text-2xl font-bold text-gray-900">{prices.length}</p>
                 </div>
-                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <Package className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary/15 rounded-lg flex items-center justify-center">
+                  <Package className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
                 </div>
               </div>
             </div>
@@ -477,10 +477,10 @@ const ProductDetail: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs sm:text-sm font-medium text-gray-600">Precio promedio</p>
-                  <p className="text-lg sm:text-2xl font-bold text-blue-600">{formatCurrency(averagePrice)}</p>
+                  <p className="text-lg sm:text-2xl font-bold text-primary">{formatCurrency(averagePrice)}</p>
                 </div>
-                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <span className="text-blue-600 font-bold text-xs sm:text-sm">Ø</span>
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary/15 rounded-lg flex items-center justify-center">
+                  <span className="text-primary font-bold text-xs sm:text-sm">Ø</span>
                 </div>
               </div>
             </div>
@@ -548,7 +548,7 @@ const ProductDetail: React.FC = () => {
                   name="supplierId"
                   value={priceForm.supplierId}
                   onChange={handlePriceInputChange}
-                  className="flex-1 mt-1 block pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                  className="flex-1 mt-1 block pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm rounded-md"
                 >
                   <option value="">Seleccionar Proveedor</option>
                   {suppliers.map(supplier => (

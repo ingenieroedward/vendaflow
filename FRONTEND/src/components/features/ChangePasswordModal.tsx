@@ -44,7 +44,7 @@ const ChangePasswordModal: React.FC<Props> = ({ isOpen, onClose }) => {
   };
 
   const inputCls =
-    'w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500';
+    'w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary';
 
   return (
     <Modal isOpen={isOpen} onClose={close} title="Cambiar contraseña">
@@ -114,7 +114,7 @@ const ChangePasswordModal: React.FC<Props> = ({ isOpen, onClose }) => {
           <button
             type="submit"
             disabled={saving}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors"
           >
             {saving ? <LoadingSpinner size="sm" /> : <KeyRound className="w-4 h-4" />}
             {saving ? 'Guardando…' : 'Cambiar contraseña'}

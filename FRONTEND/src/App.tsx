@@ -41,7 +41,7 @@ const NotificationContainer: React.FC = () => {
               ? 'border-red-500'
               : notification.type === 'warning'
               ? 'border-yellow-500'
-              : 'border-blue-500'
+              : 'border-primary'
           }`}
         >
           <div className="p-4">
@@ -55,7 +55,7 @@ const NotificationContainer: React.FC = () => {
                       ? 'bg-red-500'
                       : notification.type === 'warning'
                       ? 'bg-yellow-500'
-                      : 'bg-blue-500'
+                      : 'bg-primary'
                   }`}
                 />
               </div>

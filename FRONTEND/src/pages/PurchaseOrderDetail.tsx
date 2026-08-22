@@ -11,7 +11,7 @@ import { es } from 'date-fns/locale';
 
 const STATUS_LABELS: Record<string, { label: string; className: string }> = {
   draft:     { label: 'Borrador',  className: 'bg-gray-100 text-gray-700' },
-  ordered:   { label: 'Ordenado', className: 'bg-blue-100 text-blue-700' },
+  ordered:   { label: 'Ordenado', className: 'bg-primary/15 text-primary' },
   received:  { label: 'Recibido', className: 'bg-green-100 text-green-700' },
   cancelled: { label: 'Cancelado',className: 'bg-red-100 text-red red-700' },
 };
@@ -184,7 +184,7 @@ const PurchaseOrderDetail: React.FC = () => {
               <Button
                 onClick={() => handleStatusChange('ordered')}
                 disabled={updating}
-                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+                className="flex items-center gap-2 bg-primary hover:bg-primary/90"
               >
                 <Truck size={15} /> Marcar como Ordenado
               </Button>

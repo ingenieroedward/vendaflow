@@ -142,7 +142,7 @@ const ProductSearch: React.FC<ProductSearchProps> = ({
           value={query}
           onChange={handleInputChange}
           onFocus={handleInputFocus}
-          className={`block w-full pl-10 pr-10 py-2 border rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
+          className={`block w-full pl-10 pr-10 py-2 border rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-primary focus:border-primary sm:text-sm ${
             selectedProduct 
               ? 'border-green-300 bg-green-50' 
               : 'border-gray-300'

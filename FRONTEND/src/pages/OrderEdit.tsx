@@ -338,8 +338,8 @@ const OrderEdit: React.FC = () => {
 
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
             <div className="flex items-center space-x-3 sm:space-x-4">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                <ShoppingCart className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary/15 rounded-lg flex items-center justify-center flex-shrink-0">
+                <ShoppingCart className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
               </div>
               <div className="min-w-0 flex-1">
                 <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
@@ -548,7 +548,7 @@ const OrderEdit: React.FC = () => {
                                   updateOrderItem(item.id, 'quantity', value);
                                 }}
                                 min="1"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-sm"
                               />
                             </div>
 
@@ -565,7 +565,7 @@ const OrderEdit: React.FC = () => {
                                 }}
                                 min="0"
                                 step="0.01"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-sm"
                               />
                             </div>
 
@@ -583,7 +583,7 @@ const OrderEdit: React.FC = () => {
                                 min="0"
                                 max="100"
                                 step="0.01"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-sm"
                               />
                             </div>
                           </div>
@@ -599,7 +599,7 @@ const OrderEdit: React.FC = () => {
                             </div>
                             <div className="flex justify-between items-center text-sm font-semibold">
                               <span>Total:</span>
-                              <span className="text-blue-600">
+                              <span className="text-primary">
                                 {formatCurrency((item.quantity * item.unitPrice) * (1 + item.taxRate / 100))}
                               </span>
                             </div>
@@ -608,8 +608,8 @@ const OrderEdit: React.FC = () => {
                       ))}
 
                       {/* Order Summary */}
-                      <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                        <h4 className="text-sm font-medium text-blue-900 mb-3">
+                      <div className="p-4 bg-primary/10 border border-primary/25 rounded-lg">
+                        <h4 className="text-sm font-medium text-primary mb-3">
                           Resumen de la orden
                         </h4>
                         <div className="space-y-2">
@@ -623,11 +623,11 @@ const OrderEdit: React.FC = () => {
                           </div>
                           <div className="flex justify-between items-center border-t pt-2">
                             <span className="text-base font-semibold">Total:</span>
-                            <span className="text-lg font-bold text-blue-600">
+                            <span className="text-lg font-bold text-primary">
                               {formatCurrency(calculateTotal())}
                             </span>
                           </div>
-                          <p className="text-xs text-blue-700 mt-2">
+                          <p className="text-xs text-primary mt-2">
                             {orderItems.length} producto{orderItems.length !== 1 ? 's' : ''} en la orden
                           </p>
                         </div>
@@ -648,7 +648,7 @@ const OrderEdit: React.FC = () => {
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary resize-none text-sm"
                 placeholder="Agrega notas adicionales para esta orden..."
               />
             </div>

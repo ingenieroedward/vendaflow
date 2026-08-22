@@ -137,8 +137,8 @@ const Suppliers: React.FC = () => {
             <div key={s.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3 flex-1 min-w-0">
-                  <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center flex-shrink-0">
-                    <Truck className="w-5 h-5 text-blue-600" />
+                  <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                    <Truck className="w-5 h-5 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-base font-medium text-gray-900 truncate">{s.name}</p>
@@ -229,7 +229,7 @@ const Suppliers: React.FC = () => {
                 <button
                   onClick={handleSave}
                   disabled={saving || !form.name.trim()}
-                  className="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
+                  className="flex-1 px-4 py-2.5 bg-primary text-white rounded-xl text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
                 >
                   {saving ? 'Guardando...' : 'Guardar'}
                 </button>

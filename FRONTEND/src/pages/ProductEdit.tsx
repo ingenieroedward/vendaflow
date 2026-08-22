@@ -352,7 +352,7 @@ const ProductEdit: React.FC = () => {
       <div className="bg-gray-50">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex justify-center items-center py-16">
-            <div className="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full" />
+            <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full" />
           </div>
         </div>
       </div>
@@ -376,8 +376,8 @@ const ProductEdit: React.FC = () => {
 
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
             <div className="flex items-center space-x-3 sm:space-x-4">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                <Package className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary/15 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Package className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
               </div>
               <div className="min-w-0 flex-1">
                 <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
@@ -444,7 +444,7 @@ const ProductEdit: React.FC = () => {
                   <select
                     value={formData.categoryId ?? ''}
                     onChange={(e) => setFormData(prev => ({ ...prev, categoryId: e.target.value ? Number(e.target.value) : null }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                   >
                     <option value="">Sin categoría</option>
                     {categories.map(cat => (
@@ -547,7 +547,7 @@ const ProductEdit: React.FC = () => {
                             <select
                               value={entry.supplierId?.toString() || ''}
                               onChange={(e) => updatePriceEntry(entry.id, 'supplierId', e.target.value ? parseInt(e.target.value) : undefined)}
-                              className="w-full sm:flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                              className="w-full sm:flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-sm"
                             >
                               <option value="">Seleccionar proveedor</option>
                               {suppliers.map((supplier) => (
@@ -588,7 +588,7 @@ const ProductEdit: React.FC = () => {
                               }}
                               step="0.01"
                               min="0"
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-sm"
                               placeholder="0.00"
                             />
                             <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">

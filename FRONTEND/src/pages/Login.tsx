@@ -107,7 +107,7 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-primary/10 to-indigo-100 flex flex-col">
       {/* Main Content */}
       <div className="flex-1 flex items-center justify-center py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-sm sm:max-w-md w-full space-y-6 sm:space-y-8">
@@ -183,7 +183,7 @@ const Login: React.FC = () => {
             </form>
             <p className="text-center text-xs text-gray-400 mt-4">
               ¿No tienes cuenta?{' '}
-              <a href="/registro" className="text-blue-600 hover:underline font-medium">Solicita tu prueba gratis</a>
+              <a href="/registro" className="text-primary hover:underline font-medium">Solicita tu prueba gratis</a>
             </p>
 
             

@@ -70,7 +70,7 @@ const Header = () => {
 
             {/* Syncing progress */}
             {status === 'syncing' && (
-              <span className="text-xs text-blue-400 font-normal">{percent}%</span>
+              <span className="text-xs text-primary/70 font-normal">{percent}%</span>
             )}
             {status === 'done' && (
               <span className="text-xs text-green-500 font-normal">&#10003;</span>
@@ -121,7 +121,7 @@ const Header = () => {
                   onClick={toggleUserMenu}
                   aria-expanded={isUserMenuOpen}
                   aria-haspopup="true"
-                  className="relative w-9 h-9 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center shadow-sm"
+                  className="relative w-9 h-9 bg-gradient-to-br from-primary/70 to-primary rounded-full flex items-center justify-center shadow-sm"
                 >
                   <User className="w-4 h-4 text-white" />
                   {/* green = online & synced, orange = has pending */}
@@ -141,7 +141,7 @@ const Header = () => {
                       {/* User info */}
                       <div className="px-4 py-3 border-b border-gray-100">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center shadow-sm shrink-0">
+                          <div className="w-9 h-9 bg-gradient-to-br from-primary/70 to-primary rounded-full flex items-center justify-center shadow-sm shrink-0">
                             <User className="w-4 h-4 text-white" />
                           </div>
                           <div>
@@ -172,8 +172,8 @@ const Header = () => {
                           onClick={() => { closeUserMenu(); setIsInstallOpen(true); }}
                           className="flex items-center gap-3 w-full px-2 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-xl transition-colors"
                         >
-                          <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
-                            <Download className="w-4 h-4 text-blue-600" />
+                          <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
+                            <Download className="w-4 h-4 text-primary" />
                           </div>
                           <span>Instalar app / Ayuda</span>
                         </button>

@@ -175,7 +175,7 @@ const InstallTab: React.FC<InstallTabProps> = ({
   if (platform === 'installed') {
     return (
       <div className="flex flex-col items-center justify-center py-12 px-6 text-center gap-4">
-        <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+        <div className="w-16 h-16 bg-primary/15 rounded-full flex items-center justify-center">
           <CheckCircle className="w-8 h-8 text-primary" />
         </div>
         <div>
@@ -208,7 +208,7 @@ const IOSInstructions: React.FC = () => (
     </p>
 
     <div className="space-y-3">
-      <Step n={1} icon={<Share className="w-5 h-5 text-blue-600" />} color="bg-blue-100">
+      <Step n={1} icon={<Share className="w-5 h-5 text-primary" />} color="bg-primary/15">
         <p className="text-sm font-medium text-gray-900">Toca el botón Compartir</p>
         <p className="text-xs text-gray-500 mt-0.5">
           El ícono <span className="font-semibold">↑</span> en la barra inferior del navegador Safari
@@ -275,7 +275,7 @@ const AndroidInstructions: React.FC<AndroidInstructionsProps> = ({
         <p className="text-sm text-gray-600 text-center">
           También puedes instalarla manualmente:
         </p>
-        <Step n={1} icon={<Monitor className="w-5 h-5 text-blue-600" />} color="bg-blue-100">
+        <Step n={1} icon={<Monitor className="w-5 h-5 text-primary" />} color="bg-primary/15">
           <p className="text-sm font-medium text-gray-900">Toca el menú <span className="font-semibold">⋮</span> del navegador</p>
         </Step>
         <Step n={2} icon={<Plus className="w-5 h-5 text-green-600" />} color="bg-green-100">
@@ -305,7 +305,7 @@ const DesktopInstructions: React.FC = () => (
     </p>
 
     <div className="space-y-3">
-      <Step n={1} icon={<Monitor className="w-5 h-5 text-blue-600" />} color="bg-blue-100">
+      <Step n={1} icon={<Monitor className="w-5 h-5 text-primary" />} color="bg-primary/15">
         <p className="text-sm font-medium text-gray-900">Busca el ícono de instalación</p>
         <p className="text-xs text-gray-500 mt-0.5">
           En Chrome/Edge: ícono <span className="font-semibold">⊕</span> en la barra de dirección, a la derecha
@@ -323,9 +323,9 @@ const DesktopInstructions: React.FC = () => (
       </Step>
     </div>
 
-    <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 flex gap-2">
-      <Monitor className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
-      <p className="text-xs text-blue-700">
+    <div className="bg-primary/10 border border-primary/25 rounded-xl p-3 flex gap-2">
+      <Monitor className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+      <p className="text-xs text-primary">
         Compatible con <strong>Google Chrome</strong> y <strong>Microsoft Edge</strong>. En Safari para Mac, usa la opción "Archivo → Agregar al Dock".
       </p>
     </div>
@@ -337,8 +337,8 @@ const DesktopInstructions: React.FC = () => (
 const ManualTab: React.FC = () => {
   const sections = [
     {
-      icon: <Search className="w-4 h-4 text-blue-600" />,
-      color: 'bg-blue-100',
+      icon: <Search className="w-4 h-4 text-primary" />,
+      color: 'bg-primary/15',
       title: 'Buscar y comparar precios',
       steps: [
         'Escribe el nombre del producto en el buscador principal',

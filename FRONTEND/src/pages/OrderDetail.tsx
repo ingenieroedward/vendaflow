@@ -100,7 +100,7 @@ const OrderDetail: React.FC = () => {
 
   const statusOptions = [
     { value: 'pending', label: 'Pendiente', color: 'bg-yellow-100 text-yellow-800' },
-    { value: 'processing', label: 'En Proceso', color: 'bg-blue-100 text-blue-800' },
+    { value: 'processing', label: 'En Proceso', color: 'bg-primary/15 text-primary' },
     { value: 'completed', label: 'Completada', color: 'bg-green-100 text-green-800' },
     { value: 'cancelled', label: 'Cancelada', color: 'bg-red-100 text-red-800' },
   ];
@@ -493,7 +493,7 @@ const OrderDetail: React.FC = () => {
           </div>
           <div className="col-span-2 pt-1.5 border-t border-gray-100 flex items-center justify-between">
             <span className="text-gray-500">Total de la orden</span>
-            <span className="font-bold text-base text-blue-600">{formatCurrency(totals.total)}</span>
+            <span className="font-bold text-base text-primary">{formatCurrency(totals.total)}</span>
           </div>
         </div>
 
@@ -672,7 +672,7 @@ const OrderDetail: React.FC = () => {
             )}
             <div className="flex justify-between font-bold text-sm text-gray-900 pt-1 border-t border-gray-100">
               <span>Total</span>
-              <span className="text-blue-600">{formatCurrency(totals.total)}</span>
+              <span className="text-primary">{formatCurrency(totals.total)}</span>
             </div>
           </div>
         </div>

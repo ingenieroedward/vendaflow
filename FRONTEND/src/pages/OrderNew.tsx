@@ -283,7 +283,7 @@ const OrderNew: React.FC = () => {
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div className="flex items-center gap-2 flex-1 min-w-0">
-            <ShoppingCart className="w-5 h-5 text-blue-600 flex-shrink-0" />
+            <ShoppingCart className="w-5 h-5 text-primary flex-shrink-0" />
             <h1 className="text-lg font-semibold text-gray-900 truncate">Nueva orden</h1>
           </div>
           {hasDraft && (
@@ -333,7 +333,7 @@ const OrderNew: React.FC = () => {
                   <button
                     type="button"
                     onClick={handleCreateCustomer}
-                    className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium"
+                    className="flex items-center gap-1 text-xs text-primary hover:text-primary font-medium"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     Nuevo cliente
@@ -363,7 +363,7 @@ const OrderNew: React.FC = () => {
                   <Package className="w-4 h-4 mr-2" />
                   Productos
                   {orderItems.length > 0 && (
-                    <span className="ml-2 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-normal">
+                    <span className="ml-2 text-xs bg-primary/15 text-primary px-2 py-0.5 rounded-full font-normal">
                       {orderItems.length}
                     </span>
                   )}
@@ -372,7 +372,7 @@ const OrderNew: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setIncludeProducts(true)}
-                    className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium"
+                    className="flex items-center gap-1 text-xs text-primary hover:text-primary font-medium"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     Agregar producto
@@ -382,7 +382,7 @@ const OrderNew: React.FC = () => {
 
               {/* Add product form */}
               {includeProducts && (
-                <div className="mb-3 p-3 border border-blue-200 rounded-lg bg-blue-50">
+                <div className="mb-3 p-3 border border-primary/25 rounded-lg bg-primary/10">
                   {productsLoading ? (
                     <div className="flex items-center gap-2 py-2">
                       <LoadingSpinner size="sm" />
@@ -408,7 +408,7 @@ const OrderNew: React.FC = () => {
                           onChange={(e) => setQuantity(parseInt(e.target.value) || 0)}
                           min="1"
                           placeholder="1"
-                          className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-primary"
                         />
                       </div>
                       <div className="flex-[2]">
@@ -420,7 +420,7 @@ const OrderNew: React.FC = () => {
                           min="0"
                           step="0.01"
                           placeholder="0"
-                          className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-primary"
                         />
                       </div>
                       <div className="flex-1">
@@ -431,7 +431,7 @@ const OrderNew: React.FC = () => {
                           onChange={(e) => setTaxRate(parseFloat(e.target.value) || 0)}
                           min="0"
                           max="100"
-                          className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-primary"
                         />
                       </div>
                       <div className="flex-none pt-5">
@@ -439,7 +439,7 @@ const OrderNew: React.FC = () => {
                           type="button"
                           onClick={handleAddItem}
                           disabled={quantity <= 0 || unitPrice <= 0}
-                          className="px-3 py-1.5 bg-blue-600 text-white rounded text-sm font-medium disabled:opacity-40 hover:bg-blue-700 transition-colors"
+                          className="px-3 py-1.5 bg-primary text-white rounded text-sm font-medium disabled:opacity-40 hover:bg-primary/90 transition-colors"
                         >
                           <Plus className="w-4 h-4" />
                         </button>
@@ -471,7 +471,7 @@ const OrderNew: React.FC = () => {
                             <p className="text-xs text-gray-400">{item.product.code}</p>
                           </div>
                           <div className="flex items-center gap-2 flex-shrink-0">
-                            <span className="text-sm font-semibold text-blue-600 whitespace-nowrap">
+                            <span className="text-sm font-semibold text-primary whitespace-nowrap">
                               {formatCurrency(item.quantity * item.unitPrice * (1 + item.taxRate / 100))}
                             </span>
                             {confirmDeleteId === item.id ? (
@@ -512,7 +512,7 @@ const OrderNew: React.FC = () => {
                             value={item.quantity}
                             onChange={(e) => updateOrderItem(item.id, "quantity", parseInt(e.target.value) || 0)}
                             min="1"
-                            className="w-14 px-1.5 py-0.5 border border-gray-200 rounded text-xs text-center focus:outline-none focus:ring-1 focus:ring-blue-400"
+                            className="w-14 px-1.5 py-0.5 border border-gray-200 rounded text-xs text-center focus:outline-none focus:ring-1 focus:ring-primary"
                           />
                           <span className="text-xs text-gray-300">×</span>
                           <span className="text-xs text-gray-400 whitespace-nowrap">$</span>
@@ -522,7 +522,7 @@ const OrderNew: React.FC = () => {
                             onChange={(e) => updateOrderItem(item.id, "unitPrice", parseFloat(e.target.value) || 0)}
                             min="0"
                             step="0.01"
-                            className="w-24 px-1.5 py-0.5 border border-gray-200 rounded text-xs text-right focus:outline-none focus:ring-1 focus:ring-blue-400"
+                            className="w-24 px-1.5 py-0.5 border border-gray-200 rounded text-xs text-right focus:outline-none focus:ring-1 focus:ring-primary"
                           />
                           <span className="text-xs text-gray-400 whitespace-nowrap ml-1">IVA:</span>
                           <input
@@ -531,7 +531,7 @@ const OrderNew: React.FC = () => {
                             onChange={(e) => updateOrderItem(item.id, "taxRate", parseFloat(e.target.value) || 0)}
                             min="0"
                             max="100"
-                            className="w-12 px-1.5 py-0.5 border border-gray-200 rounded text-xs text-center focus:outline-none focus:ring-1 focus:ring-blue-400"
+                            className="w-12 px-1.5 py-0.5 border border-gray-200 rounded text-xs text-center focus:outline-none focus:ring-1 focus:ring-primary"
                           />
                           <span className="text-xs text-gray-400">%</span>
                         </div>
@@ -551,7 +551,7 @@ const OrderNew: React.FC = () => {
                     </div>
                     <div className="flex justify-between text-sm font-bold text-gray-900 pt-1 border-t border-gray-200">
                       <span>Total</span>
-                      <span className="text-blue-600">{formatCurrency(calculateTotal())}</span>
+                      <span className="text-primary">{formatCurrency(calculateTotal())}</span>
                     </div>
                   </div>
                 </div>
@@ -570,7 +570,7 @@ const OrderNew: React.FC = () => {
                   onClick={() => setPaymentType("cash")}
                   className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border text-sm font-medium transition-colors ${
                     paymentType === "cash"
-                      ? "border-blue-500 bg-blue-50 text-blue-700"
+                      ? "border-primary bg-primary/10 text-primary"
                       : "border-gray-300 text-gray-600 hover:bg-gray-50"
                   }`}
                 >
@@ -666,7 +666,7 @@ const OrderNew: React.FC = () => {
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={2}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary resize-none text-sm"
                 placeholder="Notas para esta orden..."
               />
             </div>

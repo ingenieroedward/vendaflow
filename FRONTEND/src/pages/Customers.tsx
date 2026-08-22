@@ -212,7 +212,7 @@ const Customers: React.FC = () => {
             placeholder="Buscar por código, nombre, NIT o contacto..."
             value={search}
             onChange={(e) => handleSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
           />
           {searching && <LoadingSpinner size="sm" className="absolute right-3 top-1/2 -translate-y-1/2" />}
         </div>
@@ -251,7 +251,7 @@ const Customers: React.FC = () => {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-0.5">
                       {customer.code && (
-                        <span className="flex items-center gap-1 px-1.5 py-0.5 bg-blue-50 text-blue-700 text-xs font-mono font-medium rounded">
+                        <span className="flex items-center gap-1 px-1.5 py-0.5 bg-primary/10 text-primary text-xs font-mono font-medium rounded">
                           <Tag className="w-3 h-3" />
                           {customer.code}
                         </span>
@@ -275,7 +275,7 @@ const Customers: React.FC = () => {
                     {canManage && (
                       <button
                         onClick={() => { setEditCustomer(customer); setShowModal(true); }}
-                        className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        className="p-1.5 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
                         title="Editar"
                       >
                         <Edit className="w-4 h-4" />

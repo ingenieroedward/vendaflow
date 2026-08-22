@@ -234,8 +234,8 @@ const Pos: React.FC = () => {
     return (
       <div className="max-w-sm mx-auto px-4 py-16">
         <div className="text-center mb-6">
-          <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-blue-50 flex items-center justify-center">
-            <DoorOpen className="w-5 h-5 text-blue-600" />
+          <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-primary/10 flex items-center justify-center">
+            <DoorOpen className="w-5 h-5 text-primary" />
           </div>
           <h1 className="text-lg font-bold text-gray-900">Abrir caja</h1>
           <p className="text-sm text-gray-500 mt-1">Declara el efectivo con el que arrancas el turno.</p>
@@ -247,11 +247,11 @@ const Pos: React.FC = () => {
               type="number" min="0" autoFocus value={openingAmount}
               onChange={e => setOpeningAmount(e.target.value)}
               placeholder="0"
-              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
           <button type="submit" disabled={openingBusy}
-            className="w-full py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors">
+            className="w-full py-2.5 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors">
             {openingBusy ? 'Abriendo…' : 'Abrir caja'}
           </button>
         </form>
@@ -289,7 +289,7 @@ const Pos: React.FC = () => {
               onChange={e => setSearch(e.target.value)}
               onKeyDown={handleSearchKeyDown}
               placeholder="Busca por nombre, código o escanea…"
-              className="w-full pl-9 pr-3 py-3 border border-gray-300 rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-9 pr-3 py-3 border border-gray-300 rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
           {search.trim() === '' ? (
@@ -305,12 +305,12 @@ const Pos: React.FC = () => {
                 <button
                   key={p.id}
                   onClick={() => addToCart(p)}
-                  className="text-left bg-white border border-gray-200 rounded-xl p-3 hover:border-blue-400 hover:shadow-sm transition-all"
+                  className="text-left bg-white border border-gray-200 rounded-xl p-3 hover:border-primary/60 hover:shadow-sm transition-all"
                 >
                   <p className="text-sm font-semibold text-gray-900 leading-tight line-clamp-2">{p.name}</p>
                   <p className="text-[11px] text-gray-400 mt-0.5">{p.code}</p>
                   <div className="flex items-center justify-between mt-2">
-                    <span className="text-sm font-bold text-blue-600">{formatCurrency(p.salePrice)}</span>
+                    <span className="text-sm font-bold text-primary">{formatCurrency(p.salePrice)}</span>
                     <span className={`text-[10px] font-medium ${p.stock <= 0 ? 'text-red-500' : 'text-gray-400'}`}>
                       {p.stock <= 0 ? 'Sin stock' : `${p.stock} ${p.unit}`}
                     </span>
@@ -366,7 +366,7 @@ const Pos: React.FC = () => {
             <button
               onClick={() => setPaymentModalOpen(true)}
               disabled={cart.length === 0}
-              className="w-full py-3 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="w-full py-3 bg-primary text-white text-sm font-bold rounded-xl hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               Cobrar
             </button>
@@ -424,7 +424,7 @@ const Pos: React.FC = () => {
                 type="number" min="0" autoFocus value={countedCash}
                 onChange={e => setCountedCash(e.target.value)}
                 placeholder="0"
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
             <div className="flex gap-2">
@@ -448,7 +448,7 @@ const Pos: React.FC = () => {
               Esperado {formatCurrency(Number(closeResult.expectedCash))} · Contado {formatCurrency(Number(closeResult.countedCash))}
             </p>
             <button onClick={finishClosing}
-              className="w-full py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700">
+              className="w-full py-2.5 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-primary/90">
               Listo
             </button>
           </div>

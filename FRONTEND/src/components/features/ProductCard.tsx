@@ -50,14 +50,14 @@ const ProductCard: React.FC<ProductCardProps> = ({
   return (
     
     <div
-      className={`bg-white rounded-lg border border-gray-200 p-4 sm:p-6 transition-all duration-200 hover:shadow-md hover:border-blue-300 active:scale-[0.98] cursor-pointer ${className}`}
+      className={`bg-white rounded-lg border border-gray-200 p-4 sm:p-6 transition-all duration-200 hover:shadow-md hover:border-primary/50 active:scale-[0.98] cursor-pointer ${className}`}
       onClick={onClick}
     >
       {/* Header */}
       <div className="flex items-start justify-between mb-3 sm:mb-4">
         <div className="flex items-start space-x-3 flex-1 min-w-0">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-            <Package className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary/15 rounded-lg flex items-center justify-center flex-shrink-0">
+            <Package className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="text-base sm:text-lg font-semibold text-gray-900 leading-tight truncate">
@@ -66,13 +66,13 @@ const ProductCard: React.FC<ProductCardProps> = ({
             {/* Sale Price */}
             <div className="flex flex-wrap items-center gap-2 mt-1">
               <span className="text-xs sm:text-sm text-gray-500">Precio de venta:</span>
-              <span className="text-base sm:text-lg font-semibold text-blue-600">
+              <span className="text-base sm:text-lg font-semibold text-primary">
                 {formatCurrency(product.salePrice)}
               </span>
             </div>
             {/* Code and Unit */}
             <div className="flex flex-wrap items-center gap-1 sm:gap-2 text-xs sm:text-sm text-gray-500 mt-1">
-              <span className="font-medium text-blue-600">{product.code}</span>
+              <span className="font-medium text-primary">{product.code}</span>
               <span className="text-gray-300">•</span>
               <span>{product.unit}</span>
             </div>
@@ -87,7 +87,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
             <span className="sm:hidden">{new Date(product.updatedAt).getDate()}</span>
           </div>
           <button 
-            className="p-1.5 sm:p-1 text-gray-400 hover:text-blue-600 transition-colors duration-200 rounded-full hover:bg-gray-100 active:bg-gray-200" 
+            className="p-1.5 sm:p-1 text-gray-400 hover:text-primary transition-colors duration-200 rounded-full hover:bg-gray-100 active:bg-gray-200" 
             title="Editar producto"
             onClick={(e) => {
               e.stopPropagation();
@@ -121,9 +121,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 {formatCurrency(min || product.prices[0].price)}
               </p>
             </div>
-            <div className="bg-blue-50 rounded-lg p-2 sm:p-3">
-              <p className="text-xs text-blue-600 font-medium uppercase">Mayor</p>
-              <p className="text-base sm:text-lg font-bold text-blue-700 truncate">
+            <div className="bg-primary/10 rounded-lg p-2 sm:p-3">
+              <p className="text-xs text-primary font-medium uppercase">Mayor</p>
+              <p className="text-base sm:text-lg font-bold text-primary truncate">
                 {formatCurrency(max || product.prices[0].price)}
               </p>
             </div>

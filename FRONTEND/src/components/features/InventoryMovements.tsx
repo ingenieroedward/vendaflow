@@ -5,7 +5,7 @@ import { StockMovement } from '../../types';
 import LoadingSpinner from '../ui/LoadingSpinner';
 
 const TYPE_META: Record<StockMovement['type'], { label: string; icon: React.ElementType; badge: string }> = {
-  sale: { label: 'Venta', icon: ShoppingCart, badge: 'bg-blue-100 text-blue-700' },
+  sale: { label: 'Venta', icon: ShoppingCart, badge: 'bg-primary/15 text-primary' },
   purchase: { label: 'Compra', icon: Truck, badge: 'bg-green-100 text-green-700' },
   adjustment: { label: 'Ajuste', icon: SlidersHorizontal, badge: 'bg-amber-100 text-amber-700' },
 };

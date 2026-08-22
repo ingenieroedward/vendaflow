@@ -15,7 +15,7 @@ const Breadcrumbs: React.FC<{ items: Crumb[]; className?: string }> = ({ items, 
       <React.Fragment key={`${c.label}-${i}`}>
         {i > 0 && <ChevronRight className="w-3 h-3 flex-shrink-0" />}
         {c.to ? (
-          <Link to={c.to} className="hover:text-blue-600 transition-colors">{c.label}</Link>
+          <Link to={c.to} className="hover:text-primary transition-colors">{c.label}</Link>
         ) : (
           <span className="text-gray-600 font-medium truncate">{c.label}</span>
         )}

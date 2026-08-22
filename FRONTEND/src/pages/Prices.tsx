@@ -285,7 +285,7 @@ const Prices: React.FC = () => {
                         <div className="flex items-center space-x-1 flex-shrink-0">
                           <button
                             onClick={() => openEdit(price, product)}
-                            className="p-2 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                            className="p-2 rounded-lg text-gray-400 hover:text-primary hover:bg-primary/10 transition-colors"
                           >
                             <Edit className="w-4 h-4" />
                           </button>
@@ -303,7 +303,7 @@ const Prices: React.FC = () => {
                     {suppliers.length > (new Set(prices.map(p => p.supplierId))).size && (
                       <button
                         onClick={() => openCreate(product)}
-                        className="flex items-center space-x-2 w-full px-4 py-3 text-sm text-blue-600 hover:bg-blue-50 transition-colors"
+                        className="flex items-center space-x-2 w-full px-4 py-3 text-sm text-primary hover:bg-primary/10 transition-colors"
                       >
                         <Plus className="w-4 h-4" />
                         <span>Agregar precio</span>
@@ -313,7 +313,7 @@ const Prices: React.FC = () => {
                     {prices.length === 0 && (
                       <button
                         onClick={() => openCreate(product)}
-                        className="flex items-center space-x-2 w-full px-4 py-3 text-sm text-blue-600 hover:bg-blue-50 transition-colors"
+                        className="flex items-center space-x-2 w-full px-4 py-3 text-sm text-primary hover:bg-primary/10 transition-colors"
                       >
                         <Plus className="w-4 h-4" />
                         <span>Agregar primer precio</span>
@@ -344,7 +344,7 @@ const Prices: React.FC = () => {
                       {suppliers.find(s => s.id === modal.price.supplierId)?.name ?? `Proveedor #${modal.price.supplierId}`}
                     </div>
                   ) : (
-                    <select value={selectedSupplierId} onChange={e => setSelectedSupplierId(Number(e.target.value))} className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                    <select value={selectedSupplierId} onChange={e => setSelectedSupplierId(Number(e.target.value))} className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary bg-white">
                       {availableSuppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                     </select>
                   )}
@@ -356,7 +356,7 @@ const Prices: React.FC = () => {
               </div>
               <div className="flex gap-3 mt-6">
                 <button onClick={() => { if (!saving) setModal(null); }} className="flex-1 px-4 py-2.5 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors" disabled={saving}>Cancelar</button>
-                <button onClick={handleSave} disabled={saving || !priceInput || parseFloat(priceInput) <= 0} className="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50">{saving ? 'Guardando...' : 'Guardar'}</button>
+                <button onClick={handleSave} disabled={saving || !priceInput || parseFloat(priceInput) <= 0} className="flex-1 px-4 py-2.5 bg-primary text-white rounded-xl text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50">{saving ? 'Guardando...' : 'Guardar'}</button>
               </div>
             </div>
           </div>

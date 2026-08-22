@@ -103,7 +103,7 @@ const CustomerSearch: React.FC<CustomerSearchProps> = ({
           value={query}
           onChange={handleInputChange}
           onFocus={handleInputFocus}
-          className={`block w-full pl-10 pr-10 py-2 border rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
+          className={`block w-full pl-10 pr-10 py-2 border rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-primary focus:border-primary sm:text-sm ${
             selectedCustomer 
               ? 'border-green-300 bg-green-50' 
               : 'border-gray-300'
@@ -149,7 +149,7 @@ const CustomerSearch: React.FC<CustomerSearchProps> = ({
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="font-medium text-gray-900 truncate">{customer.name}</span>
                         {customer.code && (
-                          <span className="text-xs font-mono bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded flex-shrink-0">{customer.code}</span>
+                          <span className="text-xs font-mono bg-primary/10 text-primary px-1.5 py-0.5 rounded flex-shrink-0">{customer.code}</span>
                         )}
                       </div>
                       {customer.nit && (

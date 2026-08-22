@@ -82,7 +82,7 @@ const CustomerModal: React.FC<CustomerModalProps> = ({
         <div className="sm:hidden flex justify-center pt-3 pb-1"><div className="w-10 h-1 bg-gray-200 rounded-full" /></div>
         <div className="flex items-center justify-between px-6 pt-4 pb-4 border-b border-gray-100">
           <div className="flex items-center">
-            <User className="h-5 w-5 text-blue-600 mr-2" />
+            <User className="h-5 w-5 text-primary mr-2" />
             <h2 className="text-lg font-semibold text-gray-900">
               {isEdit ? 'Editar cliente' : 'Registrar nuevo cliente'}
             </h2>
@@ -176,7 +176,7 @@ const CustomerModal: React.FC<CustomerModalProps> = ({
               placeholder="Información adicional sobre el cliente..."
               rows={3}
               maxLength={255}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary resize-none"
             />
           </div>
 

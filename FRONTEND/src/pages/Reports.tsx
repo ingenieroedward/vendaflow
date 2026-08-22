@@ -546,8 +546,8 @@ const Reports: React.FC = () => {
                       </div>
                       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
                         <div className="flex items-center gap-2 mb-2">
-                          <div className="w-7 h-7 bg-blue-50 rounded-lg flex items-center justify-center">
-                            <FileText className="w-3.5 h-3.5 text-blue-500" />
+                          <div className="w-7 h-7 bg-primary/10 rounded-lg flex items-center justify-center">
+                            <FileText className="w-3.5 h-3.5 text-primary" />
                           </div>
                           <p className="text-xs text-gray-400">Órdenes a crédito</p>
                         </div>
@@ -642,8 +642,8 @@ const Reports: React.FC = () => {
                   </div>
                   <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
                     <div className="flex items-center gap-2 mb-2">
-                      <div className="w-7 h-7 bg-blue-50 rounded-lg flex items-center justify-center">
-                        <ShoppingCart className="w-4 h-4 text-blue-500" />
+                      <div className="w-7 h-7 bg-primary/10 rounded-lg flex items-center justify-center">
+                        <ShoppingCart className="w-4 h-4 text-primary" />
                       </div>
                       <span className="text-xs font-medium text-gray-500">Este mes</span>
                     </div>
@@ -779,7 +779,7 @@ const Reports: React.FC = () => {
                                     </div>
                                   </div>
                                   <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                                    <div className="h-full rounded-full bg-blue-500 transition-all" style={{ width: `${pct}%` }} />
+                                    <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${pct}%` }} />
                                   </div>
                                 </div>
                               );
@@ -987,8 +987,8 @@ const Reports: React.FC = () => {
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
                   <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
                     <div className="flex items-center gap-2 mb-2">
-                      <div className="w-7 h-7 bg-blue-50 rounded-lg flex items-center justify-center">
-                        <DollarSign className="w-4 h-4 text-blue-500" />
+                      <div className="w-7 h-7 bg-primary/10 rounded-lg flex items-center justify-center">
+                        <DollarSign className="w-4 h-4 text-primary" />
                       </div>
                       <span className="text-xs font-medium text-gray-500">Invertido (recibido)</span>
                     </div>
@@ -1126,7 +1126,7 @@ const Reports: React.FC = () => {
                     <input
                       type="month" value={reportMonth} onChange={e => setReportMonth(e.target.value)}
                       max={new Date().toISOString().slice(0, 7)}
-                      className="px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-600 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-600 bg-white focus:outline-none focus:ring-2 focus:ring-primary"
                     />
                     <button
                       onClick={() => downloadMonthlyReport(reportMonth)}

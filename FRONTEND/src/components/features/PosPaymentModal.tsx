@@ -94,7 +94,7 @@ const PosPaymentModal: React.FC<Props> = ({ isOpen, total, busy, result, printin
             </button>
             <button
               onClick={() => onDone?.()}
-              className="flex-1 px-4 py-2.5 text-sm font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="flex-1 px-4 py-2.5 text-sm font-semibold bg-primary text-white rounded-lg hover:bg-primary/90"
             >
               Nueva venta
             </button>
@@ -123,7 +123,7 @@ const PosPaymentModal: React.FC<Props> = ({ isOpen, total, busy, result, printin
                 <input
                   type="number" min="0" value={line.amount}
                   onChange={e => setAmount(idx, Number(e.target.value))}
-                  className="flex-1 min-w-0 px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="flex-1 min-w-0 px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-right focus:outline-none focus:ring-2 focus:ring-primary"
                 />
                 {lines.length > 1 && (
                   <button onClick={() => removeLine(idx)} className="text-gray-300 hover:text-red-500 flex-shrink-0">
@@ -168,7 +168,7 @@ const PosPaymentModal: React.FC<Props> = ({ isOpen, total, busy, result, printin
               type="number" min="0" value={cashReceivedInput}
               onChange={e => setCashReceivedInput(e.target.value)}
               placeholder={String(cashLine.amount)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
             {change !== null && (
               <p className={`mt-1.5 text-sm font-semibold ${change < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
@@ -185,7 +185,7 @@ const PosPaymentModal: React.FC<Props> = ({ isOpen, total, busy, result, printin
           <button
             onClick={handleConfirm}
             disabled={!canConfirm || busy}
-            className="flex-1 px-4 py-2.5 text-sm font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex-1 px-4 py-2.5 text-sm font-semibold bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {busy ? 'Cobrando…' : 'Confirmar cobro'}
           </button>

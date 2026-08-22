@@ -203,7 +203,7 @@ const Categories: React.FC = () => {
               </div>
               <div className="flex gap-3 mt-6">
                 <button onClick={() => { if (!saving) setModal(null); }} className="flex-1 px-4 py-2.5 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors" disabled={saving}>Cancelar</button>
-                <button onClick={handleSave} disabled={saving || !form.name.trim()} className="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50">{saving ? 'Guardando...' : 'Guardar'}</button>
+                <button onClick={handleSave} disabled={saving || !form.name.trim()} className="flex-1 px-4 py-2.5 bg-primary text-white rounded-xl text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50">{saving ? 'Guardando...' : 'Guardar'}</button>
               </div>
             </div>
           </div>

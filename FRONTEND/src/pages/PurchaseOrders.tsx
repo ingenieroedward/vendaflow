@@ -12,7 +12,7 @@ import { es } from 'date-fns/locale';
 
 const STATUS_LABELS: Record<string, { label: string; className: string }> = {
   draft:     { label: 'Borrador',  className: 'bg-gray-100 text-gray-700' },
-  ordered:   { label: 'Ordenado', className: 'bg-blue-100 text-blue-700' },
+  ordered:   { label: 'Ordenado', className: 'bg-primary/15 text-primary' },
   received:  { label: 'Recibido', className: 'bg-green-100 text-green-700' },
   cancelled: { label: 'Cancelado',className: 'bg-red-100 text-red-700' },
 };

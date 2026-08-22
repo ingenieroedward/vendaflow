@@ -232,7 +232,7 @@ const Orders: React.FC = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "pending":    return "bg-yellow-100 text-yellow-800";
-      case "processing": return "bg-blue-100 text-blue-800";
+      case "processing": return "bg-primary/15 text-primary";
       case "completed":  return "bg-green-100 text-green-800";
       case "cancelled":  return "bg-red-100 text-red-800";
       default:           return "bg-gray-100 text-gray-800";
@@ -252,13 +252,13 @@ const Orders: React.FC = () => {
   const getSyncStatusIcon = (item: LocalOrderMeta) => {
     if (item.errorMsg) return <AlertCircle className="w-4 h-4 text-red-500" />;
     if (item.attempts > 0) return <AlertCircle className="w-4 h-4 text-orange-500" />;
-    return <Clock className="w-4 h-4 text-blue-500" />;
+    return <Clock className="w-4 h-4 text-primary" />;
   };
 
   const getSyncStatusLabel = (item: LocalOrderMeta) => {
     if (item.errorMsg) return <span className="text-xs text-red-600 font-medium">Error al sincronizar</span>;
     if (item.attempts > 0) return <span className="text-xs text-orange-600 font-medium">{item.attempts} intento{item.attempts > 1 ? 's' : ''} fallido{item.attempts > 1 ? 's' : ''}</span>;
-    return <span className="text-xs text-blue-600 font-medium">Pendiente de enviar</span>;
+    return <span className="text-xs text-primary font-medium">Pendiente de enviar</span>;
   };
 
   return (
@@ -350,12 +350,12 @@ const Orders: React.FC = () => {
         <div className="flex border-b border-gray-200 mb-4 overflow-x-auto scrollbar-none">
           <button
             onClick={() => { setActiveTab('active'); setSearch(''); }}
-            className={`px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'active' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+            className={`px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'active' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
           >
             <span className="flex items-center gap-1.5">
               Activas
               {activeCount > 0 && (
-                <span className={`px-1.5 py-0.5 rounded-full text-xs ${activeTab === 'active' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>
+                <span className={`px-1.5 py-0.5 rounded-full text-xs ${activeTab === 'active' ? 'bg-primary/15 text-primary' : 'bg-gray-100 text-gray-600'}`}>
                   {activeCount}
                 </span>
               )}
@@ -595,7 +595,7 @@ const Orders: React.FC = () => {
                         placeholder="Buscar por cliente, usuario, orden o fecha"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="w-full sm:w-80 px-3 py-2 border rounded-md shadow-sm text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full sm:w-80 px-3 py-2 border rounded-md shadow-sm text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary"
                       />
                     </div>
                   </div>
