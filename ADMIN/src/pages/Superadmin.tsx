@@ -104,7 +104,7 @@ const Superadmin: React.FC = () => {
           <button onClick={() => setSection('pagos')} className={navCls(section === 'pagos')}>
             <Receipt className="w-4 h-4 flex-shrink-0" /> Pagos
             {pendingPayments.length > 0 && (
-              <span className="ml-auto text-xs bg-green-500 text-white px-1.5 py-0.5 rounded-full">{pendingPayments.length}</span>
+              <span className="ml-auto text-xs bg-amber-500 text-white px-1.5 py-0.5 rounded-full">{pendingPayments.length}</span>
             )}
           </button>
           <button onClick={() => setSection('finanzas')} className={navCls(section === 'finanzas')}>
@@ -159,7 +159,7 @@ const Superadmin: React.FC = () => {
           </button>
           <button onClick={() => setSection('pagos')} className={`relative p-2 rounded-lg ${section === 'pagos' ? 'bg-white/10 text-white' : 'text-slate-300'}`}>
             <Receipt className="w-4 h-4" />
-            {pendingPayments.length > 0 && <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full" />}
+            {pendingPayments.length > 0 && <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-amber-500 rounded-full" />}
           </button>
           <button onClick={() => setSection('finanzas')} className={`relative p-2 rounded-lg ${section === 'finanzas' ? 'bg-white/10 text-white' : 'text-slate-300'}`}>
             <Wallet className="w-5 h-5" />
