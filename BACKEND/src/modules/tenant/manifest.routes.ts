@@ -5,7 +5,7 @@ import { Tenant } from './tenant.model';
 const router = Router();
 
 const DEFAULT_NAME = 'Merco';
-const DEFAULT_THEME_COLOR = '#3b82f6';
+const DEFAULT_THEME_COLOR = '#0057ff';
 
 const ICONS = [
   { src: '/icons/icon-72x72.png', sizes: '72x72', type: 'image/png', purpose: 'any' },

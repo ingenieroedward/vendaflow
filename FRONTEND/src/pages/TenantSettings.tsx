@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Save, Palette, Building2, CreditCard, Users, Package, ShoppingCart, Lock } from 'lucide-react';
+import { Settings, Save, Palette, Building2, CreditCard, Users, Package, ShoppingCart, Lock, Check } from 'lucide-react';
 import { useTenantStore } from '../store/tenantStore';
 import { useUIStore } from '../store/uiStore';
 import { useFeature } from '../hooks/useFeature';
@@ -11,6 +11,19 @@ const PLAN_LABELS: Record<string, string> = {
   basic: 'Básico',
   pro: 'Pro',
   enterprise: 'Enterprise',
+};
+
+// Debe reflejar ALL_FEATURES/PLAN_FEATURES en BACKEND/src/config/features.ts.
+// "minPlan" es orientativo (el plan pago más bajo que la trae por defecto) —
+// el superadmin puede reconfigurar qué trae cada plan sin deploy, así que
+// esto es una aproximación para el mensaje, no la fuente de verdad.
+// "soon" marca features con gating listo pero sin UI/rutas reales todavía
+// (ver CLAUDE.md) — para no mostrar un check sin nada detrás que abrir.
+const FEATURE_INFO: Record<string, { label: string; minPlan: string; soon?: boolean }> = {
+  pos: { label: 'Punto de venta (POS)', minPlan: 'Pro' },
+  custom_branding: { label: 'Marca propia (logo)', minPlan: 'Pro' },
+  multi_warehouse: { label: 'Múltiples bodegas', minPlan: 'Enterprise', soon: true },
+  api_access: { label: 'Acceso API', minPlan: 'Enterprise', soon: true },
 };
 
 const TenantSettings: React.FC = () => {
@@ -172,6 +185,33 @@ const TenantSettings: React.FC = () => {
               <p className="text-sm font-bold text-gray-700">hasta {tenantInfo.maxOrdersPerMonth?.toLocaleString('es-CO')}</p>
             </div>
           </div>
+          {/* Funciones del plan — qué incluye y qué no, con mensaje de upgrade
+              en vez de simplemente ocultar el ítem del menú sin explicar por qué */}
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <p className="text-xs font-medium text-gray-500 mb-2">Funciones</p>
+            <div className="space-y-1.5">
+              {Object.entries(FEATURE_INFO).map(([key, info]) => {
+                const included = (tenantInfo.features ?? []).includes(key);
+                return (
+                  <div key={key} className="flex items-center gap-2 text-xs">
+                    {included ? (
+                      <Check className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
+                    ) : (
+                      <Lock className="w-3.5 h-3.5 text-gray-300 flex-shrink-0" />
+                    )}
+                    <span className={included ? 'text-gray-700' : 'text-gray-400'}>
+                      {info.label}
+                      {info.soon && <span className="text-gray-400"> (próximamente)</span>}
+                    </span>
+                    {!included && (
+                      <span className="ml-auto text-gray-400">Disponible en el plan {info.minPlan}</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
           {(tenantInfo as { paidUntil?: string | null }).paidUntil && (
             <p className="mt-2 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 inline-block">
               Plan activo hasta el {new Date(`${(tenantInfo as { paidUntil?: string }).paidUntil}T00:00:00`).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' })}
