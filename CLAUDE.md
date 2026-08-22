@@ -34,13 +34,16 @@ Proyecto: **Merco** (vendaflow).
 ```
 vendaflow/
 ├── BACKEND/    # Node.js + TypeScript, Express, Sequelize ORM, MySQL
-├── FRONTEND/   # React + TypeScript, Vite, Zustand, Tailwind CSS
+├── FRONTEND/   # React + TypeScript, Vite, Zustand, Tailwind CSS — app de tenants
+├── ADMIN/      # React + TypeScript, Vite, Zustand, Tailwind CSS — panel superadmin, proyecto aparte (ago 2026)
 └── docker-compose.yml
 ```
 
 **Backend:** patrón MSC (Model → Service → Controller → Routes → DTO).
 
-**Frontend:** Component-Based + Zustand. `pages/` → `components/` (ui/ layout/ features/), `services/` → API REST, `store/` → estado global, `repositories/` → abstracción offline-first.
+**Frontend (tenants):** Component-Based + Zustand. `pages/` → `components/` (ui/ layout/ features/), `services/` → API REST, `store/` → estado global, `repositories/` → abstracción offline-first.
+
+**Admin (superadmin, ago 2026):** proyecto Vite propio en `ADMIN/` — antes vivía como build multi-entry (`admin.html`/`admin.tsx`) dentro de `FRONTEND/`, compartiendo dependencias y tooling con la app de tenants sin necesitarlo (sin IndexedDB, sin offline, sin theming por tenant). Se separó completo: `src/pages/Superadmin.tsx` (el shell con estado/handlers de las 6 secciones — Dashboard/Tenants/Solicitudes/Pagos/Finanzas/Auditoría), `src/components/` (los 5 modales — CreateTenantForm/EditTenantModal/BroadcastModal/ApproveRequestModal/RegisterPaymentModal — y UsagePill, antes vivían todos dentro del mismo archivo de 2094 líneas), `src/services/` (tenantAdmin.ts, api.ts, pushNotifications.ts, copiados tal cual), `src/store/authStore.ts` (versión mínima propia — sin IndexedDB ni tenantStore, solo user/token/logout). Build/deploy propios: `Dockerfile` + `nginx.conf` + entrada dedicada en `docker-compose.yml`, servido en `admin.merco.edwsystem.com` vía su propio router de Traefik (prioridad explícita sobre el wildcard de tenants). **La división de `Superadmin.tsx` en componentes por sección (Dashboard.tsx, Tenants.tsx, etc.) queda pendiente** — se hizo la extracción segura de los modales (ya independientes en el archivo original) pero no la del shell principal, para no arriesgar romper el wiring de ~30 estados y ~20 handlers en una sola pasada.
 
 **Path alias backend:** `@/` → `src/`
 

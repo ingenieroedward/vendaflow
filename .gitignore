@@ -35,3 +35,4 @@ apk-builds/
 .playwright-mcp/
 /*.png
 demo-acceso.txt
+*.tsbuildinfo
