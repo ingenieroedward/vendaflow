@@ -22,6 +22,7 @@ export interface OrderAttributes {
   clientRef?: string | null;
   source: 'orders' | 'pos'; // origen de la venta — Orders normal o mostrador POS
   cashSessionId: number | null; // turno de caja del POS que la generó (null si source='orders')
+  changeGiven: number | null; // vuelto entregado (solo POS) — informativo, no afecta el total
   customerId: number;
   userId: number;
   totalAmount: number;
@@ -73,6 +74,9 @@ export class Order extends Model<OrderAttributes, OrderCreationAttributes> {
 
   @Column({ type: DataType.INTEGER, allowNull: true })
   cashSessionId!: number | null;
+
+  @Column({ type: DataType.DECIMAL(12, 2), allowNull: true })
+  changeGiven!: number | null;
 
   @ForeignKey(() => Customer)
   @Column({

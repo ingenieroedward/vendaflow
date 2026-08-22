@@ -1,6 +1,9 @@
 jest.mock('../cash-session.model', () => ({
   CashSession: { findOne: jest.fn(), create: jest.fn(), findAll: jest.fn() },
 }));
+jest.mock('../pos-sale-payment.model', () => ({
+  PosSalePayment: { findAll: jest.fn(), bulkCreate: jest.fn() },
+}));
 jest.mock('@/modules/user/user.model', () => ({ User: {} }));
 jest.mock('../../customer/customer.model', () => ({ Customer: { findOrCreate: jest.fn(), findOne: jest.fn() } }));
 const mockCreateOrder = jest.fn();
@@ -10,10 +13,13 @@ jest.mock('../../order/order.service', () => ({
 
 import { PosService } from '../pos.service';
 import { CashSession } from '../cash-session.model';
+import { PosSalePayment } from '../pos-sale-payment.model';
 import { Customer } from '../../customer/customer.model';
 
 const mockFindOne = CashSession.findOne as jest.Mock;
 const mockCreate = CashSession.create as jest.Mock;
+const mockPaymentsFindAll = PosSalePayment.findAll as jest.Mock;
+const mockPaymentsBulkCreate = PosSalePayment.bulkCreate as jest.Mock;
 const mockCustomerFindOrCreate = Customer.findOrCreate as jest.Mock;
 const mockCustomerFindOne = Customer.findOne as jest.Mock;
 const service = new PosService();
@@ -21,6 +27,8 @@ const service = new PosService();
 beforeEach(() => {
   mockFindOne.mockReset();
   mockCreate.mockReset();
+  mockPaymentsFindAll.mockReset().mockResolvedValue([]); // sin ventas previas por defecto
+  mockPaymentsBulkCreate.mockReset().mockResolvedValue(undefined);
   mockCustomerFindOrCreate.mockReset();
   mockCustomerFindOne.mockReset();
   mockCreateOrder.mockReset();
@@ -53,20 +61,38 @@ describe('openSession', () => {
 });
 
 describe('closeSession', () => {
-  it('calcula la diferencia contra la base inicial (Fase 1, sin ventas aún)', async () => {
+  it('sin ventas del turno, expectedCash es solo la base inicial', async () => {
     const update = jest.fn().mockResolvedValue(undefined);
-    mockFindOne.mockResolvedValueOnce({ id: 1, openingAmount: 50000, notes: null, update });
+    const session = { id: 1, openingAmount: 50000, notes: null, update, toJSON: () => ({ id: 1 }) };
+    mockFindOne.mockResolvedValueOnce(session);
 
-    await service.closeSession(1, 1, { countedCash: 52000 });
+    const result = await service.closeSession(1, 1, { countedCash: 52000 });
 
     expect(update).toHaveBeenCalledWith(expect.objectContaining({
       countedCash: 52000, expectedCash: 50000, difference: 2000, status: 'closed',
     }));
+    expect(result.salesByMethod.total).toBe(0);
+  });
+
+  it('suma las ventas en efectivo del turno a expectedCash (tarjeta no cuenta)', async () => {
+    const update = jest.fn().mockResolvedValue(undefined);
+    mockFindOne.mockResolvedValueOnce({ id: 1, openingAmount: 50000, notes: null, update, toJSON: () => ({ id: 1 }) });
+    mockPaymentsFindAll.mockResolvedValueOnce([
+      { method: 'cash', amount: 30000 },
+      { method: 'card', amount: 20000 }, // no debe sumar al efectivo esperado
+      { method: 'cash', amount: 5000 },
+    ]);
+
+    const result = await service.closeSession(1, 1, { countedCash: 85000 });
+
+    // esperado = 50000 base + 30000 + 5000 efectivo = 85000
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({ expectedCash: 85000, difference: 0 }));
+    expect(result.salesByMethod).toEqual({ cash: 35000, card: 20000, transfer: 0, other: 0, total: 55000 });
   });
 
   it('detecta faltante (diferencia negativa)', async () => {
     const update = jest.fn().mockResolvedValue(undefined);
-    mockFindOne.mockResolvedValueOnce({ id: 1, openingAmount: 50000, notes: null, update });
+    mockFindOne.mockResolvedValueOnce({ id: 1, openingAmount: 50000, notes: null, update, toJSON: () => ({ id: 1 }) });
 
     await service.closeSession(1, 1, { countedCash: 48000 });
 
@@ -85,7 +111,7 @@ describe('closeSession', () => {
 
   it('acumula notas sin borrar las de apertura', async () => {
     const update = jest.fn().mockResolvedValue(undefined);
-    mockFindOne.mockResolvedValueOnce({ id: 1, openingAmount: 50000, notes: 'apertura normal', update });
+    mockFindOne.mockResolvedValueOnce({ id: 1, openingAmount: 50000, notes: 'apertura normal', update, toJSON: () => ({ id: 1 }) });
 
     await service.closeSession(1, 1, { countedCash: 50000, notes: 'cierre sin novedad' });
 
@@ -96,11 +122,20 @@ describe('closeSession', () => {
 });
 
 describe('sale', () => {
+  // 2 * 5000 * 1.19 (IVA 19%) = 11900
   const items = [{ productId: 1, quantity: 2, unitPrice: 5000, taxRate: 19 }];
 
   it('rechaza vender sin caja abierta', async () => {
     mockFindOne.mockResolvedValueOnce(null);
-    await expect(service.sale(1, 10, { items })).rejects.toThrow(/abre la caja/i);
+    await expect(service.sale(1, 10, { items, payments: [{ method: 'cash', amount: 11900 }] }))
+      .rejects.toThrow(/abre la caja/i);
+    expect(mockCreateOrder).not.toHaveBeenCalled();
+  });
+
+  it('rechaza si los pagos no cuadran con el total', async () => {
+    mockFindOne.mockResolvedValueOnce({ id: 5, status: 'open' });
+    await expect(service.sale(1, 10, { items, payments: [{ method: 'cash', amount: 10000 }] }))
+      .rejects.toThrow(/no cuadran/i);
     expect(mockCreateOrder).not.toHaveBeenCalled();
   });
 
@@ -109,7 +144,7 @@ describe('sale', () => {
     mockCustomerFindOrCreate.mockResolvedValueOnce([{ id: 99, name: 'Consumidor final' }, true]);
     mockCreateOrder.mockResolvedValueOnce({ id: 1, orderNumber: 'ORD-0001' });
 
-    await service.sale(1, 10, { items });
+    await service.sale(1, 10, { items, payments: [{ method: 'cash', amount: 11900 }] });
 
     expect(mockCustomerFindOrCreate).toHaveBeenCalledWith(expect.objectContaining({
       where: { tenantId: 1, name: 'Consumidor final' },
@@ -127,7 +162,8 @@ describe('sale', () => {
     mockFindOne.mockResolvedValueOnce({ id: 5, status: 'open' });
     mockCustomerFindOne.mockResolvedValueOnce(null);
 
-    await expect(service.sale(1, 10, { customerId: 42, items })).rejects.toThrow();
+    await expect(service.sale(1, 10, { customerId: 42, items, payments: [{ method: 'cash', amount: 11900 }] }))
+      .rejects.toThrow();
     expect(mockCreateOrder).not.toHaveBeenCalled();
   });
 
@@ -136,11 +172,57 @@ describe('sale', () => {
     mockCustomerFindOne.mockResolvedValueOnce({ id: 42, tenantId: 1 });
     mockCreateOrder.mockResolvedValueOnce({ id: 2, orderNumber: 'ORD-0002' });
 
-    await service.sale(1, 10, { customerId: 42, items });
+    await service.sale(1, 10, { customerId: 42, items, payments: [{ method: 'cash', amount: 11900 }] });
 
     expect(mockCustomerFindOrCreate).not.toHaveBeenCalled();
-    expect(mockCreateOrder).toHaveBeenCalledWith(
-      expect.objectContaining({ customerId: 42 }), 10, 1,
-    );
+    expect(mockCreateOrder).toHaveBeenCalledWith(expect.objectContaining({ customerId: 42 }), 10, 1);
+  });
+
+  it('pago mixto (efectivo + tarjeta) que suma exacto al total', async () => {
+    mockFindOne.mockResolvedValueOnce({ id: 5, status: 'open' });
+    mockCustomerFindOrCreate.mockResolvedValueOnce([{ id: 99 }, true]);
+    mockCreateOrder.mockResolvedValueOnce({ id: 3, orderNumber: 'ORD-0003' });
+
+    const result = await service.sale(1, 10, {
+      items, payments: [{ method: 'cash', amount: 5000 }, { method: 'card', amount: 6900 }],
+    });
+
+    expect(mockCreateOrder).toHaveBeenCalledWith(expect.objectContaining({ changeGiven: null }), 10, 1);
+    expect(mockPaymentsBulkCreate).toHaveBeenCalledWith([
+      { tenantId: 1, orderId: 3, cashSessionId: 5, method: 'cash', amount: 5000 },
+      { tenantId: 1, orderId: 3, cashSessionId: 5, method: 'card', amount: 6900 },
+    ]);
+    expect(result.payments).toHaveLength(2);
+  });
+
+  it('calcula el vuelto cuando el efectivo recibido supera lo cobrado en efectivo', async () => {
+    mockFindOne.mockResolvedValueOnce({ id: 5, status: 'open' });
+    mockCustomerFindOrCreate.mockResolvedValueOnce([{ id: 99 }, true]);
+    mockCreateOrder.mockResolvedValueOnce({ id: 4, orderNumber: 'ORD-0004' });
+
+    const result = await service.sale(1, 10, {
+      items, payments: [{ method: 'cash', amount: 11900 }], cashReceived: 20000,
+    });
+
+    expect(result.changeGiven).toBe(8100);
+    expect(mockCreateOrder).toHaveBeenCalledWith(expect.objectContaining({ changeGiven: 8100 }), 10, 1);
+  });
+
+  it('rechaza si el efectivo recibido es menor a lo que se paga en efectivo', async () => {
+    mockFindOne.mockResolvedValueOnce({ id: 5, status: 'open' });
+    await expect(service.sale(1, 10, {
+      items, payments: [{ method: 'cash', amount: 11900 }], cashReceived: 5000,
+    })).rejects.toThrow(/menor al monto/i);
+    expect(mockCreateOrder).not.toHaveBeenCalled();
+  });
+
+  it('no calcula vuelto si no se informa cashReceived', async () => {
+    mockFindOne.mockResolvedValueOnce({ id: 5, status: 'open' });
+    mockCustomerFindOrCreate.mockResolvedValueOnce([{ id: 99 }, true]);
+    mockCreateOrder.mockResolvedValueOnce({ id: 6, orderNumber: 'ORD-0006' });
+
+    const result = await service.sale(1, 10, { items, payments: [{ method: 'cash', amount: 11900 }] });
+
+    expect(result.changeGiven).toBeNull();
   });
 });

@@ -2,10 +2,11 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ShoppingCart, Plus, Minus, Trash2, Search, DoorOpen, DoorClosed, Package } from 'lucide-react';
 import { useProductStore } from '../store/productStore';
 import { useUIStore } from '../store/uiStore';
-import { posService, CashSession } from '../services/pos';
+import { posService, CashSession, PosPaymentLine } from '../services/pos';
 import { formatCurrency } from '../utils/helpers';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import Modal from '../components/ui/Modal';
+import PosPaymentModal from '../components/features/PosPaymentModal';
 
 interface CartLine {
   productId: number;
@@ -17,8 +18,9 @@ interface CartLine {
   stock: number;
 }
 
-// Punto de venta de mostrador — Fase 2: búsqueda, carrito, cobro solo en
-// efectivo (sin vueltos todavía, llega en Fase 3), descuenta stock real.
+// Punto de venta de mostrador — Fase 3: pago mixto (efectivo/tarjeta/
+// transferencia) con cálculo de vueltos, y cierre de caja con desglose real
+// de ventas por método (Fases 1-2 sentaron caja + venta simple en efectivo).
 const Pos: React.FC = () => {
   const { products, getProducts } = useProductStore();
   const { addNotification } = useUIStore();
@@ -29,6 +31,7 @@ const Pos: React.FC = () => {
 
   const [search, setSearch] = useState('');
   const [cart, setCart] = useState<CartLine[]>([]);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [checkingOut, setCheckingOut] = useState(false);
 
   const [closeModalOpen, setCloseModalOpen] = useState(false);
@@ -38,9 +41,12 @@ const Pos: React.FC = () => {
 
   const searchRef = useRef<HTMLInputElement>(null);
 
+  const refreshSession = () => posService.getCurrentSession().then(setSession).catch(() => setSession(null));
+
   useEffect(() => {
     getProducts(1, 2000, false);
-    posService.getCurrentSession().then(setSession).catch(() => setSession(null));
+    refreshSession();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [getProducts]);
 
   useEffect(() => { if (session) searchRef.current?.focus(); }, [session]);
@@ -81,8 +87,10 @@ const Pos: React.FC = () => {
     }
     setOpeningBusy(true);
     try {
-      const s = await posService.openSession(amount);
-      setSession(s);
+      // openSession devuelve la fila cruda (sin salesByMethod) — se
+      // refresca con getCurrentSession para tener la forma completa
+      await posService.openSession(amount);
+      await refreshSession();
       setOpeningAmount('');
     } catch (err: unknown) {
       addNotification({ type: 'error', title: 'No se pudo abrir la caja', message: (err as { message?: string })?.message });
@@ -91,20 +99,24 @@ const Pos: React.FC = () => {
     }
   };
 
-  const handleCheckout = async () => {
+  const handleConfirmPayment = async (payments: PosPaymentLine[], cashReceived?: number) => {
     if (cart.length === 0) return;
     setCheckingOut(true);
     try {
-      const sale = await posService.sale(cart.map(l => ({
-        productId: l.productId, quantity: l.quantity, unitPrice: l.unitPrice, taxRate: 0,
-      })));
+      const sale = await posService.sale(
+        cart.map(l => ({ productId: l.productId, quantity: l.quantity, unitPrice: l.unitPrice, taxRate: 0 })),
+        payments,
+        cashReceived,
+      );
       addNotification({
         type: 'success',
         title: `Venta ${sale.orderNumber} registrada`,
-        message: formatCurrency(sale.totalAmount),
+        message: sale.changeGiven ? `${formatCurrency(sale.totalAmount)} · Vuelto ${formatCurrency(sale.changeGiven)}` : formatCurrency(sale.totalAmount),
       });
       setCart([]);
+      setPaymentModalOpen(false);
       getProducts(1, 2000, false); // refresca stock
+      refreshSession(); // refresca el desglose por método del turno
     } catch (err: unknown) {
       addNotification({ type: 'error', title: 'No se pudo cobrar', message: (err as { message?: string })?.message });
     } finally {
@@ -182,6 +194,7 @@ const Pos: React.FC = () => {
           <h1 className="text-lg sm:text-xl font-bold text-gray-900">Punto de venta</h1>
           <p className="text-xs text-gray-500">
             Caja abierta con {formatCurrency(Number(session.openingAmount))} · {new Date(session.openedAt).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
+            {session.salesByMethod.total > 0 && <> · {formatCurrency(session.salesByMethod.total)} vendido en el turno</>}
           </p>
         </div>
         <button
@@ -277,20 +290,48 @@ const Pos: React.FC = () => {
               <span className="text-xl font-extrabold text-gray-900">{formatCurrency(total)}</span>
             </div>
             <button
-              onClick={handleCheckout}
-              disabled={cart.length === 0 || checkingOut}
+              onClick={() => setPaymentModalOpen(true)}
+              disabled={cart.length === 0}
               className="w-full py-3 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
-              {checkingOut ? 'Cobrando…' : 'Cobrar en efectivo'}
+              Cobrar
             </button>
           </div>
         </div>
       </div>
 
+      <PosPaymentModal
+        isOpen={paymentModalOpen}
+        total={total}
+        busy={checkingOut}
+        onClose={() => setPaymentModalOpen(false)}
+        onConfirm={handleConfirmPayment}
+      />
+
       {/* Cerrar caja */}
       <Modal isOpen={closeModalOpen} onClose={() => { if (!closeResult) setCloseModalOpen(false); }} title="Cerrar caja">
         {!closeResult ? (
           <form onSubmit={handleCloseSession} className="space-y-4 p-1">
+            {session.salesByMethod.total > 0 && (
+              <div className="bg-gray-50 rounded-lg p-3 space-y-1">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400 mb-1.5">Ventas del turno</p>
+                {([
+                  ['Efectivo', session.salesByMethod.cash],
+                  ['Tarjeta', session.salesByMethod.card],
+                  ['Transferencia', session.salesByMethod.transfer],
+                  ['Otro', session.salesByMethod.other],
+                ] as const).filter(([, amt]) => amt > 0).map(([label, amt]) => (
+                  <div key={label} className="flex items-center justify-between text-sm">
+                    <span className="text-gray-500">{label}</span>
+                    <span className="font-semibold text-gray-800">{formatCurrency(amt)}</span>
+                  </div>
+                ))}
+                <div className="flex items-center justify-between text-sm pt-1.5 border-t border-gray-200">
+                  <span className="font-medium text-gray-600">Efectivo esperado en caja</span>
+                  <span className="font-bold text-gray-900">{formatCurrency(Number(session.openingAmount) + session.salesByMethod.cash)}</span>
+                </div>
+              </div>
+            )}
             <p className="text-sm text-gray-500">Cuenta el efectivo físico en caja y escribe el total.</p>
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">Efectivo contado</label>

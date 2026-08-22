@@ -23,6 +23,7 @@ export const createOrderSchema = z.object({
   // Origen de la venta — lo fija el backend del POS, no lo envía el cliente normal de Orders
   source: z.enum(['orders', 'pos']).default('orders'),
   cashSessionId: z.number().positive().optional(),
+  changeGiven: z.number().nonnegative().optional(), // vuelto entregado (solo POS) — informativo, no afecta el total
   customerId: z.number().positive('Customer ID must be positive'),
   orderNumber: z.string().max(50, 'Order number too long').optional(),
   status: z.enum(['pending', 'processing', 'completed', 'cancelled']).default('pending'),
@@ -86,6 +87,8 @@ export interface OrderResponseDto {
   paymentDueDate: string | null;
   reminderDays: number | null;
   paidAt: Date | null;
+  source: 'orders' | 'pos';
+  changeGiven: number | null;
   customer?: {
     id: number;
     name: string;

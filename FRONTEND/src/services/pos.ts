@@ -1,5 +1,20 @@
 import { apiService } from './api';
 
+export type PosPaymentMethod = 'cash' | 'card' | 'transfer' | 'other';
+
+export interface PosPaymentLine {
+  method: PosPaymentMethod;
+  amount: number;
+}
+
+export interface SalesByMethod {
+  cash: number;
+  card: number;
+  transfer: number;
+  other: number;
+  total: number;
+}
+
 export interface CashSession {
   id: number;
   tenantId: number;
@@ -13,6 +28,7 @@ export interface CashSession {
   status: 'open' | 'closed';
   notes: string | null;
   user?: { id: number; username: string };
+  salesByMethod: SalesByMethod;
 }
 
 export interface PosSaleItem {
@@ -26,6 +42,8 @@ export interface PosSaleResult {
   id: number;
   orderNumber: string;
   totalAmount: number;
+  changeGiven: number | null;
+  payments: PosPaymentLine[];
 }
 
 interface Wrapped<T> { status: string; data: T }
@@ -37,6 +55,6 @@ export const posService = {
     (await apiService.post<Wrapped<CashSession>>('/pos/sessions', { openingAmount, notes })).data,
   closeSession: async (id: number, countedCash: number, notes?: string) =>
     (await apiService.patch<Wrapped<CashSession>>(`/pos/sessions/${id}/close`, { countedCash, notes })).data,
-  sale: async (items: PosSaleItem[], notes?: string) =>
-    (await apiService.post<Wrapped<PosSaleResult>>('/pos/sale', { items, notes })).data,
+  sale: async (items: PosSaleItem[], payments: PosPaymentLine[], cashReceived?: number, notes?: string) =>
+    (await apiService.post<Wrapped<PosSaleResult>>('/pos/sale', { items, payments, cashReceived, notes })).data,
 };

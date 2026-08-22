@@ -1,7 +1,7 @@
 # 🎯 Plan: Planes por Feature + Módulo POS
 
 **Fecha:** 2026-08-20 (actualizado 2026-08-21)
-**Estado:** Punto 2 completado (v1.14.0). POS Fase 1 completada (v1.14.1) — modelo de caja verificado en producción. POS Fase 2 completada (v1.14.2) — venta en efectivo + pantalla POS real, reusa `OrderService.createOrder()` (sin duplicar lógica de stock/IVA/cuota). Falta Fase 3 (pago mixto + vueltos + cierre de caja pulido) y Fase 4 (código de barras + offline reforzado).
+**Estado:** Punto 2 completado (v1.14.0). POS Fase 1 (v1.14.1) y Fase 2 (v1.14.2) completadas y verificadas en producción. POS Fase 3 completada (v1.14.3) — pago mixto, vueltos, cierre de caja con desglose real por método. Falta Fase 4 (código de barras + offline reforzado, opcional Fase 5 de ticket térmico).
 **Punto 3 (actualizaciones):** resuelto solo con entendimiento — ver nota al final. Hallazgo aparte: `UpdateNotification.tsx` existe pero está desconectado (no importado, SW no emite el mensaje) — pendiente opcional.
 
 ---
@@ -136,7 +136,7 @@ Toda `Order` creada desde el POS lleva `cashSessionId` (columna nueva en `orders
 | **Fase 0** | Feature-gating (Punto 2 completo) | — |
 | **Fase 1** ✅ | Modelo de caja (apertura/cierre) + endpoints, sin UI aún — probado con curl/Postman | Fase 0 |
 | **Fase 2** ✅ | Pantalla POS básica: buscar, carrito, cobrar solo en efectivo (sin vueltos aún), descuenta stock | Fase 1 |
-| **Fase 3** | Pago mixto + cálculo de vueltos + pulir cierre de caja (la Fase 2 ya incluyó una pantalla mínima de cierre con diferencia, para que el POS fuera usable de una vez) | Fase 2 |
+| **Fase 3** ✅ | Pago mixto + cálculo de vueltos + pulir cierre de caja (la Fase 2 ya incluyó una pantalla mínima de cierre con diferencia, para que el POS fuera usable de una vez) | Fase 2 |
 | **Fase 4** | Código de barras (foco persistente + Enter) + refuerzo offline específico del POS | Fase 3 |
 | **Fase 5** *(opcional, v2)* | Ticket térmico 80mm (print CSS o WebUSB ESC/POS) | Fase 4 |
 

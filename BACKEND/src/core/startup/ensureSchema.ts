@@ -20,6 +20,7 @@ export async function ensureSchema(): Promise<void> {
     { name: 'clientRef', spec: { type: DataType.STRING(64), allowNull: true } },
     { name: 'source', spec: { type: DataType.ENUM('orders', 'pos'), allowNull: false, defaultValue: 'orders' } },
     { name: 'cashSessionId', spec: { type: DataType.INTEGER, allowNull: true } },
+    { name: 'changeGiven', spec: { type: DataType.DECIMAL(12, 2), allowNull: true } },
   ].filter(c => !(c.name in orderColumns));
 
   for (const col of missing) {

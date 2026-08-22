@@ -17,6 +17,7 @@ import { createOrderSchema, updateOrderSchema, searchOrderSchema } from './order
 import { Op, UniqueConstraintError, literal, fn, col } from 'sequelize';
 import sequelize from '@/database';
 import { StockMovementService } from '@/modules/stock-movement/stock-movement.service';
+import { lineTotal, computeOrderTotal } from './order-totals';
 
 export class OrderService {
   private stockMovementService = new StockMovementService();
@@ -101,11 +102,7 @@ export class OrderService {
 
     // Calculate total amount — incluye IVA por línea, igual que la factura
     // que ve el cliente (antes se guardaba sin IVA y cartera/pagos quedaban cortos)
-    const lineTotal = (qty: number, price: number, taxRate: number) =>
-      Math.round(qty * price * (1 + (taxRate || 0) / 100) * 100) / 100;
-    const totalAmount = validatedData.items.reduce((sum, item) => {
-      return sum + lineTotal(item.quantity, item.unitPrice, item.taxRate);
-    }, 0);
+    const totalAmount = computeOrderTotal(validatedData.items);
 
     // Create order + items inside a transaction, retrying up to 3 times on duplicate order number
     for (let attempt = 0; attempt < 3; attempt++) {
@@ -118,6 +115,7 @@ export class OrderService {
           clientRef: validatedData.clientRef ?? null,
           source: validatedData.source,
           cashSessionId: validatedData.source === 'pos' ? validatedData.cashSessionId ?? null : null,
+          changeGiven: validatedData.source === 'pos' ? validatedData.changeGiven ?? null : null,
           customerId: validatedData.customerId,
           userId,
           totalAmount,
@@ -1119,6 +1117,8 @@ export class OrderService {
       paymentDueDate: order.paymentDueDate ?? null,
       reminderDays: order.reminderDays ?? null,
       paidAt: order.paidAt ?? null,
+      source: order.source ?? 'orders',
+      changeGiven: order.changeGiven != null ? Number(order.changeGiven) : null,
       ...(order.customer && {
         customer: {
           id: order.customer.id,
