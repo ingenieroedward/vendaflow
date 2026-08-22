@@ -1,7 +1,7 @@
 import React from 'react';
-import { Building2, TrendingUp, Users, AlertTriangle, ClipboardList, Activity } from 'lucide-react';
-import { TenantSummary, PlatformStats } from '../../services/tenantAdmin';
-import { daysUntil } from '../../utils/adminHelpers';
+import { Building2, TrendingUp, Users, AlertTriangle, ClipboardList, Activity, Inbox, Receipt, Wallet, CheckCircle2, ChevronRight } from 'lucide-react';
+import { TenantSummary, PlatformStats, TenantRequestItem, PlanPaymentItem, FinanceData } from '../../services/tenantAdmin';
+import { daysUntil, SectionKey } from '../../utils/adminHelpers';
 
 interface FunnelData {
   days: number;
@@ -15,7 +15,11 @@ const Dashboard: React.FC<{
   tenants: TenantSummary[];
   platform: PlatformStats | null;
   funnel: FunnelData | null;
-}> = ({ tenants, platform, funnel }) => {
+  requests: TenantRequestItem[];
+  payments: PlanPaymentItem[];
+  finance: FinanceData | null;
+  onNavigate: (section: SectionKey) => void;
+}> = ({ tenants, platform, funnel, requests, payments, finance, onNavigate }) => {
   const expiringTenants = tenants.filter(t => t.trialEndsAt && daysUntil(t.trialEndsAt) <= 7 && t.status === 'trial');
 
   const activos = tenants.filter(t => t.status === 'active').length;
@@ -70,8 +74,77 @@ const Dashboard: React.FC<{
     .slice(0, 5);
   const maxOrders = topTenants[0]?.usage?.ordersThisMonth ?? 1;
 
+  // "Para hoy" — todo lo que ya está cargado en memoria y espera una
+  // decisión, reunido en un solo lugar en vez de tener que entrar sección
+  // por sección a descubrirlo (los badges del sidebar ya lo anuncian, pero
+  // aquí es donde arranca el día).
+  const pendingRequests = requests.filter(r => r.status === 'pending');
+  const pendingPayments = payments.filter(p => p.status === 'pending');
+  const overdue = finance?.overdue ?? [];
+  const overdueAmount = overdue.reduce((s, t) => s + t.amount, 0);
+
+  const todoItems: Array<{ label: string; sub?: string; section: SectionKey; icon: React.ElementType; tone: 'amber' | 'red' }> = [];
+  if (pendingRequests.length > 0) {
+    todoItems.push({
+      label: `${pendingRequests.length} solicitud${pendingRequests.length > 1 ? 'es' : ''} de registro por revisar`,
+      section: 'bandeja', icon: Inbox, tone: 'amber',
+    });
+  }
+  if (pendingPayments.length > 0) {
+    todoItems.push({
+      label: `${pendingPayments.length} pago${pendingPayments.length > 1 ? 's' : ''} por aprobar`,
+      section: 'bandeja', icon: Receipt, tone: 'amber',
+    });
+  }
+  if (overdue.length > 0) {
+    todoItems.push({
+      label: `${overdue.length} tenant${overdue.length > 1 ? 's' : ''} moroso${overdue.length > 1 ? 's' : ''}`,
+      sub: `$${overdueAmount.toLocaleString('es-CO')} en riesgo`,
+      section: 'finanzas', icon: Wallet, tone: 'red',
+    });
+  }
+  if (expiringTenants.length > 0) {
+    todoItems.push({
+      label: `${expiringTenants.length} trial${expiringTenants.length > 1 ? 's' : ''} vence${expiringTenants.length > 1 ? 'n' : ''} en ≤7 días`,
+      section: 'tenants', icon: AlertTriangle, tone: 'amber',
+    });
+  }
+
   return (
     <>
+      {/* Para hoy */}
+      {todoItems.length > 0 ? (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="px-4 sm:px-5 py-3 border-b border-gray-100">
+            <h3 className="text-sm font-semibold text-gray-900">Para hoy</h3>
+          </div>
+          <ul className="divide-y divide-gray-100">
+            {todoItems.map(item => (
+              <li key={item.label}>
+                <button
+                  onClick={() => onNavigate(item.section)}
+                  className="w-full flex items-center gap-3 px-4 sm:px-5 py-3 text-left hover:bg-gray-50 transition-colors"
+                >
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${item.tone === 'red' ? 'bg-red-100' : 'bg-amber-100'}`}>
+                    <item.icon className={`w-4 h-4 ${item.tone === 'red' ? 'text-red-600' : 'text-amber-600'}`} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-800">{item.label}</p>
+                    {item.sub && <p className="text-xs text-gray-400">{item.sub}</p>}
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-gray-300 flex-shrink-0" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 px-4 sm:px-5 py-4 flex items-center gap-3">
+          <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />
+          <p className="text-sm text-gray-600">Nada pendiente por hoy — solicitudes, pagos y cartera al día.</p>
+        </div>
+      )}
+
       {/* KPIs de la plataforma */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {kpis.map(k => (
@@ -219,7 +292,7 @@ const Dashboard: React.FC<{
         </div>
       )}
 
-      {/* Trial expiry alerts */}
+      {/* Trial expiry alerts — detalle por tenant, complementa el resumen de "Para hoy" */}
       {expiringTenants.length > 0 && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
           <div className="flex items-start gap-2">

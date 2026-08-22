@@ -1,6 +1,11 @@
 // Constantes y helpers compartidos entre Superadmin.tsx y los modales —
 // centralizados aquí para que no queden copias divergentes en cada archivo.
 
+// Secciones del panel — único lugar donde se declara el set válido, para que
+// el shell y cualquier sección que necesite navegar (ej. la tarjeta "Para
+// hoy" del Dashboard) usen siempre las mismas claves.
+export type SectionKey = 'dashboard' | 'tenants' | 'bandeja' | 'finanzas' | 'auditoria' | 'configuracion';
+
 export const PLAN_LABELS: Record<string, string> = {
   trial: 'Trial',
   basic: 'Básico',

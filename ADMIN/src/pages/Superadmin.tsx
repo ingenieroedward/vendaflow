@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Building2, LogOut, X, Megaphone, LayoutDashboard, Inbox, Receipt, Bell, BellOff, Wallet, ScrollText } from 'lucide-react';
+import { Building2, LogOut, X, Megaphone, LayoutDashboard, Inbox, Wallet, ScrollText, Settings, Bell, BellOff } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import { tenantAdminService, TenantSummary, TenantRequestItem, PlanPaymentItem, FinanceData, AuditLogItem, PlatformSettings, PlatformStats } from '../services/tenantAdmin';
+import { SectionKey } from '../utils/adminHelpers';
 import BroadcastModal from '../components/BroadcastModal';
 import RegisterPaymentModal from '../components/RegisterPaymentModal';
 import Dashboard from './sections/Dashboard';
 import Tenants from './sections/Tenants';
-import Solicitudes from './sections/Solicitudes';
-import Pagos from './sections/Pagos';
+import Bandeja from './sections/Bandeja';
+import Configuracion from './sections/Configuracion';
 import Finanzas from './sections/Finanzas';
 import Auditoria from './sections/Auditoria';
 
@@ -27,7 +28,7 @@ const Superadmin: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showBroadcast, setShowBroadcast] = useState(false);
   const [broadcastOk, setBroadcastOk] = useState<string | null>(null);
-  const [section, setSection] = useState<'dashboard' | 'tenants' | 'solicitudes' | 'pagos' | 'finanzas' | 'auditoria'>('dashboard');
+  const [section, setSection] = useState<SectionKey>('dashboard');
   const [finance, setFinance] = useState<FinanceData | null>(null);
   const [payTenant, setPayTenant] = useState<TenantSummary | null>(null);
   const [auditLogs, setAuditLogs] = useState<AuditLogItem[]>([]);
@@ -68,6 +69,7 @@ const Superadmin: React.FC = () => {
 
   const pendingRequests = requests.filter(r => r.status === 'pending');
   const pendingPayments = payments.filter(p => p.status === 'pending');
+  const bandejaCount = pendingRequests.length + pendingPayments.length;
 
   const navCls = (active: boolean) =>
     `flex items-center gap-2.5 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
@@ -91,21 +93,15 @@ const Superadmin: React.FC = () => {
           <button onClick={() => setSection('dashboard')} className={navCls(section === 'dashboard')}>
             <LayoutDashboard className="w-4 h-4 flex-shrink-0" /> Dashboard
           </button>
+          <button onClick={() => setSection('bandeja')} className={navCls(section === 'bandeja')}>
+            <Inbox className="w-4 h-4 flex-shrink-0" /> Bandeja
+            {bandejaCount > 0 && (
+              <span className="ml-auto text-xs bg-amber-500 text-white px-1.5 py-0.5 rounded-full">{bandejaCount}</span>
+            )}
+          </button>
           <button onClick={() => setSection('tenants')} className={navCls(section === 'tenants')}>
             <Building2 className="w-4 h-4 flex-shrink-0" /> Tenants
             <span className="ml-auto text-xs bg-white/10 px-1.5 py-0.5 rounded-full">{tenants.length}</span>
-          </button>
-          <button onClick={() => setSection('solicitudes')} className={navCls(section === 'solicitudes')}>
-            <Inbox className="w-4 h-4 flex-shrink-0" /> Solicitudes
-            {pendingRequests.length > 0 && (
-              <span className="ml-auto text-xs bg-amber-500 text-white px-1.5 py-0.5 rounded-full">{pendingRequests.length}</span>
-            )}
-          </button>
-          <button onClick={() => setSection('pagos')} className={navCls(section === 'pagos')}>
-            <Receipt className="w-4 h-4 flex-shrink-0" /> Pagos
-            {pendingPayments.length > 0 && (
-              <span className="ml-auto text-xs bg-amber-500 text-white px-1.5 py-0.5 rounded-full">{pendingPayments.length}</span>
-            )}
           </button>
           <button onClick={() => setSection('finanzas')} className={navCls(section === 'finanzas')}>
             <Wallet className="w-4 h-4 flex-shrink-0" /> Finanzas
@@ -116,9 +112,14 @@ const Superadmin: React.FC = () => {
           <button onClick={() => setSection('auditoria')} className={navCls(section === 'auditoria')}>
             <ScrollText className="w-4 h-4 flex-shrink-0" /> Auditoría
           </button>
-          <button onClick={() => setShowBroadcast(true)} className={navCls(false)}>
-            <Megaphone className="w-4 h-4 flex-shrink-0" /> Anuncio
+          <button onClick={() => setSection('configuracion')} className={navCls(section === 'configuracion')}>
+            <Settings className="w-4 h-4 flex-shrink-0" /> Configuración
           </button>
+          <div className="pt-2 mt-2 border-t border-white/10">
+            <button onClick={() => setShowBroadcast(true)} className={navCls(false)}>
+              <Megaphone className="w-4 h-4 flex-shrink-0" /> Anuncio
+            </button>
+          </div>
         </nav>
         <div className="px-3 py-4 border-t border-white/10 flex-shrink-0">
           {pushSupported && (
@@ -150,20 +151,19 @@ const Superadmin: React.FC = () => {
           <button onClick={() => setSection('dashboard')} className={`p-2 rounded-lg ${section === 'dashboard' ? 'bg-white/10 text-white' : 'text-slate-300'}`}>
             <LayoutDashboard className="w-4 h-4" />
           </button>
+          <button onClick={() => setSection('bandeja')} className={`relative p-2 rounded-lg ${section === 'bandeja' ? 'bg-white/10 text-white' : 'text-slate-300'}`}>
+            <Inbox className="w-4 h-4" />
+            {bandejaCount > 0 && <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-amber-500 rounded-full" />}
+          </button>
           <button onClick={() => setSection('tenants')} className={`p-2 rounded-lg ${section === 'tenants' ? 'bg-white/10 text-white' : 'text-slate-300'}`}>
             <Building2 className="w-4 h-4" />
-          </button>
-          <button onClick={() => setSection('solicitudes')} className={`relative p-2 rounded-lg ${section === 'solicitudes' ? 'bg-white/10 text-white' : 'text-slate-300'}`}>
-            <Inbox className="w-4 h-4" />
-            {pendingRequests.length > 0 && <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-amber-500 rounded-full" />}
-          </button>
-          <button onClick={() => setSection('pagos')} className={`relative p-2 rounded-lg ${section === 'pagos' ? 'bg-white/10 text-white' : 'text-slate-300'}`}>
-            <Receipt className="w-4 h-4" />
-            {pendingPayments.length > 0 && <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-amber-500 rounded-full" />}
           </button>
           <button onClick={() => setSection('finanzas')} className={`relative p-2 rounded-lg ${section === 'finanzas' ? 'bg-white/10 text-white' : 'text-slate-300'}`}>
             <Wallet className="w-5 h-5" />
             {finance && finance.overdue.length > 0 && <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full" />}
+          </button>
+          <button onClick={() => setSection('configuracion')} className={`p-2 rounded-lg ${section === 'configuracion' ? 'bg-white/10 text-white' : 'text-slate-300'}`}>
+            <Settings className="w-4 h-4" />
           </button>
           {pushSupported && (
             <button onClick={togglePush} disabled={pushLoading} className={`p-2 rounded-lg ${pushSubscribed ? 'text-green-400' : 'text-slate-300'}`}>
@@ -198,7 +198,15 @@ const Superadmin: React.FC = () => {
         )}
 
         {section === 'dashboard' && (
-          <Dashboard tenants={tenants} platform={platform} funnel={funnel} />
+          <Dashboard
+            tenants={tenants}
+            platform={platform}
+            funnel={funnel}
+            requests={requests}
+            payments={payments}
+            finance={finance}
+            onNavigate={setSection}
+          />
         )}
 
         {section === 'tenants' && (
@@ -212,25 +220,23 @@ const Superadmin: React.FC = () => {
           />
         )}
 
-        {section === 'solicitudes' && (
-          <Solicitudes
+        {section === 'bandeja' && (
+          <Bandeja
             requests={requests}
             onRequestsChange={setRequests}
+            payments={payments}
+            onPaymentsChange={setPayments}
             onReload={load}
             onError={setError}
           />
         )}
 
-        {section === 'pagos' && (
-          <Pagos
+        {section === 'configuracion' && (
+          <Configuracion
             payCfg={payCfg}
             onPayCfgChange={setPayCfg}
-            payments={payments}
-            onPaymentsChange={setPayments}
-            onReload={load}
             totpEnabled={totpEnabled}
             onTotpEnabledChange={setTotpEnabled}
-            onError={setError}
           />
         )}
       </div>
