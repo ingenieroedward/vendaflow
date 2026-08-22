@@ -5,6 +5,7 @@ import Layout from '../components/layout/Layout';
 import Login from '../pages/Login';
 import Registro from '../pages/Registro';
 import Landing from '../pages/Landing';
+import FeatureGate from '../components/ui/FeatureGate';
 import { detectTenantSlug } from '../services/tenant';
 const Home = React.lazy(() => import('../pages/Home'));
 const ProductDetail = React.lazy(() => import('../pages/ProductDetail'));
@@ -23,6 +24,7 @@ const Prices = React.lazy(() => import('../pages/Prices'));
 const Customers = React.lazy(() => import('../pages/Customers'));
 const Reports = React.lazy(() => import('../pages/Reports'));
 const Inventory = React.lazy(() => import('../pages/Inventory'));
+const Pos = React.lazy(() => import('../pages/Pos'));
 const PurchaseOrders = React.lazy(() => import('../pages/PurchaseOrders'));
 const PurchaseOrderNew = React.lazy(() => import('../pages/PurchaseOrderNew'));
 const PurchaseOrderDetail = React.lazy(() => import('../pages/PurchaseOrderDetail'));
@@ -282,6 +284,18 @@ const InnerRoutes: React.FC = () => (
                 <UserEdit />
               </AdminRoute>
             } 
+          />
+
+          {/* POS - seller y admin, gateado por plan */}
+          <Route
+            path="/pos"
+            element={
+              <SellerRoute>
+                <FeatureGate feature="pos">
+                  <Pos />
+                </FeatureGate>
+              </SellerRoute>
+            }
           />
 
           {/* Inventory & Purchase Orders - seller y admin */}

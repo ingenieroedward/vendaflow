@@ -116,6 +116,8 @@ export class OrderService {
           tenantId,
           orderNumber,
           clientRef: validatedData.clientRef ?? null,
+          source: validatedData.source,
+          cashSessionId: validatedData.source === 'pos' ? validatedData.cashSessionId ?? null : null,
           customerId: validatedData.customerId,
           userId,
           totalAmount,
@@ -152,7 +154,7 @@ export class OrderService {
               referenceId: order.id,
               referenceType: 'order',
               userId,
-              notes: `Orden de venta ${order.orderNumber}`,
+              notes: `${validatedData.source === 'pos' ? 'Venta POS' : 'Orden de venta'} ${order.orderNumber}`,
               transaction: t,
             });
           }

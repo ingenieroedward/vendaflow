@@ -10,5 +10,6 @@ router.get('/sessions/current', isAuth, isSeller, ctrl.getCurrentSession);
 router.get('/sessions', isAuth, isSeller, ctrl.listSessions);
 router.post('/sessions', isAuth, isSeller, ctrl.openSession);
 router.patch('/sessions/:id/close', isAuth, isSeller, ctrl.closeSession);
+router.post('/sale', isAuth, isSeller, ctrl.sale);
 
 export default router;

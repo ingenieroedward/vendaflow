@@ -25,4 +25,9 @@ export class PosController {
     const sessions = await posService.listSessions(req.user!.tenantId);
     res.json({ status: 'success', data: sessions });
   });
+
+  sale = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const order = await posService.sale(req.user!.tenantId, req.user!.id, req.body);
+    res.status(201).json({ status: 'success', data: order });
+  });
 }

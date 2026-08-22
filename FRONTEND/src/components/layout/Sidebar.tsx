@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Package, ClipboardList, Users, LogOut, User, Shield, Truck, Tag, DollarSign, UserCheck, BarChart2, Warehouse, ShoppingCart, Settings, Bell, BellOff, AlertTriangle, KeyRound } from 'lucide-react';
+import { Package, ClipboardList, Users, LogOut, User, Shield, Truck, Tag, DollarSign, UserCheck, BarChart2, Warehouse, ShoppingCart, Settings, Bell, BellOff, AlertTriangle, KeyRound, Store } from 'lucide-react';
+import { useFeature } from '../../hooks/useFeature';
 import ChangePasswordModal from '../features/ChangePasswordModal';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
@@ -12,6 +13,7 @@ interface NavItem {
   to: string;
   icon: React.FC<{ className?: string }>;
   roles: string[];
+  feature?: string; // si se define, solo se muestra si el tenant tiene esa feature del plan
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -21,6 +23,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Categorías', to: '/categories', icon: Tag, roles: ['buyer', 'admin'] },
   { label: 'Clientes', to: '/customers', icon: UserCheck, roles: ['seller', 'admin'] },
   { label: 'Órdenes', to: '/orders', icon: ClipboardList, roles: ['seller', 'admin'] },
+  { label: 'Punto de venta', to: '/pos', icon: Store, roles: ['seller', 'admin'], feature: 'pos' },
   { label: 'Inventario', to: '/inventory', icon: Warehouse, roles: ['seller', 'admin'] },
   { label: 'Órdenes Compra', to: '/purchase-orders', icon: ShoppingCart, roles: ['seller', 'admin'] },
   { label: 'Informes', to: '/reports', icon: BarChart2, roles: ['seller', 'admin'] },
@@ -53,8 +56,9 @@ const Sidebar = () => {
     navigate('/login');
   };
 
+  const hasPos = useFeature('pos');
   const visibleItems = NAV_ITEMS.filter(
-    (item) => user?.role && item.roles.includes(user.role)
+    (item) => user?.role && item.roles.includes(user.role) && (item.feature !== 'pos' || hasPos)
   );
 
   const isActive = (to: string) => {

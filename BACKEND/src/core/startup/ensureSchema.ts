@@ -18,6 +18,8 @@ export async function ensureSchema(): Promise<void> {
     { name: 'reminderDays', spec: { type: DataType.INTEGER, allowNull: true } },
     { name: 'paidAt', spec: { type: DataType.DATE, allowNull: true } },
     { name: 'clientRef', spec: { type: DataType.STRING(64), allowNull: true } },
+    { name: 'source', spec: { type: DataType.ENUM('orders', 'pos'), allowNull: false, defaultValue: 'orders' } },
+    { name: 'cashSessionId', spec: { type: DataType.INTEGER, allowNull: true } },
   ].filter(c => !(c.name in orderColumns));
 
   for (const col of missing) {

@@ -1,10 +1,55 @@
 import { CashSession } from './cash-session.model';
 import { User } from '../user/user.model';
+import { Customer, CustomerAttributes } from '../customer/customer.model';
+import { OrderService } from '../order/order.service';
 import { NotFoundError, ConflictError } from '@/core/errors/AppError';
 import { validateSchema } from '@/core/utils/validation';
-import { openSessionSchema, closeSessionSchema, OpenSessionDto, CloseSessionDto } from './pos.dto';
+import { openSessionSchema, closeSessionSchema, posSaleSchema, OpenSessionDto, CloseSessionDto, PosSaleDto } from './pos.dto';
+
+const DEFAULT_CUSTOMER_NAME = 'Consumidor final';
 
 export class PosService {
+  private orderService = new OrderService();
+
+  /**
+   * Venta de mostrador: exige caja abierta, reusa OrderService.createOrder
+   * (mismo motor de stock/IVA/cuota/idempotencia que Orders) marcada
+   * source='pos' + cashSessionId. Sin customerId → "Consumidor final"
+   * (se crea una sola vez por tenant, findOrCreate).
+   */
+  async sale(tenantId: number, userId: number, data: PosSaleDto) {
+    const validated = validateSchema(posSaleSchema, data);
+
+    const session = await CashSession.findOne({ where: { tenantId, status: 'open' } });
+    if (!session) throw new ConflictError('Abre la caja antes de vender');
+
+    let customerId = validated.customerId;
+    if (!customerId) {
+      const [customer] = await Customer.findOrCreate({
+        where: { tenantId, name: DEFAULT_CUSTOMER_NAME },
+        defaults: { tenantId, name: DEFAULT_CUSTOMER_NAME } as CustomerAttributes,
+      });
+      customerId = customer.id;
+    } else {
+      const customer = await Customer.findOne({ where: { id: customerId, tenantId } });
+      if (!customer) throw new NotFoundError('Cliente no encontrado');
+    }
+
+    return this.orderService.createOrder(
+      {
+        customerId,
+        items: validated.items,
+        status: 'completed',
+        notes: validated.notes,
+        paymentType: 'cash',
+        source: 'pos',
+        cashSessionId: session.id,
+      } as Parameters<OrderService['createOrder']>[0],
+      userId,
+      tenantId,
+    );
+  }
+
   // v1: una sola caja por tenant a la vez (sin multi-caja simultánea —
   // ver alcance en PLAN-FEATURES-Y-POS.md). Cualquier vendedor puede operar
   // el turno que otro dejó abierto (relevo de cajero).

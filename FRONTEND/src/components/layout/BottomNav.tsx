@@ -1,19 +1,22 @@
 import { useState } from 'react';
-import { Package, ClipboardList, Users, DollarSign, Truck, Tag, UserCheck, BarChart2, Warehouse, ShoppingCart, MoreHorizontal, X, Settings } from 'lucide-react';
+import { Package, ClipboardList, Users, DollarSign, Truck, Tag, UserCheck, BarChart2, Warehouse, ShoppingCart, MoreHorizontal, X, Settings, Store } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
+import { useFeature } from '../../hooks/useFeature';
 
 interface NavItem {
   label: string;
   to: string;
   icon: React.FC<{ className?: string }>;
   roles: string[];
+  feature?: string;
 }
 
 const NAV_ITEMS: NavItem[] = [
   { label: 'Productos',   to: '/',                icon: Package,       roles: ['buyer', 'seller', 'admin'] },
   { label: 'Clientes',    to: '/customers',       icon: UserCheck,     roles: ['seller', 'admin'] },
   { label: 'Órdenes',     to: '/orders',          icon: ClipboardList, roles: ['seller', 'admin'] },
+  { label: 'Punto de venta', to: '/pos',          icon: Store,         roles: ['seller', 'admin'], feature: 'pos' },
   { label: 'Inventario',  to: '/inventory',       icon: Warehouse,     roles: ['seller', 'admin'] },
   { label: 'Precios',     to: '/prices',          icon: DollarSign,    roles: ['buyer', 'admin'] },
   { label: 'Proveedores', to: '/suppliers',       icon: Truck,         roles: ['buyer', 'admin'] },
@@ -32,8 +35,9 @@ const BottomNav = () => {
   const location = useLocation();
   const [showMore, setShowMore] = useState(false);
 
+  const hasPos = useFeature('pos');
   const allItems = NAV_ITEMS.filter(
-    (item) => user?.role && item.roles.includes(user.role)
+    (item) => user?.role && item.roles.includes(user.role) && (item.feature !== 'pos' || hasPos)
   );
 
   const visibleItems = allItems.length > MAX_VISIBLE ? allItems.slice(0, MAX_VISIBLE - 1) : allItems;

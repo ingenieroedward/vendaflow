@@ -2,17 +2,28 @@ jest.mock('../cash-session.model', () => ({
   CashSession: { findOne: jest.fn(), create: jest.fn(), findAll: jest.fn() },
 }));
 jest.mock('@/modules/user/user.model', () => ({ User: {} }));
+jest.mock('../../customer/customer.model', () => ({ Customer: { findOrCreate: jest.fn(), findOne: jest.fn() } }));
+const mockCreateOrder = jest.fn();
+jest.mock('../../order/order.service', () => ({
+  OrderService: jest.fn().mockImplementation(() => ({ createOrder: mockCreateOrder })),
+}));
 
 import { PosService } from '../pos.service';
 import { CashSession } from '../cash-session.model';
+import { Customer } from '../../customer/customer.model';
 
 const mockFindOne = CashSession.findOne as jest.Mock;
 const mockCreate = CashSession.create as jest.Mock;
+const mockCustomerFindOrCreate = Customer.findOrCreate as jest.Mock;
+const mockCustomerFindOne = Customer.findOne as jest.Mock;
 const service = new PosService();
 
 beforeEach(() => {
   mockFindOne.mockReset();
   mockCreate.mockReset();
+  mockCustomerFindOrCreate.mockReset();
+  mockCustomerFindOne.mockReset();
+  mockCreateOrder.mockReset();
 });
 
 describe('openSession', () => {
@@ -81,5 +92,55 @@ describe('closeSession', () => {
     expect(update).toHaveBeenCalledWith(expect.objectContaining({
       notes: 'apertura normal | cierre sin novedad',
     }));
+  });
+});
+
+describe('sale', () => {
+  const items = [{ productId: 1, quantity: 2, unitPrice: 5000, taxRate: 19 }];
+
+  it('rechaza vender sin caja abierta', async () => {
+    mockFindOne.mockResolvedValueOnce(null);
+    await expect(service.sale(1, 10, { items })).rejects.toThrow(/abre la caja/i);
+    expect(mockCreateOrder).not.toHaveBeenCalled();
+  });
+
+  it('sin customerId usa (o crea) el cliente "Consumidor final" del tenant', async () => {
+    mockFindOne.mockResolvedValueOnce({ id: 5, status: 'open' });
+    mockCustomerFindOrCreate.mockResolvedValueOnce([{ id: 99, name: 'Consumidor final' }, true]);
+    mockCreateOrder.mockResolvedValueOnce({ id: 1, orderNumber: 'ORD-0001' });
+
+    await service.sale(1, 10, { items });
+
+    expect(mockCustomerFindOrCreate).toHaveBeenCalledWith(expect.objectContaining({
+      where: { tenantId: 1, name: 'Consumidor final' },
+    }));
+    expect(mockCreateOrder).toHaveBeenCalledWith(
+      expect.objectContaining({
+        customerId: 99, source: 'pos', cashSessionId: 5,
+        paymentType: 'cash', status: 'completed',
+      }),
+      10, 1,
+    );
+  });
+
+  it('con customerId explícito, valida que pertenezca al tenant', async () => {
+    mockFindOne.mockResolvedValueOnce({ id: 5, status: 'open' });
+    mockCustomerFindOne.mockResolvedValueOnce(null);
+
+    await expect(service.sale(1, 10, { customerId: 42, items })).rejects.toThrow();
+    expect(mockCreateOrder).not.toHaveBeenCalled();
+  });
+
+  it('con customerId válido, lo usa directamente (no crea Consumidor final)', async () => {
+    mockFindOne.mockResolvedValueOnce({ id: 5, status: 'open' });
+    mockCustomerFindOne.mockResolvedValueOnce({ id: 42, tenantId: 1 });
+    mockCreateOrder.mockResolvedValueOnce({ id: 2, orderNumber: 'ORD-0002' });
+
+    await service.sale(1, 10, { customerId: 42, items });
+
+    expect(mockCustomerFindOrCreate).not.toHaveBeenCalled();
+    expect(mockCreateOrder).toHaveBeenCalledWith(
+      expect.objectContaining({ customerId: 42 }), 10, 1,
+    );
   });
 });

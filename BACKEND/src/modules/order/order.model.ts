@@ -20,6 +20,8 @@ export interface OrderAttributes {
   tenantId: number;
   orderNumber: string;
   clientRef?: string | null;
+  source: 'orders' | 'pos'; // origen de la venta — Orders normal o mostrador POS
+  cashSessionId: number | null; // turno de caja del POS que la generó (null si source='orders')
   customerId: number;
   userId: number;
   totalAmount: number;
@@ -65,6 +67,12 @@ export class Order extends Model<OrderAttributes, OrderCreationAttributes> {
   // el mismo ref devuelven la misma orden (evita duplicados al reintentar sync)
   @Column({ type: DataType.STRING(64), allowNull: true })
   clientRef!: string | null;
+
+  @Column({ type: DataType.ENUM('orders', 'pos'), allowNull: false, defaultValue: 'orders' })
+  source!: 'orders' | 'pos';
+
+  @Column({ type: DataType.INTEGER, allowNull: true })
+  cashSessionId!: number | null;
 
   @ForeignKey(() => Customer)
   @Column({
