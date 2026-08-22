@@ -8,7 +8,7 @@ import { APP_VERSION } from '@/config/version';
 import { errorHandler, notFoundHandler } from '@/core/middlewares/errorHandler';
 import receiptRoutes from '@/modules/tenant/receipt.routes';
 import { httpLogger, requestLogger, errorLogger } from '@/core/middlewares/logger';
-import { isAuth } from '@/core/middlewares/auth';
+import { isAuth, requireFeature } from '@/core/middlewares/auth';
 import { tenantScope } from '@/core/middlewares/tenantScope';
 
 // Import routes
@@ -20,6 +20,7 @@ import supplierRoutes from '@/modules/supplier/supplier.routes';
 import priceRoutes from '@/modules/price/price.routes';
 import customerRoutes from '@/modules/customer/customer.routes';
 import orderRoutes from '@/modules/order/order.routes';
+import posRoutes from '@/modules/pos/pos.routes';
 import pushRoutes from '@/modules/push/push.routes';
 import purchaseOrderRoutes from '@/modules/purchase-order/purchase-order.routes';
 import stockMovementRoutes from '@/modules/stock-movement/stock-movement.routes';
@@ -120,6 +121,7 @@ app.use('/api/suppliers', tenantGuard, supplierRoutes);
 app.use('/api/prices', tenantGuard, priceRoutes);
 app.use('/api/customers', tenantGuard, customerRoutes);
 app.use('/api/orders', tenantGuard, orderRoutes);
+app.use('/api/pos', tenantGuard, requireFeature('pos'), posRoutes);
 app.use('/api/purchase-orders', tenantGuard, purchaseOrderRoutes);
 app.use('/api/stock-movements', tenantGuard, stockMovementRoutes);
 app.use('/api/push', pushRoutes);

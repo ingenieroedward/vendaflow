@@ -1,7 +1,7 @@
 # 🎯 Plan: Planes por Feature + Módulo POS
 
 **Fecha:** 2026-08-20 (actualizado 2026-08-21)
-**Estado:** Punto 2 completado y desplegado (v1.14.0). Punto 1 (POS) próximo, por fases.
+**Estado:** Punto 2 completado (v1.14.0). Punto 1 (POS) Fase 1 completada (v1.14.1) — modelo de caja + endpoints, probado con Jest (8 tests) y verificado en producción con curl. Falta Fase 2 (pantalla POS + venta en efectivo).
 **Punto 3 (actualizaciones):** resuelto solo con entendimiento — ver nota al final. Hallazgo aparte: `UpdateNotification.tsx` existe pero está desconectado (no importado, SW no emite el mensaje) — pendiente opcional.
 
 ---
@@ -134,7 +134,7 @@ Toda `Order` creada desde el POS lleva `cashSessionId` (columna nueva en `orders
 | Fase | Contenido | Depende de |
 |---|---|---|
 | **Fase 0** | Feature-gating (Punto 2 completo) | — |
-| **Fase 1** | Modelo de caja (apertura/cierre) + endpoints, sin UI aún — probado con curl/Postman | Fase 0 |
+| **Fase 1** ✅ | Modelo de caja (apertura/cierre) + endpoints, sin UI aún — probado con curl/Postman | Fase 0 |
 | **Fase 2** | Pantalla POS básica: buscar, carrito, cobrar solo en efectivo (sin vueltos aún), descuenta stock | Fase 1 |
 | **Fase 3** | Pago mixto + cálculo de vueltos + pantalla de cierre de caja con diferencia | Fase 2 |
 | **Fase 4** | Código de barras (foco persistente + Enter) + refuerzo offline específico del POS | Fase 3 |

@@ -270,6 +270,8 @@ Ver plan completo en `PLAN-FEATURES-Y-POS.md` — este es el Punto 2 (base para 
 - Features actuales: `pos` (trial y ↑), `custom_branding` (pro ↑), `multi_warehouse`/`api_access` (enterprise) — ninguna tiene UI/rutas reales aún, solo el gating listo para usarse
 - Nota aparte hallada al revisar: `FRONTEND/src/components/ui/UpdateNotification.tsx` existe pero está desconectado (no se importa, y el Service Worker no emite `UPDATE_AVAILABLE`) — pendiente si se quiere activar el aviso de "nueva versión disponible"
 
+**POS — Fase 1 (v1.14.1)**: módulo `BACKEND/src/modules/pos/` — `CashSession` (tabla nueva `cash_register_sessions`, la crea `sync`) con turno de caja: `openingAmount` declarado al abrir, `countedCash`/`expectedCash`/`difference` al cerrar. v1 es **una sola caja por tenant a la vez** (sin multi-caja simultánea — cualquier vendedor puede operar el turno abierto, es relevo de cajero, no error). `expectedCash` en Fase 1 = solo la base inicial (sin ventas integradas todavía; Fase 3 sumará las ventas en efectivo del turno). Rutas `/api/pos/sessions*` (`isSeller`) montadas en `app.ts` tras `tenantGuard` + `requireFeature('pos')` — primer uso real del feature-gating. Sin UI todavía (llega en Fase 2 junto con el endpoint de venta)
+
 ## INVENTARIO Y KARDEX (ago 2026)
 
 - **DECIMAL como número**: `dialectOptions: { decimalNumbers: true }` en `database/index.ts` — sin esto MySQL devuelve DECIMAL como string y las sumas concatenan texto (bug real: recibir compra dejaba stock "-1620"). `createMovement` además valida/coacciona `quantity`
