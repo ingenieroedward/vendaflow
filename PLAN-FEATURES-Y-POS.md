@@ -1,7 +1,7 @@
 # 🎯 Plan: Planes por Feature + Módulo POS
 
 **Fecha:** 2026-08-20 (actualizado 2026-08-21)
-**Estado:** Punto 2 completado (v1.14.0). POS Fase 1 (v1.14.1) y Fase 2 (v1.14.2) completadas y verificadas en producción. POS Fase 3 completada (v1.14.3) — pago mixto, vueltos, cierre de caja con desglose real por método. Falta Fase 4 (código de barras + offline reforzado, opcional Fase 5 de ticket térmico).
+**Estado:** Punto 2 completado (v1.14.0). POS Fases 1-3 completadas y verificadas en producción (v1.14.1-1.14.3). **Fase 4 parcial (v1.14.4)**: código de barras ✅ completado; offline reforzado ⏸️ deliberadamente diferido (ver nota abajo — no es deuda olvidada, es una decisión). Queda pendiente: offline reforzado (alcance propio) y la Fase 5 opcional de ticket térmico.
 **Punto 3 (actualizaciones):** resuelto solo con entendimiento — ver nota al final. Hallazgo aparte: `UpdateNotification.tsx` existe pero está desconectado (no importado, SW no emite el mensaje) — pendiente opcional.
 
 ---
@@ -137,7 +137,7 @@ Toda `Order` creada desde el POS lleva `cashSessionId` (columna nueva en `orders
 | **Fase 1** ✅ | Modelo de caja (apertura/cierre) + endpoints, sin UI aún — probado con curl/Postman | Fase 0 |
 | **Fase 2** ✅ | Pantalla POS básica: buscar, carrito, cobrar solo en efectivo (sin vueltos aún), descuenta stock | Fase 1 |
 | **Fase 3** ✅ | Pago mixto + cálculo de vueltos + pulir cierre de caja (la Fase 2 ya incluyó una pantalla mínima de cierre con diferencia, para que el POS fuera usable de una vez) | Fase 2 |
-| **Fase 4** | Código de barras (foco persistente + Enter) + refuerzo offline específico del POS | Fase 3 |
+| **Fase 4** | Código de barras (foco persistente + Enter) ✅ · Refuerzo offline específico del POS ⏸️ diferido | Fase 3 |
 | **Fase 5** *(opcional, v2)* | Ticket térmico 80mm (print CSS o WebUSB ESC/POS) | Fase 4 |
 
 ### Archivos nuevos esperados
@@ -158,10 +158,20 @@ FRONTEND/src/store/posStore.ts
 - Fase 1: no se puede vender por POS sin sesión abierta; cerrar calcula bien `expectedCash` con ventas mixtas de prueba
 - Fase 2: venta por POS descuenta stock igual que Orders (mismo kardex, mismo `StockMovementService`)
 - Fase 3: pago mixto suma exacto al total; vuelto se calcula solo cuando hay componente en efectivo
-- Fase 4: escanear un código dispara agregar al carrito sin clic; el buscador recupera el foco tras cada acción
+- Fase 4: escanear un código dispara agregar al carrito sin clic; el buscador recupera el foco tras cada acción — **hecho** (v1.14.4)
 - Todas las fases: tests backend nuevos + `npm test` completo (backend y frontend) en verde antes de cada deploy, como siempre
 
 **Esfuerzo estimado:** varios días reales repartidos en las fases — no es un módulo chico, es el más grande construido hasta ahora en Merco.
+
+### Pendiente: offline reforzado del POS (Fase 4b, diseño propio cuando se retome)
+
+Diferido a propósito el 21-ago-2026 — no es un olvido. Razón: el mecanismo offline de Orders (`orderStore.ts` + `LocalOrder` en IndexedDB + `clientRef` + `syncPendingOrders` + `navigator.locks`) está construido alrededor de la forma de `CreateOrderRequest` (customerId, paymentType crédito/contado, items). El POS tiene forma distinta y más estado a reconciliar: sesión de caja abierta (no se puede validar sin servidor), pagos mixtos por método, vuelto. Replicarlo de prisa arriesga vender sin sesión válida o duplicar cobros al reconectar — un bug de ese tipo en dinero real es peor que no tener offline.
+
+Cuando se retome, el diseño mínimo razonable es:
+1. Cachear localmente si hay una caja abierta (con expiración corta) para permitir vender offline sin validación de servidor.
+2. `clientRef` en la venta del POS igual que Orders (ya existe el campo en el backend vía `source`/`cashSessionId` — falta el equivalente de idempotencia para `/pos/sale`).
+3. Cola local con la forma real de `PosSaleDto` (items + payments + cashReceived), no reusar `LocalOrder`.
+4. Sync al reconectar debe reconciliar contra la sesión de caja que esté abierta en ese momento (podría haber cambiado si otro cajero cerró/abrió mientras tanto).
 
 ---
 

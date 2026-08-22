@@ -18,9 +18,17 @@ interface CartLine {
   stock: number;
 }
 
-// Punto de venta de mostrador — Fase 3: pago mixto (efectivo/tarjeta/
-// transferencia) con cálculo de vueltos, y cierre de caja con desglose real
-// de ventas por método (Fases 1-2 sentaron caja + venta simple en efectivo).
+// Punto de venta de mostrador — Fase 4: lector de código de barras (el
+// buscador recupera el foco solas veces que sea necesario; Enter agrega
+// directo si hay un match exacto de código o un único resultado). Fases
+// 1-3: caja, venta simple, pago mixto con vueltos y cierre real.
+//
+// Nota de alcance (ver PLAN-FEATURES-Y-POS.md): el refuerzo offline de la
+// Fase 4 queda deliberadamente fuera de esta entrega — requiere replicar la
+// maquinaria de sincronización de Orders (IndexedDB, clientRef, cola) para
+// un endpoint con forma distinta (sesión de caja, pagos mixtos, vueltos), y
+// apurarlo arriesga bugs de doble cobro en un sistema que maneja dinero. Se
+// deja como tarea propia, con su propio diseño, en vez de simularla a medias.
 const Pos: React.FC = () => {
   const { products, getProducts } = useProductStore();
   const { addNotification } = useUIStore();
@@ -50,6 +58,10 @@ const Pos: React.FC = () => {
   }, [getProducts]);
 
   useEffect(() => { if (session) searchRef.current?.focus(); }, [session]);
+  // Recuperar el foco cuando se cierran los modales — un lector de código de
+  // barras "escribe" en el input que tenga el foco; si se pierde, el
+  // siguiente escaneo no llega a ningún lado.
+  useEffect(() => { if (!paymentModalOpen && !closeModalOpen) searchRef.current?.focus(); }, [paymentModalOpen, closeModalOpen]);
 
   const results = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -58,6 +70,19 @@ const Pos: React.FC = () => {
       .filter(p => p.name.toLowerCase().includes(q) || p.code.toLowerCase().includes(q))
       .slice(0, 30);
   }, [search, products]);
+
+  // Un lector de código de barras es solo un teclado rápido que termina con
+  // Enter. Si el texto coincide EXACTO con un código, agrega directo sin
+  // esperar a que el cajero haga clic; con un único resultado por nombre
+  // también (atajo cómodo); con varios, deja que elija visualmente.
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== 'Enter') return;
+    const q = search.trim().toLowerCase();
+    if (!q) return;
+    const exact = products.find(p => p.code.toLowerCase() === q);
+    if (exact) { e.preventDefault(); addToCart(exact); return; }
+    if (results.length === 1) { e.preventDefault(); addToCart(results[0]); }
+  };
 
   const total = useMemo(() => cart.reduce((s, l) => s + l.unitPrice * l.quantity, 0), [cart]);
 
@@ -76,6 +101,7 @@ const Pos: React.FC = () => {
   const setQty = (productId: number, quantity: number) => {
     if (quantity <= 0) { setCart(prev => prev.filter(l => l.productId !== productId)); return; }
     setCart(prev => prev.map(l => l.productId === productId ? { ...l, quantity } : l));
+    searchRef.current?.focus(); // los botones +/- del carrito no deben robarle el foco al lector
   };
 
   const handleOpenSession = async (e: React.FormEvent) => {
@@ -214,7 +240,8 @@ const Pos: React.FC = () => {
               ref={searchRef}
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Busca por nombre o código…"
+              onKeyDown={handleSearchKeyDown}
+              placeholder="Busca por nombre, código o escanea…"
               className="w-full pl-9 pr-3 py-3 border border-gray-300 rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
