@@ -95,6 +95,36 @@ services:
       - "traefik.http.routers.merco-wildcard-http.middlewares=redirect-to-https@docker"
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
 
+  # ── Admin (Superadmin) ───────────────────────────────────────────────────
+  # Proyecto propio en ADMIN/ (antes vivía como build multi-entry dentro de
+  # FRONTEND/). Host() exacto con prioridad explícita por encima del
+  # HostRegexp wildcard de arriba, que también matchearía este subdominio —
+  # sin la prioridad, cuál gana quedaría a criterio interno de Traefik.
+  admin-frontend:
+    build:
+      context: ./ADMIN
+      args:
+        VITE_API_BASE_URL: https://api.merco.edwsystem.com/api
+    container_name: merco-admin-frontend
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - dokploy-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.merco-admin.rule=Host(`admin.merco.edwsystem.com`)"
+      - "traefik.http.routers.merco-admin.entrypoints=websecure"
+      - "traefik.http.routers.merco-admin.tls=true"
+      - "traefik.http.routers.merco-admin.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.merco-admin.priority=100"
+      - "traefik.http.services.merco-admin.loadbalancer.server.port=80"
+      - "traefik.http.routers.merco-admin-http.rule=Host(`admin.merco.edwsystem.com`)"
+      - "traefik.http.routers.merco-admin-http.entrypoints=web"
+      - "traefik.http.routers.merco-admin-http.priority=100"
+      - "traefik.http.routers.merco-admin-http.middlewares=redirect-to-https@docker"
+
 networks:
   dokploy-network:
     external: true
