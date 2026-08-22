@@ -149,7 +149,10 @@ const Landing: React.FC = () => {
       <nav className="sticky top-0 z-40 bg-white/85 backdrop-blur border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <a href="#" className="flex items-center gap-2.5">
-            <img src="/brand/logo-full.png" alt="Merco System" className="h-10 w-auto" />
+            <picture>
+              <source srcSet="/brand/logo-full.webp" type="image/webp" />
+              <img src="/brand/logo-full.png" alt="Merco System" className="h-10 w-auto" />
+            </picture>
           </a>
           <div className="hidden md:flex items-center gap-7 text-sm font-medium text-gray-600">
             <a href="#funciones" className="hover:text-gray-900 transition-colors">Funciones</a>
@@ -390,7 +393,10 @@ const Landing: React.FC = () => {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-2.5">
-              <img src="/brand/logo-full.png" alt="Merco System" className="h-9 w-auto" />
+              <picture>
+                <source srcSet="/brand/logo-full.webp" type="image/webp" />
+                <img src="/brand/logo-full.png" alt="Merco System" className="h-9 w-auto" />
+              </picture>
             </div>
             <div className="flex items-center gap-6 text-sm text-gray-500">
               <a href="#funciones" className="hover:text-gray-900 transition-colors">Funciones</a>

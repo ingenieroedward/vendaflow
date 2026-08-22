@@ -78,7 +78,10 @@ const Registro: React.FC = () => {
         <nav className="bg-white/85 backdrop-blur border-b border-gray-100">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
             <Link to="/" className="flex items-center gap-2.5">
-              <img src="/brand/logo-full.png" alt="Merco System" className="h-10 w-auto" />
+              <picture>
+                <source srcSet="/brand/logo-full.webp" type="image/webp" />
+                <img src="/brand/logo-full.png" alt="Merco System" className="h-10 w-auto" />
+              </picture>
             </Link>
             <a href="https://demo.merco.edwsystem.com" target="_blank" rel="noopener noreferrer"
               className="px-4 py-2 text-sm font-semibold text-gray-700 rounded-lg hover:bg-gray-100 transition-colors">
@@ -144,7 +147,10 @@ const Registro: React.FC = () => {
       <nav className="sticky top-0 z-40 bg-white/85 backdrop-blur border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2.5">
-            <img src="/brand/logo-full.png" alt="Merco System" className="h-10 w-auto" />
+            <picture>
+              <source srcSet="/brand/logo-full.webp" type="image/webp" />
+              <img src="/brand/logo-full.png" alt="Merco System" className="h-10 w-auto" />
+            </picture>
           </Link>
           <div className="flex items-center gap-2">
             <a href="https://demo.merco.edwsystem.com" target="_blank" rel="noopener noreferrer"
