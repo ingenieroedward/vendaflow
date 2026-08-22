@@ -63,7 +63,11 @@ export class PosService {
     }
 
     const cashPayment = validated.payments.filter(p => p.method === 'cash').reduce((s, p) => s + p.amount, 0);
-    let changeGiven: number | null = null;
+    // undefined (no null): createOrderSchema.changeGiven es z.number().optional(),
+    // que acepta "ausente" pero rechaza null explícito con "Expected number,
+    // received null" — este era el bug real: cualquier venta sin "efectivo
+    // recibido" diligenciado (el caso normal) fallaba al cobrar.
+    let changeGiven: number | undefined = undefined;
     if (validated.cashReceived !== undefined) {
       if (validated.cashReceived < cashPayment - EPSILON) {
         throw new BadRequestError('El efectivo recibido es menor al monto que se está pagando en efectivo');
@@ -110,7 +114,7 @@ export class PosService {
       // best-effort — ver comentario arriba
     }
 
-    return { ...order, changeGiven, payments: validated.payments };
+    return { ...order, changeGiven: changeGiven ?? null, payments: validated.payments };
   }
 
   // v1: una sola caja por tenant a la vez (sin multi-caja simultánea —

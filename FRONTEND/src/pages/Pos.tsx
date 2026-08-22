@@ -1,12 +1,20 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ShoppingCart, Plus, Minus, Trash2, Search, DoorOpen, DoorClosed, Package } from 'lucide-react';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+import { Capacitor } from '@capacitor/core';
+import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
 import { useProductStore } from '../store/productStore';
 import { useUIStore } from '../store/uiStore';
-import { posService, CashSession, PosPaymentLine } from '../services/pos';
+import { posService, CashSession, PosPaymentLine, PosSaleResult } from '../services/pos';
+import { orderService } from '../services/orders';
+import { Order } from '../types/order';
 import { formatCurrency } from '../utils/helpers';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import Modal from '../components/ui/Modal';
 import PosPaymentModal from '../components/features/PosPaymentModal';
+import OrderPrintView from '../components/features/OrderPrintView';
 
 interface CartLine {
   productId: number;
@@ -41,6 +49,10 @@ const Pos: React.FC = () => {
   const [cart, setCart] = useState<CartLine[]>([]);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [checkingOut, setCheckingOut] = useState(false);
+  const [saleResult, setSaleResult] = useState<PosSaleResult | null>(null);
+  const [saleOrder, setSaleOrder] = useState<Order | null>(null); // orden completa, para el ticket
+  const [printing, setPrinting] = useState(false);
+  const printRef = useRef<HTMLDivElement>(null);
 
   const [closeModalOpen, setCloseModalOpen] = useState(false);
   const [countedCash, setCountedCash] = useState('');
@@ -134,20 +146,55 @@ const Pos: React.FC = () => {
         payments,
         cashReceived,
       );
-      addNotification({
-        type: 'success',
-        title: `Venta ${sale.orderNumber} registrada`,
-        message: sale.changeGiven ? `${formatCurrency(sale.totalAmount)} · Vuelto ${formatCurrency(sale.changeGiven)}` : formatCurrency(sale.totalAmount),
-      });
       setCart([]);
-      setPaymentModalOpen(false);
+      setSaleResult(sale); // el modal pasa a mostrar la confirmación (con ticket opcional)
       getProducts(1, 2000, false); // refresca stock
       refreshSession(); // refresca el desglose por método del turno
+      // Orden completa (con items/cliente) para el ticket — no bloquea la confirmación si falla
+      orderService.getOrderById(sale.id).then(setSaleOrder).catch(() => setSaleOrder(null));
     } catch (err: unknown) {
       addNotification({ type: 'error', title: 'No se pudo cobrar', message: (err as { message?: string })?.message });
     } finally {
       setCheckingOut(false);
     }
+  };
+
+  // Ticket 80mm — mismo mecanismo (html2canvas + jsPDF) que OrderDetail usa
+  // para Orders, ya probado en producción.
+  const handlePrintTicket = async () => {
+    if (!saleOrder || !printRef.current) return;
+    setPrinting(true);
+    try {
+      const el = printRef.current;
+      const canvas = await html2canvas(el, {
+        scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff',
+        windowWidth: el.scrollWidth, windowHeight: el.scrollHeight, scrollX: 0, scrollY: 0,
+      });
+      const ticketWidthMm = 80;
+      const ticketHeightMm = (canvas.height / canvas.width) * ticketWidthMm;
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [ticketWidthMm, ticketHeightMm] });
+      pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, ticketWidthMm, ticketHeightMm);
+      const fileName = `${saleOrder.orderNumber}.pdf`;
+
+      if (Capacitor.isNativePlatform()) {
+        const base64 = pdf.output('datauristring').split(',')[1];
+        await Filesystem.writeFile({ path: fileName, data: base64, directory: Directory.Cache });
+        const { uri } = await Filesystem.getUri({ path: fileName, directory: Directory.Cache });
+        await Share.share({ title: `Venta ${fileName}`, url: uri });
+      } else {
+        pdf.save(fileName);
+      }
+    } catch {
+      addNotification({ type: 'error', title: 'No se pudo generar el ticket' });
+    } finally {
+      setPrinting(false);
+    }
+  };
+
+  const handleNewSale = () => {
+    setPaymentModalOpen(false);
+    setSaleResult(null);
+    setSaleOrder(null);
   };
 
   const handleCloseSession = async (e: React.FormEvent) => {
@@ -331,9 +378,20 @@ const Pos: React.FC = () => {
         isOpen={paymentModalOpen}
         total={total}
         busy={checkingOut}
+        result={saleResult}
+        printing={printing}
         onClose={() => setPaymentModalOpen(false)}
         onConfirm={handleConfirmPayment}
+        onPrint={handlePrintTicket}
+        onDone={handleNewSale}
       />
+
+      {/* Render oculto para capturar el ticket 80mm con html2canvas */}
+      {saleOrder && (
+        <div style={{ position: 'absolute', left: '-9999px', top: 0, width: '302px', pointerEvents: 'none' }}>
+          <OrderPrintView ref={printRef} order={saleOrder} />
+        </div>
+      )}
 
       {/* Cerrar caja */}
       <Modal isOpen={closeModalOpen} onClose={() => { if (!closeResult) setCloseModalOpen(false); }} title="Cerrar caja">

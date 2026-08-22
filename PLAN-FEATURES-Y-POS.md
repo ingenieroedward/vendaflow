@@ -1,7 +1,7 @@
 # 🎯 Plan: Planes por Feature + Módulo POS
 
 **Fecha:** 2026-08-20 (actualizado 2026-08-21)
-**Estado:** Punto 2 completado (v1.14.0). POS Fases 1-3 completadas y verificadas en producción (v1.14.1-1.14.3). **Fase 4 parcial (v1.14.4)**: código de barras ✅ completado; offline reforzado ⏸️ deliberadamente diferido (ver nota abajo — no es deuda olvidada, es una decisión). Queda pendiente: offline reforzado (alcance propio) y la Fase 5 opcional de ticket térmico.
+**Estado:** Punto 2 completado (v1.14.0). POS Fases 1-3 completadas y verificadas en producción (v1.14.1-1.14.3). **Fase 4 parcial (v1.14.4)**: código de barras ✅; offline reforzado ⏸️ deliberadamente diferido (nota abajo). **Fase 5 completada (v1.14.5)**: ticket 80mm vía PDF (jsPDF+html2canvas, no ESC/POS crudo — ver nota). De paso, en la misma tanda: gating real de `custom_branding` (backend, no solo UI) + PDFs de Orders/POS con marca del tenant en vez de "Merco" fijo, y el banner de actualización de la PWA quedó conectado. Solo falta el offline reforzado del POS.
 **Punto 3 (actualizaciones):** resuelto solo con entendimiento — ver nota al final. Hallazgo aparte: `UpdateNotification.tsx` existe pero está desconectado (no importado, SW no emite el mensaje) — pendiente opcional.
 
 ---
@@ -138,7 +138,7 @@ Toda `Order` creada desde el POS lleva `cashSessionId` (columna nueva en `orders
 | **Fase 2** ✅ | Pantalla POS básica: buscar, carrito, cobrar solo en efectivo (sin vueltos aún), descuenta stock | Fase 1 |
 | **Fase 3** ✅ | Pago mixto + cálculo de vueltos + pulir cierre de caja (la Fase 2 ya incluyó una pantalla mínima de cierre con diferencia, para que el POS fuera usable de una vez) | Fase 2 |
 | **Fase 4** | Código de barras (foco persistente + Enter) ✅ · Refuerzo offline específico del POS ⏸️ diferido | Fase 3 |
-| **Fase 5** *(opcional, v2)* | Ticket térmico 80mm (print CSS o WebUSB ESC/POS) | Fase 4 |
+| **Fase 5** ✅ | Ticket 80mm — **hecho vía PDF** (jsPDF+html2canvas, mismo mecanismo que Orders desde meses atrás), no ESC/POS crudo ni WebUSB. En web descarga el PDF; en Capacitor abre el share sheet | Fase 4 |
 
 ### Archivos nuevos esperados
 ```
@@ -162,6 +162,8 @@ FRONTEND/src/store/posStore.ts
 - Todas las fases: tests backend nuevos + `npm test` completo (backend y frontend) en verde antes de cada deploy, como siempre
 
 **Esfuerzo estimado:** varios días reales repartidos en las fases — no es un módulo chico, es el más grande construido hasta ahora en Merco.
+
+**Nota sobre la Fase 5:** se descartó ESC/POS crudo por WebUSB (específico por dispositivo, pide permiso del navegador por cada impresora, no funciona en Safari) a favor de reusar el generador de PDF a 80mm que `OrderDetail.tsx` ya tiene probado en producción para Orders desde hace meses. La mayoría de impresoras térmicas de 80mm conectadas por USB igual instalan un driver de impresora del sistema, así que imprimir el PDF funciona igual — sin el riesgo de escribir protocolo de impresora desde cero.
 
 ### Pendiente: offline reforzado del POS (Fase 4b, diseño propio cuando se retome)
 

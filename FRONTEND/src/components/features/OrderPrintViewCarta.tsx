@@ -2,6 +2,7 @@ import React, { forwardRef } from "react";
 import { Order } from "../../types/order";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { useTenantStore } from "../../store/tenantStore";
 
 interface Props {
   order: Order;
@@ -23,6 +24,7 @@ const statusColor: Record<string, string> = {
 
 // Carta (Letter) invoice layout — renders at 794px (≈ 8.5in @ 96dpi)
 const OrderPrintViewCarta = forwardRef<HTMLDivElement, Props>(({ order }, ref) => {
+  const tenant = useTenantStore(s => s.tenant);
   const fmt = (d: string) => format(new Date(d), "dd/MM/yyyy HH:mm", { locale: es });
   const fmtDate = (d: string) => format(new Date(d), "dd 'de' MMMM 'de' yyyy", { locale: es });
   const cop = (n: number) =>
@@ -55,7 +57,12 @@ const OrderPrintViewCarta = forwardRef<HTMLDivElement, Props>(({ order }, ref) =
     >
       {/* ── Header: una sola línea compacta ── */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-        <div style={{ fontSize: "18px", fontWeight: "900", letterSpacing: "-0.5px", color: "#111827" }}>Merco</div>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          {tenant?.logoUrl && (
+            <img src={tenant.logoUrl} alt={tenant.name} crossOrigin="anonymous" style={{ height: "24px", maxWidth: "120px", objectFit: "contain" }} />
+          )}
+          <div style={{ fontSize: "18px", fontWeight: "900", letterSpacing: "-0.5px", color: "#111827" }}>{tenant?.name ?? "Merco"}</div>
+        </div>
         <div style={{ textAlign: "right" }}>
           <span style={{ fontSize: "10px", color: "#9ca3af", textTransform: "uppercase", letterSpacing: "1px", marginRight: "8px" }}>Orden de Venta</span>
           <span style={{ fontSize: "15px", fontWeight: "800", color: "#111827" }}>#{order.orderNumber}</span>
@@ -162,7 +169,7 @@ const OrderPrintViewCarta = forwardRef<HTMLDivElement, Props>(({ order }, ref) =
 
       {/* ── Footer ── */}
       <div style={{ position: "absolute", bottom: "40px", left: "56px", right: "56px", borderTop: "1px solid #e5e7eb", paddingTop: "12px", display: "flex", justifyContent: "space-between", fontSize: "10px", color: "#9ca3af" }}>
-        <span>Merco · Sistema de Gestión de Ventas</span>
+        <span>{tenant?.name ?? "Merco"} · Sistema de Gestión de Ventas</span>
         <span>{order.items.length} producto{order.items.length !== 1 ? "s" : ""} · Generado {fmt(new Date().toISOString())}</span>
       </div>
     </div>

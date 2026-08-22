@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Save, Palette, Building2, CreditCard, Users, Package, ShoppingCart } from 'lucide-react';
+import { Settings, Save, Palette, Building2, CreditCard, Users, Package, ShoppingCart, Lock } from 'lucide-react';
 import { useTenantStore } from '../store/tenantStore';
 import { useUIStore } from '../store/uiStore';
+import { useFeature } from '../hooks/useFeature';
 import { getMyTenant, updateMyTheme } from '../services/tenant';
 import { apiService } from '../services/api';
 
@@ -15,6 +16,7 @@ const PLAN_LABELS: Record<string, string> = {
 const TenantSettings: React.FC = () => {
   const { tenant: currentTenant, setTenant } = useTenantStore();
   const { addNotification } = useUIStore();
+  const hasCustomBranding = useFeature('custom_branding');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [tenantInfo, setTenantInfo] = useState<any>(null);
@@ -96,7 +98,9 @@ const TenantSettings: React.FC = () => {
       await updateMyTheme({
         name: form.name,
         ...(form.primaryColor && { primaryColor: form.primaryColor }),
-        logoUrl: form.logoUrl || null,
+        // Sin la feature, el campo está oculto — no reenviar un logoUrl
+        // heredado de antes de un downgrade, o el backend lo rechaza
+        ...(hasCustomBranding && { logoUrl: form.logoUrl || null }),
       });
 
       // Apply immediately — setTenant triggers applyTheme() for instant CSS update
@@ -105,7 +109,7 @@ const TenantSettings: React.FC = () => {
           ...currentTenant,
           name: form.name,
           primaryColor: form.primaryColor,
-          logoUrl: form.logoUrl || null,
+          ...(hasCustomBranding && { logoUrl: form.logoUrl || null }),
         });
       }
 
@@ -204,20 +208,30 @@ const TenantSettings: React.FC = () => {
               URL del logo
               <span className="font-normal text-gray-400 ml-1">(opcional)</span>
             </label>
-            <input
-              name="logoUrl" value={form.logoUrl} onChange={handle}
-              placeholder="https://ejemplo.com/logo.png"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
-            />
-            {form.logoUrl && (
-              <div className="mt-2 flex items-center gap-3 p-2.5 bg-gray-50 rounded-lg border border-gray-200">
-                <img
-                  src={form.logoUrl}
-                  alt="Logo preview"
-                  className="w-8 h-8 object-contain flex-shrink-0"
-                  onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+            {hasCustomBranding ? (
+              <>
+                <input
+                  name="logoUrl" value={form.logoUrl} onChange={handle}
+                  placeholder="https://ejemplo.com/logo.png"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                 />
-                <span className="text-xs text-gray-400">Vista previa del logo</span>
+                {form.logoUrl && (
+                  <div className="mt-2 flex items-center gap-3 p-2.5 bg-gray-50 rounded-lg border border-gray-200">
+                    <img
+                      src={form.logoUrl}
+                      alt="Logo preview"
+                      className="w-8 h-8 object-contain flex-shrink-0"
+                      onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    />
+                    <span className="text-xs text-gray-400">Vista previa del logo</span>
+                  </div>
+                )}
+                <p className="mt-1.5 text-[11px] text-gray-400">Aparece al instalar la app, en el login, el menú y los recibos impresos.</p>
+              </>
+            ) : (
+              <div className="flex items-start gap-2 px-3 py-2.5 bg-gray-50 border border-dashed border-gray-300 rounded-lg text-xs text-gray-500">
+                <Lock className="w-3.5 h-3.5 text-gray-400 flex-shrink-0 mt-0.5" />
+                <span>Disponible en el plan Pro — tu logo en la app, en el login y en los recibos impresos, en vez del de Merco.</span>
               </div>
             )}
           </div>

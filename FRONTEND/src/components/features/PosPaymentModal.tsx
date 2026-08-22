@@ -1,15 +1,21 @@
 import React, { useEffect, useState } from 'react';
-import { Banknote, CreditCard, Landmark, MoreHorizontal, Plus, X } from 'lucide-react';
+import { Banknote, CreditCard, Landmark, MoreHorizontal, Plus, X, CheckCircle2, Printer } from 'lucide-react';
 import Modal from '../ui/Modal';
+import LoadingSpinner from '../ui/LoadingSpinner';
 import { formatCurrency } from '../../utils/helpers';
-import { PosPaymentLine, PosPaymentMethod } from '../../services/pos';
+import { PosPaymentLine, PosPaymentMethod, PosSaleResult } from '../../services/pos';
 
 interface Props {
   isOpen: boolean;
   total: number;
   busy: boolean;
+  /** Cuando hay resultado, el modal muestra la confirmación en vez del formulario de cobro */
+  result?: PosSaleResult | null;
+  printing?: boolean;
   onClose: () => void;
   onConfirm: (payments: PosPaymentLine[], cashReceived?: number) => void;
+  onPrint?: () => void;
+  onDone?: () => void;
 }
 
 const METHOD_META: Record<PosPaymentMethod, { label: string; icon: React.ElementType }> = {
@@ -25,7 +31,7 @@ const round2 = (n: number) => Math.round(n * 100) / 100;
 // rápido de un clic); "Agregar método" habilita pago mixto. El campo
 // "Efectivo recibido" solo aparece si hay una línea en efectivo y calcula
 // el vuelto en vivo.
-const PosPaymentModal: React.FC<Props> = ({ isOpen, total, busy, onClose, onConfirm }) => {
+const PosPaymentModal: React.FC<Props> = ({ isOpen, total, busy, result, printing, onClose, onConfirm, onPrint, onDone }) => {
   const [lines, setLines] = useState<PosPaymentLine[]>([{ method: 'cash', amount: total }]);
   const [cashReceivedInput, setCashReceivedInput] = useState('');
 
@@ -62,6 +68,41 @@ const PosPaymentModal: React.FC<Props> = ({ isOpen, total, busy, onClose, onConf
     if (!canConfirm) return;
     onConfirm(lines, cashReceived);
   };
+
+  if (result) {
+    return (
+      <Modal isOpen={isOpen} onClose={() => onDone?.()} title="Venta registrada">
+        <div className="p-1 space-y-4 text-center">
+          <div className="w-12 h-12 mx-auto rounded-full bg-emerald-50 flex items-center justify-center">
+            <CheckCircle2 className="w-6 h-6 text-emerald-500" />
+          </div>
+          <div>
+            <p className="text-xs text-gray-500">{result.orderNumber}</p>
+            <p className="text-3xl font-extrabold text-gray-900">{formatCurrency(result.totalAmount)}</p>
+            {!!result.changeGiven && (
+              <p className="mt-1 text-sm font-semibold text-emerald-600">Vuelto: {formatCurrency(result.changeGiven)}</p>
+            )}
+          </div>
+          <div className="flex gap-2 pt-1">
+            <button
+              onClick={onPrint}
+              disabled={printing}
+              className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+            >
+              {printing ? <LoadingSpinner size="sm" /> : <Printer className="w-4 h-4" />}
+              {printing ? 'Generando…' : 'Imprimir ticket'}
+            </button>
+            <button
+              onClick={() => onDone?.()}
+              className="flex-1 px-4 py-2.5 text-sm font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Nueva venta
+            </button>
+          </div>
+        </div>
+      </Modal>
+    );
+  }
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Cobrar">

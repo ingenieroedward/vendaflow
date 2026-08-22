@@ -14,7 +14,7 @@ import { AuthService } from '../auth/auth.service';
 import { pushService } from '../push/push.service';
 import { getJobStatuses } from '@/core/jobs/jobStatus';
 import { APP_VERSION } from '@/config/version';
-import { ConflictError, NotFoundError, BadRequestError } from '@/core/errors/AppError';
+import { ConflictError, NotFoundError, BadRequestError, ForbiddenError } from '@/core/errors/AppError';
 import { computePaymentPeriod, toDateOnly } from './subscription';
 import { sendEmail, renderEmail } from '@/core/email';
 import sequelize from '@/database';
@@ -142,6 +142,18 @@ export class TenantService {
 
   async updateTheme(tenantId: number, data: { primaryColor?: string; logoUrl?: string | null; name?: string }) {
     const tenant = await this.findById(tenantId);
+    // Logo propio es la feature "custom_branding" — el color sí es libre para
+    // todos los planes (no cuesta nada de infraestructura, es solo un CSS var).
+    // Validado en el backend, no solo escondido en la UI — si no la tiene,
+    // no puede setear un logo aunque le pegue directo a la API.
+    if (data.logoUrl) {
+      const { resolveFeatures } = await import('@/config/features');
+      const { getPlanConfig } = await import('@/config/plans');
+      const cfg = await getPlanConfig();
+      if (!resolveFeatures(tenant, cfg.planFeatures).has('custom_branding')) {
+        throw new ForbiddenError('Tu plan no incluye marca propia (logo). Actualiza a Pro para activarla.');
+      }
+    }
     await tenant.update(data);
     return tenant;
   }

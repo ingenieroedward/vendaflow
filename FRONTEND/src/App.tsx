@@ -9,6 +9,7 @@ import { useUserStore } from './store/userStore';
 import { useTenantStore } from './store/tenantStore';
 import { detectTenantSlug, fetchTenantBySlug, getMyTenant } from './services/tenant';
 import ErrorBoundary from './components/ui/ErrorBoundary';
+import UpdateNotification from './components/ui/UpdateNotification';
 import { Network } from '@capacitor/network';
 import { Download } from 'lucide-react';
 
@@ -222,6 +223,7 @@ function App() {
         <AppRouter />
         <SeedingProgressBanner />
         <NotificationContainer />
+        <UpdateNotification />
       </div>
     </ErrorBoundary>
   );

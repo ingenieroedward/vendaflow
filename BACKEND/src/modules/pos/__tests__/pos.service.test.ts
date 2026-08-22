@@ -15,6 +15,11 @@ import { PosService } from '../pos.service';
 import { CashSession } from '../cash-session.model';
 import { PosSalePayment } from '../pos-sale-payment.model';
 import { Customer } from '../../customer/customer.model';
+// Sin mockear: es el schema real que createOrder() vuelve a correr internamente
+// sobre el payload que arma pos.service.ts — createOrder() está mockeado arriba,
+// así que sin esto una regresión de "envía null donde el DTO espera undefined"
+// pasaría los tests aunque rompa en producción (fue justo lo que ocurrió).
+import { createOrderSchema } from '../../order/order.dto';
 
 const mockFindOne = CashSession.findOne as jest.Mock;
 const mockCreate = CashSession.create as jest.Mock;
@@ -187,7 +192,10 @@ describe('sale', () => {
       items, payments: [{ method: 'cash', amount: 5000 }, { method: 'card', amount: 6900 }],
     });
 
-    expect(mockCreateOrder).toHaveBeenCalledWith(expect.objectContaining({ changeGiven: null }), 10, 1);
+    // undefined, no null — createOrderSchema.changeGiven es z.number().optional()
+    // y rechaza null explícito (bug real corregido: rompía cualquier venta sin
+    // "efectivo recibido" diligenciado, ver también el test de más abajo)
+    expect(mockCreateOrder).toHaveBeenCalledWith(expect.objectContaining({ changeGiven: undefined }), 10, 1);
     expect(mockPaymentsBulkCreate).toHaveBeenCalledWith([
       { tenantId: 1, orderId: 3, cashSessionId: 5, method: 'cash', amount: 5000 },
       { tenantId: 1, orderId: 3, cashSessionId: 5, method: 'card', amount: 6900 },
@@ -224,5 +232,22 @@ describe('sale', () => {
     const result = await service.sale(1, 10, { items, payments: [{ method: 'cash', amount: 11900 }] });
 
     expect(result.changeGiven).toBeNull();
+  });
+
+  it('regresión: venta sin línea de efectivo (ej. solo transferencia) produce un payload válido para createOrder', async () => {
+    mockFindOne.mockResolvedValueOnce({ id: 5, status: 'open' });
+    mockCustomerFindOrCreate.mockResolvedValueOnce([{ id: 99 }, true]);
+    mockCreateOrder.mockResolvedValueOnce({ id: 7, orderNumber: 'ORD-0007' });
+
+    await service.sale(1, 10, { items, payments: [{ method: 'transfer', amount: 11900 }] });
+
+    // createOrder() está mockeado, así que corremos el schema real a mano
+    // sobre el payload exacto que le llegaría — bug real que esto reproduce:
+    // pos.service.ts pasaba `changeGiven: null`, y createOrderSchema (z.number()
+    // .optional()) rechaza null explícito con "Expected number, received null",
+    // rompiendo el cobro en producción para cualquier venta sin línea 'cash'.
+    const payloadSent = mockCreateOrder.mock.calls[0][0];
+    const parsed = createOrderSchema.safeParse(payloadSent);
+    expect(parsed.success).toBe(true);
   });
 });

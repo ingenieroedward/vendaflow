@@ -2,6 +2,7 @@ import React, { forwardRef } from "react";
 import { Order } from "../../types/order";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { useTenantStore } from "../../store/tenantStore";
 
 interface OrderPrintViewProps {
   order: Order;
@@ -11,6 +12,7 @@ interface OrderPrintViewProps {
 // Columnas estrechas, sin grid, sin tablas complejas
 const OrderPrintView = forwardRef<HTMLDivElement, OrderPrintViewProps>(
   ({ order }, ref) => {
+    const tenant = useTenantStore(s => s.tenant);
     const formatDate = (d: string) =>
       format(new Date(d), "dd/MM/yyyy HH:mm", { locale: es });
 
@@ -53,9 +55,17 @@ const OrderPrintView = forwardRef<HTMLDivElement, OrderPrintViewProps>(
           boxSizing: "border-box",
         }}
       >
-        {/* Encabezado */}
+        {/* Encabezado — marca del tenant (logo si tiene plan con marca propia) */}
         <div style={{ textAlign: "center", marginBottom: "8px" }}>
-          <div style={{ fontSize: "16px", fontWeight: "bold", letterSpacing: "1px" }}>Merco</div>
+          {tenant?.logoUrl && (
+            <img
+              src={tenant.logoUrl}
+              alt={tenant.name}
+              crossOrigin="anonymous"
+              style={{ height: "28px", maxWidth: "140px", objectFit: "contain", margin: "0 auto 4px" }}
+            />
+          )}
+          <div style={{ fontSize: "16px", fontWeight: "bold", letterSpacing: "1px" }}>{tenant?.name ?? "Merco"}</div>
           <div style={{ fontSize: "9px", color: "#555" }}>SISTEMA DE GESTIÓN DE VENTAS</div>
         </div>
 
