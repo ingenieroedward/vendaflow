@@ -10,15 +10,22 @@ export interface RegisterRequest {
 }
 
 export interface CreateUserRequest {
+  name?: string;
   username: string;
   password: string;
   role: 'admin' | 'buyer' | 'seller';
 }
 
 export interface UpdateUserRequest {
+  name?: string;
   username?: string;
   password?: string;
   role?: 'admin' | 'buyer' | 'seller';
+}
+
+export interface UpdateOwnProfileRequest {
+  name?: string;
+  username?: string;
 }
 
 export interface Tenant {
@@ -56,6 +63,7 @@ export interface UsersResponse {
 
 export interface User {
   id: number;
+  name?: string | null;
   username: string;
   role: 'admin' | 'buyer' | 'seller';
   createdAt: string;
@@ -72,4 +80,6 @@ export interface AuthState {
   register: (data: RegisterRequest) => Promise<void>;
   logout: () => void;
   checkAuth: () => void;
+  /** Actualiza el usuario en memoria y localStorage — ej. tras guardar el perfil */
+  setUser: (user: User) => void;
 }

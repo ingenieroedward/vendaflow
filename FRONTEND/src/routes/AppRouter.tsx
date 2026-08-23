@@ -29,6 +29,7 @@ const PurchaseOrders = React.lazy(() => import('../pages/PurchaseOrders'));
 const PurchaseOrderNew = React.lazy(() => import('../pages/PurchaseOrderNew'));
 const PurchaseOrderDetail = React.lazy(() => import('../pages/PurchaseOrderDetail'));
 const TenantSettings = React.lazy(() => import('../pages/TenantSettings'));
+const Profile = React.lazy(() => import('../pages/Profile'));
 
 // Protected Route Component
 interface RouteProps {
@@ -79,6 +80,19 @@ const SellerRoute: React.FC<RouteProps> = ({ children }) => {
     return <Navigate to="/" replace />;
   }
   
+  return <>{children}</>;
+};
+
+// Auth Route Component — cualquier rol autenticado (admin/buyer/seller), sin
+// restricción adicional. Para páginas como el perfil propio, donde todos los
+// roles necesitan entrar.
+const AuthRoute: React.FC<RouteProps> = ({ children }) => {
+  const { isAuthenticated } = useAuthStore();
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
   return <>{children}</>;
 };
 
@@ -331,6 +345,16 @@ const InnerRoutes: React.FC = () => (
               </SellerRoute>
             }
           />
+
+    {/* Perfil propio — cualquier rol */}
+    <Route
+      path="/profile"
+      element={
+        <AuthRoute>
+          <Profile />
+        </AuthRoute>
+      }
+    />
 
     {/* Admin: tenant settings */}
     <Route

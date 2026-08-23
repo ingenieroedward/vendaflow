@@ -1,5 +1,5 @@
 import { apiService } from './api';
-import { User, CreateUserRequest, UpdateUserRequest, UsersResponse } from '../types/auth';
+import { User, CreateUserRequest, UpdateUserRequest, UpdateOwnProfileRequest, UsersResponse } from '../types/auth';
 
 export class UsersService {
   async getUsers(page: number = 1, limit: number = 10): Promise<UsersResponse> {
@@ -48,6 +48,16 @@ export class UsersService {
       currentPassword,
       newPassword,
     });
+  }
+
+  async getProfile(): Promise<User> {
+    const response = await apiService.get<{ status: string; data: User }>('/users/me');
+    return response.data;
+  }
+
+  async updateProfile(data: UpdateOwnProfileRequest): Promise<User> {
+    const response = await apiService.put<{ status: string; data: User }>('/users/me', data);
+    return response.data;
   }
 }
 

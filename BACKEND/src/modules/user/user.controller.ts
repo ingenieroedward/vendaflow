@@ -10,6 +10,19 @@ export class UserController {
     res.status(200).json({ status: 'success', message: 'Contraseña actualizada' });
   });
 
+  // Perfil propio — cualquier rol autenticado, no solo admin. El id sale del
+  // JWT (req.user!.id), nunca de la URL — así nadie puede leer/editar el
+  // perfil de otro usuario pasando un id distinto.
+  getOwnProfile = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const user = await this.userService.getUserById(req.user!.id, req.user!.tenantId);
+    res.status(200).json({ status: 'success', data: user });
+  });
+
+  updateOwnProfile = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const user = await this.userService.updateOwnProfile(req.user!.id, req.user!.tenantId, req.body);
+    res.status(200).json({ status: 'success', data: user });
+  });
+
   private userService: UserService;
 
   constructor() {

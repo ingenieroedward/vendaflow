@@ -5,7 +5,9 @@ import { isAuth, isAdmin } from '@/core/middlewares/auth';
 const router = Router();
 const userController = new UserController();
 
-// Cambio de contraseña propia — cualquier rol autenticado, antes del guard de admin
+// Perfil propio (y cambio de contraseña) — cualquier rol autenticado, antes del guard de admin
+router.get('/me', isAuth, userController.getOwnProfile);
+router.put('/me', isAuth, userController.updateOwnProfile);
 router.put('/me/password', isAuth, userController.changeOwnPassword);
 
 // Protected routes (admin only)

@@ -9,6 +9,7 @@ import Input from '../components/ui/Input';
 import { CreateUserRequest } from '../types/auth';
 
 interface UserFormData {
+  name: string;
   username: string;
   password: string;
   confirmPassword: string;
@@ -22,6 +23,7 @@ const UserNew: React.FC = () => {
   const { addNotification } = useUIStore();
   
   const [formData, setFormData] = useState<UserFormData>({
+    name: '',
     username: '',
     password: '',
     confirmPassword: '',
@@ -94,6 +96,7 @@ const UserNew: React.FC = () => {
 
     try {
       const userData: CreateUserRequest = {
+        name: formData.name.trim() || undefined,
         username: formData.username.trim(),
         password: formData.password,
         role: formData.role,
@@ -160,6 +163,18 @@ const UserNew: React.FC = () => {
               </h3>
               {/* Mobile: Stack inputs vertically */}
               <div className="space-y-4 sm:space-y-0 sm:grid sm:grid-cols-2 sm:gap-4">
+                <div className="sm:col-span-2">
+                  <Input
+                    label="Nombre completo"
+                    name="name"
+                    type="text"
+                    value={formData.name || ''}
+                    onChange={handleInputChange}
+                    placeholder="Opcional"
+                    autoFocus
+                  />
+                </div>
+
                 <div className="sm:col-span-1">
                   <Input
                     label="Nombre de usuario"
@@ -169,7 +184,6 @@ const UserNew: React.FC = () => {
                     onChange={handleInputChange}
                     error={errors.username}
                     placeholder="Ingresa el nombre de usuario"
-                    autoFocus
                   />
                 </div>
 

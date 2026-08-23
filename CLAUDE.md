@@ -212,9 +212,18 @@ docker-compose logs -f frontend
 | `/inventory` | Inventory | seller, admin |
 | `/purchase-orders` | PurchaseOrders | seller, admin |
 | `/users` | Users | admin |
+| `/profile` | Profile | cualquier rol autenticado |
 | `/settings` | TenantSettings | admin |
 
 ---
+
+## PERFIL PROPIO Y NOMBRE DE USUARIO (ago 2026)
+
+- `users.name` (STRING(255), nullable, `ensureSchema`) — nombre completo, distinto del `username` (que sigue siendo el identificador de login). Se usa en `Sidebar`/`Header` (`user.name || user.username`) y en la lista/formularios de `Users`/`UserNew`/`UserEdit` (admin gestionando otros usuarios del tenant).
+- **Página `/profile`** (`FRONTEND/src/pages/Profile.tsx`) — cualquier rol autenticado (no solo admin) puede ver/editar su propio nombre y username, ver su rol (solo lectura) y abrir el `ChangePasswordModal` existente. Enlazada desde el menú de usuario en `Sidebar.tsx` (desktop) y `Header.tsx` (móvil), junto a "Cambiar contraseña".
+- Backend: `GET/PUT /users/me` (`isAuth`, sin `isAdmin` — montadas antes del guard de admin en `user.routes.ts`, mismo patrón que `PUT /users/me/password`). El `id`/`tenantId` salen siempre del JWT, nunca de la URL o el body — nadie puede leer/editar el perfil de otro usuario.
+- **`updateOwnProfileSchema` (Zod) excluye a propósito `role` y `password`** — el cambio de contraseña ya tiene su propio endpoint con verificación de la actual, y dejar `role` editable ahí habría sido una escalada de privilegios trivial (cualquier buyer mandando `{role:'admin'}`). Zod descarta cualquier campo no declarado en el schema al validar, sin importar lo que venga en el body — verificado con una prueba de integración real (Docker local): un usuario `buyer` mandó `{name, role:'admin', password}` a `PUT /users/me` y el backend solo aplicó el cambio de nombre, el rol se quedó intacto.
+- `authStore.setUser()` (nuevo) actualiza el usuario en memoria y `localStorage` tras guardar el perfil, sin necesitar relogin.
 
 ## INFRAESTRUCTURA Y DEPLOY
 

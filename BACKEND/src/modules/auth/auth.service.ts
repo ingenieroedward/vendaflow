@@ -75,7 +75,7 @@ export class AuthService {
     const token = this.generateToken(user.id, user.username, user.role, user.tenantId);
 
     return {
-      user: { id: user.id, username: user.username, role: user.role, tenantId: user.tenantId },
+      user: { id: user.id, name: user.name, username: user.username, role: user.role, tenantId: user.tenantId },
       token,
       tenant: tenantData ? {
         id: tenantData.id,

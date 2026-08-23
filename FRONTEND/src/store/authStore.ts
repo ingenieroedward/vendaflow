@@ -1,8 +1,9 @@
 import { create } from 'zustand';
-import { AuthState, LoginRequest, RegisterRequest } from '../types/auth';
+import { AuthState, LoginRequest, RegisterRequest, User } from '../types/auth';
 import { authService } from '../services/auth';
 import { db } from '../database/LocalDatabase';
 import { useTenantStore } from './tenantStore';
+import { STORAGE_KEYS } from '../utils/constants';
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: authService.getCurrentUser(),
@@ -63,6 +64,12 @@ export const useAuthStore = create<AuthState>((set) => ({
     const isAuthenticated = authService.isAuthenticated();
     set({ user, token, isAuthenticated });
     if (user) cacheUserLocally(user).catch(() => {});
+  },
+
+  setUser: (user: User) => {
+    localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(user));
+    set({ user });
+    cacheUserLocally(user).catch(() => {});
   },
 }));
 

@@ -197,7 +197,8 @@ const Users: React.FC = () => {
     (user) =>
       user &&
       user.username &&
-      user.username.toLowerCase().includes(searchQuery.toLowerCase()) &&
+      (user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        user.name?.toLowerCase().includes(searchQuery.toLowerCase())) &&
       !user.deletedAt
   );
 
@@ -268,7 +269,7 @@ const Users: React.FC = () => {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center space-x-2 mb-1">
                       <h3 className="text-base font-medium text-gray-900 truncate">
-                        {user.username}
+                        {user.name || user.username}
                       </h3>
                       {user.id === currentUser?.id && (
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -276,6 +277,9 @@ const Users: React.FC = () => {
                         </span>
                       )}
                     </div>
+                    {user.name && (
+                      <p className="text-xs text-gray-400 truncate mb-1">@{user.username}</p>
+                    )}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
                         {getRoleBadge(user.role)}
@@ -350,7 +354,7 @@ const Users: React.FC = () => {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center space-x-2 mb-1">
                       <h3 className="text-base font-medium text-gray-900 truncate">
-                        {user.username}
+                        {user.name || user.username}
                       </h3>
                       {user.id === currentUser?.id && (
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -358,6 +362,9 @@ const Users: React.FC = () => {
                         </span>
                       )}
                     </div>
+                    {user.name && (
+                      <p className="text-xs text-gray-400 truncate mb-1">@{user.username}</p>
+                    )}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
                         {getRoleBadge(user.role)}

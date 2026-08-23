@@ -12,7 +12,7 @@ import {
   paginationSchema,
   PaginationQuery,
 } from "@/core/utils/validation";
-import { createUserSchema, updateUserSchema, changePasswordSchema, ChangePasswordDto } from "./user.dto";
+import { createUserSchema, updateUserSchema, changePasswordSchema, ChangePasswordDto, updateOwnProfileSchema, UpdateOwnProfileDto } from "./user.dto";
 import { Order } from "../order/order.model";
 import { Price } from "../price/price.model";
 
@@ -87,6 +87,21 @@ export class UserService {
     const valid = await user.comparePassword(validatedData.currentPassword);
     if (!valid) throw new UnauthorizedError('La contraseña actual es incorrecta');
     await user.update({ password: validatedData.newPassword }); // @BeforeUpdate la hashea
+  }
+
+  // Perfil propio: cualquier rol, solo nombre/usuario (ver updateOwnProfileSchema)
+  async updateOwnProfile(userId: number, tenantId: number, data: UpdateOwnProfileDto): Promise<UserResponseDto> {
+    const validatedData = validateSchema(updateOwnProfileSchema, data);
+    const user = await User.findOne({ where: { id: userId, tenantId } });
+    if (!user) throw new NotFoundError('User not found');
+
+    if (validatedData.username && validatedData.username !== user.username) {
+      const existingUser = await User.findOne({ where: { tenantId, username: validatedData.username } });
+      if (existingUser) throw new ConflictError('User with this username already exists');
+    }
+
+    await user.update(validatedData as Partial<UserAttributes>);
+    return this.mapToResponseDto(user);
   }
 
   async updateUser(id: number, updateData: UpdateUserDto, tenantId: number): Promise<UserResponseDto> {
@@ -176,6 +191,7 @@ export class UserService {
   private mapToResponseDto(user: User): UserResponseDto {
     return {
       id: user.id,
+      name: user.name,
       username: user.username,
       role: user.role,
       createdAt: user.createdAt,

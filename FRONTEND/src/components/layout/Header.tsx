@@ -145,7 +145,7 @@ const Header = () => {
                             <User className="w-4 h-4 text-white" />
                           </div>
                           <div>
-                            <p className="text-sm font-semibold text-gray-900">{user.username}</p>
+                            <p className="text-sm font-semibold text-gray-900">{user.name || user.username}</p>
                             <p className="text-xs text-gray-500 capitalize flex items-center gap-1">
                               <Shield className="w-3 h-3" />
                               <span>{user.role}</span>
@@ -180,6 +180,16 @@ const Header = () => {
                       </div>
 
                       <div className="pt-1">
+                        <Link
+                          to="/profile"
+                          onClick={closeUserMenu}
+                          className="flex items-center gap-3 w-full px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-xl transition-colors"
+                        >
+                          <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
+                            <User className="w-4 h-4 text-gray-600" />
+                          </div>
+                          <span>Mi perfil</span>
+                        </Link>
                         <button
                           onClick={() => { closeUserMenu(); setPwdOpen(true); }}
                           className="flex items-center gap-3 w-full px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-xl transition-colors"

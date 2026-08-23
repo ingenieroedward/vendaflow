@@ -131,7 +131,7 @@ const Sidebar = () => {
               <User className="w-4 h-4 text-white" />
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-gray-900 truncate">{user.username}</p>
+              <p className="text-sm font-semibold text-gray-900 truncate">{user.name || user.username}</p>
               <p className="text-xs text-gray-400 capitalize flex items-center space-x-1">
                 <Shield className="w-3 h-3 flex-shrink-0" />
                 <span>{user.role}</span>
@@ -152,6 +152,13 @@ const Sidebar = () => {
               <span className={`w-2 h-2 rounded-full flex-shrink-0 ${pushSubscribed ? 'bg-green-500' : 'bg-gray-300'}`} />
             </button>
           )}
+          <Link
+            to="/profile"
+            className="flex items-center space-x-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors duration-150"
+          >
+            <User className="w-5 h-5 flex-shrink-0" />
+            <span>Mi perfil</span>
+          </Link>
           <button
             onClick={() => setPwdOpen(true)}
             className="flex items-center space-x-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors duration-150"
