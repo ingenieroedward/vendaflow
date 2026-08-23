@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { User as UserIcon, Save, Shield, KeyRound } from 'lucide-react';
+import { User as UserIcon, Save, Shield, KeyRound, Bell, BellOff } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { useUIStore } from '../store/uiStore';
 import { usersService } from '../services/users';
+import { usePushNotifications } from '../hooks/usePushNotifications';
 import ChangePasswordModal from '../components/features/ChangePasswordModal';
 
 const ROLE_LABELS: Record<string, string> = {
@@ -19,6 +20,10 @@ const Profile: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pwdOpen, setPwdOpen] = useState(false);
+  const {
+    isSupported: pushSupported, isSubscribed: pushSubscribed, isLoading: pushLoading,
+    isDenied: pushDenied, error: pushError, clearError: clearPushError, toggle: togglePush,
+  } = usePushNotifications();
 
   useEffect(() => {
     usersService.getProfile()
@@ -126,6 +131,43 @@ const Profile: React.FC = () => {
             Cambiar contraseña
           </button>
         </div>
+
+        {pushSupported && (
+          <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-2">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                {pushSubscribed ? <Bell className="w-4 h-4 text-primary" /> : <BellOff className="w-4 h-4 text-gray-400" />}
+                <div>
+                  <p className="text-sm text-gray-700">Notificaciones</p>
+                  <p className="text-[11px] text-gray-400">Avisos de pagos, órdenes y cartera por vencer.</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={togglePush}
+                disabled={pushLoading}
+                className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors disabled:opacity-50 ${
+                  pushSubscribed
+                    ? 'text-gray-600 border-gray-300 hover:bg-gray-50'
+                    : 'text-white bg-primary border-primary hover:bg-primary/90'
+                }`}
+              >
+                {pushLoading ? 'Un momento…' : pushSubscribed ? 'Desactivar' : 'Activar'}
+              </button>
+            </div>
+            {pushDenied && !pushError && (
+              <p className="text-[11px] text-amber-600">
+                Bloqueadas por el navegador — actívalas desde el ícono de candado en la barra de direcciones.
+              </p>
+            )}
+            {pushError && (
+              <div className="flex items-start justify-between gap-2 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-2">
+                <span>{pushError}</span>
+                <button type="button" onClick={clearPushError} className="text-amber-500 hover:text-amber-700 flex-shrink-0">✕</button>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="flex justify-end pt-1">
           <button

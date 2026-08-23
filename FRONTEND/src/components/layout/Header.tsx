@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { User, LogOut, Package, Shield, Bell, BellOff, CloudOff, Download, KeyRound } from 'lucide-react';
-import ChangePasswordModal from '../features/ChangePasswordModal';
+import { User, LogOut, Package, Shield, CloudOff, Download } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { useSyncStore } from '../../store/syncStore';
@@ -9,7 +8,6 @@ import { useCustomerStore } from '../../store/customerStore';
 import { useTenantStore } from '../../store/tenantStore';
 import InstallModal from '../ui/InstallModal';
 import TopLoadingBar from '../ui/TopLoadingBar';
-import { usePushNotifications } from '../../hooks/usePushNotifications';
 
 const Header = () => {
   const { user, logout } = useAuthStore();
@@ -17,12 +15,10 @@ const Header = () => {
   const navigate = useNavigate();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isInstallOpen, setIsInstallOpen] = useState(false);
-  const [pwdOpen, setPwdOpen] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const { status, current, total } = useSyncStore();
   const { pendingSync: pendingOrders } = useOrderStore();
   const { pendingSync: pendingCustomers } = useCustomerStore();
-  const { isSupported: pushSupported, isSubscribed: pushSubscribed, isLoading: pushLoading, toggle: togglePush } = usePushNotifications();
 
   useEffect(() => {
     const handler = (e: any) => { e.preventDefault(); setDeferredPrompt(e); };
@@ -100,20 +96,6 @@ const Header = () => {
               <Download className="w-5 h-5" />
             </button>
 
-            {/* Push notifications */}
-            {pushSupported && (
-              <button
-                onClick={togglePush}
-                disabled={pushLoading}
-                title={pushSubscribed ? 'Desactivar notificaciones' : 'Activar notificaciones'}
-                className="p-2 rounded-xl text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-50"
-              >
-                {pushSubscribed
-                  ? <Bell className="w-5 h-5 text-primary" />
-                  : <BellOff className="w-5 h-5" />}
-              </button>
-            )}
-
             {/* Avatar with pending dot */}
             {user && (
               <div className="relative">
@@ -190,15 +172,6 @@ const Header = () => {
                           </div>
                           <span>Mi perfil</span>
                         </Link>
-                        <button
-                          onClick={() => { closeUserMenu(); setPwdOpen(true); }}
-                          className="flex items-center gap-3 w-full px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-xl transition-colors"
-                        >
-                          <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
-                            <KeyRound className="w-4 h-4 text-gray-600" />
-                          </div>
-                          <span>Cambiar contraseña</span>
-                        </button>
                       </div>
 
                       {/* Logout */}
@@ -229,7 +202,6 @@ const Header = () => {
       deferredPrompt={deferredPrompt}
       onInstalled={() => setDeferredPrompt(null)}
     />
-    <ChangePasswordModal isOpen={pwdOpen} onClose={() => setPwdOpen(false)} />
     </>
   );
 };

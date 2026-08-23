@@ -1,11 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Package, ClipboardList, Users, LogOut, User, Shield, Truck, Tag, DollarSign, UserCheck, BarChart2, Warehouse, ShoppingCart, Settings, Bell, BellOff, AlertTriangle, KeyRound, Store } from 'lucide-react';
+import { Package, ClipboardList, Users, LogOut, User, Shield, Truck, Tag, DollarSign, UserCheck, BarChart2, Warehouse, ShoppingCart, Settings, AlertTriangle, Store } from 'lucide-react';
 import { useFeature } from '../../hooks/useFeature';
-import ChangePasswordModal from '../features/ChangePasswordModal';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { useTenantStore } from '../../store/tenantStore';
-import { usePushNotifications } from '../../hooks/usePushNotifications';
 import { getMyTenant } from '../../services/tenant';
 
 interface NavItem {
@@ -33,8 +31,6 @@ const NAV_ITEMS: NavItem[] = [
 
 const Sidebar = () => {
   const { user, logout } = useAuthStore();
-  const [pwdOpen, setPwdOpen] = useState(false);
-  const { isSupported: pushSupported, isSubscribed: pushSubscribed, isLoading: pushLoading, toggle: togglePush } = usePushNotifications();
 
   // Aviso de trial por vencer (solo admin, ≤7 días)
   const [trialDaysLeft, setTrialDaysLeft] = useState<number | null>(null);
@@ -138,20 +134,6 @@ const Sidebar = () => {
               </p>
             </div>
           </div>
-          {pushSupported && (
-            <button
-              onClick={togglePush}
-              disabled={pushLoading}
-              className={`flex items-center space-x-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-colors duration-150 disabled:opacity-50 ${
-                pushSubscribed ? 'text-primary hover:bg-primary/10' : 'text-gray-500 hover:bg-gray-50'
-              }`}
-              title={pushSubscribed ? 'Desactivar notificaciones' : 'Activar notificaciones'}
-            >
-              {pushSubscribed ? <Bell className="w-5 h-5 flex-shrink-0" /> : <BellOff className="w-5 h-5 flex-shrink-0" />}
-              <span className="truncate whitespace-nowrap text-left flex-1">Notificaciones</span>
-              <span className={`w-2 h-2 rounded-full flex-shrink-0 ${pushSubscribed ? 'bg-green-500' : 'bg-gray-300'}`} />
-            </button>
-          )}
           <Link
             to="/profile"
             className="flex items-center space-x-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors duration-150"
@@ -159,13 +141,6 @@ const Sidebar = () => {
             <User className="w-5 h-5 flex-shrink-0" />
             <span>Mi perfil</span>
           </Link>
-          <button
-            onClick={() => setPwdOpen(true)}
-            className="flex items-center space-x-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors duration-150"
-          >
-            <KeyRound className="w-5 h-5 flex-shrink-0" />
-            <span>Cambiar contraseña</span>
-          </button>
           <button
             onClick={handleLogout}
             className="flex items-center space-x-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 transition-colors duration-150"
@@ -175,7 +150,6 @@ const Sidebar = () => {
           </button>
         </div>
       )}
-      <ChangePasswordModal isOpen={pwdOpen} onClose={() => setPwdOpen(false)} />
     </aside>
   );
 };
