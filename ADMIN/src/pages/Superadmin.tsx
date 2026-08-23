@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Building2, LogOut, X, Megaphone, LayoutDashboard, Inbox, Wallet, ScrollText, Settings, Bell, BellOff } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import { tenantAdminService, TenantSummary, TenantRequestItem, PlanPaymentItem, FinanceData, AuditLogItem, PlatformSettings, PlatformStats } from '../services/tenantAdmin';
-import { SectionKey } from '../utils/adminHelpers';
+import { SectionKey, SECTION_KEYS, SECTION_TITLES } from '../utils/adminHelpers';
 import BroadcastModal from '../components/BroadcastModal';
 import RegisterPaymentModal from '../components/RegisterPaymentModal';
 import Dashboard from './sections/Dashboard';
@@ -23,12 +24,13 @@ interface FunnelData {
 
 const Superadmin: React.FC = () => {
   const { user, logout } = useAuthStore();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [tenants, setTenants] = useState<TenantSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showBroadcast, setShowBroadcast] = useState(false);
   const [broadcastOk, setBroadcastOk] = useState<string | null>(null);
-  const [section, setSection] = useState<SectionKey>('dashboard');
   const [finance, setFinance] = useState<FinanceData | null>(null);
   const [payTenant, setPayTenant] = useState<TenantSummary | null>(null);
   const [auditLogs, setAuditLogs] = useState<AuditLogItem[]>([]);
@@ -61,6 +63,21 @@ const Superadmin: React.FC = () => {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // La sección activa vive en la URL (no en useState) — así una recarga o un
+  // link directo (/tenants, /bandeja, ...) aterriza donde corresponde en vez
+  // de volver siempre a Dashboard.
+  const pathSection = location.pathname.replace(/^\//, '') as SectionKey;
+  const section: SectionKey = SECTION_KEYS.includes(pathSection) ? pathSection : 'dashboard';
+  const setSection = (s: SectionKey) => navigate(`/${s}`);
+
+  useEffect(() => {
+    if (location.pathname === '/') navigate('/dashboard', { replace: true });
+  }, [location.pathname, navigate]);
+
+  useEffect(() => {
+    document.title = `Merco · ${SECTION_TITLES[section]}`;
+  }, [section]);
 
   const handleLogout = () => {
     logout();

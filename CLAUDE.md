@@ -55,6 +55,8 @@ Estructura interna (dividida por sección, ago 2026): `src/pages/Superadmin.tsx`
 
 Verificado en cada paso: typecheck/lint/build limpios, probado en navegador sin errores de consola, deploy confirmado en producción antes de seguir al siguiente cambio.
 
+**Ruteo real por sección (ago 2026)**: la sección activa vivía solo en `useState` — un reload o un link directo siempre volvía a Dashboard. `Superadmin.tsx` ahora deriva `section` de `useLocation().pathname` (con fallback a `dashboard` si la ruta no es una de `SECTION_KEYS`) y `setSection` es `navigate(`/${s}`)`; `main.tsx` no necesitó cambios (su `<Route path="*" .../>` ya cubre cualquier ruta, con o sin sesión). `document.title` se actualiza por sección (`Merco · Bandeja`, etc., vía `SECTION_TITLES` en `adminHelpers.ts`). `nginx.conf` del admin ya tenía `try_files $uri /index.html` así que las rutas nuevas no requirieron cambios de servidor.
+
 **Path alias backend:** `@/` → `src/`
 
 ---
