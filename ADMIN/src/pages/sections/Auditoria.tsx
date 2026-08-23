@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScrollText } from 'lucide-react';
+import { ScrollText, AlertTriangle, RefreshCw } from 'lucide-react';
 import { AuditLogItem } from '../../services/tenantAdmin';
 
 const ACTION_LABELS: Record<string, { label: string; cls: string }> = {
@@ -19,7 +19,12 @@ const ACTION_LABELS: Record<string, { label: string; cls: string }> = {
   broadcast: { label: 'Anuncio push', cls: 'bg-indigo-100 text-indigo-700' },
 };
 
-const Auditoria: React.FC<{ auditLogs: AuditLogItem[] }> = ({ auditLogs }) => {
+const Auditoria: React.FC<{
+  auditLogs: AuditLogItem[];
+  /** true si la carga falló — antes "sin logs" y "no cargó" se veían igual */
+  failed: boolean;
+  onReload: () => Promise<void>;
+}> = ({ auditLogs, failed, onReload }) => {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
       <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
@@ -27,7 +32,18 @@ const Auditoria: React.FC<{ auditLogs: AuditLogItem[] }> = ({ auditLogs }) => {
         <h3 className="text-sm font-semibold text-gray-900">Auditoría de la plataforma</h3>
         <span className="text-xs text-gray-400">últimas {auditLogs.length} acciones</span>
       </div>
-      {auditLogs.length === 0 ? (
+      {failed ? (
+        <div className="text-center py-12">
+          <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-amber-400" />
+          <p className="text-sm text-gray-500 mb-3">No se pudo cargar la auditoría</p>
+          <button
+            onClick={onReload}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+          >
+            <RefreshCw className="w-3.5 h-3.5" /> Reintentar
+          </button>
+        </div>
+      ) : auditLogs.length === 0 ? (
         <p className="text-sm text-gray-400 text-center py-12">Aún no hay acciones registradas</p>
       ) : (
         <div className="overflow-x-auto">

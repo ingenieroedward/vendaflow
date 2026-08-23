@@ -57,6 +57,11 @@ Verificado en cada paso: typecheck/lint/build limpios, probado en navegador sin 
 
 **Ruteo real por sección (ago 2026)**: la sección activa vivía solo en `useState` — un reload o un link directo siempre volvía a Dashboard. `Superadmin.tsx` ahora deriva `section` de `useLocation().pathname` (con fallback a `dashboard` si la ruta no es una de `SECTION_KEYS`) y `setSection` es `navigate(`/${s}`)`; `main.tsx` no necesitó cambios (su `<Route path="*" .../>` ya cubre cualquier ruta, con o sin sesión). `document.title` se actualiza por sección (`Merco · Bandeja`, etc., vía `SECTION_TITLES` en `adminHelpers.ts`). `nginx.conf` del admin ya tenía `try_files $uri /index.html` así que las rutas nuevas no requirieron cambios de servidor.
 
+**3 fixes de robustez (ago 2026, tras revisión de un agente sobre push/passkeys/features)**: agente recomendó NO implementar passkeys todavía (el riesgo real es la falta de recuperación del TOTP, no ausencia de WebAuthn — queda pendiente para más adelante) y sí estos tres, de bajo esfuerzo y alto impacto para un operador solo:
+- `usePushNotifications.ts` (ADMIN): `toggle()` tenía un `try/finally` sin `catch` — si el navegador bloqueaba el permiso o `subscribe()` fallaba, el botón de campana no hacía nada visible. Ahora expone `isDenied`/`error`/`clearError`; el botón cambia de color/tooltip si está bloqueado a nivel navegador, y un banner ámbar (mismo patrón que el banner de error rojo existente) muestra el mensaje.
+- Botón de recarga global (`RefreshCw`, llama a `load()`) agregado al header del sidebar y a la barra móvil — antes solo Tenants y Bandeja podían refrescar sus datos; Dashboard/Finanzas/Auditoría dependían de un F5 completo.
+- `load()` en `Superadmin.tsx` ya no traga errores en silencio: un helper `track(key, promise, setter, fallback)` registra en `loadErrors: Record<string, boolean>` cuál fetch secundario falló. `Finanzas.tsx` (que antes se quedaba en "Cargando finanzas…" para siempre si `getFinance()` fallaba) y `Auditoria.tsx` (donde "sin logs" y "no cargó" se veían igual) ahora reciben `failed`/`onReload` y muestran un estado "no se pudo cargar — reintentar" en vez del loader eterno o el empty state ambiguo.
+
 **Path alias backend:** `@/` → `src/`
 
 ---

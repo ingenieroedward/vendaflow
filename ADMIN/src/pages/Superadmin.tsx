@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Building2, LogOut, X, Megaphone, LayoutDashboard, Inbox, Wallet, ScrollText, Settings, Bell, BellOff } from 'lucide-react';
+import { Building2, LogOut, X, Megaphone, LayoutDashboard, Inbox, Wallet, ScrollText, Settings, Bell, BellOff, RefreshCw } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import { tenantAdminService, TenantSummary, TenantRequestItem, PlanPaymentItem, FinanceData, AuditLogItem, PlatformSettings, PlatformStats } from '../services/tenantAdmin';
@@ -35,26 +35,39 @@ const Superadmin: React.FC = () => {
   const [payTenant, setPayTenant] = useState<TenantSummary | null>(null);
   const [auditLogs, setAuditLogs] = useState<AuditLogItem[]>([]);
   const [totpEnabled, setTotpEnabled] = useState<boolean | null>(null);
-  const { isSupported: pushSupported, isSubscribed: pushSubscribed, isLoading: pushLoading, toggle: togglePush } = usePushNotifications();
+  const {
+    isSupported: pushSupported, isSubscribed: pushSubscribed, isLoading: pushLoading,
+    isDenied: pushDenied, error: pushError, clearError: clearPushError, toggle: togglePush,
+  } = usePushNotifications();
   const [requests, setRequests] = useState<TenantRequestItem[]>([]);
   const [payments, setPayments] = useState<PlanPaymentItem[]>([]);
   const [payCfg, setPayCfg] = useState<PlatformSettings | null>(null);
   const [funnel, setFunnel] = useState<FunnelData | null>(null);
   const [platform, setPlatform] = useState<PlatformStats | null>(null);
+  // Qué llamadas secundarias de load() fallaron — antes un error acá se
+  // tragaba en silencio (.catch(() => setX(null))) y la sección afectada se
+  // quedaba en "Cargando…" para siempre, sin ningún indicio de que algo
+  // salió mal (nadie más va a reportarlo con un solo operador).
+  const [loadErrors, setLoadErrors] = useState<Record<string, boolean>>({});
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
+    const track = <T,>(key: string, promise: Promise<T>, setter: (v: T) => void, fallback: T) => {
+      promise
+        .then(v => { setter(v); setLoadErrors(prev => (prev[key] ? { ...prev, [key]: false } : prev)); })
+        .catch(() => { setter(fallback); setLoadErrors(prev => ({ ...prev, [key]: true })); });
+    };
     try {
       setTenants(await tenantAdminService.listAll());
-      tenantAdminService.platformStats().then(setPlatform).catch(() => setPlatform(null));
-      tenantAdminService.listRequests().then(setRequests).catch(() => setRequests([]));
-      tenantAdminService.listPayments().then(setPayments).catch(() => setPayments([]));
-      tenantAdminService.getPlatformSettings().then(setPayCfg).catch(() => setPayCfg(null));
-      tenantAdminService.getFunnel().then(setFunnel).catch(() => setFunnel(null));
-      tenantAdminService.getFinance().then(setFinance).catch(() => setFinance(null));
-      tenantAdminService.listAudit().then(setAuditLogs).catch(() => setAuditLogs([]));
-      tenantAdminService.totpStatus().then(r => setTotpEnabled(r.enabled)).catch(() => setTotpEnabled(null));
+      track('platform', tenantAdminService.platformStats(), setPlatform, null);
+      track('requests', tenantAdminService.listRequests(), setRequests, []);
+      track('payments', tenantAdminService.listPayments(), setPayments, []);
+      track('payCfg', tenantAdminService.getPlatformSettings(), setPayCfg, null);
+      track('funnel', tenantAdminService.getFunnel(), setFunnel, null);
+      track('finance', tenantAdminService.getFinance(), setFinance, null);
+      track('auditLogs', tenantAdminService.listAudit(), setAuditLogs, []);
+      track('totpEnabled', tenantAdminService.totpStatus().then(r => r.enabled), setTotpEnabled, null);
     } catch (e: unknown) {
       setError((e as { message?: string })?.message ?? 'Error al cargar tenants');
     } finally {
@@ -101,10 +114,18 @@ const Superadmin: React.FC = () => {
           <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center flex-shrink-0">
             <Building2 className="w-4 h-4 text-white" />
           </div>
-          <div>
+          <div className="flex-1 min-w-0">
             <p className="text-sm font-bold text-white leading-none">Merco</p>
             <p className="text-xs text-slate-400 leading-none mt-0.5">Superadmin</p>
           </div>
+          <button
+            onClick={load}
+            disabled={loading}
+            title="Recargar datos"
+            className="p-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50 flex-shrink-0"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
         </div>
         <nav className="flex-1 px-3 py-4 space-y-1">
           <button onClick={() => setSection('dashboard')} className={navCls(section === 'dashboard')}>
@@ -144,11 +165,11 @@ const Superadmin: React.FC = () => {
               onClick={togglePush}
               disabled={pushLoading}
               className="flex items-center gap-2.5 w-full px-3 py-2 mb-1 text-sm text-slate-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50"
-              title={pushSubscribed ? 'Desactivar notificaciones' : 'Activar notificaciones (pagos, solicitudes, trials)'}
+              title={pushDenied ? 'Bloqueadas por el navegador — actívalas desde el candado de la barra de direcciones' : pushSubscribed ? 'Desactivar notificaciones' : 'Activar notificaciones (pagos, solicitudes, trials)'}
             >
               {pushSubscribed ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
               <span className="flex-1 text-left">Notificaciones</span>
-              <span className={`w-2 h-2 rounded-full ${pushSubscribed ? 'bg-green-500' : 'bg-slate-600'}`} />
+              <span className={`w-2 h-2 rounded-full ${pushSubscribed ? 'bg-green-500' : pushDenied ? 'bg-red-500' : 'bg-slate-600'}`} />
             </button>
           )}
           <p className="px-3 text-xs text-slate-400 mb-2 truncate">{user?.username}</p>
@@ -182,6 +203,9 @@ const Superadmin: React.FC = () => {
           <button onClick={() => setSection('configuracion')} className={`p-2 rounded-lg ${section === 'configuracion' ? 'bg-white/10 text-white' : 'text-slate-300'}`}>
             <Settings className="w-4 h-4" />
           </button>
+          <button onClick={load} disabled={loading} title="Recargar datos" className="p-2 rounded-lg text-slate-300 disabled:opacity-50">
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
           {pushSupported && (
             <button onClick={togglePush} disabled={pushLoading} className={`p-2 rounded-lg ${pushSubscribed ? 'text-green-400' : 'text-slate-300'}`}>
               {pushSubscribed ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
@@ -207,11 +231,21 @@ const Superadmin: React.FC = () => {
             </button>
           </div>
         )}
+        {pushError && (
+          <div className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800">
+            <span>{pushError}</span>
+            <button onClick={clearPushError} className="ml-3 text-amber-500 hover:text-amber-700">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
 
-        {section === 'auditoria' && <Auditoria auditLogs={auditLogs} />}
+        {section === 'auditoria' && (
+          <Auditoria auditLogs={auditLogs} failed={loadErrors.auditLogs ?? false} onReload={load} />
+        )}
 
         {section === 'finanzas' && (
-          <Finanzas finance={finance} tenants={tenants} onPayTenant={setPayTenant} />
+          <Finanzas finance={finance} tenants={tenants} onPayTenant={setPayTenant} failed={loadErrors.finance ?? false} onReload={load} />
         )}
 
         {section === 'dashboard' && (

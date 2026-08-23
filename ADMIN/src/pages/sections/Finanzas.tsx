@@ -1,4 +1,5 @@
 import React from 'react';
+import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { FinanceData, TenantSummary } from '../../services/tenantAdmin';
 import { PLAN_LABELS } from '../../utils/adminHelpers';
 
@@ -6,8 +7,26 @@ const Finanzas: React.FC<{
   finance: FinanceData | null;
   tenants: TenantSummary[];
   onPayTenant: (t: TenantSummary) => void;
-}> = ({ finance, tenants, onPayTenant }) => {
+  /** true si la carga de finance falló — antes esto se quedaba mostrando
+   * "Cargando finanzas…" para siempre, sin ningún indicio del error */
+  failed: boolean;
+  onReload: () => Promise<void>;
+}> = ({ finance, tenants, onPayTenant, failed, onReload }) => {
   if (!finance) {
+    if (failed) {
+      return (
+        <div className="text-center py-16">
+          <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-amber-400" />
+          <p className="text-sm text-gray-500 mb-3">No se pudieron cargar las finanzas</p>
+          <button
+            onClick={onReload}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+          >
+            <RefreshCw className="w-3.5 h-3.5" /> Reintentar
+          </button>
+        </div>
+      );
+    }
     return <div className="text-center py-16 text-gray-400 text-sm">Cargando finanzas…</div>;
   }
 
