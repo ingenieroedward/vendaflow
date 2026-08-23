@@ -35,6 +35,7 @@ const Superadmin: React.FC = () => {
   const [payTenant, setPayTenant] = useState<TenantSummary | null>(null);
   const [auditLogs, setAuditLogs] = useState<AuditLogItem[]>([]);
   const [totpEnabled, setTotpEnabled] = useState<boolean | null>(null);
+  const [totpBackupRemaining, setTotpBackupRemaining] = useState<number | null>(null);
   const {
     isSupported: pushSupported, isSubscribed: pushSubscribed, isLoading: pushLoading,
     isDenied: pushDenied, error: pushError, clearError: clearPushError, toggle: togglePush,
@@ -67,7 +68,17 @@ const Superadmin: React.FC = () => {
       track('funnel', tenantAdminService.getFunnel(), setFunnel, null);
       track('finance', tenantAdminService.getFinance(), setFinance, null);
       track('auditLogs', tenantAdminService.listAudit(), setAuditLogs, []);
-      track('totpEnabled', tenantAdminService.totpStatus().then(r => r.enabled), setTotpEnabled, null);
+      tenantAdminService.totpStatus()
+        .then(r => {
+          setTotpEnabled(r.enabled);
+          setTotpBackupRemaining(r.backupCodesRemaining);
+          setLoadErrors(prev => (prev.totpEnabled ? { ...prev, totpEnabled: false } : prev));
+        })
+        .catch(() => {
+          setTotpEnabled(null);
+          setTotpBackupRemaining(null);
+          setLoadErrors(prev => ({ ...prev, totpEnabled: true }));
+        });
     } catch (e: unknown) {
       setError((e as { message?: string })?.message ?? 'Error al cargar tenants');
     } finally {
@@ -288,6 +299,8 @@ const Superadmin: React.FC = () => {
             onPayCfgChange={setPayCfg}
             totpEnabled={totpEnabled}
             onTotpEnabledChange={setTotpEnabled}
+            totpBackupRemaining={totpBackupRemaining}
+            onTotpBackupRemainingChange={setTotpBackupRemaining}
           />
         )}
       </div>

@@ -65,3 +65,40 @@ export function verifyTotp(secret: string, code: string, now: number = Date.now(
 export function totpUri(secret: string, account: string, issuer = 'Merco'): string {
   return `otpauth://totp/${encodeURIComponent(issuer)}:${encodeURIComponent(account)}?secret=${secret}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=6&period=30`;
 }
+
+// ---- Códigos de respaldo ----
+// Sin esto, perder el dispositivo con la app autenticadora deja la cuenta
+// de superadmin bloqueada para siempre (login exige el código y no hay
+// forma de llegar a un endpoint autenticado para desactivar el 2FA sin
+// haber iniciado sesión antes). Un código de respaldo consumido en el
+// login cuenta como si el TOTP hubiera pasado — no desactiva el 2FA por sí
+// solo, solo abre una sesión para poder reconfigurarlo.
+//
+// Formato XXXX-XXXX (8 hex, mayúsculas) — cabe en el mismo campo `totp` del
+// login (loginSchema.totp: max 10). Se guardan como hash SHA-256, nunca en
+// texto plano; el texto plano solo se devuelve una vez, al generarlos.
+
+export function generateBackupCodes(count = 10): string[] {
+  return Array.from({ length: count }, () => {
+    const hex = crypto.randomBytes(4).toString('hex').toUpperCase();
+    return `${hex.slice(0, 4)}-${hex.slice(4, 8)}`;
+  });
+}
+
+function normalizeBackupCode(code: string): string {
+  return code.trim().toUpperCase();
+}
+
+export function hashBackupCode(code: string): string {
+  return crypto.createHash('sha256').update(normalizeBackupCode(code)).digest('hex');
+}
+
+/** Verifica un código contra la lista de hashes guardados; devuelve el índice
+ * consumido (para que el caller lo remueva y persista) o -1 si no coincide. */
+export function findBackupCodeIndex(hashes: string[], code: string): number {
+  if (!/^[0-9A-F]{4}-[0-9A-F]{4}$/.test(normalizeBackupCode(code))) return -1;
+  const target = Buffer.from(hashBackupCode(code));
+  return hashes.findIndex(stored => {
+    try { return crypto.timingSafeEqual(Buffer.from(stored), target); } catch { return false; }
+  });
+}

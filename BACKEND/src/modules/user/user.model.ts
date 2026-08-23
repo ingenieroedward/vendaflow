@@ -23,6 +23,7 @@ export interface UserAttributes {
   username: string;
   password: string;
   totpSecret?: string | null;
+  totpBackupCodes?: string | null;
   role: 'buyer' | 'seller' | 'admin' | 'superadmin';
   createdAt: Date;
   updatedAt: Date;
@@ -69,6 +70,11 @@ export class User extends Model<UserAttributes, UserCreationAttributes> {
   // Secreto TOTP (2FA) — solo se exige en login de superadmin si está seteado
   @Column({ type: DataType.STRING(64), allowNull: true })
   totpSecret!: string | null;
+
+  // JSON array de hashes SHA-256 de códigos de respaldo de un solo uso — ver
+  // core/totp.ts. Nunca se guarda el texto plano.
+  @Column({ type: DataType.TEXT, allowNull: true })
+  totpBackupCodes!: string | null;
 
   @Column({
     type: DataType.ENUM('buyer', 'seller', 'admin', 'superadmin'),

@@ -54,6 +54,11 @@ export async function ensureSchema(): Promise<void> {
     await qi.addColumn('users', 'totpSecret', { type: DataType.STRING(64), allowNull: true } as never);
     logger.info('[ensureSchema] Column users.totpSecret added');
   }
+  if (!('totpBackupCodes' in userCols)) {
+    // JSON array de hashes SHA-256 (nunca texto plano) — ver core/totp.ts
+    await qi.addColumn('users', 'totpBackupCodes', { type: DataType.TEXT, allowNull: true } as never);
+    logger.info('[ensureSchema] Column users.totpBackupCodes added');
+  }
   for (const [name, spec] of [
     ['contactName', { type: DataType.STRING(120), allowNull: true }],
     ['contactEmail', { type: DataType.STRING(255), allowNull: true }],

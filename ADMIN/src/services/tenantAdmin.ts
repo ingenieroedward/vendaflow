@@ -172,10 +172,13 @@ export const tenantAdminService = {
   listAudit: async () => (await apiService.get<Wrapped<AuditLogItem[]>>('/tenants/platform/audit')).data,
   cancelTenant: (id: number) => apiService.post<TenantSummary>(`/tenants/${id}/cancel`, {}),
   purgeTenant: (id: number) => apiService.delete<unknown>(`/tenants/${id}/purge`),
-  totpStatus: async () => (await apiService.get<Wrapped<{ enabled: boolean }>>('/auth/totp/status')).data,
+  totpStatus: async () => (await apiService.get<Wrapped<{ enabled: boolean; backupCodesRemaining: number }>>('/auth/totp/status')).data,
   totpSetup: async () => (await apiService.post<Wrapped<{ secret: string; uri: string }>>('/auth/totp/setup', {})).data,
-  totpEnable: (secret: string, code: string) => apiService.post<unknown>('/auth/totp/enable', { secret, code }),
+  totpEnable: async (secret: string, code: string) =>
+    (await apiService.post<Wrapped<{ backupCodes: string[] }>>('/auth/totp/enable', { secret, code })).data,
   totpDisable: (code: string) => apiService.post<unknown>('/auth/totp/disable', { code }),
+  totpBackupRegenerate: async (code: string) =>
+    (await apiService.post<Wrapped<{ backupCodes: string[] }>>('/auth/totp/backup/regenerate', { code })).data,
   getFinance: async () => (await apiService.get<Wrapped<FinanceData>>('/tenants/platform/finance')).data,
   registerPayment: async (tenantId: number, payload: RegisterPaymentPayload) =>
     (await apiService.post<Wrapped<PlanPaymentItem>>(`/tenants/${tenantId}/payments`, payload)).data,

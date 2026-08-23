@@ -16,5 +16,6 @@ router.get('/totp/status', isAuth, isSuperAdmin, authController.totpStatus);
 router.post('/totp/setup', isAuth, isSuperAdmin, authController.totpSetup);
 router.post('/totp/enable', isAuth, isSuperAdmin, authController.totpEnable);
 router.post('/totp/disable', isAuth, isSuperAdmin, authController.totpDisable);
+router.post('/totp/backup/regenerate', isAuth, isSuperAdmin, authController.totpBackupRegenerate);
 
 export default router; 

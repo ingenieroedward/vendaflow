@@ -1,4 +1,4 @@
-import { generateTotpSecret, verifyTotp, totpUri } from '../totp';
+import { generateTotpSecret, verifyTotp, totpUri, generateBackupCodes, hashBackupCode, findBackupCodeIndex } from '../totp';
 
 // Vector de prueba RFC 6238 (Apéndice B usa SHA-1 con secreto "12345678901234567890")
 // En base32: GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ
@@ -39,5 +39,49 @@ describe('totp', () => {
     const uri = totpUri('ABC234', 'edward');
     expect(uri).toContain('otpauth://totp/Merco:edward');
     expect(uri).toContain('secret=ABC234');
+  });
+});
+
+describe('códigos de respaldo', () => {
+  it('genera 10 códigos únicos con formato XXXX-XXXX', () => {
+    const codes = generateBackupCodes();
+    expect(codes).toHaveLength(10);
+    for (const c of codes) expect(c).toMatch(/^[0-9A-F]{4}-[0-9A-F]{4}$/);
+    expect(new Set(codes).size).toBe(10); // sin colisiones
+  });
+
+  it('permite un count distinto', () => {
+    expect(generateBackupCodes(3)).toHaveLength(3);
+  });
+
+  it('encuentra el índice de un código válido y no reconoce uno ajeno', () => {
+    const codes = generateBackupCodes(5);
+    const hashes = codes.map(hashBackupCode);
+    expect(findBackupCodeIndex(hashes, codes[2]!)).toBe(2);
+    expect(findBackupCodeIndex(hashes, 'FFFF-FFFF')).toBe(-1);
+  });
+
+  it('no es sensible a mayúsculas/minúsculas ni a espacios extra', () => {
+    const codes = generateBackupCodes(3);
+    const hashes = codes.map(hashBackupCode);
+    expect(findBackupCodeIndex(hashes, codes[0]!.toLowerCase())).toBe(0);
+    expect(findBackupCodeIndex(hashes, `  ${codes[1]}  `)).toBe(1);
+  });
+
+  it('rechaza formato malformado sin explotar', () => {
+    const hashes = generateBackupCodes(2).map(hashBackupCode);
+    expect(findBackupCodeIndex(hashes, '')).toBe(-1);
+    expect(findBackupCodeIndex(hashes, 'no-es-un-codigo')).toBe(-1);
+    expect(findBackupCodeIndex([], 'AAAA-BBBB')).toBe(-1);
+  });
+
+  it('un código consumido (removido de la lista) ya no se reconoce', () => {
+    const codes = generateBackupCodes(3);
+    const hashes = codes.map(hashBackupCode);
+    const idx = findBackupCodeIndex(hashes, codes[1]!);
+    hashes.splice(idx, 1);
+    expect(findBackupCodeIndex(hashes, codes[1]!)).toBe(-1);
+    // los demás siguen intactos
+    expect(findBackupCodeIndex(hashes, codes[0]!)).toBe(0);
   });
 });
