@@ -116,6 +116,17 @@ const Reports: React.FC = () => {
 
   const { products, getProducts } = useProductStore();
 
+  // Costo por producto para el valor de stock a costo (Inventario) — mismo dato del COGS
+  // de Rentabilidad. Offline o si falla, el tab de Inventario simplemente no muestra costo.
+  // Declarado antes de invStats (más abajo) porque su useMemo lo usa desde el primer render.
+  const [productCosts, setProductCosts] = useState<Record<number, number> | null>(null);
+  useEffect(() => {
+    if (!navigator.onLine) return;
+    productService.getCosts()
+      .then(setProductCosts)
+      .catch(() => setProductCosts(null));
+  }, []);
+
   const loadData = useCallback(async () => {
     setLoading(true);
     setIsOffline(!navigator.onLine);
@@ -417,16 +428,6 @@ const Reports: React.FC = () => {
     apiService.get<{ status: string; data: never }>('/orders/stats/profit')
       .then(r => setProfit(r.data as never))
       .catch(() => setProfit(null));
-  }, []);
-
-  // Costo por producto para el valor de stock a costo (Inventario) — mismo dato del COGS
-  // de Rentabilidad. Offline o si falla, el tab de Inventario simplemente no muestra costo.
-  const [productCosts, setProductCosts] = useState<Record<number, number> | null>(null);
-  useEffect(() => {
-    if (!navigator.onLine) return;
-    productService.getCosts()
-      .then(setProductCosts)
-      .catch(() => setProductCosts(null));
   }, []);
 
   const rent = useMemo(() => {
