@@ -334,6 +334,7 @@ Ver plan completo en `PLAN-FEATURES-Y-POS.md` — este es el Punto 2 (base para 
 - **Kardex visible**: pestaña "Movimientos" en Inventario (`components/features/InventoryMovements.tsx`) — tipo (Venta/Compra/Ajuste), cantidad, stock antes→después, detalle, "Cargar más"
 - **Numeración por tenant**: ORD-#### y POC-#### se generan filtrando por `tenantId` (el índice único ya era compuesto). Antes eran globales y los consecutivos saltaban entre clientes
 - **Seguridad**: `GET /stock-movements` y `GET /stock-movements/product/:id` filtran por `tenantId` del JWT (antes exponían movimientos de todos los tenants)
+- **Valor de stock a costo (ago 2026)**: pestaña Inventario de Reports mostraba el valor del stock solo a precio de venta. `ProductService.getCostMap(tenantId)` (último costo de compra recibida; si no hay, el menor precio de proveedor — misma lógica que ya usaba `OrderService` para el COGS de Rentabilidad, ahora extraída ahí para no duplicarla) se expone en `GET /products/costs` (`isSeller`, mismo nivel de visibilidad que `/orders/stats/profit`). `Reports.tsx` la consume igual que `profit` (fetch solo si `navigator.onLine`, `null` si falla — offline el tab de Inventario simplemente no muestra costo, sin romper el resto). Nueva card "Valor del inventario" (venta / costo / utilidad potencial + margen, mismo layout de 3 columnas que "Este mes" en Rentabilidad) y costo por línea en "Top productos por valor en stock"; aviso ámbar si hay productos sin costo registrado (no suman al total, igual que en COGS).
 
 ## ÓRDENES DE COMPRA — affectsStock
 

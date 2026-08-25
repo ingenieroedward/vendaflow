@@ -25,6 +25,13 @@ export class ProductService {
     return response.data.nextCode;
   }
 
+  // Costo por producto: último costo de compra, o menor precio de proveedor si no hay
+  // compras registradas — mismo dato que el COGS de Rentabilidad. { [productId]: costo }
+  async getCosts(): Promise<Record<number, number>> {
+    const response = await apiService.get<ApiResponse<Record<number, number>>>('/products/costs');
+    return response.data;
+  }
+
   // Products
   async searchProducts(query: string, includePrices: boolean = true): Promise<Product[]> {
     try {

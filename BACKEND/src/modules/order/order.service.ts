@@ -296,43 +296,12 @@ export class OrderService {
     return { totalDue, count: items.length, overdueCount, orders: items };
   }
 
-  // Costo por producto: último costo de compra; si no hay, el menor precio de proveedor
+  // Costo por producto: último costo de compra; si no hay, el menor precio de proveedor.
+  // La lógica vive en ProductService.getCostMap (también la usa el valor de stock a costo
+  // en Inventario) — este método solo delega para no romper las llamadas existentes.
   private async getProductCostMap(tenantId: number): Promise<Map<number, number>> {
-    const { PurchaseOrder } = await import('@/modules/purchase-order/purchase-order.model');
-    const { PurchaseOrderItem } = await import('@/modules/purchase-order/purchase-order-item/purchase-order-item.model');
-    const { Price } = await import('@/modules/price/price.model');
-
-    const costMap = new Map<number, number>();
-
-    // Último costo de compra por producto (incluye compras históricas affectsStock=false)
-    const poItems = await PurchaseOrderItem.findAll({
-      include: [{
-        model: PurchaseOrder,
-        as: 'purchaseOrder',
-        attributes: [],
-        where: { tenantId, status: { [Op.ne]: 'cancelled' } },
-        required: true,
-      }],
-      attributes: ['productId', 'unitCost', 'createdAt'],
-      order: [['createdAt', 'DESC']],
-      raw: true,
-    }) as unknown as Array<{ productId: number; unitCost: string }>;
-    for (const it of poItems) {
-      if (!costMap.has(it.productId)) costMap.set(it.productId, Number(it.unitCost));
-    }
-
-    // Fallback: menor precio de proveedor registrado
-    const prices = await Price.findAll({
-      where: { tenantId },
-      attributes: ['productId', [sequelize.fn('MIN', sequelize.col('price')), 'minPrice']],
-      group: ['productId'],
-      raw: true,
-    }) as unknown as Array<{ productId: number; minPrice: string }>;
-    for (const p of prices) {
-      if (!costMap.has(p.productId)) costMap.set(p.productId, Number(p.minPrice));
-    }
-
-    return costMap;
+    const { ProductService } = await import('@/modules/product/product.service');
+    return new ProductService().getCostMap(tenantId);
   }
 
   // Rentabilidad real: utilidad = venta de items − costo de lo vendido (COGS),

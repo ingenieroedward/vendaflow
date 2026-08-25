@@ -274,6 +274,44 @@ export class ProductService {
     return products.map(p => this.mapToResponseDto(p));
   }
 
+  // Costo por producto: último costo de compra recibida; si no hay, el menor precio de
+  // proveedor registrado. Misma lógica que OrderService.getProductCostMap usa para el COGS
+  // de Rentabilidad — vive aquí para que también la use el valor de stock a costo (Inventario).
+  async getCostMap(tenantId: number): Promise<Map<number, number>> {
+    const { PurchaseOrder } = await import('@/modules/purchase-order/purchase-order.model');
+    const { PurchaseOrderItem } = await import('@/modules/purchase-order/purchase-order-item/purchase-order-item.model');
+
+    const costMap = new Map<number, number>();
+
+    const poItems = await PurchaseOrderItem.findAll({
+      include: [{
+        model: PurchaseOrder,
+        as: 'purchaseOrder',
+        attributes: [],
+        where: { tenantId, status: { [Op.ne]: 'cancelled' } },
+        required: true,
+      }],
+      attributes: ['productId', 'unitCost', 'createdAt'],
+      order: [['createdAt', 'DESC']],
+      raw: true,
+    }) as unknown as Array<{ productId: number; unitCost: string }>;
+    for (const it of poItems) {
+      if (!costMap.has(it.productId)) costMap.set(it.productId, Number(it.unitCost));
+    }
+
+    const prices = await Price.findAll({
+      where: { tenantId },
+      attributes: ['productId', [literal('MIN(price)'), 'minPrice']],
+      group: ['productId'],
+      raw: true,
+    }) as unknown as Array<{ productId: number; minPrice: string }>;
+    for (const p of prices) {
+      if (!costMap.has(p.productId)) costMap.set(p.productId, Number(p.minPrice));
+    }
+
+    return costMap;
+  }
+
   async adjustStock(id: number, data: AdjustStockDto, tenantId: number, userId: number): Promise<ProductResponseDto> {
     const validatedData = validateSchema(adjustStockSchema, data);
     const product = await Product.findOne({ where: { id, tenantId } });

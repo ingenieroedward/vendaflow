@@ -3,6 +3,7 @@ import { db } from '../database/LocalDatabase';
 import { orderService, getReceivables, Receivables } from '../services/orders';
 import { apiService } from '../services/api';
 import { purchaseOrderService } from '../services/purchaseOrders';
+import { productService } from '../services/products';
 import { useProductStore } from '../store/productStore';
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
@@ -273,8 +274,28 @@ const Reports: React.FC = () => {
       .filter(p => p.stock > 0)
       .sort((a, b) => b.stock * b.salePrice - a.stock * a.salePrice)
       .slice(0, 8);
-    return { negative, outOfStock, lowStock, ok, totalValue, topStock };
-  }, [products]);
+
+    // Valor a costo — solo si se pudo cargar productCosts (online). Un producto sin costo
+    // registrado (sin compras ni precios de proveedor) no suma al total, igual que en COGS.
+    const hasCostData = productCosts !== null;
+    let totalCostValue = 0;
+    let productsWithoutCost = 0;
+    if (hasCostData) {
+      for (const p of products) {
+        if (p.stock <= 0) continue;
+        const cost = productCosts![p.id];
+        if (cost === undefined) { productsWithoutCost++; continue; }
+        totalCostValue += p.stock * cost;
+      }
+    }
+    const potentialProfit = totalValue - totalCostValue;
+    const potentialMargin = totalValue > 0 ? (potentialProfit / totalValue) * 100 : 0;
+
+    return {
+      negative, outOfStock, lowStock, ok, totalValue, topStock,
+      hasCostData, totalCostValue, productsWithoutCost, potentialProfit, potentialMargin,
+    };
+  }, [products, productCosts]);
 
   const invChartData = useMemo(() => [
     { label: 'Negativo', value: invStats.negative.length, fill: '#ef4444' },
@@ -396,6 +417,16 @@ const Reports: React.FC = () => {
     apiService.get<{ status: string; data: never }>('/orders/stats/profit')
       .then(r => setProfit(r.data as never))
       .catch(() => setProfit(null));
+  }, []);
+
+  // Costo por producto para el valor de stock a costo (Inventario) — mismo dato del COGS
+  // de Rentabilidad. Offline o si falla, el tab de Inventario simplemente no muestra costo.
+  const [productCosts, setProductCosts] = useState<Record<number, number> | null>(null);
+  useEffect(() => {
+    if (!navigator.onLine) return;
+    productService.getCosts()
+      .then(setProductCosts)
+      .catch(() => setProductCosts(null));
   }, []);
 
   const rent = useMemo(() => {
@@ -882,6 +913,37 @@ const Reports: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Valor a costo — solo con datos de costo cargados (online) */}
+                {invStats.hasCostData && (
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-6">
+                    <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                      <h3 className="text-sm font-semibold text-gray-700">Valor del inventario</h3>
+                      {invStats.productsWithoutCost > 0 && (
+                        <span className="text-[11px] text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
+                          {invStats.productsWithoutCost} producto{invStats.productsWithoutCost !== 1 ? 's' : ''} sin costo registrado
+                        </span>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <p className="text-xs text-gray-400 mb-0.5">A precio de venta</p>
+                        <p className="text-sm font-bold text-gray-900">{COPShort(invStats.totalValue)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-400 mb-0.5">A costo</p>
+                        <p className="text-sm font-bold text-orange-600">{COPShort(invStats.totalCostValue)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-400 mb-0.5">Utilidad potencial</p>
+                        <p className={`text-sm font-bold ${invStats.potentialProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                          {COPShort(invStats.potentialProfit)}
+                        </p>
+                        <p className="text-xs text-gray-400">{invStats.potentialMargin.toFixed(0)}% margen</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                   {/* Distribución estado */}
                   <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
@@ -917,6 +979,7 @@ const Reports: React.FC = () => {
                         {invStats.topStock.map((p, i) => {
                           const val = p.stock * p.salePrice;
                           const pct = invStats.totalValue > 0 ? Math.round((val / invStats.totalValue) * 100) : 0;
+                          const cost = invStats.hasCostData ? productCosts![p.id] : undefined;
                           return (
                             <div key={p.id}>
                               <div className="flex items-center justify-between mb-1">
@@ -932,6 +995,11 @@ const Reports: React.FC = () => {
                               <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
                                 <div className="h-full rounded-full bg-indigo-500 transition-all" style={{ width: `${pct}%` }} />
                               </div>
+                              {invStats.hasCostData && (
+                                <p className="text-[11px] text-gray-400 mt-0.5 text-right">
+                                  {cost !== undefined ? `costo: ${COPShort(p.stock * cost)}` : 'sin costo registrado'}
+                                </p>
+                              )}
                             </div>
                           );
                         })}
@@ -976,7 +1044,10 @@ const Reports: React.FC = () => {
                   </div>
                 )}
 
-                <p className="text-xs text-gray-300 mt-2 text-center">{products.length} productos · Valor calculado a precio de venta</p>
+                <p className="text-xs text-gray-300 mt-2 text-center">
+                  {products.length} productos · Valor calculado a precio de venta
+                  {invStats.hasCostData ? ' y a costo' : ' (conéctate para ver el costo)'}
+                </p>
               </>
             )}
 

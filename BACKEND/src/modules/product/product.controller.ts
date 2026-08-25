@@ -85,4 +85,13 @@ export class ProductController {
     const product = await this.productService.adjustStock(Number(req.params['id']), req.body, tenantId, req.user!.id);
     res.status(200).json({ status: 'success', data: product });
   });
+
+  // Costo por producto (último costo de compra, o menor precio de proveedor si no hay compras).
+  // Mismo dato que alimenta el COGS de Rentabilidad — se expone aparte para el valor de
+  // stock a costo en Inventario, sin acoplar ese cálculo al de reportes de ventas.
+  getCosts = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const tenantId = req.user!.tenantId;
+    const costMap = await this.productService.getCostMap(tenantId);
+    res.status(200).json({ status: 'success', data: Object.fromEntries(costMap) });
+  });
 }
