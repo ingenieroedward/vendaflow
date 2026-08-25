@@ -532,20 +532,24 @@ const Reports: React.FC = () => {
           </div>
         )}
 
-        {/* Tabs */}
-        <div className="flex gap-1 mb-6 bg-white border border-gray-200 rounded-xl p-1 shadow-sm w-full sm:w-fit">
-          {tabs.map(t => (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className={`flex-1 sm:flex-none flex items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
-                tab === t.key ? 'bg-gray-900 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              <t.icon className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
-              <span>{t.label}</span>
-            </button>
-          ))}
+        {/* Tabs — 5 no caben estirados (flex-1) en una pantalla angosta: "Rentabilidad" fuerza
+            la fila a desbordar y arrastra a toda la página en horizontal. En mobile van en su
+            propia franja con scroll horizontal contenido, ancho natural (sin estirar). */}
+        <div className="mb-6 -mx-3 sm:mx-0 px-3 sm:px-0 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+          <div className="flex gap-1 bg-white border border-gray-200 rounded-xl p-1 shadow-sm w-fit">
+            {tabs.map(t => (
+              <button
+                key={t.key}
+                onClick={() => setTab(t.key)}
+                className={`flex items-center justify-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-medium whitespace-nowrap transition-all ${
+                  tab === t.key ? 'bg-gray-900 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <t.icon className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
+                <span>{t.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
         {loading ? (
