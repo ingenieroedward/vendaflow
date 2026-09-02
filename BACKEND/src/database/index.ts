@@ -19,6 +19,8 @@ import { Price } from '@/modules/price/price.model';
 import { Customer } from '@/modules/customer/customer.model';
 import { Order } from '@/modules/order/order.model';
 import { OrderItem } from '@/modules/order/order-item.model';
+import { Quote } from '@/modules/quote/quote.model';
+import { QuoteItem } from '@/modules/quote/quote-item.model';
 import { PushSubscription } from '@/modules/push/push-subscription.model';
 import { PurchaseOrder } from '@/modules/purchase-order/purchase-order.model';
 import { PurchaseOrderItem } from '@/modules/purchase-order/purchase-order-item/purchase-order-item.model';
@@ -35,7 +37,7 @@ const sequelize = new Sequelize({
   username: config.database.user,
   password: config.database.password,
   logging: config.server.nodeEnv === 'development' ? console.log : false,
-  models: [Tenant, TenantRequest, PlanPayment, PlatformSetting, MetricDaily, PlatformAuditLog, OrderPayment, User, Category, Product, Supplier, Price, Customer, Order, OrderItem, PushSubscription, PurchaseOrder, PurchaseOrderItem, StockMovement, CashSession, PosSalePayment],
+  models: [Tenant, TenantRequest, PlanPayment, PlatformSetting, MetricDaily, PlatformAuditLog, OrderPayment, User, Category, Product, Supplier, Price, Customer, Order, OrderItem, Quote, QuoteItem, PushSubscription, PurchaseOrder, PurchaseOrderItem, StockMovement, CashSession, PosSalePayment],
   modelMatch: (filename, member) => {
     return filename.substring(0, filename.indexOf('.model')) === member.toLowerCase();
   },

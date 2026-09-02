@@ -3,20 +3,20 @@ import type { TenantPlan } from '@/modules/tenant/tenant.model';
 // Catálogo de features vendibles por plan (independiente de los límites
 // numéricos de PLAN_LIMITS en tenant.service.ts). Agregar una feature nueva
 // aquí y en PLAN_FEATURES — no requiere tocar nada más para que exista.
-export const ALL_FEATURES = ['pos', 'custom_branding', 'multi_warehouse', 'api_access'] as const;
+export const ALL_FEATURES = ['pos', 'custom_branding', 'multi_warehouse', 'api_access', 'quotes'] as const;
 export type FeatureKey = typeof ALL_FEATURES[number];
 
 export function isFeatureKey(v: unknown): v is FeatureKey {
   return typeof v === 'string' && (ALL_FEATURES as readonly string[]).includes(v);
 }
 
-// Defaults por plan. trial incluye 'pos' para que el prospecto lo pruebe
-// durante los 14 días — es el feature más vendible, mejor mostrarlo.
+// Defaults por plan. trial incluye 'pos' y 'quotes' para que el prospecto las
+// pruebe durante los 14 días — son las features más vendibles, mejor mostrarlas.
 export const PLAN_FEATURES: Record<TenantPlan, FeatureKey[]> = {
-  trial: ['pos'],
+  trial: ['pos', 'quotes'],
   basic: [],
-  pro: ['pos', 'custom_branding'],
-  enterprise: ['pos', 'custom_branding', 'multi_warehouse', 'api_access'],
+  pro: ['pos', 'custom_branding', 'quotes'],
+  enterprise: ['pos', 'custom_branding', 'multi_warehouse', 'api_access', 'quotes'],
 };
 
 /**

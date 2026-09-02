@@ -98,12 +98,13 @@ export interface FinanceData {
 }
 
 // Debe reflejar ALL_FEATURES en BACKEND/src/config/features.ts
-export const ALL_FEATURES = ['pos', 'custom_branding', 'multi_warehouse', 'api_access'] as const;
+export const ALL_FEATURES = ['pos', 'custom_branding', 'multi_warehouse', 'api_access', 'quotes'] as const;
 export const FEATURE_LABELS: Record<string, string> = {
   pos: 'Punto de venta (POS)',
   custom_branding: 'Marca propia (logo/color en la app)',
   multi_warehouse: 'Múltiples bodegas',
   api_access: 'Acceso API',
+  quotes: 'Cotizaciones',
 };
 
 export interface PlatformSettings {

@@ -21,6 +21,7 @@ const PLAN_LABELS: Record<string, string> = {
 // (ver CLAUDE.md) — para no mostrar un check sin nada detrás que abrir.
 const FEATURE_INFO: Record<string, { label: string; minPlan: string; soon?: boolean }> = {
   pos: { label: 'Punto de venta (POS)', minPlan: 'Pro' },
+  quotes: { label: 'Cotizaciones', minPlan: 'Pro' },
   custom_branding: { label: 'Marca propia (logo)', minPlan: 'Pro' },
   multi_warehouse: { label: 'Múltiples bodegas', minPlan: 'Enterprise', soon: true },
   api_access: { label: 'Acceso API', minPlan: 'Enterprise', soon: true },

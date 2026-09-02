@@ -183,6 +183,7 @@ docker-compose logs -f frontend
 | `price/` | `/api/prices` | Precios por producto/proveedor, historial |
 | `customer/` | `/api/customers` | Clientes con búsqueda |
 | `order/` | `/api/orders` | Órdenes de venta con items |
+| `quote/` | `/api/quotes` | Cotizaciones (feature `quotes`) — no descuentan stock, convertibles a orden |
 | `purchase-order/` | `/api/purchase-orders` | Órdenes de compra |
 | `stock-movement/` | `/api/stock-movements` | Movimientos de inventario |
 | `push/` | `/api/push` | Notificaciones push (Web Push VAPID) |
@@ -288,6 +289,52 @@ hereda igual en Fase D):
 - Portado de JJLM (repo hermano), probado ahí con una impresora térmica Bluetooth física
   real — sin impresora física en este entorno para repetir esa prueba, verificado con
   typecheck/tests/build limpios y revisión del código portado línea por línea.
+- **Bug real cerrado de paso**: el PDF carta necesita `customer.nit`/`.code` (cajita de
+  cliente), pero `OrderResponseDto`/`mapToResponseDto` en `order.service.ts` nunca los
+  incluían (solo id/name/contact/address) — el NIT del cliente habría salido en blanco en
+  todo PDF carta generado. Corregido: DTO + los 6 sitios que incluyen `Customer` en
+  `order.service.ts` (algunos con `attributes` explícito que ni siquiera traía esas
+  columnas de la BD).
+
+**Fase C — Backend de cotizaciones (v1.15.3)**: nuevo módulo `BACKEND/src/modules/quote/`
+calcado de `order/` (mismo patrón MSC), con las adaptaciones multi-tenant que JJLM (single-
+tenant) no necesita:
+- `quote.model.ts`/`quote-item.model.ts`: mismos campos que JJLM (`quoteNumber`,
+  `customerId`, `userId`, `totalAmount`, `status: draft|sent|accepted|rejected|expired|
+  converted`, `notes`, `validUntil`, `convertedOrderId`) + `tenantId` (índice único
+  compuesto `[tenantId, quoteNumber]` desde el modelo — la numeración por tenant es un
+  fix que Orders tuvo que aplicar después, acá se aplica desde el día uno) + `clientRef`
+  (idempotencia offline-first, para la Fase D, mismo patrón que `orders.clientRef`).
+- `quote.service.ts`: mismo algoritmo de numeración robusta (`MAX` numérico, no orden
+  alfabético) que `order.service.ts::generateOrderNumber`, filtrado por tenant. Cliente/
+  productos siempre validados contra el `tenantId` del JWT (mismo fix de IDOR de Orders —
+  verificado con una prueba de integración real: un tenant no puede leer la cotización de
+  otro, ni referenciar un producto ajeno al crear una). `totalAmount`/`totalPrice` usan
+  `computeOrderTotal`/`lineTotal` de `order-totals.ts` (IVA incluido por línea) — el
+  `quote.service.ts` original de JJLM sumaba sin IVA, un desajuste que ya se había
+  corregido para Orders (ver "Auditoría ago 2026"); no tenía sentido reintroducirlo acá.
+  `convertToOrder()` reusa `OrderService.createOrder()` íntegro — mismo patrón que
+  `PosService.sale()` — descuenta stock ahí (crear la cotización NO toca stock, es
+  propuesta, no venta), marca `converted` después de comittear la orden.
+- **Bug real cerrado durante la verificación**: el guard de "cotización ya convertida"
+  (portado de JJLM) solo bloqueaba cambiar `status`/`items`, pero dejaba pasar `notes`/
+  `customerId`/`validUntil` sin más — probado en Docker local: `PUT` con solo `{notes:...}`
+  sobre una cotización `converted` se aplicaba igual. Una cotización convertida es un
+  registro histórico (la venta real ya vive en la orden generada); el guard ahora bloquea
+  cualquier campo, no una lista angosta que hay que mantener sincronizada con el DTO.
+- `GET /api/quotes/*` montado en `app.ts` como `tenantGuard, requireFeature('quotes')`
+  (mismo patrón que `pos`). Nueva feature `quotes` en `ALL_FEATURES`/`PLAN_FEATURES`
+  (`config/features.ts`) — trial y pro/enterprise, no basic (mismo criterio que
+  `custom_branding`); replicado en `ADMIN/src/services/tenantAdmin.ts` (copia frontend de
+  `ALL_FEATURES`, debe reflejar el backend) y en `FEATURE_INFO` de `TenantSettings.tsx`.
+- Tablas nuevas (`quotes`, `quote_items`) — no requieren `ensureSchema`, `sync()` ya las
+  crea por ser tablas nuevas.
+- Verificado con una prueba de integración real (Docker local, 2 tenants + roles):
+  feature-gating (403 en plan sin `quotes`), creación con IVA correcto, conversión a orden
+  (stock descontado, `ORD-####` generado, cotización marcada `converted`), doble
+  conversión bloqueada (409), edición post-conversión bloqueada (409, tras el fix), IDOR
+  cruzado bloqueado (cotización y producto ajenos → 404), numeración `COT-####` aislada
+  por tenant.
 
 ## INFRAESTRUCTURA Y DEPLOY
 
