@@ -498,6 +498,7 @@ Ver plan completo en `PLAN-FEATURES-Y-POS.md` — este es el Punto 2 (base para 
 - Endpoints: `GET /orders/receivables` (cartera, isSeller), `PATCH /orders/:id/pay` (marcar pagada / body `{paid:false}` revierte, isSeller)
 - Frontend: selector Contado/Crédito en OrderNew (chips 7/15/30/60 días + fecha + recordatorio), banner de cartera y badges en Orders, card de pago con "Marcar pagada" en OrderDetail
 - Recordatorios: `BACKEND/src/core/jobs/paymentReminders.ts` — corre 1 min tras el arranque y luego cada 24h; usa `pushService.notifyUsers()`
+- **Bug real corregido (sep 2026)**: el tab "Activas" de `Orders.tsx` filtraba solo `status !== 'completed'` — una orden `cancelled` nunca calzaba con "Entregadas" (`status === 'completed'`) así que se quedaba en Activas para siempre. `CLOSED_ORDER_STATUSES = ['completed', 'cancelled']` (ambos cierran el ciclo de la orden por igual) + el tab se renombró a "Cerradas" (antes "Entregadas", que era impreciso para una cancelada) — mismo patrón que ya usa `Quotes.tsx` (`CLOSED_STATUSES`/tab "Cerradas").
 
 ---
 

@@ -17,7 +17,12 @@ import { es } from "date-fns/locale";
 import { Order, OrderItem } from "../types";
 import { db, SyncStatus, LocalOrder } from "../database/LocalDatabase";
 
-type TabType = 'active' | 'completed' | 'local' | 'trash';
+type TabType = 'active' | 'closed' | 'local' | 'trash';
+
+// Una orden cancelada ya no requiere acción, pero antes solo se excluía
+// 'completed' de "Activas" — las canceladas se quedaban ahí para siempre.
+// Completada y cancelada cierran el ciclo de la orden por igual.
+const CLOSED_ORDER_STATUSES: Order['status'][] = ['completed', 'cancelled'];
 
 interface LocalOrderMeta {
   order: LocalOrder;
@@ -199,11 +204,11 @@ const Orders: React.FC = () => {
     new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP" }).format(amount);
 
   const tabOrders = orders.filter((order) =>
-    activeTab === 'completed' ? order.status === 'completed' : order.status !== 'completed'
+    activeTab === 'closed' ? CLOSED_ORDER_STATUSES.includes(order.status) : !CLOSED_ORDER_STATUSES.includes(order.status)
   );
 
   const searchBase = serverResults
-    ? serverResults.filter((order) => activeTab === 'completed' ? order.status === 'completed' : order.status !== 'completed')
+    ? serverResults.filter((order) => activeTab === 'closed' ? CLOSED_ORDER_STATUSES.includes(order.status) : !CLOSED_ORDER_STATUSES.includes(order.status))
     : tabOrders;
   const filteredOrders = searchBase.filter((order) => {
     const searchLower = search.toLowerCase();
@@ -215,8 +220,8 @@ const Orders: React.FC = () => {
     );
   });
 
-  const activeCount = orders.filter(o => o.status !== 'completed').length;
-  const completedCount = orders.filter(o => o.status === 'completed').length;
+  const activeCount = orders.filter(o => !CLOSED_ORDER_STATUSES.includes(o.status)).length;
+  const closedCount = orders.filter(o => CLOSED_ORDER_STATUSES.includes(o.status)).length;
 
   const getPriceBreakdown = (order: Order) => {
     if (!order.items || order.items.length === 0) return { subtotal: order.totalAmount, tax: 0, total: order.totalAmount };
@@ -362,14 +367,14 @@ const Orders: React.FC = () => {
             </span>
           </button>
           <button
-            onClick={() => { setActiveTab('completed'); setSearch(''); }}
-            className={`px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'completed' ? 'border-green-600 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+            onClick={() => { setActiveTab('closed'); setSearch(''); }}
+            className={`px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'closed' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
           >
             <span className="flex items-center gap-1.5">
-              Entregadas
-              {completedCount > 0 && (
-                <span className={`px-1.5 py-0.5 rounded-full text-xs ${activeTab === 'completed' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
-                  {completedCount}
+              Cerradas
+              {closedCount > 0 && (
+                <span className={`px-1.5 py-0.5 rounded-full text-xs ${activeTab === 'closed' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'}`}>
+                  {closedCount}
                 </span>
               )}
             </span>
@@ -586,7 +591,7 @@ const Orders: React.FC = () => {
                 {tabOrders.length > 0 && (
                   <div className="flex gap-4 justify-between items-center px-1">
                     <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
-                      {activeTab === 'completed' ? 'Entregadas' : 'Activas'}
+                      {activeTab === 'closed' ? 'Cerradas' : 'Activas'}
                       <span className="text-gray-500 font-normal ml-2 text-sm sm:text-base">({tabOrders.length})</span>
                     </h2>
                     <div className="flex items-center w-full sm:w-auto gap-2">
@@ -703,7 +708,7 @@ const Orders: React.FC = () => {
                   <div className="text-center py-12 sm:py-16 px-4">
                     <Calendar className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 mx-auto mb-4" />
                     <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">
-                      {activeTab === 'completed' ? 'No hay órdenes entregadas' : 'No hay órdenes activas'}
+                      {activeTab === 'closed' ? 'No hay órdenes cerradas' : 'No hay órdenes activas'}
                     </h3>
                     {activeTab === 'active' && (user?.role === "admin" || user?.role === "seller") && (
                       <>
