@@ -36,3 +36,78 @@
     animation: slide-down 0.3s ease-out;
   }
 }
+
+/* Impresión directa del ticket 80mm (Órdenes/POS) — la vista ya existe fuera
+   de pantalla (OrderPrintView, usada también para generar el PDF vía
+   html2canvas); acá se reutiliza para imprimir directo con window.print(),
+   sin generar/descargar un PDF primero. Solo se activa dentro de @media
+   print — en pantalla la vista sigue oculta.
+
+   El truco de "ocultar todo menos el ticket" NO usa visibility:hidden +
+   position:absolute sobre el ticket: un elemento position:absolute queda
+   fuera del flujo normal del documento, y el paginador de impresión de
+   Chrome no lo reparte en varias páginas cuando es más alto que una —
+   simplemente lo recorta a la primera página y descarta el resto. Por eso
+   un ticket con muchos productos saldría cortado ("mocho") aunque el
+   contenido entero cupiera perfecto en 2-3 páginas de 600mm.
+   En su lugar: el ticket se renderiza vía React Portal directo a
+   #print-root (hermano de #root en index.html), en flujo normal
+   (position: static). Al imprimir, se oculta #root entero y se muestra
+   #print-root — el ticket queda como el único contenido de la página, en
+   flujo normal, así que si excede el alto de @page, Chrome sí lo reparte
+   en tantas páginas como haga falta. Portado de JJLM (repo hermano), donde
+   ya se probó con una impresora térmica Bluetooth física real. */
+@media print {
+  #root {
+    display: none !important;
+  }
+  #print-root {
+    display: block !important;
+  }
+  .print-ticket-root {
+    position: static !important;
+    /* 72mm, no 80mm — el ancho imprimible real del cabezal térmico en papel
+       "80mm" ronda los 72mm; el resto es franja física no imprimible de
+       fábrica que ningún margin/@page puede anular. En impresoras
+       Bluetooth genéricas esa franja queda concentrada a la derecha (el
+       origen x=0 del cabezal es el borde físico izquierdo), por eso se deja
+       pegado a la izquierda (sin margin) en vez de centrado — así todo el
+       colchón de seguridad cae del lado derecho. */
+    /* !important necesario: el wrapper trae width:'302px' inline (para el
+       render off-screen en pantalla / captura html2canvas del PDF), y un
+       estilo inline le gana en especificidad a esta regla si no fuerza. */
+    width: 72mm !important;
+    margin: 0 !important;
+  }
+  /* Las impresoras térmicas son de 1 bit (blanco o negro puro) — no
+     imprimen gris de verdad, lo simulan con una trama de puntos, y eso es
+     justo lo que se ve "borroso" en NIT/dirección/fecha/etc (usan
+     #333/#555/#777 en OrderPrintView.tsx para dar jerarquía visual en
+     pantalla y en el PDF descargado — ahí sí se ve bien, un PDF no tiene
+     este problema). Se fuerza todo a negro puro SOLO acá, solo para la
+     impresión física directa; el PDF descargado (generado aparte, vía
+     html2canvas, no pasa por este CSS) conserva los grises tal cual. */
+  .print-ticket-root,
+  .print-ticket-root * {
+    color: #000 !important;
+  }
+  @page {
+    /* 600mm, no "auto" — es el largo máximo real que acepta el form de
+       papel configurado en el driver de la impresora (Panel de control →
+       Propiedades de la impresora → Formularios). "auto" le pide a Chrome
+       una altura dinámica que ese driver no puede mapear a nada real, y
+       terminaba truncando el ticket a un largo mucho más corto en vez de
+       avisar o repartir en varias páginas.
+       Con un alto fijo, un ticket que no entra en 600mm no se pierde: se
+       reparte en más de una "página" (más de un tramo del rollo), en vez de
+       cortarse y perder el resto. 600mm alcanza para +100 productos en una
+       sola tira, así que en la práctica casi ningún ticket real llega a
+       partirse. Si el driver acepta un form más grande, se puede subir este
+       valor para tener aún más margen. Nota: esta regla @page es global de
+       la hoja de estilos — cualquier Ctrl+P del navegador en cualquier
+       página de Merco queda con este tamaño de papel mientras esté
+       cargada (mismo trade-off aceptado ya en producción en JJLM). */
+    size: 80mm 600mm;
+    margin: 0;
+  }
+}

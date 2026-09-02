@@ -51,7 +51,9 @@ const OrderPrintView = forwardRef<HTMLDivElement, OrderPrintViewProps>(
           fontSize: "11px",
           color: "#000",
           background: "#fff",
-          padding: "12px 22px",
+          // 8px, no 22px — compensa el ancho imprimible real del cabezal
+          // térmico (72mm, no 80mm; ver .print-ticket-root en index.css)
+          padding: "12px 8px",
           boxSizing: "border-box",
         }}
       >
@@ -104,6 +106,7 @@ const OrderPrintView = forwardRef<HTMLDivElement, OrderPrintViewProps>(
         {/* Cabecera tabla */}
         <div style={{
           display: "flex",
+          gap: "4px",
           fontSize: "9px",
           fontWeight: "bold",
           textTransform: "uppercase",

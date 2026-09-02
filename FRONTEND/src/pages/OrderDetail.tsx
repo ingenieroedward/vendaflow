@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -16,6 +17,7 @@ import {
   Loader2,
   CreditCard,
   Banknote,
+  Printer,
 } from "lucide-react";
 import { markOrderPaid } from "../services/orders";
 import Breadcrumbs from "../components/ui/Breadcrumbs";
@@ -26,24 +28,39 @@ import { Filesystem, Directory } from "@capacitor/filesystem";
 import { Share } from "@capacitor/share";
 import { useOrderStore } from "../store/orderStore";
 import { useAuthStore } from "../store/authStore";
+import { useTenantStore } from "../store/tenantStore";
 import { useUIStore } from "../store/uiStore";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
 import ErrorMessage from "../components/ui/ErrorMessage";
 import Button from "../components/ui/Button";
 import OrderPrintView from "../components/features/OrderPrintView";
-import OrderPrintViewCarta from "../components/features/OrderPrintViewCarta";
+import { generateCartaPdf, urlToDataUrl } from "../utils/generateCartaPdf";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+
+const ORDER_STATUS_LABEL: Record<string, string> = {
+  pending: "Pendiente",
+  processing: "En Proceso",
+  completed: "Completada",
+  cancelled: "Cancelada",
+};
+
+const ORDER_STATUS_COLOR: Record<string, [number, number, number]> = {
+  pending: [180, 83, 9],
+  processing: [29, 78, 216],
+  completed: [21, 128, 61],
+  cancelled: [220, 38, 38],
+};
 
 const OrderDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuthStore();
+  const tenant = useTenantStore(s => s.tenant);
   const { addNotification } = useUIStore();
   const { currentOrder, loading, error, getOrderById, clearError, updateOrder, deleteOrder } =
     useOrderStore();
   const printRef = useRef<HTMLDivElement>(null);
-  const printRefCarta = useRef<HTMLDivElement>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [showPdfMenu, setShowPdfMenu] = useState(false);
@@ -191,8 +208,22 @@ const OrderDetail: React.FC = () => {
     }
   };
 
+  // Impresión directa (PC/navegador) — abre el diálogo nativo del sistema ya
+  // con el ticket formateado, sin pasar por generar/descargar un PDF. La
+  // impresora térmica emparejada por Bluetooth aparece ahí como una impresora
+  // normal del sistema. Ver .print-ticket-root en index.css.
+  const handleDirectPrint = async () => {
+    if (!currentOrder || generatingPdf) return;
+    setShowPdfMenu(false);
+    if (currentOrder.status === 'pending') {
+      await updateOrder(currentOrder.id, { status: 'processing' });
+      await getOrderById(currentOrder.id);
+    }
+    window.print();
+  };
+
   const handlePrintCarta = async () => {
-    if (!currentOrder || generatingPdf || !printRefCarta.current) return;
+    if (!currentOrder || generatingPdf) return;
     if (currentOrder.status === 'pending') {
       await updateOrder(currentOrder.id, { status: 'processing' });
       await getOrderById(currentOrder.id);
@@ -201,68 +232,38 @@ const OrderDetail: React.FC = () => {
     setGeneratingPdf(true);
     setShowPdfMenu(false);
     try {
-      const container = printRefCarta.current;
-      const canvas = await html2canvas(container, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff',
-        windowWidth: container.scrollWidth,
-        windowHeight: container.scrollHeight,
-        scrollX: 0,
-        scrollY: 0,
+      const logo = tenant?.logoUrl ? await urlToDataUrl(tenant.logoUrl) : null;
+      const pdf = await generateCartaPdf({
+        business: {
+          name: tenant?.name ?? 'Merco',
+          nit: tenant?.nit,
+          address: tenant?.address,
+          phone: tenant?.contactPhone,
+          city: tenant?.city,
+          logo,
+        },
+        docTypeLabel: 'Orden de Venta',
+        docNumber: currentOrder.orderNumber,
+        statusLabel: ORDER_STATUS_LABEL[currentOrder.status] ?? currentOrder.status,
+        statusColor: ORDER_STATUS_COLOR[currentOrder.status] ?? [55, 65, 81],
+        createdAt: currentOrder.createdAt,
+        customer: {
+          name: currentOrder.customer?.name ?? `Cliente #${currentOrder.customerId}`,
+          code: (currentOrder.customer as any)?.code,
+          nit: currentOrder.customer?.nit,
+          contact: currentOrder.customer?.contact,
+          address: currentOrder.customer?.address,
+        },
+        items: currentOrder.items.map((item) => ({
+          code: item.product.code,
+          name: item.product.name,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          taxRate: item.taxRate,
+        })),
+        notes: currentOrder.notes,
+        totalLabel: 'Total',
       });
-
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
-      const pageWmm = pdf.internal.pageSize.getWidth();   // 215.9 mm
-      const pageHmm = pdf.internal.pageSize.getHeight();  // 279.4 mm
-
-      const domW = container.offsetWidth;                  // 794 px
-      const canvasScale = canvas.width / domW;             // ≈2
-
-      // Page height in canvas pixels (letter: 279.4 / 215.9 ratio)
-      const pageHcanvas = (pageHmm / pageWmm) * domW * canvasScale;
-      // Top margin for pages 2+ (32px DOM → canvas px)
-      const topPadCanvas = Math.round(28 * canvasScale);
-
-      // Use getBoundingClientRect — reliable for <tr> inside tables
-      const containerTop = container.getBoundingClientRect().top;
-      const rows = Array.from(
-        container.querySelectorAll('tbody tr, tfoot tr')
-      ) as HTMLElement[];
-
-      const breakPoints: number[] = [];
-      let pageBottom = pageHcanvas;
-
-      for (const row of rows) {
-        const rect = row.getBoundingClientRect();
-        const rowTop    = (rect.top  - containerTop) * canvasScale;
-        const rowBottom = (rect.bottom - containerTop) * canvasScale;
-        if (rowBottom > pageBottom) {
-          breakPoints.push(rowTop);
-          pageBottom = rowTop + pageHcanvas;
-        }
-      }
-      breakPoints.push(canvas.height);
-
-      // Render one PDF page per segment, with top-margin whitespace on pages 2+
-      let sliceY = 0;
-      for (let i = 0; i < breakPoints.length; i++) {
-        const sliceH   = breakPoints[i] - sliceY;
-        const padTop   = i > 0 ? topPadCanvas : 0;
-        const pageCanvas = document.createElement('canvas');
-        pageCanvas.width  = canvas.width;
-        pageCanvas.height = sliceH + padTop;
-        const ctx = pageCanvas.getContext('2d')!;
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
-        ctx.drawImage(canvas, 0, sliceY, canvas.width, sliceH,
-                              0, padTop, canvas.width, sliceH);
-        const pageHmm2 = (pageCanvas.height / canvas.width) * pageWmm;
-        pdf.addImage(pageCanvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, pageWmm, pageHmm2);
-        sliceY = breakPoints[i];
-        if (i < breakPoints.length - 1) pdf.addPage();
-      }
 
       const fileName = `${currentOrder.orderNumber}-carta.pdf`;
       if (Capacitor.isNativePlatform()) {
@@ -458,6 +459,15 @@ const OrderDetail: React.FC = () => {
                   <Download className="w-3.5 h-3.5 text-gray-400" />
                   Hoja carta
                 </button>
+                {!Capacitor.isNativePlatform() && (
+                  <button
+                    onClick={() => handleDirectPrint()}
+                    className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 border-t border-gray-100"
+                  >
+                    <Printer className="w-3.5 h-3.5 text-gray-400" />
+                    Imprimir (térmica)
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -677,13 +687,18 @@ const OrderDetail: React.FC = () => {
           </div>
         </div>
 
-        {/* Off-screen renders for PDF capture */}
-        <div style={{ position: 'absolute', left: '-9999px', top: 0, width: '302px', pointerEvents: 'none' }}>
-          <OrderPrintView ref={printRef} order={currentOrder} />
-        </div>
-        <div style={{ position: 'absolute', left: '-9999px', top: 0, width: '794px', pointerEvents: 'none' }}>
-          <OrderPrintViewCarta ref={printRefCarta} order={currentOrder} />
-        </div>
+        {/* Portal a #print-root (hermano de #root en index.html — no anidado
+            en los contenedores flex/scroll de esta página): en pantalla queda
+            oculto (posición fuera de vista, ver index.css) y sigue sirviendo
+            para la captura html2canvas del PDF ticket; al imprimir directo
+            (handleDirectPrint), .print-ticket-root pasa a flujo normal ahí
+            y es el único contenido de la página impresa. */}
+        {createPortal(
+          <div className="print-ticket-root" style={{ position: 'absolute', left: '-9999px', top: 0, width: '302px', pointerEvents: 'none' }}>
+            <OrderPrintView ref={printRef} order={currentOrder} />
+          </div>,
+          document.getElementById('print-root') ?? document.body
+        )}
 
         {/* Click outside overlays */}
         {showStatusDropdown && (

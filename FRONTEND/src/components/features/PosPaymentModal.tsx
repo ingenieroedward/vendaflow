@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { Banknote, CreditCard, Landmark, MoreHorizontal, Plus, X, CheckCircle2, Printer } from 'lucide-react';
 import Modal from '../ui/Modal';
 import LoadingSpinner from '../ui/LoadingSpinner';
@@ -15,6 +16,8 @@ interface Props {
   onClose: () => void;
   onConfirm: (payments: PosPaymentLine[], cashReceived?: number) => void;
   onPrint?: () => void;
+  /** Impresión directa (PC/navegador) — abre el diálogo nativo, sin generar PDF primero */
+  onDirectPrint?: () => void;
   onDone?: () => void;
 }
 
@@ -31,7 +34,7 @@ const round2 = (n: number) => Math.round(n * 100) / 100;
 // rápido de un clic); "Agregar método" habilita pago mixto. El campo
 // "Efectivo recibido" solo aparece si hay una línea en efectivo y calcula
 // el vuelto en vivo.
-const PosPaymentModal: React.FC<Props> = ({ isOpen, total, busy, result, printing, onClose, onConfirm, onPrint, onDone }) => {
+const PosPaymentModal: React.FC<Props> = ({ isOpen, total, busy, result, printing, onClose, onConfirm, onPrint, onDirectPrint, onDone }) => {
   const [lines, setLines] = useState<PosPaymentLine[]>([{ method: 'cash', amount: total }]);
   const [cashReceivedInput, setCashReceivedInput] = useState('');
 
@@ -99,6 +102,14 @@ const PosPaymentModal: React.FC<Props> = ({ isOpen, total, busy, result, printin
               Nueva venta
             </button>
           </div>
+          {onDirectPrint && !Capacitor.isNativePlatform() && (
+            <button
+              onClick={onDirectPrint}
+              className="w-full text-xs text-gray-400 hover:text-gray-600 pt-1"
+            >
+              Imprimir directo en térmica (sin descargar PDF)
+            </button>
+          )}
         </div>
       </Modal>
     );

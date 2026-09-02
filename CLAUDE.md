@@ -257,6 +257,38 @@ dirección/ciudad del negocio):
 - `FRONTEND/src/pages/TenantSettings.tsx`: 3 inputs nuevos en la card "Identidad" (junto a
   nombre/logo), guardados por el mismo submit existente.
 
+**Fase B — PDF carta nativo + impresión térmica directa** (Órdenes y POS; Cotizaciones lo
+hereda igual en Fase D):
+- **PDF carta nativo** (reemplaza `html2canvas` + el hack de medir filas del DOM que tenía
+  `OrderDetail.tsx::handlePrintCarta`, con el bug de raíz de siempre: hueco en blanco al
+  final de órdenes cortas / texto sobre las líneas de la tabla). Nuevo
+  `FRONTEND/src/utils/generateCartaPdf.ts` — dibujo vectorial directo con `jsPDF` (texto,
+  líneas, rects) + `jspdf-autotable` (nueva dependencia, `^5.0.8`) para la tabla de
+  productos, que maneja paginación/alto de fila/header repetido sola, sin medir el DOM.
+  `urlToDataUrl()` en el mismo archivo resuelve `tenant.logoUrl` (URL remota) a data-URL
+  antes de `addImage()` — a diferencia de JJLM (single-tenant, logo ya en base64);
+  tolerante a que la URL no tenga CORS o falle (`null`, PDF sigue sin logo).
+  `OrderPrintViewCarta.tsx` eliminado (sin más referencias).
+- **Impresión térmica directa** (ticket 80mm, botón "Imprimir" en el navegador de
+  escritorio — oculto en la app nativa): `window.print()` sobre la vista off-screen ya
+  existente (`OrderPrintView`), en vez de generar/descargar un PDF primero. La impresora
+  Bluetooth emparejada aparece en el diálogo nativo de impresión como una impresora más.
+  `#print-root` (`index.html`, hermano de `#root`) + bloque `@media print` completo en
+  `index.css` — portal de React (no `position:absolute`, que Chrome no pagina si excede una
+  página), ancho real imprimible 72mm flush-left (no 80mm centrado — el resto es franja
+  física no imprimible de fábrica), `@page { size: 80mm 600mm }` (el driver de la térmica
+  necesita un largo fijo, "auto" trunca), `color:#000` forzado solo en impresión física (las
+  térmicas son de 1 bit, los grises de jerarquía visual se ven "borrosos" por dithering —
+  el PDF descargado, generado aparte vía `html2canvas`, no pasa por este CSS y conserva los
+  grises). Nota: `@page` es global de la hoja de estilos — cualquier Ctrl+P del navegador en
+  cualquier página de Merco queda con ese tamaño de papel mientras esté cargada (trade-off
+  heredado de JJLM, no una regresión nueva). Aplicado en `OrderDetail.tsx` y en `Pos.tsx`
+  (POS reusa el mismo `OrderPrintView` para su ticket — `PosPaymentModal` gana un botón
+  secundario "Imprimir directo en térmica" en la vista de confirmación post-venta).
+- Portado de JJLM (repo hermano), probado ahí con una impresora térmica Bluetooth física
+  real — sin impresora física en este entorno para repetir esa prueba, verificado con
+  typecheck/tests/build limpios y revisión del código portado línea por línea.
+
 ## INFRAESTRUCTURA Y DEPLOY
 
 **Servidor:** VPS — Dokploy + Traefik

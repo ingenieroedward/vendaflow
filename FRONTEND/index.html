@@ -45,6 +45,9 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- Hermano de #root, NO anidado en él — destino del portal del ticket
+         80mm (impresión térmica directa). Ver .print-ticket-root en index.css. -->
+    <div id="print-root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <!-- Service Worker registrado desde main.tsx via serviceWorkerRegistration -->
   </body>

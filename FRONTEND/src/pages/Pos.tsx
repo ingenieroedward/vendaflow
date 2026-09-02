@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ShoppingCart, Plus, Minus, Trash2, Search, DoorOpen, DoorClosed, Package } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -189,6 +190,14 @@ const Pos: React.FC = () => {
     } finally {
       setPrinting(false);
     }
+  };
+
+  // Impresión directa (PC/navegador) — mismo mecanismo que OrderDetail: abre
+  // el diálogo nativo del sistema ya con el ticket formateado, sin generar/
+  // descargar un PDF primero. Ver .print-ticket-root en index.css.
+  const handleDirectPrintTicket = () => {
+    if (!saleOrder) return;
+    window.print();
   };
 
   const handleNewSale = () => {
@@ -383,14 +392,19 @@ const Pos: React.FC = () => {
         onClose={() => setPaymentModalOpen(false)}
         onConfirm={handleConfirmPayment}
         onPrint={handlePrintTicket}
+        onDirectPrint={handleDirectPrintTicket}
         onDone={handleNewSale}
       />
 
-      {/* Render oculto para capturar el ticket 80mm con html2canvas */}
-      {saleOrder && (
-        <div style={{ position: 'absolute', left: '-9999px', top: 0, width: '302px', pointerEvents: 'none' }}>
+      {/* Portal a #print-root (hermano de #root en index.html) — igual que
+          OrderDetail.tsx: en pantalla oculto (posición fuera de vista) y
+          sigue sirviendo para la captura html2canvas del PDF; al imprimir
+          directo, .print-ticket-root pasa a flujo normal ahí. */}
+      {saleOrder && createPortal(
+        <div className="print-ticket-root" style={{ position: 'absolute', left: '-9999px', top: 0, width: '302px', pointerEvents: 'none' }}>
           <OrderPrintView ref={printRef} order={saleOrder} />
-        </div>
+        </div>,
+        document.getElementById('print-root') ?? document.body
       )}
 
       {/* Cerrar caja */}
