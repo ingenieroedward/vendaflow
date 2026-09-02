@@ -226,6 +226,37 @@ docker-compose logs -f frontend
 - `authStore.setUser()` (nuevo) actualiza el usuario en memoria y `localStorage` tras guardar el perfil, sin necesitar relogin.
 - **Consolidación del menú de usuario**: "Cambiar contraseña" y "Notificaciones" vivían sueltos en `Sidebar`/`Header` (además, en `Header` las notificaciones eran un ícono aparte en la barra superior, no un ítem del dropdown) — se movieron dentro de `/profile` como dos cards ("Contraseña" con el mismo `ChangePasswordModal` de siempre; "Notificaciones" con activar/desactivar + estado si el navegador las bloqueó). `Sidebar`/`Header` quedan solo con "Mi perfil" y "Cerrar sesión" en esa sección. De paso, `FRONTEND/src/hooks/usePushNotifications.ts` (copia separada de la del ADMIN) tenía el mismo bug ya corregido ahí: `toggle()` sin `catch` — ahora expone `isDenied`/`error`/`clearError` igual que la del panel de superadmin.
 
+## COTIZACIONES + PDF CARTA/TICKET — portado de JJLM (ago/sep 2026)
+
+Dos features grandes portadas del repo hermano `JJLM` (single-tenant, sin franquicia por
+plan — mismo origen que Merco), implementadas en 4 fases secuenciales (plan en
+`~/.claude/plans/snoopy-inventing-starlight.md` de la sesión que lo hizo). Decisiones
+tomadas con el usuario: cotizaciones lleva offline-first completo desde el día uno (mismo
+patrón que Orders), es una feature gateada por plan, los datos fiscales los edita el propio
+admin del tenant, y la impresión térmica directa se agrega también en POS.
+
+**Fase A — Datos fiscales del tenant** (base para el PDF carta nuevo, que necesita NIT/
+dirección/ciudad del negocio):
+- `tenants.nit`/`address`/`city` (STRING, nullable, `ensureSchema`) — no son "marca" (a
+  diferencia de `logoUrl`, que sí exige la feature `custom_branding`), son datos de
+  facturación libres en todos los planes.
+- Self-service: se agregaron al mismo endpoint que ya editaba logo/color/nombre
+  (`PUT /tenants/me/theme`, `tenantService.updateTheme()`, admin del propio tenant) — no un
+  módulo nuevo. `GET /tenants/me` (`tenantService.getInfo()`) los expone junto con
+  `contactPhone` (ya existía en el modelo, antes solo editable por superadmin — ahora
+  también legible por el tenant para mostrarlo en sus PDF).
+- **Bug cerrado de paso**: `PUT /tenants/me/theme` pasaba `req.body` directo a
+  `tenant.update()` sin ningún allowlist — un admin de tenant podía mandar
+  `{plan:'enterprise', maxUsers:9999}` y `tenant.update()` lo aplicaba igual (Sequelize no
+  filtra por su cuenta). Se agregó `updateThemeSchema` (Zod, allowlist explícito de
+  name/primaryColor/logoUrl/nit/address/city — nada de plan/límites/status) en el
+  controller, mismo patrón que `updateOwnProfileSchema` ya usa en `/users/me`. Verificado
+  con una prueba de integración real (Docker local): un admin de tenant mandó
+  `{plan:'enterprise', maxUsers:9999}` a `/tenants/me/theme` y el backend no cambió ni el
+  plan ni el límite.
+- `FRONTEND/src/pages/TenantSettings.tsx`: 3 inputs nuevos en la card "Identidad" (junto a
+  nombre/logo), guardados por el mismo submit existente.
+
 ## INFRAESTRUCTURA Y DEPLOY
 
 **Servidor:** VPS — Dokploy + Traefik

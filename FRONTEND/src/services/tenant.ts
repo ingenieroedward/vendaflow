@@ -13,6 +13,9 @@ export async function updateMyTheme(data: {
   name?: string;
   primaryColor?: string;
   logoUrl?: string | null;
+  nit?: string | null;
+  address?: string | null;
+  city?: string | null;
 }): Promise<void> {
   await apiService.put<unknown>('/tenants/me/theme', data);
 }

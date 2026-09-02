@@ -41,6 +41,12 @@ export interface Tenant {
   trialEndsAt?: string | null;
   // solo llega de /tenants/me (autenticado) — features del plan (ver FeatureGate/useFeature)
   features?: string[];
+  // datos fiscales del negocio del tenant — solo llegan de /tenants/me (autenticado),
+  // usados en TenantSettings y en los PDF de venta (ticket/carta)
+  nit?: string | null;
+  address?: string | null;
+  city?: string | null;
+  contactPhone?: string | null;
 }
 
 export interface LoginResponse {

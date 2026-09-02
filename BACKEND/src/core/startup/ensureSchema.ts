@@ -67,6 +67,10 @@ export async function ensureSchema(): Promise<void> {
     ['contactName', { type: DataType.STRING(120), allowNull: true }],
     ['contactEmail', { type: DataType.STRING(255), allowNull: true }],
     ['contactPhone', { type: DataType.STRING(30), allowNull: true }],
+    // Datos fiscales del negocio del tenant, para sus propios PDF (carta/ticket)
+    ['nit', { type: DataType.STRING(30), allowNull: true }],
+    ['address', { type: DataType.STRING(255), allowNull: true }],
+    ['city', { type: DataType.STRING(120), allowNull: true }],
   ] as const) {
     if (!(name in tenantCols)) {
       await qi.addColumn('tenants', name, spec as never);

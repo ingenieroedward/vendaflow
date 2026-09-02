@@ -33,6 +33,9 @@ export interface TenantAttributes {
   contactPhone: string | null; // WhatsApp
   cancelledAt: Date | null; // fecha de cancelación (offboarding; purga elegible a los 90 días)
   customFeatures: string | null; // JSON array de FeatureKey — override de PLAN_FEATURES negociado por tenant
+  nit: string | null; // datos fiscales del negocio del tenant, para sus propios PDF (carta/ticket)
+  address: string | null;
+  city: string | null;
   createdAt: Date;
   updatedAt: Date;
   deletedAt?: Date;
@@ -102,6 +105,15 @@ export class Tenant extends Model<TenantAttributes, TenantCreationAttributes> {
 
   @Column({ type: DataType.STRING(500), allowNull: true })
   customFeatures!: string | null;
+
+  @Column({ type: DataType.STRING(30), allowNull: true })
+  nit!: string | null;
+
+  @Column({ type: DataType.STRING(255), allowNull: true })
+  address!: string | null;
+
+  @Column({ type: DataType.STRING(120), allowNull: true })
+  city!: string | null;
 
   @CreatedAt override createdAt!: Date;
   @UpdatedAt override updatedAt!: Date;

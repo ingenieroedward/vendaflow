@@ -31,6 +31,17 @@ const updateTenantSchema = z.object({
   contactPhone: z.string().max(30).nullable().optional(),
 });
 
+// Self-service (isAdmin del propio tenant vía PUT /tenants/me/theme) — allowlist
+// explícito, nada de plan/límites/status/precio, que sí son solo-superadmin.
+const updateThemeSchema = z.object({
+  name: z.string().min(2).max(255).optional(),
+  primaryColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+  logoUrl: z.string().max(500).nullable().optional(),
+  nit: z.string().max(30).nullable().optional(),
+  address: z.string().max(255).nullable().optional(),
+  city: z.string().max(120).nullable().optional(),
+});
+
 const createTenantSchema = z.object({
   slug: z.string().min(2).max(50).regex(/^[a-z0-9-]+$/, 'Solo letras minúsculas, números y guiones'),
   name: z.string().min(2).max(255),
@@ -54,7 +65,12 @@ export class TenantController {
   });
 
   updateTheme = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const tenant = await tenantService.updateTheme(req.user!.tenantId, req.body);
+    // Validado con un allowlist explícito, no req.body directo: este endpoint es
+    // self-service (isAdmin del propio tenant, no superadmin) — sin esto, un admin
+    // de tenant podría mandar {plan:'enterprise', maxUsers:999} y tenant.update()
+    // en el service lo aplicaría igual (Sequelize no filtra por su cuenta).
+    const data = updateThemeSchema.parse(req.body);
+    const tenant = await tenantService.updateTheme(req.user!.tenantId, data);
     res.json(tenant);
   });
 

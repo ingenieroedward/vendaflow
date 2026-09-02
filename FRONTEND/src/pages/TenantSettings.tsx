@@ -85,6 +85,9 @@ const TenantSettings: React.FC = () => {
     name: '',
     primaryColor: '#2563eb',
     logoUrl: '',
+    nit: '',
+    address: '',
+    city: '',
   });
 
   useEffect(() => {
@@ -96,6 +99,9 @@ const TenantSettings: React.FC = () => {
           name: t.name,
           primaryColor: (t as any).primaryColor ?? '#2563eb',
           logoUrl: (t as any).logoUrl ?? '',
+          nit: t.nit ?? '',
+          address: t.address ?? '',
+          city: t.city ?? '',
         });
       }
     }).finally(() => setLoading(false));
@@ -114,6 +120,9 @@ const TenantSettings: React.FC = () => {
         // Sin la feature, el campo está oculto — no reenviar un logoUrl
         // heredado de antes de un downgrade, o el backend lo rechaza
         ...(hasCustomBranding && { logoUrl: form.logoUrl || null }),
+        nit: form.nit || null,
+        address: form.address || null,
+        city: form.city || null,
       });
 
       // Apply immediately — setTenant triggers applyTheme() for instant CSS update
@@ -123,6 +132,9 @@ const TenantSettings: React.FC = () => {
           name: form.name,
           primaryColor: form.primaryColor,
           ...(hasCustomBranding && { logoUrl: form.logoUrl || null }),
+          nit: form.nit || null,
+          address: form.address || null,
+          city: form.city || null,
         });
       }
 
@@ -275,6 +287,40 @@ const TenantSettings: React.FC = () => {
               </div>
             )}
           </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              NIT <span className="font-normal text-gray-400 ml-1">(opcional)</span>
+            </label>
+            <input
+              name="nit" value={form.nit} onChange={handle}
+              placeholder="900.123.456-7"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              Dirección <span className="font-normal text-gray-400 ml-1">(opcional)</span>
+            </label>
+            <input
+              name="address" value={form.address} onChange={handle}
+              placeholder="Calle 10 # 20-30"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              Ciudad <span className="font-normal text-gray-400 ml-1">(opcional)</span>
+            </label>
+            <input
+              name="city" value={form.city} onChange={handle}
+              placeholder="Bogotá"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+            />
+          </div>
+          <p className="text-[11px] text-gray-400 -mt-2">NIT, dirección y ciudad aparecen en tus PDF de venta (ticket y hoja carta).</p>
         </div>
 
         {/* Branding */}

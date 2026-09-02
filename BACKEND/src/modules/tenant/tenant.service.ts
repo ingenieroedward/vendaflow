@@ -137,15 +137,28 @@ export class TenantService {
       maxProducts: tenant.maxProducts,
       maxOrdersPerMonth: tenant.maxOrdersPerMonth,
       features: [...resolveFeatures(tenant, cfg.planFeatures)],
+      nit: tenant.nit,
+      address: tenant.address,
+      city: tenant.city,
+      contactPhone: tenant.contactPhone,
     };
   }
 
-  async updateTheme(tenantId: number, data: { primaryColor?: string; logoUrl?: string | null; name?: string }) {
+  async updateTheme(tenantId: number, data: {
+    primaryColor?: string | undefined;
+    logoUrl?: string | null | undefined;
+    name?: string | undefined;
+    nit?: string | null | undefined;
+    address?: string | null | undefined;
+    city?: string | null | undefined;
+  }) {
     const tenant = await this.findById(tenantId);
     // Logo propio es la feature "custom_branding" — el color sí es libre para
     // todos los planes (no cuesta nada de infraestructura, es solo un CSS var).
     // Validado en el backend, no solo escondido en la UI — si no la tiene,
     // no puede setear un logo aunque le pegue directo a la API.
+    // nit/address/city no son "marca" — son datos fiscales del negocio del
+    // tenant para sus propios PDF de venta, libres en todos los planes.
     if (data.logoUrl) {
       const { resolveFeatures } = await import('@/config/features');
       const { getPlanConfig } = await import('@/config/plans');
@@ -154,7 +167,14 @@ export class TenantService {
         throw new ForbiddenError('Tu plan no incluye marca propia (logo). Actualiza a Pro para activarla.');
       }
     }
-    await tenant.update(data);
+    const updates: Partial<TenantAttributes> = {};
+    if (data.name !== undefined) updates.name = data.name;
+    if (data.primaryColor !== undefined) updates.primaryColor = data.primaryColor;
+    if (data.logoUrl !== undefined) updates.logoUrl = data.logoUrl;
+    if (data.nit !== undefined) updates.nit = data.nit;
+    if (data.address !== undefined) updates.address = data.address;
+    if (data.city !== undefined) updates.city = data.city;
+    await tenant.update(updates);
     return tenant;
   }
 
