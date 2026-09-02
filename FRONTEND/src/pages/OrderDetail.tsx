@@ -249,7 +249,7 @@ const OrderDetail: React.FC = () => {
         createdAt: currentOrder.createdAt,
         customer: {
           name: currentOrder.customer?.name ?? `Cliente #${currentOrder.customerId}`,
-          code: (currentOrder.customer as any)?.code,
+          code: currentOrder.customer?.code,
           nit: currentOrder.customer?.nit,
           contact: currentOrder.customer?.contact,
           address: currentOrder.customer?.address,

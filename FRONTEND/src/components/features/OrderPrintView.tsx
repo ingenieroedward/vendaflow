@@ -90,7 +90,7 @@ const OrderPrintView = forwardRef<HTMLDivElement, OrderPrintViewProps>(
           <div style={{ fontWeight: "bold" }}>{order.customer?.name ?? `Cliente #${order.customerId}`}</div>
           {order.customer?.nit && <div style={{ fontSize: "10px" }}>NIT: {order.customer.nit}</div>}
           {order.customer?.contact && <div style={{ fontSize: "10px" }}>Tel: {order.customer.contact}</div>}
-          {(order.customer as any)?.code && <div style={{ fontSize: "10px" }}>Cód: {(order.customer as any).code}</div>}
+          {order.customer?.code && <div style={{ fontSize: "10px" }}>Cód: {order.customer.code}</div>}
         </div>
 
         {/* Vendedor */}

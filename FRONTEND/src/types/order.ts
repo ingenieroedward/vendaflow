@@ -30,6 +30,7 @@ export interface Order {
   customer: {
     id: number;
     name: string;
+    code?: string | null;
     nit?: string | null;
     contact?: string;
     address?: string;

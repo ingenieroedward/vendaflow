@@ -92,6 +92,8 @@ export interface OrderResponseDto {
   customer?: {
     id: number;
     name: string;
+    code: string | null;
+    nit: string | null;
     contact: string | null;
     address: string | null;
   };

@@ -233,7 +233,7 @@ export class OrderService {
   async markPaid(id: number, tenantId: number, paid: boolean): Promise<OrderResponseDto> {
     const order = await Order.findOne({
       where: { id, tenantId },
-      include: [{ model: Customer, as: 'customer', attributes: ['id', 'name', 'contact', 'address'] }],
+      include: [{ model: Customer, as: 'customer', attributes: ['id', 'name', 'code', 'nit', 'contact', 'address'] }],
     });
     if (!order) throw new NotFoundError('Order not found');
 
@@ -650,7 +650,7 @@ export class OrderService {
         {
           model: Customer,
           as: 'customer',
-          attributes: ['id', 'name', 'contact', 'address'],
+          attributes: ['id', 'name', 'code', 'nit', 'contact', 'address'],
         },
         {
           model: User,
@@ -866,7 +866,7 @@ export class OrderService {
           {
             model: Customer,
             as: 'customer',
-            attributes: ['id', 'name', 'contact', 'address'],
+            attributes: ['id', 'name', 'code', 'nit', 'contact', 'address'],
           },
           {
             model: User,
@@ -932,7 +932,7 @@ export class OrderService {
       paranoid: false,
       order: [['deletedAt', 'DESC']],
       include: [
-        { model: Customer, as: 'customer', attributes: ['id', 'name', 'contact', 'address'] },
+        { model: Customer, as: 'customer', attributes: ['id', 'name', 'code', 'nit', 'contact', 'address'] },
         { model: User, as: 'user', attributes: ['id', 'username', 'role'] },
       ],
     });
@@ -997,7 +997,7 @@ export class OrderService {
         {
           model: Customer,
           as: 'customer',
-          attributes: ['id', 'name', 'contact', 'address'],
+          attributes: ['id', 'name', 'code', 'nit', 'contact', 'address'],
         },
         {
           model: User,
@@ -1035,7 +1035,7 @@ export class OrderService {
         {
           model: Customer,
           as: 'customer',
-          attributes: ['id', 'name', 'contact', 'address'],
+          attributes: ['id', 'name', 'code', 'nit', 'contact', 'address'],
         },
         {
           model: User,
@@ -1092,6 +1092,8 @@ export class OrderService {
         customer: {
           id: order.customer.id,
           name: order.customer.name,
+          code: order.customer.code,
+          nit: order.customer.nit,
           contact: order.customer.contact,
           address: order.customer.address,
         }
