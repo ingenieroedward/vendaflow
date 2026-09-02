@@ -3,6 +3,7 @@ import AppRouter from './routes/AppRouter';
 import { useAuthStore } from './store/authStore';
 import { useUIStore } from './store/uiStore';
 import { useOrderStore } from './store/orderStore';
+import { useQuoteStore } from './store/quoteStore';
 import { useCustomerStore } from './store/customerStore';
 import { useProductStore } from './store/productStore';
 import { useUserStore } from './store/userStore';
@@ -108,6 +109,11 @@ function App() {
   const { checkAuth, isAuthenticated } = useAuthStore();
   const { addNotification } = useUIStore();
   const { syncPendingOrders, seedAllOrders } = useOrderStore();
+  // syncPendingQuotes/seedAllQuotes se llaman igual para todos los tenants — si el
+  // plan no incluye 'quotes' simplemente no hay nada pendiente que sincronizar
+  // (QuoteNew está detrás de <FeatureGate>, así que nunca se acumula localmente) y
+  // el seed del servidor falla en silencio (403), sin necesitar un check aparte acá.
+  const { syncPendingQuotes, seedAllQuotes } = useQuoteStore();
   const { syncPendingCustomers, seedAllCustomers } = useCustomerStore();
   const { seedAllProducts, seedPricesData } = useProductStore();
   const { getUsers } = useUserStore();
@@ -149,19 +155,22 @@ function App() {
     // Sync primero, seed después — evita race condition donde seed crea duplicados
     // de órdenes que aún no han sido enviadas al servidor
     syncPendingCustomers().then(customers =>
-      syncPendingOrders().then(orders => {
-        const total = orders.synced + customers.synced;
-        if (total > 0) {
-          const parts = [];
-          if (orders.synced > 0) parts.push(`${orders.synced} orden${orders.synced > 1 ? 'es' : ''}`);
-          if (customers.synced > 0) parts.push(`${customers.synced} cliente${customers.synced > 1 ? 's' : ''}`);
-          addNotification({
-            type: 'success',
-            title: 'Sincronización completada',
-            message: `${parts.join(' y ')} sincronizado${total > 1 ? 's' : ''} con el servidor`,
-          });
-        }
-      })
+      syncPendingOrders().then(orders =>
+        syncPendingQuotes().then(quotes => {
+          const total = orders.synced + customers.synced + quotes.synced;
+          if (total > 0) {
+            const parts = [];
+            if (orders.synced > 0) parts.push(`${orders.synced} orden${orders.synced > 1 ? 'es' : ''}`);
+            if (quotes.synced > 0) parts.push(`${quotes.synced} cotización${quotes.synced > 1 ? 'es' : ''}`);
+            if (customers.synced > 0) parts.push(`${customers.synced} cliente${customers.synced > 1 ? 's' : ''}`);
+            addNotification({
+              type: 'success',
+              title: 'Sincronización completada',
+              message: `${parts.join(' y ')} sincronizado${total > 1 ? 's' : ''} con el servidor`,
+            });
+          }
+        })
+      )
     ).finally(() => {
       // Usuarios: siempre refrescar (no throttle) — crítico para mostrar nombres en órdenes offline
       getUsers().catch(() => {});
@@ -171,6 +180,7 @@ function App() {
         seedAllCustomers();
         seedPricesData();
         seedAllOrders();
+        seedAllQuotes();
         markSeeded();
       }
     });
@@ -182,21 +192,24 @@ function App() {
       // Ignorar si el usuario no está autenticado — evita que markSeeded() envenene
       // el shouldReseed() del startup effect antes de que el usuario haga login
       if (!useAuthStore.getState().isAuthenticated) return;
-      // Clientes primero, luego órdenes (pueden referenciar clientes recién sincronizados)
+      // Clientes primero, luego órdenes/cotizaciones (pueden referenciar clientes recién sincronizados)
       const customers = await syncPendingCustomers();
       const orders = await syncPendingOrders();
+      const quotes = await syncPendingQuotes();
       // Al reconectar siempre refrescar datos — el usuario pudo estar offline mucho tiempo
       seedAllProducts();
       seedAllCustomers();
       seedPricesData();
       seedAllOrders();
+      seedAllQuotes();
       getUsers().catch(() => {});
       // markSeeded no se llama aquí — el reconnect siempre seedea (no necesita throttle)
       // así el startup effect del próximo arranque siempre re-verifica
-      const total = orders.synced + customers.synced;
+      const total = orders.synced + customers.synced + quotes.synced;
       if (total > 0) {
         const parts = [];
         if (orders.synced > 0) parts.push(`${orders.synced} orden${orders.synced > 1 ? 'es' : ''}`);
+        if (quotes.synced > 0) parts.push(`${quotes.synced} cotización${quotes.synced > 1 ? 'es' : ''}`);
         if (customers.synced > 0) parts.push(`${customers.synced} cliente${customers.synced > 1 ? 's' : ''}`);
         addNotification({
           type: 'success',
@@ -215,7 +228,7 @@ function App() {
     return () => {
       listenerPromise.then(l => l.remove());
     };
-  }, [syncPendingOrders, syncPendingCustomers, addNotification]);
+  }, [syncPendingOrders, syncPendingQuotes, syncPendingCustomers, addNotification]);
 
   return (
     <ErrorBoundary>

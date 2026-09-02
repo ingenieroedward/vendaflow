@@ -111,7 +111,7 @@ npm start            # Ejecuta dist/server.js
 npm run lint
 npm run lint:fix
 npm run format
-npm test             # Jest — 21 tests: DTOs de orden (crédito), tenantScope (cache), getNextCode
+npm test             # Jest — 76 tests: DTOs de orden/cotización, tenantScope (cache), getNextCode, TOTP, features, POS, suscripción
 npx jest <ruta>      # Un solo archivo de test
 npm run seed         # Puebla datos demo (src/seeders/seed.ts, conexión directa a MySQL)
 ```
@@ -121,7 +121,7 @@ npm run seed         # Puebla datos demo (src/seeders/seed.ts, conexión directa
 npm run dev          # Vite dev server (puerto 5173)
 npm run build        # Build de producción
 npm run lint
-npm test             # vitest — 67 tests offline-first (LocalDatabase, Product/OrderRepository)
+npm test             # vitest — 82 tests offline-first (LocalDatabase, Product/Order/QuoteRepository)
                      # Config en vitest.config.ts + setup en src/tests/vitest.setup.ts
                      # (fake-indexeddb + stub de localStorage: el de Node ≥22 no es funcional)
 npm run test:e2e     # Playwright e2e (specs en e2e/, levanta el dev server solo)
@@ -336,6 +336,47 @@ tenant) no necesita:
   cruzado bloqueado (cotización y producto ajenos → 404), numeración `COT-####` aislada
   por tenant.
 
+**Fase D — Frontend de cotizaciones, offline-first (v1.15.4)**: mirror completo del patrón
+de Orders en cada capa, sin la parte de descuento de stock (no aplica a una cotización):
+- `LocalDatabase.ts` `version(4)`: tablas `quotes`/`quoteItems` (mismo shape de índices que
+  `orders`/`orderItems`), `LocalQuote`/`LocalQuoteItem` (+ `_clientRef` como `LocalOrder`),
+  `'quote'`/`'quote_item'` sumados al union type de `SyncQueueItem.entityType`. La limpieza
+  de IndexedDB al cambiar de tenant (`db.resetDatabase()`, borra todas las tablas) ya cubre
+  las nuevas sin cambios — se verificó que no era una limpieza tabla-por-tabla.
+- `database/models/Quote.ts` + `repositories/QuoteRepository.ts` (mirror de
+  `OrderRepository.ts`: `createQuoteWithItems`/`updateQuoteWithItems`/
+  `deleteQuoteWithItems`/`saveQuoteWithItemsFromServer`/`search`/`getByCustomer`/
+  `getByStatus`/`getNextQuoteNumber`/`getAllWithRelations`/`getByIdWithRelations`/
+  `getStats`) + `store/quoteStore.ts` (mirror de `orderStore.ts`: creación con
+  `_clientRef`, fallback local si falla la red, `syncPendingQuotes()` con el mismo
+  `navigator.locks` entre pestañas, `seedAllQuotes()`, contador `pendingSync`). Nuevo
+  `convertToOrder()` en el store — exige conexión (igual alcance deliberado que POS: el
+  refuerzo offline de un endpoint que descuenta stock real queda fuera, ver nota en
+  `Pos.tsx`). `App.tsx` llama `syncPendingQuotes`/`seedAllQuotes` igual que las de Orders
+  para todos los tenants — si el plan no incluye `quotes` simplemente no hay nada que
+  sincronizar (la UI de crear está detrás de `FeatureGate`) y el seed del servidor falla en
+  silencio (403).
+- `types/quote.ts` + `services/quotes.ts` (mirror de `types/order.ts`/`services/orders.ts`).
+- Páginas (`Quotes.tsx`, `QuoteNew.tsx`, `QuoteDetail.tsx`, `QuoteEdit.tsx`) construidas
+  sobre el patrón visual de las páginas Order de Merco (no transplantadas de JJLM).
+  `QuoteDetail.tsx` suma el botón "Convertir a orden" (modal de confirmación,
+  `POST /quotes/:id/convert`, navega a la orden creada) y los mismos botones de impresión
+  que Fase B (ticket directo + PDF ticket + PDF carta vía `generateCartaPdf` con
+  `docTypeLabel: 'Cotización'`, `totalLabel: 'Total Cotizado'`, `footerNote: 'Este
+  documento no constituye una factura'`). `QuotePrintView.tsx` mirror de
+  `OrderPrintView.tsx` (ticket 80mm, mismo portal a `#print-root`).
+- Rutas `/quotes`, `/quotes/new`, `/quotes/:id`, `/quotes/:id/edit` en `AppRouter.tsx`:
+  `<SellerRoute><FeatureGate feature="quotes">...</FeatureGate></SellerRoute>` (mismo
+  patrón que `/pos`). Ítem "Cotizaciones" en `Sidebar.tsx`/`BottomNav.tsx` — el filtro de
+  items gateados por feature se generalizó (antes hardcodeado a `item.feature !== 'pos' ||
+  hasPos`) a `!item.feature || tenant?.features?.includes(item.feature)`, para no repetir
+  el caso especial con cada feature nueva.
+- Verificado: typecheck/build limpios; 15 tests nuevos de `QuoteRepository.test.ts`
+  (mirror recortado de los 39 de `OrderRepository.test.ts` — un caso representativo por
+  método en vez de cada variante, ya que reusa el mismo `BaseRepository`/transacciones
+  Dexie) cubriendo create/update/delete con items, numeración, búsqueda, filtros,
+  estadísticas y upsert desde servidor — passing en la primera corrida.
+
 ## INFRAESTRUCTURA Y DEPLOY
 
 **Servidor:** VPS — Dokploy + Traefik
@@ -463,7 +504,7 @@ Ver plan completo en `PLAN-FEATURES-Y-POS.md` — este es el Punto 2 (base para 
 ## FEATURE OFFLINE-FIRST
 
 **Archivos clave:**
-- `src/database/LocalDatabase.ts` — Dexie.js, 9 tablas locales
+- `src/database/LocalDatabase.ts` — Dexie.js, 11 tablas locales (incluye `quotes`/`quoteItems`, ago 2026)
 - `src/repositories/` — patrón Repository: lee de IndexedDB offline, de API online
 - `src/store/syncStore.ts` — estado de sincronización
 - `src/hooks/useNetworkStatus.ts` — detecta conectividad

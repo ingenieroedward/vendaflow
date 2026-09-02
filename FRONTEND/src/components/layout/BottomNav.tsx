@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Package, ClipboardList, Users, DollarSign, Truck, Tag, UserCheck, BarChart2, Warehouse, ShoppingCart, MoreHorizontal, X, Settings, Store } from 'lucide-react';
+import { Package, ClipboardList, Users, DollarSign, Truck, Tag, UserCheck, BarChart2, Warehouse, ShoppingCart, MoreHorizontal, X, Settings, Store, FileText } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
-import { useFeature } from '../../hooks/useFeature';
+import { useTenantStore } from '../../store/tenantStore';
 
 interface NavItem {
   label: string;
@@ -16,6 +16,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Productos',   to: '/',                icon: Package,       roles: ['buyer', 'seller', 'admin'] },
   { label: 'Clientes',    to: '/customers',       icon: UserCheck,     roles: ['seller', 'admin'] },
   { label: 'Órdenes',     to: '/orders',          icon: ClipboardList, roles: ['seller', 'admin'] },
+  { label: 'Cotizaciones', to: '/quotes',         icon: FileText,      roles: ['seller', 'admin'], feature: 'quotes' },
   { label: 'Punto de venta', to: '/pos',          icon: Store,         roles: ['seller', 'admin'], feature: 'pos' },
   { label: 'Inventario',  to: '/inventory',       icon: Warehouse,     roles: ['seller', 'admin'] },
   { label: 'Precios',     to: '/prices',          icon: DollarSign,    roles: ['buyer', 'admin'] },
@@ -32,12 +33,12 @@ const MAX_VISIBLE = 5;
 
 const BottomNav = () => {
   const { user } = useAuthStore();
+  const { tenant } = useTenantStore();
   const location = useLocation();
   const [showMore, setShowMore] = useState(false);
 
-  const hasPos = useFeature('pos');
   const allItems = NAV_ITEMS.filter(
-    (item) => user?.role && item.roles.includes(user.role) && (item.feature !== 'pos' || hasPos)
+    (item) => user?.role && item.roles.includes(user.role) && (!item.feature || tenant?.features?.includes(item.feature))
   );
 
   const visibleItems = allItems.length > MAX_VISIBLE ? allItems.slice(0, MAX_VISIBLE - 1) : allItems;

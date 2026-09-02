@@ -18,6 +18,10 @@ const Users = React.lazy(() => import('../pages/Users'));
 const UserNew = React.lazy(() => import('../pages/UserNew'));
 const UserEdit = React.lazy(() => import('../pages/UserEdit'));
 const OrderEdit = React.lazy(() => import('../pages/OrderEdit'));
+const Quotes = React.lazy(() => import('../pages/Quotes'));
+const QuoteNew = React.lazy(() => import('../pages/QuoteNew'));
+const QuoteDetail = React.lazy(() => import('../pages/QuoteDetail'));
+const QuoteEdit = React.lazy(() => import('../pages/QuoteEdit'));
 const Suppliers = React.lazy(() => import('../pages/Suppliers'));
 const Categories = React.lazy(() => import('../pages/Categories'));
 const Prices = React.lazy(() => import('../pages/Prices'));
@@ -217,13 +221,55 @@ const InnerRoutes: React.FC = () => (
               </SellerRoute>
             } 
           />
-          <Route 
-            path="/orders/:id/edit" 
+          <Route
+            path="/orders/:id/edit"
             element={
               <SellerRoute>
                 <OrderEdit />
               </SellerRoute>
-            } 
+            }
+          />
+
+          {/* Quote Routes - Solo admin y seller, gateado por plan */}
+          <Route
+            path="/quotes"
+            element={
+              <SellerRoute>
+                <FeatureGate feature="quotes">
+                  <Quotes />
+                </FeatureGate>
+              </SellerRoute>
+            }
+          />
+          <Route
+            path="/quotes/new"
+            element={
+              <SellerRoute>
+                <FeatureGate feature="quotes">
+                  <QuoteNew />
+                </FeatureGate>
+              </SellerRoute>
+            }
+          />
+          <Route
+            path="/quotes/:id"
+            element={
+              <SellerRoute>
+                <FeatureGate feature="quotes">
+                  <QuoteDetail />
+                </FeatureGate>
+              </SellerRoute>
+            }
+          />
+          <Route
+            path="/quotes/:id/edit"
+            element={
+              <SellerRoute>
+                <FeatureGate feature="quotes">
+                  <QuoteEdit />
+                </FeatureGate>
+              </SellerRoute>
+            }
           />
 
           {/* Buyer Routes - Precios, Proveedores, Categorías */}

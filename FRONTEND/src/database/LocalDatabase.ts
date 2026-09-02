@@ -81,10 +81,31 @@ export interface LocalOrderItem extends BaseLocalModel {
   totalPrice: number;
 }
 
+export interface LocalQuote extends BaseLocalModel {
+  _clientRef?: string; // clave de idempotencia para el sync (evita duplicados al reintentar)
+  quoteNumber: string;
+  customerId: number;
+  userId: number;
+  totalAmount: number;
+  status: 'draft' | 'sent' | 'accepted' | 'rejected' | 'expired' | 'converted';
+  notes?: string;
+  validUntil?: string | null;
+  convertedOrderId?: number | null;
+}
+
+export interface LocalQuoteItem extends BaseLocalModel {
+  quoteId: number;
+  productId: number;
+  quantity: number;
+  unitPrice: number;
+  taxRate: number;
+  totalPrice: number;
+}
+
 // Queue de operaciones pendientes
 export interface SyncQueueItem {
   id?: number;
-  entityType: 'product' | 'order' | 'order_item' | 'customer' | 'supplier' | 'price';
+  entityType: 'product' | 'order' | 'order_item' | 'customer' | 'supplier' | 'price' | 'quote' | 'quote_item';
   entityLocalId: number;
   operation: 'create' | 'update' | 'delete';
   data: any;
@@ -105,6 +126,8 @@ class LocalDatabase extends Dexie {
   customers!: Table<LocalCustomer, number>;
   orders!: Table<LocalOrder, number>;
   orderItems!: Table<LocalOrderItem, number>;
+  quotes!: Table<LocalQuote, number>;
+  quoteItems!: Table<LocalQuoteItem, number>;
   syncQueue!: Table<SyncQueueItem, number>;
 
   constructor() {
@@ -131,6 +154,12 @@ class LocalDatabase extends Dexie {
     // Version 3: code index en customers
     this.version(3).stores({
       customers: '++id, serverId, code, name, nit, _syncStatus, _lastModifiedAt',
+    });
+
+    // Version 4: tablas de cotizaciones (Fase D)
+    this.version(4).stores({
+      quotes: '++id, serverId, quoteNumber, customerId, userId, status, _syncStatus, _lastModifiedAt',
+      quoteItems: '++id, serverId, quoteId, productId, _syncStatus, _lastModifiedAt',
     });
 
     // Hooks globales

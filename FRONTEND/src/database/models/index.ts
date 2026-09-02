@@ -20,6 +20,22 @@ export {
   OrderItemTransform
 } from './Order';
 
+// Quote
+export type {
+  ServerQuote,
+  ServerQuoteItem,
+  CreateQuoteDTO,
+  CreateQuoteItemDTO,
+  CreateQuoteWithItemsDTO
+} from './Quote';
+export {
+  QuoteValidation,
+  QuoteItemValidation,
+  QuoteCalculations,
+  QuoteTransform,
+  QuoteItemTransform
+} from './Quote';
+
 // Customer
 export type { ServerCustomer, CreateCustomerDTO } from './Customer';
 export { CustomerValidation, CustomerTransform, CustomerQueries } from './Customer';
