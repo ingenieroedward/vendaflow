@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { User, LogOut, Package, Shield, CloudOff, Download } from 'lucide-react';
+import { User, LogOut, Package, Shield, CloudOff, Download, AlertTriangle } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { useSyncStore } from '../../store/syncStore';
 import { useOrderStore } from '../../store/orderStore';
 import { useCustomerStore } from '../../store/customerStore';
 import { useTenantStore } from '../../store/tenantStore';
+import { useTenantRenewalStatus } from '../../hooks/useTenantRenewalStatus';
 import InstallModal from '../ui/InstallModal';
 import TopLoadingBar from '../ui/TopLoadingBar';
 
@@ -19,6 +20,7 @@ const Header = () => {
   const { status, current, total } = useSyncStore();
   const { pendingSync: pendingOrders } = useOrderStore();
   const { pendingSync: pendingCustomers } = useCustomerStore();
+  const { trialDaysLeft, renewalDaysLeft } = useTenantRenewalStatus();
 
   useEffect(() => {
     const handler = (e: any) => { e.preventDefault(); setDeferredPrompt(e); };
@@ -194,6 +196,36 @@ const Header = () => {
           </div>
         </div>
       </div>
+
+      {/* Aviso de trial/plan por vencer o vencido — mismo cálculo que el
+          banner de Sidebar.tsx (desktop), acá como franja siempre visible
+          en vez de bloque lateral (no hay espacio para eso en mobile). */}
+      {(trialDaysLeft !== null || renewalDaysLeft !== null) && (
+        <Link
+          to="/settings"
+          className={`flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium border-t ${
+            renewalDaysLeft !== null && renewalDaysLeft < 0
+              ? 'bg-red-50 border-red-200 text-red-700'
+              : 'bg-amber-50 border-amber-200 text-amber-700'
+          }`}
+        >
+          <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+          <span className="truncate">
+            {trialDaysLeft !== null
+              ? (trialDaysLeft <= 0 ? 'Tu prueba vence HOY' : trialDaysLeft === 1 ? 'Tu prueba vence mañana' : `Tu prueba vence en ${trialDaysLeft} días`)
+              : renewalDaysLeft !== null && renewalDaysLeft < 0
+                ? `Tu plan venció hace ${-renewalDaysLeft} día${renewalDaysLeft === -1 ? '' : 's'}`
+                : renewalDaysLeft === 0
+                  ? 'Tu plan vence HOY'
+                  : renewalDaysLeft === 1
+                    ? 'Tu plan vence mañana'
+                    : `Tu plan vence en ${renewalDaysLeft} días`}
+          </span>
+          <span className="ml-auto flex-shrink-0 underline">
+            {renewalDaysLeft !== null && renewalDaysLeft < 0 ? 'Reportar pago' : 'Activar/renovar'}
+          </span>
+        </Link>
+      )}
     </header>
 
     <InstallModal

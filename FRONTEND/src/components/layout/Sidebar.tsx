@@ -1,9 +1,8 @@
-import { useEffect, useState } from 'react';
 import { Package, ClipboardList, Users, LogOut, User, Shield, Truck, Tag, DollarSign, UserCheck, BarChart2, Warehouse, ShoppingCart, Settings, AlertTriangle, Store, FileText } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { useTenantStore } from '../../store/tenantStore';
-import { getMyTenant } from '../../services/tenant';
+import { useTenantRenewalStatus } from '../../hooks/useTenantRenewalStatus';
 
 interface NavItem {
   label: string;
@@ -32,36 +31,9 @@ const NAV_ITEMS: NavItem[] = [
 const Sidebar = () => {
   const { user, logout } = useAuthStore();
 
-  // Aviso de trial por vencer (solo admin, ≤7 días)
-  const [trialDaysLeft, setTrialDaysLeft] = useState<number | null>(null);
-  // Aviso de plan pago por vencer/vencido (solo admin, ≤7 días) — mismo trato
-  // visual que el trial, ahora también visible dentro de la plataforma (antes
-  // solo llegaba por push/email, sin nada que lo mostrara en pantalla). Un
-  // tenant realmente suspendido por no pago no llega a ver esto — el login
-  // y tenantScope ya lo bloquean antes; esto cubre la ventana en que todavía
-  // puede entrar (por vencer, o vencido y en gracia).
-  const [renewalDaysLeft, setRenewalDaysLeft] = useState<number | null>(null);
-  useEffect(() => {
-    if (user?.role !== 'admin' || !navigator.onLine) return;
-    getMyTenant().then(t => {
-      if (!t) return;
-      if (t.plan === 'trial') {
-        if (t.trialEndsAt) {
-          const days = Math.ceil((new Date(t.trialEndsAt).getTime() - Date.now()) / 86400000);
-          if (days <= 7) setTrialDaysLeft(days);
-        }
-        return;
-      }
-      // paidUntil null = fuera del ciclo (cortesía/legado) — sin aviso
-      if (t.paidUntil) {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const due = new Date(`${t.paidUntil}T00:00:00`);
-        const days = Math.round((due.getTime() - today.getTime()) / 86400000);
-        if (days <= 7) setRenewalDaysLeft(days);
-      }
-    }).catch(() => {/* silencioso */});
-  }, [user?.role]);
+  // Aviso de trial/plan pago por vencer o vencido (solo admin, ≤7 días) —
+  // mismo hook que usa Header.tsx para el aviso equivalente en mobile.
+  const { trialDaysLeft, renewalDaysLeft } = useTenantRenewalStatus();
   const { tenant } = useTenantStore();
   const navigate = useNavigate();
   const location = useLocation();
