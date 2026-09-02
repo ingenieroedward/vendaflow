@@ -39,6 +39,9 @@ export interface Tenant {
   logoUrl: string | null;
   primaryColor: string;
   trialEndsAt?: string | null;
+  // DATEONLY — pagado hasta (inclusive). null = fuera del ciclo (cortesía/legado).
+  // Solo llega de /tenants/me (autenticado).
+  paidUntil?: string | null;
   // solo llega de /tenants/me (autenticado) — features del plan (ver FeatureGate/useFeature)
   features?: string[];
   // datos fiscales del negocio del tenant — solo llegan de /tenants/me (autenticado),

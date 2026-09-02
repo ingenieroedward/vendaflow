@@ -34,12 +34,31 @@ const Sidebar = () => {
 
   // Aviso de trial por vencer (solo admin, ≤7 días)
   const [trialDaysLeft, setTrialDaysLeft] = useState<number | null>(null);
+  // Aviso de plan pago por vencer/vencido (solo admin, ≤7 días) — mismo trato
+  // visual que el trial, ahora también visible dentro de la plataforma (antes
+  // solo llegaba por push/email, sin nada que lo mostrara en pantalla). Un
+  // tenant realmente suspendido por no pago no llega a ver esto — el login
+  // y tenantScope ya lo bloquean antes; esto cubre la ventana en que todavía
+  // puede entrar (por vencer, o vencido y en gracia).
+  const [renewalDaysLeft, setRenewalDaysLeft] = useState<number | null>(null);
   useEffect(() => {
     if (user?.role !== 'admin' || !navigator.onLine) return;
     getMyTenant().then(t => {
-      if (t?.plan === 'trial' && t.trialEndsAt) {
-        const days = Math.ceil((new Date(t.trialEndsAt).getTime() - Date.now()) / 86400000);
-        if (days <= 7) setTrialDaysLeft(days);
+      if (!t) return;
+      if (t.plan === 'trial') {
+        if (t.trialEndsAt) {
+          const days = Math.ceil((new Date(t.trialEndsAt).getTime() - Date.now()) / 86400000);
+          if (days <= 7) setTrialDaysLeft(days);
+        }
+        return;
+      }
+      // paidUntil null = fuera del ciclo (cortesía/legado) — sin aviso
+      if (t.paidUntil) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const due = new Date(`${t.paidUntil}T00:00:00`);
+        const days = Math.round((due.getTime() - today.getTime()) / 86400000);
+        if (days <= 7) setRenewalDaysLeft(days);
       }
     }).catch(() => {/* silencioso */});
   }, [user?.role]);
@@ -114,6 +133,32 @@ const Sidebar = () => {
                 ? 'Tu prueba vence mañana'
                 : `Tu prueba vence en ${trialDaysLeft} días`}
             <span className="block text-amber-600 font-medium mt-0.5">Activa un plan →</span>
+          </span>
+        </Link>
+      )}
+
+      {/* Plan pago por vencer / vencido */}
+      {renewalDaysLeft !== null && (
+        <Link
+          to="/settings"
+          className={`mx-3 mb-2 flex items-start gap-2 px-3 py-2.5 rounded-xl transition-colors ${
+            renewalDaysLeft < 0
+              ? 'bg-red-50 border border-red-200 hover:bg-red-100'
+              : 'bg-amber-50 border border-amber-200 hover:bg-amber-100'
+          }`}
+        >
+          <AlertTriangle className={`w-4 h-4 flex-shrink-0 mt-0.5 ${renewalDaysLeft < 0 ? 'text-red-600' : 'text-amber-600'}`} />
+          <span className={`text-xs leading-snug ${renewalDaysLeft < 0 ? 'text-red-800' : 'text-amber-800'}`}>
+            {renewalDaysLeft < 0
+              ? `Tu plan venció hace ${-renewalDaysLeft} día${renewalDaysLeft === -1 ? '' : 's'}`
+              : renewalDaysLeft === 0
+                ? 'Tu plan vence HOY'
+                : renewalDaysLeft === 1
+                  ? 'Tu plan vence mañana'
+                  : `Tu plan vence en ${renewalDaysLeft} días`}
+            <span className={`block font-medium mt-0.5 ${renewalDaysLeft < 0 ? 'text-red-600' : 'text-amber-600'}`}>
+              {renewalDaysLeft < 0 ? 'Reporta tu pago →' : 'Renueva tu plan →'}
+            </span>
           </span>
         </Link>
       )}
