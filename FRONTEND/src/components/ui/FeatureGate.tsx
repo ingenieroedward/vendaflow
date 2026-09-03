@@ -29,7 +29,7 @@ const FeatureGate: React.FC<FeatureGateProps> = ({ feature, planLabel = 'Pro', c
         Esta función no está incluida en tu plan actual. Escríbenos para activarla en tu cuenta.
       </p>
       <Link
-        to="/settings"
+        to="/billing"
         className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-primary/90 transition-colors"
       >
         Ver mi plan

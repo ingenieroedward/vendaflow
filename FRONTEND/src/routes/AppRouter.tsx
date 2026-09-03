@@ -33,6 +33,7 @@ const PurchaseOrders = React.lazy(() => import('../pages/PurchaseOrders'));
 const PurchaseOrderNew = React.lazy(() => import('../pages/PurchaseOrderNew'));
 const PurchaseOrderDetail = React.lazy(() => import('../pages/PurchaseOrderDetail'));
 const TenantSettings = React.lazy(() => import('../pages/TenantSettings'));
+const Billing = React.lazy(() => import('../pages/Billing'));
 const Profile = React.lazy(() => import('../pages/Profile'));
 
 // Protected Route Component
@@ -408,6 +409,16 @@ const InnerRoutes: React.FC = () => (
       element={
         <AdminRoute>
           <TenantSettings />
+        </AdminRoute>
+      }
+    />
+
+    {/* Admin: plan, límites y pagos a Merco (separado de Configuración) */}
+    <Route
+      path="/billing"
+      element={
+        <AdminRoute>
+          <Billing />
         </AdminRoute>
       }
     />

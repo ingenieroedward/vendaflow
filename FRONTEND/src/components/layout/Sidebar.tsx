@@ -1,4 +1,4 @@
-import { Package, ClipboardList, Users, LogOut, User, Shield, Truck, Tag, DollarSign, UserCheck, BarChart2, Warehouse, ShoppingCart, Settings, AlertTriangle, Store, FileText } from 'lucide-react';
+import { Package, ClipboardList, Users, LogOut, User, Shield, Truck, Tag, DollarSign, UserCheck, BarChart2, Warehouse, ShoppingCart, Settings, AlertTriangle, Store, FileText, CreditCard } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { useTenantStore } from '../../store/tenantStore';
@@ -25,6 +25,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Órdenes Compra', to: '/purchase-orders', icon: ShoppingCart, roles: ['seller', 'admin'] },
   { label: 'Informes', to: '/reports', icon: BarChart2, roles: ['seller', 'admin'] },
   { label: 'Usuarios', to: '/users', icon: Users, roles: ['admin'] },
+  { label: 'Facturación', to: '/billing', icon: CreditCard, roles: ['admin'] },
   { label: 'Configuración', to: '/settings', icon: Settings, roles: ['admin'] },
 ];
 
@@ -94,7 +95,7 @@ const Sidebar = () => {
       {/* Trial por vencer */}
       {trialDaysLeft !== null && (
         <Link
-          to="/settings"
+          to="/billing"
           className="mx-3 mb-2 flex items-start gap-2 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-xl hover:bg-amber-100 transition-colors"
         >
           <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
@@ -112,7 +113,7 @@ const Sidebar = () => {
       {/* Plan pago por vencer / vencido */}
       {renewalDaysLeft !== null && (
         <Link
-          to="/settings"
+          to="/billing"
           className={`mx-3 mb-2 flex items-start gap-2 px-3 py-2.5 rounded-xl transition-colors ${
             renewalDaysLeft < 0
               ? 'bg-red-50 border border-red-200 hover:bg-red-100'

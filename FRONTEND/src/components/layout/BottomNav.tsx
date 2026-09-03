@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Package, ClipboardList, Users, DollarSign, Truck, Tag, UserCheck, BarChart2, Warehouse, ShoppingCart, MoreHorizontal, X, Settings, Store, FileText } from 'lucide-react';
+import { Package, ClipboardList, Users, DollarSign, Truck, Tag, UserCheck, BarChart2, Warehouse, ShoppingCart, MoreHorizontal, X, Settings, Store, FileText, CreditCard } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { useTenantStore } from '../../store/tenantStore';
@@ -25,6 +25,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Compras',     to: '/purchase-orders', icon: ShoppingCart,  roles: ['seller', 'admin'] },
   { label: 'Informes',    to: '/reports',         icon: BarChart2,     roles: ['seller', 'admin'] },
   { label: 'Usuarios',        to: '/users',    icon: Users,    roles: ['admin'] },
+  { label: 'Facturación',     to: '/billing',  icon: CreditCard, roles: ['admin'] },
   { label: 'Configuración',   to: '/settings', icon: Settings, roles: ['admin'] },
 ];
 

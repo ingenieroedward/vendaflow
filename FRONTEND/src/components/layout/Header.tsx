@@ -202,7 +202,7 @@ const Header = () => {
           en vez de bloque lateral (no hay espacio para eso en mobile). */}
       {(trialDaysLeft !== null || renewalDaysLeft !== null) && (
         <Link
-          to="/settings"
+          to="/billing"
           className={`flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium border-t ${
             renewalDaysLeft !== null && renewalDaysLeft < 0
               ? 'bg-red-50 border-red-200 text-red-700'
