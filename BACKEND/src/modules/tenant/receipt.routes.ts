@@ -21,6 +21,12 @@ const fmtDate = (d: string | Date | null) =>
 
 const METHOD_ES: Record<string, string> = { breb: 'Bre-B', transferencia: 'Transferencia', efectivo: 'Efectivo', otro: 'Otro' };
 
+// Datos fiscales del emisor (Merco/Edwsystem) — persona natural, sin registro
+// mercantil propio de "Merco" como marca. Fijo acá (no hay tabla de datos de
+// la plataforma en sí, a diferencia de tenants.nit/address/city por tenant).
+const ISSUER_NAME = 'Edwsystem (Edward Díaz)';
+const ISSUER_NIT = '1003062747';
+
 // GET /api/receipts/:id?t=<token> — página HTML imprimible (público con token)
 router.get('/:id', asyncHandler(async (req: Request, res: Response) => {
   const id = Number(req.params['id']);
@@ -44,9 +50,7 @@ router.get('/:id', asyncHandler(async (req: Request, res: Response) => {
   const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 
   // Datos del tenant que paga (razón social del recibo) — mismos campos que
-  // usa cada tenant en sus propios PDF de venta (Fase A, ago 2026). Merco
-  // (el emisor) no tiene NIT propio cargado todavía — se omite esa línea
-  // en vez de mostrar un campo vacío; se puede agregar el día que exista.
+  // usa cada tenant en sus propios PDF de venta (Fase A, ago 2026).
   const buyerLines = [
     tenant?.nit ? `NIT: ${esc(tenant.nit)}` : null,
     tenant?.address ? esc(tenant.address) : null,
@@ -65,6 +69,7 @@ router.get('/:id', asyncHandler(async (req: Request, res: Response) => {
   .head { background: #ffffff; border-bottom: 2px solid #a9c6e8; padding: 20px 28px; display: flex; justify-content: space-between; align-items: flex-start; }
   .head img { height: 36px; margin-bottom: 4px; }
   .head .brand-sub { font-size: 11px; color: #6b7280; }
+  .head .brand-nit { font-size: 10.5px; color: #9ca3af; margin-top: 1px; }
   .badge { background: #10b981; color: #fff; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 999px; letter-spacing: .05em; white-space: nowrap; }
   .body { padding: 24px 28px 28px; }
   .num { font-size: 22px; font-weight: 800; margin-bottom: 2px; color: #3b6ea5; }
@@ -92,6 +97,7 @@ router.get('/:id', asyncHandler(async (req: Request, res: Response) => {
     <div>
       <img src="https://merco.edwsystem.com/brand/logo-full.png" alt="Merco System">
       <div class="brand-sub">merco.edwsystem.com</div>
+      <div class="brand-nit">${esc(ISSUER_NAME)} · NIT ${esc(ISSUER_NIT)}</div>
     </div>
     <span class="badge">PAGADO</span>
   </div>
