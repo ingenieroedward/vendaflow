@@ -47,7 +47,17 @@ const Billing: React.FC = () => {
 
   useEffect(() => {
     loadBilling();
-    getMyTenant().then(t => { if (t) setTenantInfo(t); }).finally(() => setLoading(false));
+    getMyTenant().then(t => {
+      if (t) {
+        setTenantInfo(t);
+        // El selector debe arrancar en el plan que YA tiene el tenant (para
+        // renovarlo con un clic), no siempre en "básico" — bug real: antes
+        // un tenant Pro veía "Básico" preseleccionado en "Plan a pagar".
+        if (t.plan && t.plan !== 'trial') {
+          setPayForm(prev => ({ ...prev, plan: t.plan as string }));
+        }
+      }
+    }).finally(() => setLoading(false));
   }, []);
 
   const handleReceiptFile = (e: React.ChangeEvent<HTMLInputElement>) => {
