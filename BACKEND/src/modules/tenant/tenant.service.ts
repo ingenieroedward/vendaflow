@@ -141,6 +141,7 @@ export class TenantService {
       address: tenant.address,
       city: tenant.city,
       contactPhone: tenant.contactPhone,
+      contactEmail: tenant.contactEmail,
     };
   }
 
@@ -151,6 +152,7 @@ export class TenantService {
     nit?: string | null | undefined;
     address?: string | null | undefined;
     city?: string | null | undefined;
+    contactEmail?: string | null | undefined;
   }) {
     const tenant = await this.findById(tenantId);
     // Logo propio es la feature "custom_branding" — el color sí es libre para
@@ -174,6 +176,7 @@ export class TenantService {
     if (data.nit !== undefined) updates.nit = data.nit;
     if (data.address !== undefined) updates.address = data.address;
     if (data.city !== undefined) updates.city = data.city;
+    if (data.contactEmail !== undefined) updates.contactEmail = data.contactEmail;
     await tenant.update(updates);
     return tenant;
   }

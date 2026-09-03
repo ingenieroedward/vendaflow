@@ -4,6 +4,7 @@ import { TenantService } from './tenant.service';
 import { asyncHandler } from '@/core/middlewares/asyncHandler';
 import { AuthenticatedRequest } from '@/core/middlewares/auth';
 import { ValidationError } from '@/core/errors/AppError';
+import { validateSchema } from '@/core/utils/validation';
 
 const tenantService = new TenantService();
 
@@ -40,6 +41,12 @@ const updateThemeSchema = z.object({
   nit: z.string().max(30).nullable().optional(),
   address: z.string().max(255).nullable().optional(),
   city: z.string().max(120).nullable().optional(),
+  // Correo de facturación: distinto de "marca" — es el destino de los avisos
+  // de vencimiento de plan (push + email ya existían, pero el tenant no podía
+  // fijar/corregir su propio contactEmail, solo el superadmin al crear/editar
+  // el tenant). Mismo patrón que updateTenantSchema.contactEmail arriba —
+  // '' se normaliza a null (limpiar el campo) en vez de fallar la validación.
+  contactEmail: z.string().email().max(255).nullable().optional().or(z.literal('').transform(() => null)),
 });
 
 const createTenantSchema = z.object({
@@ -69,7 +76,12 @@ export class TenantController {
     // self-service (isAdmin del propio tenant, no superadmin) — sin esto, un admin
     // de tenant podría mandar {plan:'enterprise', maxUsers:999} y tenant.update()
     // en el service lo aplicaría igual (Sequelize no filtra por su cuenta).
-    const data = updateThemeSchema.parse(req.body);
+    // .parse() directo (bug real, preexistente): un ZodError no cae en ningún
+    // handler que lo mapee a 400/422, así que llegaba al usuario como
+    // "Internal Server Error" (500) — verificado en Docker local mandando un
+    // correo de facturación inválido. validateSchema() sí lo traduce a
+    // ValidationError (422) con el mensaje real de Zod.
+    const data = validateSchema(updateThemeSchema, req.body);
     const tenant = await tenantService.updateTheme(req.user!.tenantId, data);
     res.json(tenant);
   });

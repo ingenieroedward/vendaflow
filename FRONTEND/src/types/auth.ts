@@ -50,6 +50,10 @@ export interface Tenant {
   address?: string | null;
   city?: string | null;
   contactPhone?: string | null;
+  // correo de facturación — antes solo lo fijaba el superadmin al crear/editar
+  // el tenant; ahora también auto-editable (destino de los avisos de
+  // vencimiento de plan por email, además del push)
+  contactEmail?: string | null;
 }
 
 export interface LoginResponse {

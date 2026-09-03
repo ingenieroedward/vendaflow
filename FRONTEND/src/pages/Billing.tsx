@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { CreditCard, Users, Package, ShoppingCart, Lock, Check } from 'lucide-react';
-import { getMyTenant } from '../services/tenant';
+import { Link } from 'react-router-dom';
+import { CreditCard, Users, Package, ShoppingCart, Lock, Check, Mail, AlertTriangle } from 'lucide-react';
+import { getMyTenant, updateMyTheme } from '../services/tenant';
 import { apiService } from '../services/api';
+import { useTenantStore } from '../store/tenantStore';
+import { useUIStore } from '../store/uiStore';
 
 const PLAN_LABELS: Record<string, string> = {
   trial: 'Trial',
@@ -33,12 +36,16 @@ const fmtCop = (n: number) =>
 // relacionado con dinero en un solo lugar (mismo criterio que ya se aplicó
 // en el panel de superadmin al separar Finanzas de Configuración).
 const Billing: React.FC = () => {
+  const { tenant: currentTenant, setTenant } = useTenantStore();
+  const { addNotification } = useUIStore();
   const [loading, setLoading] = useState(true);
   const [tenantInfo, setTenantInfo] = useState<any>(null);
   const [billing, setBilling] = useState<any>(null);
   const [payForm, setPayForm] = useState({ plan: 'basic', months: 1, reference: '', receiptBase64: '', receiptMime: '' });
   const [paySending, setPaySending] = useState(false);
   const [payMsg, setPayMsg] = useState<string | null>(null);
+  const [contactEmail, setContactEmail] = useState('');
+  const [savingEmail, setSavingEmail] = useState(false);
 
   const loadBilling = () => {
     apiService.get<{ status: string; data: any }>('/tenants/me/billing')
@@ -56,9 +63,29 @@ const Billing: React.FC = () => {
         if (t.plan && t.plan !== 'trial') {
           setPayForm(prev => ({ ...prev, plan: t.plan as string }));
         }
+        setContactEmail((t as any).contactEmail ?? '');
       }
     }).finally(() => setLoading(false));
   }, []);
+
+  const handleSaveEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingEmail(true);
+    try {
+      await updateMyTheme({ contactEmail: contactEmail || null });
+      setTenantInfo((prev: any) => (prev ? { ...prev, contactEmail: contactEmail || null } : prev));
+      if (currentTenant) setTenant({ ...currentTenant, contactEmail: contactEmail || null } as any);
+      addNotification({ type: 'success', title: 'Correo de facturación guardado' });
+    } catch (err: unknown) {
+      addNotification({
+        type: 'error',
+        title: 'Error al guardar',
+        message: (err as { message?: string })?.message ?? 'Intenta de nuevo',
+      });
+    } finally {
+      setSavingEmail(false);
+    }
+  };
 
   const handleReceiptFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -112,6 +139,68 @@ const Billing: React.FC = () => {
         <h1 className="text-xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2 px-2">Facturación</h1>
         <p className="text-sm sm:text-lg text-gray-600 px-2">Tu plan, límites y pagos a Merco.</p>
       </div>
+
+      {/* Aviso de datos incompletos — un tenant real llegó a producción con
+          NIT/dirección/ciudad vacíos y su recibo salió con guiones en blanco
+          (reportado por el usuario con captura). No bloquea nada, solo nudge. */}
+      {tenantInfo && (() => {
+        const missing: string[] = [];
+        if (!tenantInfo.nit) missing.push('NIT');
+        if (!tenantInfo.address) missing.push('dirección');
+        if (!tenantInfo.city) missing.push('ciudad');
+        if (!tenantInfo.contactEmail) missing.push('correo de facturación');
+        if (missing.length === 0) return null;
+        const missingIdentity = !tenantInfo.nit || !tenantInfo.address || !tenantInfo.city;
+        return (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4">
+            <div className="flex items-start gap-2.5">
+              <AlertTriangle className="w-4 h-4 mt-0.5 text-amber-500 flex-shrink-0" />
+              <div className="text-sm">
+                <p className="font-medium text-amber-800">Completa tus datos de facturación</p>
+                <p className="mt-0.5 text-amber-700">
+                  Te falta: {missing.join(', ')}. Así tus recibos salen completos y te avisamos por correo cuando tu plan esté por vencer.
+                </p>
+                {missingIdentity && (
+                  <Link to="/settings" className="inline-block mt-1.5 text-amber-800 font-medium underline">
+                    Completar NIT/dirección/ciudad en Configuración →
+                  </Link>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Correo de facturación — self-service (antes solo lo fijaba el
+          superadmin al crear/editar el tenant). Destino de los avisos de
+          vencimiento de plan por email, además del push. */}
+      {tenantInfo && (
+        <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
+          <div className="flex items-center gap-2 pb-3 mb-3 border-b border-gray-100">
+            <Mail className="w-4 h-4 text-gray-400" />
+            <h2 className="text-sm font-semibold text-gray-700">Correo de facturación</h2>
+          </div>
+          <p className="text-xs text-gray-500 mb-3">
+            A este correo te avisamos cuando tu plan esté por vencer o venza, además del aviso push en la app.
+          </p>
+          <form onSubmit={handleSaveEmail} className="flex flex-col sm:flex-row gap-2">
+            <input
+              type="email"
+              value={contactEmail}
+              onChange={e => setContactEmail(e.target.value)}
+              placeholder="facturacion@tuempresa.com"
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            <button
+              type="submit"
+              disabled={savingEmail}
+              className="px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 whitespace-nowrap"
+            >
+              {savingEmail ? 'Guardando...' : 'Guardar correo'}
+            </button>
+          </form>
+        </div>
+      )}
 
       {/* Plan info */}
       {tenantInfo && (
