@@ -332,7 +332,7 @@ const Orders: React.FC = () => {
                       onClick={() => navigate(`/orders/${r.id}`)}
                       className={`block text-xs hover:underline text-left ${r.daysUntilDue !== null && r.daysUntilDue < 0 ? 'text-red-700' : 'text-amber-700'}`}
                     >
-                      #{r.orderNumber} · {r.customer?.name ?? 'Cliente'} · {formatCurrency(r.totalAmount)}
+                      #{r.orderNumber} · {r.customer?.name ?? 'Cliente'} · {formatCurrency(r.balance)}{r.paidAmount > 0 && ` (abonado ${formatCurrency(r.paidAmount)})`}
                       {r.daysUntilDue !== null && (
                         r.daysUntilDue < 0
                           ? ` — venció hace ${-r.daysUntilDue} día${r.daysUntilDue === -1 ? '' : 's'}`

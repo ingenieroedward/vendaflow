@@ -101,7 +101,7 @@ const Reports: React.FC = () => {
     for (const o of receivables.orders) {
       const key = o.customer?.name ?? 'Sin cliente';
       const e = map.get(key) ?? { name: key, total: 0, count: 0, overdue: 0 };
-      e.total += o.totalAmount;
+      e.total += o.balance;
       e.count += 1;
       if (o.daysUntilDue !== null && o.daysUntilDue < 0) e.overdue += 1;
       map.set(key, e);
@@ -650,7 +650,14 @@ const Reports: React.FC = () => {
                                 </p>
                               )}
                             </div>
-                            <span className="text-sm font-semibold text-gray-800 flex-shrink-0 ml-3">{COP(o.totalAmount)}</span>
+                            <div className="flex-shrink-0 ml-3 text-right">
+                              <span className="text-sm font-semibold text-gray-800">{COP(o.balance)}</span>
+                              {o.paidAmount > 0 && (
+                                <p className="text-[11px] text-gray-400">
+                                  de {COP(o.totalAmount)} · abonado {COP(o.paidAmount)}
+                                </p>
+                              )}
+                            </div>
                           </li>
                         ))}
                       </ul>

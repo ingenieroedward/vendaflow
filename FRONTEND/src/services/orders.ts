@@ -55,6 +55,10 @@ export interface Receivables {
     id: number;
     orderNumber: string;
     totalAmount: number;
+    /** Suma de abonos registrados (order_payments) */
+    paidAmount: number;
+    /** Saldo real pendiente = totalAmount − paidAmount */
+    balance: number;
     paymentDueDate: string | null;
     daysUntilDue: number | null;
     customer: { id: number; name: string } | null;
