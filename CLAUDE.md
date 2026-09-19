@@ -85,7 +85,7 @@ Verificado en cada paso: typecheck/lint/build limpios, probado en navegador sin 
 ### Roles
 | Rol | Acceso |
 |-----|--------|
-| `superadmin` | Todo sin restricción de tenant. Login sin tenantSlug. Panel en `/superadmin` |
+| `superadmin` | Todo sin restricción de tenant. Login sin tenantSlug. Panel en la app separada `ADMIN/` (`admin.merco.edwsystem.com`) |
 | `admin` | Gestión completa de su tenant |
 | `seller` | Órdenes, clientes, reportes, inventario |
 | `buyer` | Productos, precios, proveedores, categorías |
@@ -120,7 +120,8 @@ npm run seed         # Puebla datos demo (src/seeders/seed.ts, conexión directa
 ```bash
 npm run dev          # Vite dev server (puerto 5173)
 npm run build        # Build de producción
-npm run lint
+npm run lint         # OJO: hay errores preexistentes de no-explicit-any en Reports/Orders — no bloquean el build
+npm run typecheck    # tsc --noEmit (el build de Vite no tipa; correr esto antes de commitear)
 npm test             # vitest — 82 tests offline-first (LocalDatabase, Product/Order/QuoteRepository)
                      # Config en vitest.config.ts + setup en src/tests/vitest.setup.ts
                      # (fake-indexeddb + stub de localStorage: el de Node ≥22 no es funcional)
@@ -128,6 +129,15 @@ npm run test:e2e     # Playwright e2e (specs en e2e/, levanta el dev server solo
 npx playwright test e2e/app.spec.ts   # Un solo spec e2e
 npm run test:e2e:ui  # Playwright con UI
 ```
+
+### Admin / superadmin (`cd ADMIN`)
+```bash
+npm run dev          # Vite dev server
+npm run build        # Build de producción
+npm run lint
+npm run typecheck    # tsc --noEmit
+```
+Sin tests propios. Es un proyecto independiente de `FRONTEND/` (su propio `package.json`, `node_modules` y `Dockerfile`).
 
 ### Docker (desde raíz)
 ```bash
@@ -186,6 +196,7 @@ docker-compose logs -f frontend
 | `quote/` | `/api/quotes` | Cotizaciones (feature `quotes`) — no descuentan stock, convertibles a orden |
 | `purchase-order/` | `/api/purchase-orders` | Órdenes de compra |
 | `stock-movement/` | `/api/stock-movements` | Movimientos de inventario |
+| `pos/` | `/api/pos` | Punto de venta (feature `pos`): turno de caja, venta con pago mixto, cierre |
 | `push/` | `/api/push` | Notificaciones push (Web Push VAPID) |
 | `tenant/` | `/api/tenants` | Gestión de tenants (superadmin) |
 | `tenant/onboarding` | `/api/onboarding/register` | Registro público de nuevo tenant |
@@ -212,6 +223,7 @@ docker-compose logs -f frontend
 | `/customers` | Customers | seller, admin |
 | `/reports` | Reports | seller, admin |
 | `/inventory` | Inventory | seller, admin |
+| `/pos` | Pos | seller, admin (feature `pos`) |
 | `/purchase-orders` | PurchaseOrders | seller, admin |
 | `/users` | Users | admin |
 | `/profile` | Profile | cualquier rol autenticado |
@@ -445,7 +457,7 @@ Al arrancar el backend:
 - **Recibo de pago del tenant rediseñado (sep 2026)**: el HTML de `receipt.routes.ts` era una tarjeta pelada (logo + badge "PAGADO" + tabla) — usuario lo reportó como "raro". Ahora usa el mismo lenguaje visual de "factura formal" (cajitas con borde/fondo celeste) que `generateCartaPdf.ts` ya estableció para los PDF de venta — cajita "Recibido de" (nombre/NIT/dirección/ciudad/teléfono del tenant, mismos campos de la Fase A de cotizaciones) + cajita "Detalles del pago", caja de total destacada. Aclaración explícita en el pie ("no constituye una factura electrónica") — no pretende ser factura DIAN, sigue siendo comprobante de pago; facturación electrónica real (CUFE, proveedor tecnológico certificado) queda fuera de alcance hasta que el usuario confirme que la necesita (decisión de su contador, no de ingeniería). Datos fiscales del emisor (Edwsystem / Edward Díaz, NIT 1003062747) fijos como constante en `receipt.routes.ts` — Merco/Edwsystem es persona natural, sin tabla propia de datos de plataforma como sí tiene cada tenant (`tenants.nit/address/city`)
 - **Branding PWA**: si el tenant tiene `logoUrl`, el manifest usa su logo como ícono de instalación
 - **Búsqueda de órdenes**: con ≥2 chars y online, Orders consulta `GET /orders/search` (debounce 400ms); offline filtra local
-- **Superadmin lazy**: `React.lazy` en AppRouter — su bundle no se envía a usuarios tenant
+- **Superadmin fuera del bundle de tenants**: vive en la app `ADMIN/` (ver ARQUITECTURA GENERAL); `FRONTEND/` no contiene código superadmin. Las rutas de `AppRouter.tsx` sí usan `React.lazy` por página
 - **Embudo comercial**: tabla `metrics_daily` (contadores diarios, sin cookies). `POST /api/onboarding/track` (público, eventos `landing_view`/`registro_view` — Landing y Registro lo disparan al montar); `GET /tenants/platform/funnel` (superadmin, 30 días): visitas → registro → solicitudes → aprobadas con % de conversión. Card "Embudo comercial" en el dashboard del superadmin
 
 ## FEATURE-GATING POR PLAN (v1.14.0)
@@ -592,7 +604,7 @@ Ver plan completo en `PLAN-FEATURES-Y-POS.md` — este es el Punto 2 (base para 
 
 ## MEJORAS PENDIENTES
 
-### Panel Superadmin (`/superadmin`) — YA IMPLEMENTADO
+### Panel Superadmin (app `ADMIN/`, `admin.merco.edwsystem.com`) — YA IMPLEMENTADO
 - [x] Header oscuro slate-900 (diferenciación visual de contexto)
 - [x] Stats cards: Total / Activos / Trial / Suspendidos
 - [x] Alerta si trial vence en ≤7 días
@@ -632,6 +644,7 @@ Ver plan completo en `PLAN-FEATURES-Y-POS.md` — este es el Punto 2 (base para 
 - Los `GET` de negocio ahora exigen rol, no solo token: orders/customers/purchase-orders/stock-movements → `isSeller`; prices → `isBuyer`. Products y categories quedan con `isAuth` (ambos roles los necesitan)
 
 ### Cartera (Informes)
+- **Mostrar siempre `balance`, no `totalAmount` (v1.16.3)**: `GET /orders/receivables` devuelve por orden `totalAmount`, `paidAmount` y `balance` (saldo neto de abonos), y `totalDue` ya es neto. El frontend sumaba/mostraba `totalAmount` en "Deuda por cliente", en el detalle de Reports y en el banner de Orders, así que el cliente veía cifras infladas frente al total. Cualquier vista nueva de cartera debe usar `balance`.
 - Pestaña "Cartera" en Reports: KPIs (por cobrar, órdenes, vencidas), deuda por cliente con barras y detalle de órdenes con vencimiento. Fuente: `GET /orders/receivables`
 
 ---
