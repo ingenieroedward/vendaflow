@@ -1,0 +1,38 @@
+# Merco
+
+> Merco es un software de gestión en la nube, hecho en Colombia y en español, para distribuidoras y negocios que compran a varios proveedores. Reúne en un solo lugar la comparación de precios de proveedores, las ventas (de contado o a crédito), la cartera, el inventario y los informes, y funciona sin conexión a internet.
+
+- Sitio web: https://merco.edwsystem.com/
+- Solicitar prueba gratis de 14 días: https://merco.edwsystem.com/registro
+- Demo en vivo: https://demo.merco.edwsystem.com
+
+## Para quién es
+
+- Distribuidoras y mayoristas (abarrotes, ferretería, aseo, etc.) con vendedores en la calle
+- Negocios que hoy llevan precios, pedidos y cartera en cuaderno, Excel o WhatsApp
+
+## Funciones
+
+- Comparación de precios de proveedores: registra lo que cobra cada proveedor por producto y muestra el mejor precio
+- Órdenes de venta de contado o a crédito (fiado con plazo) y cotizaciones
+- Cartera: saldos por cliente y por orden, abonos y recordatorios de cobro
+- Inventario en tiempo real, alertas de stock bajo y órdenes de compra a proveedores
+- Punto de venta (POS) e impresión de tiquete térmico de 80 mm
+- Informes de ventas, compras, utilidad y cartera
+- Funciona sin internet: los datos se guardan en el celular y se sincronizan al volver la señal
+- App instalable en Android, iPhone o computador; en el plan Pro, con logo y colores propios
+- Usuarios con permisos por rol (administración, compras, ventas)
+- Datos de cada empresa separados de las demás, con respaldos diarios automáticos
+
+## Planes y pago
+
+- Prueba gratis de 14 días con todas las funciones, sin tarjeta de crédito
+- Planes Básico, Pro y Empresa, en pesos colombianos, pago mes a mes por Bre-B o transferencia
+- Sin contratos de permanencia
+- Precios vigentes: https://merco.edwsystem.com/
+
+## Preguntas frecuentes
+
+- ¿Necesito internet para trabajar? No todo el tiempo: se toman pedidos, se consultan productos y se registran clientes sin conexión; al volver la señal todo se sincroniza.
+- ¿Sirve para un equipo de vendedores? Sí, cada vendedor entra con su usuario desde el celular y el dueño ve todo en tiempo real.
+- ¿Cómo se paga? Mes a mes por Bre-B o transferencia, sin permanencia.

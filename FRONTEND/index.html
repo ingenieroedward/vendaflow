@@ -12,9 +12,52 @@
     <meta property="og:title" content="Merco — Software de gestión para distribuidoras" />
     <meta property="og:description" content="Precios de proveedores, ventas, cartera e inventario en un solo lugar. Funciona sin internet. Prueba gratis 14 días." />
     <meta property="og:url" content="https://merco.edwsystem.com/" />
-    <meta property="og:image" content="https://merco.edwsystem.com/icons/icon-512x512.png" />
+    <meta property="og:image" content="https://merco.edwsystem.com/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
     <meta property="og:locale" content="es_CO" />
-    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="https://merco.edwsystem.com/og-image.png" />
+    <link rel="alternate" type="text/markdown" title="Merco para LLMs" href="/llms.txt" />
+
+    <!-- Datos estructurados (Google / LLMs). FAQ = mismas preguntas visibles en la landing -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://merco.edwsystem.com/#org",
+          "name": "Merco",
+          "url": "https://merco.edwsystem.com/",
+          "logo": "https://merco.edwsystem.com/brand/isotipo.png"
+        },
+        {
+          "@type": "SoftwareApplication",
+          "name": "Merco",
+          "url": "https://merco.edwsystem.com/",
+          "applicationCategory": "BusinessApplication",
+          "applicationSubCategory": "Software de gestión para distribuidoras",
+          "operatingSystem": "Web, Android, iOS",
+          "inLanguage": "es-CO",
+          "areaServed": { "@type": "Country", "name": "Colombia" },
+          "publisher": { "@id": "https://merco.edwsystem.com/#org" },
+          "description": "Software de gestión para distribuidoras en Colombia: comparación de precios de proveedores, ventas de contado y a crédito, cartera, inventario e informes. Funciona sin internet.",
+          "featureList": ["Comparación de precios de proveedores", "Órdenes de venta y cotizaciones", "Cartera y cobros", "Inventario y órdenes de compra", "Punto de venta (POS)", "Informes", "Funciona sin internet", "App para Android, iPhone y computador"],
+          "offers": { "@type": "Offer", "name": "Prueba gratis de 14 días", "price": "0", "priceCurrency": "COP", "url": "https://merco.edwsystem.com/registro" }
+        },
+        {
+          "@type": "FAQPage",
+          "mainEntity": [
+            { "@type": "Question", "name": "¿Necesito internet para trabajar?", "acceptedAnswer": { "@type": "Answer", "text": "No todo el tiempo. Merco funciona sin conexión: tomas pedidos, consultas productos y registras clientes offline. Cuando vuelve la señal, todo se sincroniza automáticamente." } },
+            { "@type": "Question", "name": "¿Cómo se paga?", "acceptedAnswer": { "@type": "Answer", "text": "Tienes 14 días gratis con todas las funciones. Cuando decidas quedarte, pagas mes a mes por Bre-B o transferencia. Sin contratos de permanencia: cancelas cuando quieras." } },
+            { "@type": "Question", "name": "¿Sirve para mi equipo de vendedores?", "acceptedAnswer": { "@type": "Answer", "text": "Sí. Cada vendedor entra con su usuario desde el celular, toma pedidos en la calle y tú ves todo en tiempo real. Los permisos separan lo que ve cada quien: ventas, compras o administración." } },
+            { "@type": "Question", "name": "¿Qué pasa con la información de mi negocio?", "acceptedAnswer": { "@type": "Answer", "text": "Cada empresa tiene sus datos completamente separados de las demás, con respaldos diarios automáticos. Tus precios, clientes y cartera son solo tuyos." } }
+          ]
+        }
+      ]
+    }
+    </script>
 
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
@@ -45,6 +88,23 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- Contenido para crawlers sin JavaScript (la mayoría de bots de IA). Los navegadores con JS no lo muestran. -->
+    <noscript>
+      <main style="max-width:720px;margin:40px auto;padding:0 16px;font-family:system-ui,sans-serif;line-height:1.6">
+        <h1>Merco — Software de gestión para distribuidoras en Colombia</h1>
+        <p>Controla precios de proveedores, ventas, cartera e inventario en un solo lugar. Funciona sin internet. Prueba gratis 14 días, sin tarjeta de crédito.</p>
+        <h2>Funciones</h2>
+        <ul>
+          <li><strong>Compara precios de proveedores:</strong> registra lo que te cobra cada proveedor por producto y compra siempre al mejor precio.</li>
+          <li><strong>Órdenes y cartera al día:</strong> vende de contado o fiado con plazo, y el sistema te recuerda a quién cobrarle y cuándo.</li>
+          <li><strong>Inventario sin sorpresas:</strong> stock en tiempo real, alertas de productos por acabarse y órdenes de compra a proveedores.</li>
+          <li><strong>Informes claros:</strong> ventas, compras, utilidad y cartera en gráficas.</li>
+          <li><strong>Funciona sin internet:</strong> sigues vendiendo sin señal y todo se sincroniza al volver la conexión.</li>
+          <li><strong>App en el celular de tu equipo:</strong> Android, iPhone o computador.</li>
+        </ul>
+        <p><a href="/registro">Solicitar prueba gratis de 14 días</a> · <a href="https://demo.merco.edwsystem.com">Ver demo</a> · <a href="/llms.txt">Resumen para IA</a></p>
+      </main>
+    </noscript>
     <!-- Hermano de #root, NO anidado en él — destino del portal del ticket
          80mm (impresión térmica directa). Ver .print-ticket-root en index.css. -->
     <div id="print-root"></div>
