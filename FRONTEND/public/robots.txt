@@ -1,2 +1,28 @@
+# Merco — https://merco.edwsystem.com
+# Los subdominios de tenants reciben X-Robots-Tag: noindex desde nginx.
 User-agent: *
 Allow: /
+Disallow: /api/
+Disallow: /login
+Disallow: /test-sw.html
+Disallow: /clear-app-data.html
+
+# Buscadores con IA / LLMs: permitidos explícitamente
+User-agent: GPTBot
+User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
+User-agent: ClaudeBot
+User-agent: Claude-SearchBot
+User-agent: Claude-User
+User-agent: PerplexityBot
+User-agent: Perplexity-User
+User-agent: Google-Extended
+User-agent: Applebot-Extended
+User-agent: Bingbot
+Allow: /
+Disallow: /api/
+Disallow: /login
+Disallow: /test-sw.html
+Disallow: /clear-app-data.html
+
+Sitemap: https://merco.edwsystem.com/sitemap.xml
