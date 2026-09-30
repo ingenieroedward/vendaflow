@@ -43,6 +43,11 @@ services:
       VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY}
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY}
       VAPID_SUBJECT: mailto:admin@edwsystem.com
+      # Lanzamiento / SaaS — enforcement APAGADO por defecto (ver CLAUDE.md antes de activar)
+      LAUNCH_PROMO_CODES: ${LAUNCH_PROMO_CODES:-LANZAMIENTO:30}
+      PUBLIC_SIGNUP_ENABLED: ${PUBLIC_SIGNUP_ENABLED:-true}
+      ENFORCE_TRIAL_EXPIRY: ${ENFORCE_TRIAL_EXPIRY:-false}
+      ENFORCE_PLAN_LIMITS: ${ENFORCE_PLAN_LIMITS:-false}
       SUPERADMIN_USERNAME: ${SUPERADMIN_USERNAME:-superadmin}
       SUPERADMIN_PASSWORD: ${SUPERADMIN_PASSWORD}
     volumes:

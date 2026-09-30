@@ -1,0 +1,43 @@
+# Merco
+
+> Merco es un software de ventas en la nube (SaaS) hecho en Colombia, en español y con precios en pesos colombianos (COP), para distribuidoras, tiendas y negocios que compran a varios proveedores. Permite comparar precios de un mismo producto entre proveedores, crear órdenes de venta y de compra, controlar inventario, gestionar clientes y ver reportes, desde el computador o el celular, incluso sin conexión a internet.
+
+Sitio web: https://merco.edwsystem.com/
+Registro (prueba gratis): https://merco.edwsystem.com/registro
+
+## Para quién es
+
+- Distribuidoras y mayoristas que manejan listas de precios de varios proveedores
+- Tiendas, minimercados, ferreterías y negocios de barrio que quieren dejar el Excel y los pedidos en papel
+- Equipos de venta en calle que necesitan tomar pedidos desde el celular, aun sin señal
+
+## Funciones principales
+
+- Comparación de precios por proveedor: registra el precio de cada producto en cada proveedor y muestra cuál es el más barato
+- Órdenes de venta con numeración automática e impresión en formato ticket o carta
+- Órdenes de compra a proveedores
+- Inventario con movimientos de stock y alertas de existencias bajas
+- Gestión de clientes con búsqueda
+- Reportes de ventas
+- Roles de usuario: administrador (acceso total), comprador (productos y precios) y vendedor (órdenes y ventas)
+- Modo sin conexión (offline-first): los datos se guardan en el dispositivo y se sincronizan al volver internet
+- Aplicación instalable en el celular (PWA) y notificaciones push
+- Marca propia: cada negocio tiene su subdominio (negocio.merco.edwsystem.com), logo y color
+
+## Planes
+
+- Prueba gratis: 14 días (30 días con el código de lanzamiento LANZAMIENTO), sin tarjeta de crédito. Hasta 3 usuarios, 100 productos y 50 órdenes al mes.
+- Básico: $39.900 COP/mes (precio de fundador; normal $49.900). Hasta 3 usuarios, 500 productos y 200 órdenes al mes.
+- Pro: $79.900 COP/mes (precio de fundador; normal $99.900). Hasta 10 usuarios, 5.000 productos y 1.000 órdenes al mes.
+- Empresa: $159.900 COP/mes (precio de fundador; normal $199.900). Usuarios, productos y órdenes ilimitados.
+
+Promoción de lanzamiento: los primeros 100 negocios obtienen 20% de descuento de por vida. Pago anual: 2 meses gratis.
+
+## Preguntas frecuentes
+
+- ¿Funciona en Colombia? Sí, está hecho en Colombia para negocios de todo el país.
+- ¿Hace facturación electrónica DIAN? Por ahora no; se usa junto con el software de facturación del negocio.
+
+- ¿Funciona sin internet? Sí, se puede seguir consultando productos y precios sin conexión; los cambios se sincronizan automáticamente.
+- ¿Hay que instalar algo? No, funciona en el navegador y se puede instalar en el celular como app.
+- ¿En qué idioma está? En español.

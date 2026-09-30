@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script>
+    // Si ya hay sesión (superadmin en el dominio raíz), ir directo a la app.
+    try { if (localStorage.getItem('vf_token')) location.replace('/login'); } catch (e) {}
+  </script>
+
+  <title>Merco · Software de ventas e inventario para negocios en Colombia</title>
+  <meta name="description" content="Software de ventas, inventario y pedidos para tiendas, ferreterías y distribuidoras en Colombia. Compara precios de proveedores, toma pedidos desde el celular y trabaja sin internet. Desde $39.900 COP/mes, prueba gratis 30 días." />
+  <link rel="canonical" href="https://merco.edwsystem.com/" />
+  <meta name="robots" content="index, follow, max-image-preview:large" />
+  <meta name="theme-color" content="#3b82f6" />
+
+  <!-- Open Graph / redes sociales -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Merco" />
+  <meta property="og:locale" content="es_CO" />
+  <meta property="og:url" content="https://merco.edwsystem.com/" />
+  <meta property="og:title" content="Merco · Vende más, compra mejor" />
+  <meta property="og:description" content="Compara precios de proveedores, gestiona órdenes e inventario desde el celular, incluso sin internet. Promoción de lanzamiento: 30 días gratis." />
+  <meta property="og:image" content="https://merco.edwsystem.com/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Merco · Vende más, compra mejor" />
+  <meta name="twitter:description" content="Software de ventas, inventario y comparación de precios de proveedores. 30 días gratis." />
+  <meta name="twitter:image" content="https://merco.edwsystem.com/og-image.png" />
+
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="alternate" type="text/markdown" title="Merco para LLMs" href="/llms.txt" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://merco.edwsystem.com/#org",
+        "name": "Merco",
+        "url": "https://merco.edwsystem.com/",
+        "logo": "https://merco.edwsystem.com/icons/icon-512x512.png"
+      },
+      {
+        "@type": "SoftwareApplication",
+        "name": "Merco",
+        "url": "https://merco.edwsystem.com/",
+        "applicationCategory": "BusinessApplication",
+        "applicationSubCategory": "Software de ventas e inventario",
+        "operatingSystem": "Web, Android, iOS (PWA)",
+        "inLanguage": "es-CO",
+        "areaServed": { "@type": "Country", "name": "Colombia" },
+        "publisher": { "@id": "https://merco.edwsystem.com/#org" },
+        "description": "Software en la nube para gestionar ventas, órdenes de compra, inventario, clientes y comparar precios entre proveedores. Funciona sin conexión a internet.",
+        "featureList": [
+          "Comparación de precios por proveedor",
+          "Órdenes de venta e impresión de pedidos",
+          "Órdenes de compra a proveedores",
+          "Control de inventario y alertas de stock",
+          "Gestión de clientes",
+          "Reportes de ventas",
+          "Roles de usuario: administrador, comprador y vendedor",
+          "Modo sin conexión (offline) con sincronización",
+          "Marca propia: logo, color y subdominio"
+        ],
+        "offers": [
+          { "@type": "Offer", "name": "Prueba gratis de lanzamiento (30 días)", "price": "0", "priceCurrency": "COP", "url": "https://merco.edwsystem.com/registro" },
+          { "@type": "Offer", "name": "Plan Básico (precio de fundador)", "price": "39900", "priceCurrency": "COP", "url": "https://merco.edwsystem.com/registro" },
+          { "@type": "Offer", "name": "Plan Pro (precio de fundador)", "price": "79900", "priceCurrency": "COP", "url": "https://merco.edwsystem.com/registro" },
+          { "@type": "Offer", "name": "Plan Empresa (precio de fundador)", "price": "159900", "priceCurrency": "COP", "url": "https://merco.edwsystem.com/registro" }
+        ]
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          { "@type": "Question", "name": "¿Qué es Merco?", "acceptedAnswer": { "@type": "Answer", "text": "Merco es un software de ventas en la nube para distribuidoras, tiendas y negocios que compran a varios proveedores. Permite comparar precios por proveedor, crear órdenes de venta y de compra, controlar inventario y gestionar clientes desde el computador o el celular." } },
+          { "@type": "Question", "name": "¿Merco funciona sin internet?", "acceptedAnswer": { "@type": "Answer", "text": "Sí. Merco guarda la información en el dispositivo y permite seguir consultando productos y precios sin conexión. Cuando vuelve el internet, los cambios se sincronizan automáticamente." } },
+          { "@type": "Question", "name": "¿Cuánto cuesta Merco?", "acceptedAnswer": { "@type": "Answer", "text": "Puedes probar Merco gratis durante 30 días con el código de lanzamiento LANZAMIENTO, sin tarjeta de crédito. Después eliges un plan: Básico $39.900, Pro $79.900 o Empresa $159.900 COP al mes. Son precios de fundador con 20% de descuento de por vida para los primeros 100 negocios; el pago anual incluye 2 meses gratis." } },
+          { "@type": "Question", "name": "¿Necesito instalar algo?", "acceptedAnswer": { "@type": "Answer", "text": "No. Merco funciona en el navegador y se puede instalar en el celular como aplicación (PWA) desde Chrome o Safari." } },
+          { "@type": "Question", "name": "¿Merco sirve para negocios en Colombia?", "acceptedAnswer": { "@type": "Answer", "text": "Sí. Merco está hecho en Colombia, en español, con precios en pesos colombianos y pensado para tiendas, ferreterías, minimercados y distribuidoras de todo el país." } },
+          { "@type": "Question", "name": "¿Merco hace facturación electrónica DIAN?", "acceptedAnswer": { "@type": "Answer", "text": "Por ahora no. Merco se enfoca en ventas, pedidos, inventario y comparación de precios de proveedores, y puede usarse junto con tu software de facturación electrónica." } },
+          { "@type": "Question", "name": "¿Puedo tener varios vendedores?", "acceptedAnswer": { "@type": "Answer", "text": "Sí. Merco tiene roles de administrador, comprador y vendedor, para que cada persona vea solo lo que necesita." } }
+        ]
+      }
+    ]
+  }
+  </script>
+
+  <style>
+    :root {
+      --primary: #2563eb; --primary-600: #1d4ed8; --accent: #f59e0b;
+      --bg: #ffffff; --bg-soft: #f1f5f9; --text: #0f172a; --muted: #475569; --border: #e2e8f0;
+      --card: #ffffff;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg: #0b1220; --bg-soft: #111a2e; --text: #e2e8f0; --muted: #94a3b8; --border: #1e293b; --card: #0f172a; --primary: #3b82f6; --primary-600: #60a5fa; }
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+    a { color: var(--primary); }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 0 16px; }
+    .promo { background: var(--accent); color: #111; text-align: center; padding: 8px 16px; font-weight: 600; font-size: .95rem; }
+    .promo a { color: #111; }
+    header.nav { display: flex; align-items: center; justify-content: space-between; padding: 16px 0; gap: 12px; }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 1.35rem; color: var(--text); text-decoration: none; }
+    .brand img { width: 36px; height: 36px; border-radius: 8px; }
+    .nav-links { display: flex; gap: 16px; align-items: center; }
+    .nav-links a { color: var(--muted); text-decoration: none; font-weight: 500; }
+    .btn { display: inline-block; background: var(--primary); color: #fff !important; padding: 12px 22px; border-radius: 10px; text-decoration: none; font-weight: 700; border: 0; cursor: pointer; font-size: 1rem; }
+    .btn:hover { background: var(--primary-600); }
+    .btn.ghost { background: transparent; color: var(--primary) !important; border: 2px solid var(--primary); }
+    .hero { padding: 56px 0 40px; text-align: center; }
+    .hero h1 { font-size: clamp(2rem, 5vw, 3.2rem); line-height: 1.15; margin: 0 0 16px; }
+    .hero h1 span { color: var(--primary); }
+    .hero p.lead { font-size: 1.2rem; color: var(--muted); max-width: 720px; margin: 0 auto 28px; }
+    .hero .ctas { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .hero small { display: block; margin-top: 14px; color: var(--muted); }
+    section { padding: 56px 0; }
+    section.soft { background: var(--bg-soft); }
+    h2 { font-size: clamp(1.6rem, 3.5vw, 2.2rem); text-align: center; margin: 0 0 12px; }
+    .sub { text-align: center; color: var(--muted); max-width: 680px; margin: 0 auto 36px; }
+    .grid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 22px; }
+    .card h3 { margin: 6px 0 8px; font-size: 1.1rem; }
+    .card p { margin: 0; color: var(--muted); overflow-wrap: anywhere; }
+    .icon { font-size: 1.8rem; }
+    .plans .card { display: flex; flex-direction: column; gap: 8px; }
+    .plans .card.featured { border: 2px solid var(--primary); }
+    .plans ul { padding-left: 18px; margin: 8px 0 16px; color: var(--muted); flex: 1; }
+    .tag { align-self: flex-start; display: inline-block; background: var(--primary); color: #fff; font-size: .75rem; padding: 2px 10px; border-radius: 999px; font-weight: 700; }
+    .price { font-size: 1.1rem; font-weight: 700; }
+    .price .now { font-size: 1.5rem; font-weight: 800; }
+    .price { white-space: nowrap; }
+    .price .per { font-size: .9rem; font-weight: 500; color: var(--muted); }
+    .price .was { display: block; font-size: .9rem; font-weight: 500; color: var(--muted); text-decoration: line-through; }
+    .save { display: inline-block; align-self: flex-start; background: rgba(245,158,11,.18); color: #b45309; font-size: .78rem; font-weight: 700; padding: 2px 8px; border-radius: 6px; }
+    @media (prefers-color-scheme: dark) { .save { color: #fbbf24; } }
+    .note { text-align: center; color: var(--muted); font-size: .9rem; margin-top: 18px; }
+    details { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; margin-bottom: 12px; }
+    summary { font-weight: 700; cursor: pointer; }
+    details p { color: var(--muted); margin: 10px 0 0; }
+    .final { text-align: center; }
+    footer { border-top: 1px solid var(--border); padding: 24px 0; color: var(--muted); font-size: .9rem; text-align: center; }
+    @media (max-width: 640px) { .nav-links a:not(.btn) { display: none; } .hero { padding-top: 36px; } }
+  </style>
+</head>
+<body>
+  <div class="promo">🚀 Lanzamiento: <strong>30 días gratis</strong> con el código <strong>LANZAMIENTO</strong> · <a href="/registro?promo=LANZAMIENTO">Crear mi cuenta</a></div>
+
+  <div class="wrap">
+    <header class="nav">
+      <a class="brand" href="/"><img src="/icons/icon-96x96.png" alt="Logo de Merco" width="36" height="36" />Merco</a>
+      <nav class="nav-links" aria-label="Principal">
+        <a href="#funciones">Funciones</a>
+        <a href="#planes">Planes</a>
+        <a href="#preguntas">Preguntas</a>
+        <a class="btn" href="/registro?promo=LANZAMIENTO">Prueba gratis</a>
+      </nav>
+    </header>
+  </div>
+
+  <main>
+    <section class="hero">
+      <div class="wrap">
+        <h1>Vende más y <span>compra mejor</span> con Merco</h1>
+        <p class="lead">El software de ventas hecho en Colombia para tiendas, ferreterías, minimercados y distribuidoras que compran a varios proveedores: compara precios al instante, crea pedidos desde el celular, controla tu inventario y sigue trabajando aunque se caiga el internet.</p>
+        <div class="ctas">
+          <a class="btn" href="/registro?promo=LANZAMIENTO">Empieza gratis 30 días</a>
+          <a class="btn ghost" href="#funciones">Ver funciones</a>
+        </div>
+        <small>Sin tarjeta de crédito · Listo en 2 minutos · Tu propio subdominio con tu marca</small>
+      </div>
+    </section>
+
+    <section id="funciones" class="soft">
+      <div class="wrap">
+        <h2>Todo tu negocio en un solo lugar</h2>
+        <p class="sub">Merco reemplaza el cuaderno, las hojas de Excel, las listas de precios por WhatsApp y los pedidos en papel.</p>
+        <div class="grid">
+          <article class="card"><div class="icon">💲</div><h3>Comparación de precios por proveedor</h3><p>Registra el precio de cada producto en cada proveedor y ve de inmediato quién te vende más barato.</p></article>
+          <article class="card"><div class="icon">🧾</div><h3>Órdenes de venta</h3><p>Crea pedidos para tus clientes en segundos, con numeración automática e impresión en formato ticket o carta.</p></article>
+          <article class="card"><div class="icon">🚚</div><h3>Órdenes de compra</h3><p>Pide a tus proveedores y lleva el control de lo que entra a tu bodega.</p></article>
+          <article class="card"><div class="icon">📦</div><h3>Inventario y alertas de stock</h3><p>Conoce tus existencias en tiempo real y recibe alertas antes de quedarte sin producto.</p></article>
+          <article class="card"><div class="icon">📶</div><h3>Funciona sin internet</h3><p>Consulta productos y precios aunque no tengas señal. Todo se sincroniza cuando vuelves a estar en línea.</p></article>
+          <article class="card"><div class="icon">👥</div><h3>Roles para tu equipo</h3><p>Administrador, comprador y vendedor: cada persona ve solo lo que necesita.</p></article>
+          <article class="card"><div class="icon">📊</div><h3>Reportes de ventas</h3><p>Entiende qué vendes, a quién y cuánto ganas, sin armar tablas a mano.</p></article>
+          <article class="card"><div class="icon">🎨</div><h3>Con tu marca</h3><p>Tu logo, tu color y tu propio subdominio (tuempresa.merco.edwsystem.com). Instálalo en el celular como una app.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section id="planes">
+      <div class="wrap">
+        <h2>Planes para cada etapa de tu negocio</h2>
+        <p class="sub">Empieza gratis. Los <strong>primeros 100 negocios</strong> obtienen <strong>20% de descuento de por vida</strong> con el precio de fundador.</p>
+        <div class="grid plans">
+          <article class="card featured">
+            <span class="tag">Lanzamiento</span>
+            <h3>Prueba gratis</h3>
+            <div class="price">30 días gratis</div>
+            <ul><li>Hasta 3 usuarios</li><li>Hasta 100 productos</li><li>50 órdenes al mes</li><li>Todas las funciones</li></ul>
+            <a class="btn" href="/registro?promo=LANZAMIENTO">Empezar gratis</a>
+          </article>
+          <article class="card">
+            <h3>Básico</h3>
+            <div class="price"><span class="was">$49.900</span><span class="now">$39.900</span> <span class="per">COP/mes</span></div>
+            <span class="save">−20% de por vida</span>
+            <ul><li>Hasta 3 usuarios</li><li>Hasta 500 productos</li><li>200 órdenes al mes</li></ul>
+            <a class="btn ghost" href="/registro?promo=LANZAMIENTO">Probar gratis</a>
+          </article>
+          <article class="card">
+            <h3>Pro</h3>
+            <div class="price"><span class="was">$99.900</span><span class="now">$79.900</span> <span class="per">COP/mes</span></div>
+            <span class="save">−20% de por vida</span>
+            <ul><li>Hasta 10 usuarios</li><li>Hasta 5.000 productos</li><li>1.000 órdenes al mes</li></ul>
+            <a class="btn ghost" href="/registro?promo=LANZAMIENTO">Probar gratis</a>
+          </article>
+          <article class="card">
+            <h3>Empresa</h3>
+            <div class="price"><span class="was">$199.900</span><span class="now">$159.900</span> <span class="per">COP/mes</span></div>
+            <span class="save">−20% de por vida</span>
+            <ul><li>Usuarios ilimitados</li><li>Productos ilimitados</li><li>Órdenes ilimitadas</li></ul>
+            <a class="btn ghost" href="/registro?promo=LANZAMIENTO">Probar gratis</a>
+          </article>
+        </div>
+        <p class="note">Precios en pesos colombianos. Pago anual: 2 meses gratis. El precio de fundador se mantiene mientras la suscripción esté activa.</p>
+      </div>
+    </section>
+
+    <section id="preguntas" class="soft">
+      <div class="wrap" style="max-width: 800px;">
+        <h2>Preguntas frecuentes</h2>
+        <details open><summary>¿Qué es Merco?</summary><p>Merco es un software de ventas en la nube para distribuidoras, tiendas y negocios que compran a varios proveedores. Permite comparar precios por proveedor, crear órdenes de venta y de compra, controlar inventario y gestionar clientes desde el computador o el celular.</p></details>
+        <details><summary>¿Merco funciona sin internet?</summary><p>Sí. Merco guarda la información en el dispositivo y permite seguir consultando productos y precios sin conexión. Cuando vuelve el internet, los cambios se sincronizan automáticamente.</p></details>
+        <details><summary>¿Cuánto cuesta Merco?</summary><p>Puedes probar Merco gratis durante 30 días con el código de lanzamiento LANZAMIENTO, sin tarjeta de crédito. Después eliges un plan: Básico $39.900, Pro $79.900 o Empresa $159.900 COP al mes. Son precios de fundador con 20% de descuento de por vida para los primeros 100 negocios; el pago anual incluye 2 meses gratis.</p></details>
+        <details><summary>¿Necesito instalar algo?</summary><p>No. Merco funciona en el navegador y se puede instalar en el celular como aplicación (PWA) desde Chrome o Safari.</p></details>
+        <details><summary>¿Merco sirve para negocios en Colombia?</summary><p>Sí. Merco está hecho en Colombia, en español, con precios en pesos colombianos y pensado para tiendas, ferreterías, minimercados y distribuidoras de todo el país.</p></details>
+        <details><summary>¿Merco hace facturación electrónica DIAN?</summary><p>Por ahora no. Merco se enfoca en ventas, pedidos, inventario y comparación de precios de proveedores, y puede usarse junto con tu software de facturación electrónica.</p></details>
+        <details><summary>¿Puedo tener varios vendedores?</summary><p>Sí. Merco tiene roles de administrador, comprador y vendedor, para que cada persona vea solo lo que necesita.</p></details>
+      </div>
+    </section>
+
+    <section class="final">
+      <div class="wrap">
+        <h2>Empieza hoy, gratis</h2>
+        <p class="sub">Crea tu cuenta en 2 minutos y usa el código <strong>LANZAMIENTO</strong> para obtener 30 días gratis.</p>
+        <a class="btn" href="/registro?promo=LANZAMIENTO">Crear mi cuenta gratis</a>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">© <span id="y">2026</span> Merco · <a href="/registro">Registro</a> · <a href="/registro#ingresar">Ingresar a mi cuenta</a></div>
+  </footer>
+  <script>document.getElementById('y').textContent = new Date().getFullYear();</script>
+</body>
+</html>
