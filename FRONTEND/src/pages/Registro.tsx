@@ -132,7 +132,7 @@ const Registro: React.FC = () => {
               </Link>
             </div>
             <p className="mt-6 text-xs text-gray-400">
-              ¿Ya eres cliente? Ingresa desde <span className="font-mono text-gray-500">tu-empresa.merco.edwsystem.com</span>
+              ¿Ya eres cliente? Ingresa desde <span className="font-mono text-gray-500 break-all">tu-empresa.merco.edwsystem.com</span>
             </p>
           </div>
         </main>
@@ -167,11 +167,11 @@ const Registro: React.FC = () => {
           <div className="absolute -top-40 left-1/3 -translate-x-1/2 w-[48rem] h-[48rem] rounded-full bg-blue-50 blur-3xl opacity-70" />
         </div>
 
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-16 lg:py-20 grid lg:grid-cols-[1fr_minmax(0,30rem)] gap-12 lg:gap-16 items-start">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-16 lg:py-20 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,30rem)] gap-12 lg:gap-16 items-start">
           {/* ---------- Columna de valor ---------- */}
-          <div>
+          <div className="min-w-0">
             <p className="text-xs font-bold uppercase tracking-widest text-blue-600 mb-3">Prueba gratis de 14 días</p>
-            <h1 className="text-3xl sm:text-4xl lg:text-[2.75rem] font-extrabold tracking-tight text-gray-900 leading-[1.1]">
+            <h1 className="text-3xl sm:text-4xl lg:text-[2.75rem] font-extrabold tracking-tight text-gray-900 leading-[1.1] [overflow-wrap:anywhere]">
               Deja el cuaderno.
               <span className="block text-blue-600">Empieza hoy mismo.</span>
             </h1>
@@ -190,11 +190,11 @@ const Registro: React.FC = () => {
                   <div className="relative w-12 h-12 shrink-0 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-600/25">
                     <s.icon className="w-5 h-5 text-white" />
                   </div>
-                  <div className="pt-1">
+                  <div className="pt-1 min-w-0 flex-1">
                     <p className="text-base font-bold text-gray-900">
                       <span className="text-blue-600 tabular-nums mr-1.5">{i + 1}.</span>{s.title}
                     </p>
-                    <p className="mt-1 text-sm text-gray-500 leading-relaxed max-w-md">{s.desc}</p>
+                    <p className="mt-1 text-sm text-gray-500 leading-relaxed max-w-md [overflow-wrap:anywhere]">{s.desc}</p>
                   </div>
                 </div>
               ))}
@@ -220,7 +220,7 @@ const Registro: React.FC = () => {
           </div>
 
           {/* ---------- Formulario ---------- */}
-          <div className="w-full">
+          <div className="w-full min-w-0">
             <form onSubmit={submit}
               className="bg-white rounded-2xl border border-gray-200 shadow-xl shadow-slate-900/5 p-6 sm:p-8 space-y-5">
               <div>
@@ -278,7 +278,7 @@ const Registro: React.FC = () => {
                   <input
                     id="reg-captcha" type="number" inputMode="numeric" value={answer}
                     onChange={e => setAnswer(e.target.value)} required
-                    placeholder="Respuesta"
+                    placeholder="?"
                     className="flex-1 min-w-0 bg-transparent border-0 px-2 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
                   />
                   <button type="button" onClick={loadCaptcha} aria-label="Cambiar pregunta de verificación"
@@ -307,7 +307,7 @@ const Registro: React.FC = () => {
             </form>
 
             <p className="mt-5 text-center text-xs text-gray-400">
-              ¿Ya eres cliente? Ingresa desde <span className="font-mono text-gray-500">tu-empresa.merco.edwsystem.com</span>
+              ¿Ya eres cliente? Ingresa desde <span className="font-mono text-gray-500 break-all">tu-empresa.merco.edwsystem.com</span>
             </p>
           </div>
         </div>
