@@ -1,6 +1,6 @@
 # Merco
 
-> Merco es un software de ventas en la nube (SaaS), en español, para distribuidoras, tiendas y negocios que compran a varios proveedores. Permite comparar precios de un mismo producto entre proveedores, crear órdenes de venta y de compra, controlar inventario, gestionar clientes y ver reportes, desde el computador o el celular, incluso sin conexión a internet.
+> Merco es un software de ventas en la nube (SaaS) hecho en Colombia, en español y con precios en pesos colombianos (COP), para distribuidoras, tiendas y negocios que compran a varios proveedores. Permite comparar precios de un mismo producto entre proveedores, crear órdenes de venta y de compra, controlar inventario, gestionar clientes y ver reportes, desde el computador o el celular, incluso sin conexión a internet.
 
 Sitio web: https://merco.edwsystem.com/
 Registro (prueba gratis): https://merco.edwsystem.com/registro
@@ -34,6 +34,9 @@ Registro (prueba gratis): https://merco.edwsystem.com/registro
 Promoción de lanzamiento: los primeros 100 negocios obtienen 20% de descuento de por vida. Pago anual: 2 meses gratis.
 
 ## Preguntas frecuentes
+
+- ¿Funciona en Colombia? Sí, está hecho en Colombia para negocios de todo el país.
+- ¿Hace facturación electrónica DIAN? Por ahora no; se usa junto con el software de facturación del negocio.
 
 - ¿Funciona sin internet? Sí, se puede seguir consultando productos y precios sin conexión; los cambios se sincronizan automáticamente.
 - ¿Hay que instalar algo? No, funciona en el navegador y se puede instalar en el celular como app.
