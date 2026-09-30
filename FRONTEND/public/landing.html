@@ -17,7 +17,7 @@
   <!-- Open Graph / redes sociales -->
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="Merco" />
-  <meta property="og:locale" content="es_LA" />
+  <meta property="og:locale" content="es_CO" />
   <meta property="og:url" content="https://merco.edwsystem.com/" />
   <meta property="og:title" content="Merco · Vende más, compra mejor" />
   <meta property="og:description" content="Compara precios de proveedores, gestiona órdenes e inventario desde el celular, incluso sin internet. Promoción de lanzamiento: 30 días gratis." />
@@ -65,20 +65,19 @@
           "Modo sin conexión (offline) con sincronización",
           "Marca propia: logo, color y subdominio"
         ],
-        "offers": {
-          "@type": "Offer",
-          "name": "Prueba gratis de lanzamiento (30 días)",
-          "price": "0",
-          "priceCurrency": "USD",
-          "url": "https://merco.edwsystem.com/registro"
-        }
+        "offers": [
+          { "@type": "Offer", "name": "Prueba gratis de lanzamiento (30 días)", "price": "0", "priceCurrency": "COP", "url": "https://merco.edwsystem.com/registro" },
+          { "@type": "Offer", "name": "Plan Básico (precio de fundador)", "price": "39900", "priceCurrency": "COP", "url": "https://merco.edwsystem.com/registro" },
+          { "@type": "Offer", "name": "Plan Pro (precio de fundador)", "price": "79900", "priceCurrency": "COP", "url": "https://merco.edwsystem.com/registro" },
+          { "@type": "Offer", "name": "Plan Empresa (precio de fundador)", "price": "159900", "priceCurrency": "COP", "url": "https://merco.edwsystem.com/registro" }
+        ]
       },
       {
         "@type": "FAQPage",
         "mainEntity": [
           { "@type": "Question", "name": "¿Qué es Merco?", "acceptedAnswer": { "@type": "Answer", "text": "Merco es un software de ventas en la nube para distribuidoras, tiendas y negocios que compran a varios proveedores. Permite comparar precios por proveedor, crear órdenes de venta y de compra, controlar inventario y gestionar clientes desde el computador o el celular." } },
           { "@type": "Question", "name": "¿Merco funciona sin internet?", "acceptedAnswer": { "@type": "Answer", "text": "Sí. Merco guarda la información en el dispositivo y permite seguir consultando productos y precios sin conexión. Cuando vuelve el internet, los cambios se sincronizan automáticamente." } },
-          { "@type": "Question", "name": "¿Cuánto cuesta Merco?", "acceptedAnswer": { "@type": "Answer", "text": "Puedes probar Merco gratis durante 30 días con el código de lanzamiento LANZAMIENTO, sin tarjeta de crédito. Después eliges el plan Básico, Pro o Empresa según la cantidad de usuarios, productos y órdenes que necesites." } },
+          { "@type": "Question", "name": "¿Cuánto cuesta Merco?", "acceptedAnswer": { "@type": "Answer", "text": "Puedes probar Merco gratis durante 30 días con el código de lanzamiento LANZAMIENTO, sin tarjeta de crédito. Después eliges un plan: Básico $39.900, Pro $79.900 o Empresa $159.900 COP al mes. Son precios de fundador con 20% de descuento de por vida para los primeros 100 negocios; el pago anual incluye 2 meses gratis." } },
           { "@type": "Question", "name": "¿Necesito instalar algo?", "acceptedAnswer": { "@type": "Answer", "text": "No. Merco funciona en el navegador y se puede instalar en el celular como aplicación (PWA) desde Chrome o Safari." } },
           { "@type": "Question", "name": "¿Puedo tener varios vendedores?", "acceptedAnswer": { "@type": "Answer", "text": "Sí. Merco tiene roles de administrador, comprador y vendedor, para que cada persona vea solo lo que necesita." } }
         ]
@@ -131,6 +130,13 @@
     .plans ul { padding-left: 18px; margin: 8px 0 16px; color: var(--muted); flex: 1; }
     .tag { align-self: flex-start; display: inline-block; background: var(--primary); color: #fff; font-size: .75rem; padding: 2px 10px; border-radius: 999px; font-weight: 700; }
     .price { font-size: 1.1rem; font-weight: 700; }
+    .price .now { font-size: 1.5rem; font-weight: 800; }
+    .price { white-space: nowrap; }
+    .price .per { font-size: .9rem; font-weight: 500; color: var(--muted); }
+    .price .was { display: block; font-size: .9rem; font-weight: 500; color: var(--muted); text-decoration: line-through; }
+    .save { display: inline-block; align-self: flex-start; background: rgba(245,158,11,.18); color: #b45309; font-size: .78rem; font-weight: 700; padding: 2px 8px; border-radius: 6px; }
+    @media (prefers-color-scheme: dark) { .save { color: #fbbf24; } }
+    .note { text-align: center; color: var(--muted); font-size: .9rem; margin-top: 18px; }
     details { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; margin-bottom: 12px; }
     summary { font-weight: 700; cursor: pointer; }
     details p { color: var(--muted); margin: 10px 0 0; }
@@ -187,7 +193,7 @@
     <section id="planes">
       <div class="wrap">
         <h2>Planes para cada etapa de tu negocio</h2>
-        <p class="sub">Empieza gratis. Los primeros negocios en registrarse obtienen <strong>precio de fundador</strong>.</p>
+        <p class="sub">Empieza gratis. Los <strong>primeros 100 negocios</strong> obtienen <strong>20% de descuento de por vida</strong> con el precio de fundador.</p>
         <div class="grid plans">
           <article class="card featured">
             <span class="tag">Lanzamiento</span>
@@ -198,23 +204,27 @@
           </article>
           <article class="card">
             <h3>Básico</h3>
-            <div class="price" data-plan-price="basic">Precio de fundador</div>
+            <div class="price"><span class="was">$49.900</span><span class="now">$39.900</span> <span class="per">COP/mes</span></div>
+            <span class="save">−20% de por vida</span>
             <ul><li>Hasta 3 usuarios</li><li>Hasta 500 productos</li><li>200 órdenes al mes</li></ul>
             <a class="btn ghost" href="/registro?promo=LANZAMIENTO">Probar gratis</a>
           </article>
           <article class="card">
             <h3>Pro</h3>
-            <div class="price" data-plan-price="pro">Precio de fundador</div>
+            <div class="price"><span class="was">$99.900</span><span class="now">$79.900</span> <span class="per">COP/mes</span></div>
+            <span class="save">−20% de por vida</span>
             <ul><li>Hasta 10 usuarios</li><li>Hasta 5.000 productos</li><li>1.000 órdenes al mes</li></ul>
             <a class="btn ghost" href="/registro?promo=LANZAMIENTO">Probar gratis</a>
           </article>
           <article class="card">
             <h3>Empresa</h3>
-            <div class="price" data-plan-price="enterprise">A la medida</div>
+            <div class="price"><span class="was">$199.900</span><span class="now">$159.900</span> <span class="per">COP/mes</span></div>
+            <span class="save">−20% de por vida</span>
             <ul><li>Usuarios ilimitados</li><li>Productos ilimitados</li><li>Órdenes ilimitadas</li></ul>
             <a class="btn ghost" href="/registro?promo=LANZAMIENTO">Probar gratis</a>
           </article>
         </div>
+        <p class="note">Precios en pesos colombianos. Pago anual: 2 meses gratis. El precio de fundador se mantiene mientras la suscripción esté activa.</p>
       </div>
     </section>
 
@@ -223,7 +233,7 @@
         <h2>Preguntas frecuentes</h2>
         <details open><summary>¿Qué es Merco?</summary><p>Merco es un software de ventas en la nube para distribuidoras, tiendas y negocios que compran a varios proveedores. Permite comparar precios por proveedor, crear órdenes de venta y de compra, controlar inventario y gestionar clientes desde el computador o el celular.</p></details>
         <details><summary>¿Merco funciona sin internet?</summary><p>Sí. Merco guarda la información en el dispositivo y permite seguir consultando productos y precios sin conexión. Cuando vuelve el internet, los cambios se sincronizan automáticamente.</p></details>
-        <details><summary>¿Cuánto cuesta Merco?</summary><p>Puedes probar Merco gratis durante 30 días con el código de lanzamiento LANZAMIENTO, sin tarjeta de crédito. Después eliges el plan Básico, Pro o Empresa según la cantidad de usuarios, productos y órdenes que necesites.</p></details>
+        <details><summary>¿Cuánto cuesta Merco?</summary><p>Puedes probar Merco gratis durante 30 días con el código de lanzamiento LANZAMIENTO, sin tarjeta de crédito. Después eliges un plan: Básico $39.900, Pro $79.900 o Empresa $159.900 COP al mes. Son precios de fundador con 20% de descuento de por vida para los primeros 100 negocios; el pago anual incluye 2 meses gratis.</p></details>
         <details><summary>¿Necesito instalar algo?</summary><p>No. Merco funciona en el navegador y se puede instalar en el celular como aplicación (PWA) desde Chrome o Safari.</p></details>
         <details><summary>¿Puedo tener varios vendedores?</summary><p>Sí. Merco tiene roles de administrador, comprador y vendedor, para que cada persona vea solo lo que necesita.</p></details>
       </div>

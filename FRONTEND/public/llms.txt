@@ -27,9 +27,11 @@ Registro (prueba gratis): https://merco.edwsystem.com/registro
 ## Planes
 
 - Prueba gratis: 14 días (30 días con el código de lanzamiento LANZAMIENTO), sin tarjeta de crédito. Hasta 3 usuarios, 100 productos y 50 órdenes al mes.
-- Básico: hasta 3 usuarios, 500 productos y 200 órdenes al mes.
-- Pro: hasta 10 usuarios, 5.000 productos y 1.000 órdenes al mes.
-- Empresa: usuarios, productos y órdenes ilimitados.
+- Básico: $39.900 COP/mes (precio de fundador; normal $49.900). Hasta 3 usuarios, 500 productos y 200 órdenes al mes.
+- Pro: $79.900 COP/mes (precio de fundador; normal $99.900). Hasta 10 usuarios, 5.000 productos y 1.000 órdenes al mes.
+- Empresa: $159.900 COP/mes (precio de fundador; normal $199.900). Usuarios, productos y órdenes ilimitados.
+
+Promoción de lanzamiento: los primeros 100 negocios obtienen 20% de descuento de por vida. Pago anual: 2 meses gratis.
 
 ## Preguntas frecuentes
 
