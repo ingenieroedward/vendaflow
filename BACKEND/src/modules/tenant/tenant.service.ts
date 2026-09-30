@@ -4,6 +4,7 @@ import { Category } from '../category/category.model';
 import { ConflictError, NotFoundError } from '@/core/errors/AppError';
 import sequelize from '@/database';
 import bcrypt from 'bcryptjs';
+import { config } from '@/config';
 
 const PLAN_LIMITS: Record<TenantPlan, { maxUsers: number; maxProducts: number; maxOrdersPerMonth: number }> = {
   trial:      { maxUsers: 3,  maxProducts: 100,   maxOrdersPerMonth: 50   },
@@ -20,13 +21,15 @@ export class TenantService {
     adminUsername: string;
     adminPassword: string;
     primaryColor?: string;
+    trialDays?: number;
   }) {
     const existing = await Tenant.findOne({ where: { slug: data.slug } });
     if (existing) throw new ConflictError(`Slug "${data.slug}" ya está en uso`);
 
     const plan: TenantPlan = data.plan ?? 'trial';
     const limits = PLAN_LIMITS[plan];
-    const trialEndsAt = plan === 'trial' ? new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) : null;
+    const trialDays = data.trialDays ?? config.saas.defaultTrialDays;
+    const trialEndsAt = plan === 'trial' ? new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000) : null;
 
     return sequelize.transaction(async (t: any) => {
       const tenant = await Tenant.create({

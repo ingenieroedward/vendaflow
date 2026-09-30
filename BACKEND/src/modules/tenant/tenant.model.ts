@@ -9,6 +9,7 @@ import {
   HasMany,
 } from 'sequelize-typescript';
 import { User } from '../user/user.model';
+import { config } from '@/config';
 
 export type TenantStatus = 'active' | 'trial' | 'suspended' | 'cancelled';
 export type TenantPlan = 'trial' | 'basic' | 'pro' | 'enterprise';
@@ -78,7 +79,14 @@ export class Tenant extends Model<TenantAttributes, TenantCreationAttributes> {
   @HasMany(() => User)
   users!: User[];
 
+  get isTrialExpired(): boolean {
+    return this.status === 'trial' && !!this.trialEndsAt && this.trialEndsAt.getTime() < Date.now();
+  }
+
   get isActive(): boolean {
-    return this.status === 'active' || this.status === 'trial';
+    if (this.status === 'active') return true;
+    if (this.status !== 'trial') return false;
+    // Solo bloquea pruebas vencidas si ENFORCE_TRIAL_EXPIRY=true
+    return !(config.saas.enforceTrialExpiry && this.isTrialExpired);
   }
 }

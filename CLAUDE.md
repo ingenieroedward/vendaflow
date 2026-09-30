@@ -156,6 +156,20 @@ JWT_SECRET, JWT_EXPIRES_IN
 CORS_ORIGIN
 ```
 
+**SaaS / lanzamiento (opcionales):**
+
+```
+LAUNCH_PROMO_CODES=LANZAMIENTO:30   # código:días de prueba, separados por coma
+TRIAL_DAYS=14                       # prueba estándar sin código
+PUBLIC_SIGNUP_ENABLED=true          # registro público en /registro
+ENFORCE_TRIAL_EXPIRY=false          # true = bloquea tenants con status 'trial' y trialEndsAt vencido
+ENFORCE_PLAN_LIMITS=false           # true = aplica maxUsers/maxProducts/maxOrdersPerMonth (HTTP 402)
+```
+
+Antes de activar los `ENFORCE_*` en producción, revisar tenants existentes: los creados desde el panel superadmin quedan en `trial` con `trialEndsAt` a 14 días.
+
+**SEO / sitio público:** nginx sirve `public/landing.html` en `/` **solo en el dominio raíz** (`merco.edwsystem.com`); los subdominios de tenants cargan la SPA y reciben `X-Robots-Tag: noindex`. Archivos: `landing.html`, `registro.html`, `robots.txt`, `sitemap.xml`, `llms.txt`, `og-image.png` en `FRONTEND/public/`.
+
 **Base de datos:** MySQL, nombre `jjlm_db`. Se crea automáticamente una categoría "Sin categoría" al iniciar.
 
 **Docker deploy:** VPS con Dokploy + Traefik. La red `dokploy-network` es externa y gestionada por Dokploy. Backend en puerto 3001, Frontend nginx en puerto 8080 (proxy `/api/` → backend).

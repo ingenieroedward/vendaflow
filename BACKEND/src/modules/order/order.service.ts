@@ -17,6 +17,7 @@ import { createOrderSchema, updateOrderSchema, searchOrderSchema } from './order
 import { Op, UniqueConstraintError, literal } from 'sequelize';
 import sequelize from '@/database';
 import { StockMovementService } from '@/modules/stock-movement/stock-movement.service';
+import { assertWithinPlanLimit } from '@/modules/tenant/planLimits';
 
 export class OrderService {
   private stockMovementService = new StockMovementService();
@@ -53,6 +54,7 @@ export class OrderService {
    */
   async createOrder(orderData: CreateOrderDto, userId: number, tenantId: number): Promise<OrderResponseDto> {
     const validatedData = validateSchema(createOrderSchema, orderData);
+    await assertWithinPlanLimit(tenantId, 'ordersPerMonth');
 
     // Check if customer exists
     const customer = await Customer.findByPk(validatedData.customerId);

@@ -14,10 +14,12 @@ import { NotFoundError } from '@/core/errors/AppError';
 import { validateSchema, validatePartialSchema, paginationSchema, PaginationQuery } from '@/core/utils/validation';
 import { createProductSchema, updateProductSchema, searchProductSchema, adjustStockSchema } from './product.dto';
 import { Op, literal } from 'sequelize';
+import { assertWithinPlanLimit } from '@/modules/tenant/planLimits';
 
 export class ProductService {
   async createProduct(productData: CreateProductDto, tenantId: number): Promise<ProductResponseDto> {
     const validatedData = validateSchema(createProductSchema, productData);
+    await assertWithinPlanLimit(tenantId, 'products');
 
     if (validatedData.categoryId) {
       const category = await Category.findOne({ where: { id: validatedData.categoryId, tenantId } });

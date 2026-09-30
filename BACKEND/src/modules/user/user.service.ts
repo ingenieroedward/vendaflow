@@ -15,10 +15,12 @@ import {
 import { createUserSchema, updateUserSchema } from "./user.dto";
 import { Order } from "../order/order.model";
 import { Price } from "../price/price.model";
+import { assertWithinPlanLimit } from '@/modules/tenant/planLimits';
 
 export class UserService {
   async createUser(userData: CreateUserDto, tenantId: number): Promise<UserResponseDto> {
     const validatedData = validateSchema(createUserSchema, userData);
+    await assertWithinPlanLimit(tenantId, 'users');
 
     const existingUser = await User.findOne({
       where: { tenantId, username: validatedData.username },
