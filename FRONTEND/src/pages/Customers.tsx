@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { Plus, Search, Edit, Trash2, User, Phone, MapPin, Hash, Tag, RefreshCw, RotateCcw, AlertTriangle } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, User, Phone, MapPin, Hash, Tag, RefreshCw, RotateCcw, AlertTriangle, CreditCard } from 'lucide-react';
 import { useCustomerStore } from '../store/customerStore';
 import { useAuthStore } from '../store/authStore';
 import { useUIStore } from '../store/uiStore';
@@ -212,7 +212,7 @@ const Customers: React.FC = () => {
             placeholder="Buscar por código, nombre, NIT o contacto..."
             value={search}
             onChange={(e) => handleSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
           />
           {searching && <LoadingSpinner size="sm" className="absolute right-3 top-1/2 -translate-y-1/2" />}
         </div>
@@ -233,9 +233,14 @@ const Customers: React.FC = () => {
             <h3 className="text-lg font-medium text-gray-700 mb-1">
               {search ? 'Sin resultados' : 'No hay clientes'}
             </h3>
-            <p className="text-gray-500 text-sm">
-              {search ? `No se encontraron clientes con "${search}"` : 'Agrega el primer cliente con el botón de arriba'}
+            <p className="text-gray-500 text-sm mb-6">
+              {search ? `No se encontraron clientes con "${search}"` : 'Registra tus clientes para crearles órdenes y llevar su cartera'}
             </p>
+            {!search && canManage && (
+              <Button variant="primary" icon={Plus} onClick={() => { setEditCustomer(undefined); setShowModal(true); }}>
+                Crear primer cliente
+              </Button>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -246,7 +251,7 @@ const Customers: React.FC = () => {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-0.5">
                       {customer.code && (
-                        <span className="flex items-center gap-1 px-1.5 py-0.5 bg-blue-50 text-blue-700 text-xs font-mono font-medium rounded">
+                        <span className="flex items-center gap-1 px-1.5 py-0.5 bg-primary/10 text-primary text-xs font-mono font-medium rounded">
                           <Tag className="w-3 h-3" />
                           {customer.code}
                         </span>
@@ -259,12 +264,18 @@ const Customers: React.FC = () => {
                         <span className="text-xs text-gray-500">{customer.nit}</span>
                       </div>
                     )}
+                    {(customer.creditBalance ?? 0) > 0 && (
+                      <span className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-medium rounded">
+                        <CreditCard className="w-3 h-3" />
+                        Debe {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(customer.creditBalance!)}
+                      </span>
+                    )}
                   </div>
                   <div className="flex gap-1 ml-2 flex-shrink-0">
                     {canManage && (
                       <button
                         onClick={() => { setEditCustomer(customer); setShowModal(true); }}
-                        className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        className="p-1.5 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
                         title="Editar"
                       >
                         <Edit className="w-4 h-4" />

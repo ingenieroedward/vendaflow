@@ -12,6 +12,7 @@ import { Product } from '../types';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import Button from '../components/ui/Button';
 import { productService } from '../services/products';
+import InventoryMovements from '../components/features/InventoryMovements';
 
 type FilterType = 'all' | 'negative' | 'alerts' | 'out_of_stock';
 
@@ -23,6 +24,7 @@ const Inventory: React.FC = () => {
   const { fetchStockAlerts } = usePurchaseOrderStore();
   const { addNotification } = useUIStore();
 
+  const [view, setView] = useState<'stock' | 'movements'>('stock');
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<FilterType>('all');
   const [page, setPage] = useState(1);
@@ -147,13 +149,35 @@ const Inventory: React.FC = () => {
   };
 
   return (
-    <div className="p-4 max-w-6xl mx-auto pb-32">
+    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 pb-32">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Inventario</h1>
-          <p className="text-sm text-gray-500 mt-1">{products.length} producto(s)</p>
+      <div className="text-center mb-6 sm:mb-8">
+        <h1 className="text-xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2 px-2">Inventario</h1>
+        <p className="text-sm sm:text-lg text-gray-600 px-2">Controla el stock de tus productos.</p>
+      </div>
+      {/* Selector de vista: stock actual vs kardex de movimientos */}
+      <div className="flex justify-center mb-5">
+        <div className="inline-flex rounded-lg border border-gray-200 bg-gray-100 p-0.5">
+          {([['stock', 'Stock'], ['movements', 'Movimientos']] as const).map(([key, label]) => (
+            <button
+              key={key}
+              onClick={() => setView(key)}
+              className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                view === key ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
         </div>
+      </div>
+
+      {view === 'movements' ? (
+        <InventoryMovements />
+      ) : (
+        <>
+      <div className="flex items-center justify-between mb-6">
+        <p className="text-sm text-gray-500">{products.length} producto(s)</p>
         <div className="flex items-center gap-1.5">
           {!editMode ? (
             <>
@@ -567,6 +591,8 @@ const Inventory: React.FC = () => {
             </button>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );

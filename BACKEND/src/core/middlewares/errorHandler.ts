@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { AppError } from '../errors/AppError';
 import { config } from '@/config';
 import { logError } from '@/core/logger';
+import { Sentry, sentryEnabled } from '@/core/sentry';
 
 export interface ErrorResponse {
   status: string;
@@ -42,6 +43,18 @@ export const errorHandler = (
   else if (error.name === 'TokenExpiredError') {
     statusCode = 401;
     message = 'Token expired';
+  }
+
+  // Errores no controlados (500) → Sentry con contexto de request
+  if (statusCode >= 500 && sentryEnabled) {
+    Sentry.withScope(scope => {
+      scope.setTag('url', req.originalUrl);
+      scope.setTag('method', req.method);
+      const user = (req as any).user;
+      if (user) scope.setUser({ id: String(user.id), username: user.username });
+      if (user?.tenantId) scope.setTag('tenantId', String(user.tenantId));
+      Sentry.captureException(error);
+    });
   }
 
   // Log the error

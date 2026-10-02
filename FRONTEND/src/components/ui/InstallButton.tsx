@@ -48,7 +48,7 @@ const InstallButton: React.FC<InstallButtonProps> = ({ className }) => {
       <div className="hidden sm:block">
         <button
           onClick={handleInstallClick}
-          className="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-full shadow-2xl border-2 border-white/20 backdrop-blur-sm hover:scale-105 transition-all duration-200 cursor-pointer"
+          className="bg-gradient-to-r from-primary to-purple-600 text-white rounded-full shadow-2xl border-2 border-white/20 backdrop-blur-sm hover:scale-105 transition-all duration-200 cursor-pointer"
         >
           <div className="flex items-center space-x-3 px-4 py-3">
             <div className="flex items-center space-x-2">
@@ -75,7 +75,7 @@ const InstallButton: React.FC<InstallButtonProps> = ({ className }) => {
       <div className="sm:hidden">
         <button
           onClick={handleInstallClick}
-          className="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-full shadow-2xl border-2 border-white/20 backdrop-blur-sm hover:scale-105 transition-all duration-200 cursor-pointer"
+          className="bg-gradient-to-r from-primary to-purple-600 text-white rounded-full shadow-2xl border-2 border-white/20 backdrop-blur-sm hover:scale-105 transition-all duration-200 cursor-pointer"
         >
           <div className="flex items-center space-x-2 px-3 py-2">
             <Download className="w-4 h-4 animate-pulse" />

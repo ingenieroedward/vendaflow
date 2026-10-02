@@ -72,7 +72,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
           onBlur={handleInputBlur}
           placeholder={placeholder}
           autoFocus={autoFocus}
-          className="w-full pl-10 sm:pl-12 pr-10 sm:pr-12 py-3 sm:py-3 text-base sm:text-lg border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm transition-all duration-200"
+          className="w-full pl-10 sm:pl-12 pr-10 sm:pr-12 py-3 sm:py-3 text-base sm:text-lg border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary shadow-sm transition-all duration-200"
         />
         {localQuery && (
           <button
@@ -84,7 +84,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
         )}
         {loading && (
           <div className="absolute right-3 sm:right-4 top-1/2 transform -translate-y-1/2">
-            <div className="animate-spin w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full" />
+            <div className="animate-spin w-4 h-4 border-2 border-primary border-t-transparent rounded-full" />
           </div>
         )}
       </div>
@@ -106,7 +106,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
                         {product.name}
                       </h4>
                       <div className="flex flex-wrap items-center gap-1 sm:gap-2 mt-1">
-                        <span className="text-xs sm:text-sm font-medium text-blue-600">
+                        <span className="text-xs sm:text-sm font-medium text-primary">
                           {product.code}
                         </span>
                         <span className="text-xs sm:text-sm text-gray-400">•</span>

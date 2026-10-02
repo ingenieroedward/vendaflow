@@ -19,11 +19,20 @@ export interface OrderAttributes {
   id: number;
   tenantId: number;
   orderNumber: string;
+  clientRef?: string | null;
+  source: 'orders' | 'pos'; // origen de la venta — Orders normal o mostrador POS
+  cashSessionId: number | null; // turno de caja del POS que la generó (null si source='orders')
+  changeGiven: number | null; // vuelto entregado (solo POS) — informativo, no afecta el total
   customerId: number;
   userId: number;
   totalAmount: number;
   status: 'pending' | 'processing' | 'completed' | 'cancelled';
   notes: string | null;
+  // Pago a plazo (crédito)
+  paymentType: 'cash' | 'credit';
+  paymentDueDate: string | null; // DATEONLY — fecha límite de pago si es crédito
+  reminderDays: number | null; // días antes del vencimiento para recordar el cobro
+  paidAt: Date | null; // null = pendiente de cobro (solo relevante en crédito)
   createdAt: Date;
   updatedAt: Date;
   deletedAt?: Date;
@@ -54,6 +63,20 @@ export class Order extends Model<OrderAttributes, OrderCreationAttributes> {
     validate: { notEmpty: true, len: [1, 50] },
   })
   orderNumber!: string;
+
+  // Clave de idempotencia enviada por el cliente offline-first: dos POST con
+  // el mismo ref devuelven la misma orden (evita duplicados al reintentar sync)
+  @Column({ type: DataType.STRING(64), allowNull: true })
+  clientRef!: string | null;
+
+  @Column({ type: DataType.ENUM('orders', 'pos'), allowNull: false, defaultValue: 'orders' })
+  source!: 'orders' | 'pos';
+
+  @Column({ type: DataType.INTEGER, allowNull: true })
+  cashSessionId!: number | null;
+
+  @Column({ type: DataType.DECIMAL(12, 2), allowNull: true })
+  changeGiven!: number | null;
 
   @ForeignKey(() => Customer)
   @Column({
@@ -91,6 +114,31 @@ export class Order extends Model<OrderAttributes, OrderCreationAttributes> {
     allowNull: true,
   })
   notes!: string | null;
+
+  @Column({
+    type: DataType.ENUM('cash', 'credit'),
+    allowNull: false,
+    defaultValue: 'cash',
+  })
+  paymentType!: 'cash' | 'credit';
+
+  @Column({
+    type: DataType.DATEONLY,
+    allowNull: true,
+  })
+  paymentDueDate!: string | null;
+
+  @Column({
+    type: DataType.INTEGER,
+    allowNull: true,
+  })
+  reminderDays!: number | null;
+
+  @Column({
+    type: DataType.DATE,
+    allowNull: true,
+  })
+  paidAt!: Date | null;
 
   @BelongsTo(() => Customer)
   customer!: Customer;

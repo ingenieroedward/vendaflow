@@ -1,108 +1,116 @@
 import { Router, Request, Response } from 'express';
-import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
-import { TenantService } from './tenant.service';
+import crypto from 'crypto';
+import rateLimit from 'express-rate-limit';
 import { asyncHandler } from '@/core/middlewares/asyncHandler';
-import { AuthService } from '@/modules/auth/auth.service';
-import { ForbiddenError, ValidationError } from '@/core/errors/AppError';
+import { ValidationError } from '@/core/errors/AppError';
 import { config } from '@/config';
+import { TenantRequest } from './tenant-request.model';
+import { User } from '@/modules/user/user.model';
+import { pushService } from '@/modules/push/push.service';
 import logger from '@/core/logger';
 
 const router = Router();
-const tenantService = new TenantService();
-const authService = new AuthService();
 
-// Subdominios que no pueden usarse como slug de tenant
-const RESERVED_SLUGS = new Set([
-  'www', 'app', 'api', 'admin', 'superadmin', 'merco', 'edwsystem', 'mail', 'blog',
-  'docs', 'help', 'soporte', 'status', 'staging', 'dev', 'test', 'demo', 'login', 'registro',
-]);
-
-// Anti-abuso: máx 5 registros por IP por hora
-const signupLimiter = rateLimit({
+// Rate limit estricto: es un formulario público
+const onboardingLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
-  max: 5,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: {
-    status: 'error',
-    message: 'Demasiados registros desde esta red. Intenta de nuevo en una hora.',
-  },
+  max: 10,
+  message: { status: 'error', message: 'Demasiadas solicitudes, intenta más tarde.' },
 });
 
-// El plan NO se acepta desde el cliente: todo registro público inicia en 'trial'.
-// Planes pagos se asignan solo desde el panel superadmin.
-const registerSchema = z.object({
-  companyName: z.string().trim().min(2).max(255),
-  slug: z.string().trim().toLowerCase().min(3).max(50)
-    .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, 'Solo letras minúsculas, números y guiones'),
-  adminUsername: z.string().trim().min(3).max(100),
-  adminPassword: z.string().min(8).max(128),
-  primaryColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
-  promoCode: z.string().trim().max(50).optional(),
-  // Honeypot: campo oculto en el formulario, los humanos lo dejan vacío
-  website: z.string().optional(),
+// ── Captcha propio (sin servicios externos) ─────────────────────────────────
+// GET /captcha entrega una suma y un token HMAC firmado; POST /request la valida.
+const captchaSign = (a: number, b: number, exp: number) =>
+  crypto.createHmac('sha256', config.jwt.secret).update(`captcha:${a}:${b}:${exp}`).digest('hex');
+
+router.get('/captcha', onboardingLimiter, (_req: Request, res: Response) => {
+  const a = crypto.randomInt(2, 10);
+  const b = crypto.randomInt(2, 10);
+  const exp = Date.now() + 10 * 60 * 1000;
+  res.json({ question: `¿Cuánto es ${a} + ${b}?`, a, b, exp, token: captchaSign(a, b, exp) });
+});
+
+// Tracking del embudo público (contador diario, sin cookies ni datos personales)
+const VALID_EVENTS = new Set(['landing_view', 'registro_view']);
+router.post('/track', asyncHandler(async (req: Request, res: Response) => {
+  const event = String(req.body?.event ?? '');
+  if (VALID_EVENTS.has(event)) {
+    const { MetricDaily } = await import('./metric-daily.model');
+    const today = new Date().toISOString().slice(0, 10);
+    const [row] = await MetricDaily.findOrCreate({ where: { date: today, key: event }, defaults: { date: today, key: event, count: 0 } });
+    await row.increment('count');
+  }
+  res.status(204).end();
+}));
+
+// Precios públicos para la landing (sin llave Bre-B)
+router.get('/plans', asyncHandler(async (_req: Request, res: Response) => {
+  const { getPlanConfig } = await import('@/config/plans');
+  const cfg = await getPlanConfig();
+  res.set('Cache-Control', 'public, max-age=300').json({ prices: cfg.prices });
+}));
+
+const requestSchema = z.object({
+  companyName: z.string().min(2).max(255),
+  contactName: z.string().min(2).max(255),
+  email: z.string().email().max(255),
+  phone: z.string().max(50).optional(),
+  message: z.string().max(1000).optional(),
+  // anti-bot
+  website: z.string().optional(), // honeypot: los humanos lo dejan vacío
+  captcha: z.object({ a: z.number(), b: z.number(), exp: z.number(), token: z.string(), answer: z.number() }),
 });
 
 /**
- * GET /api/onboarding/promo/:code
- * Valida un código promocional y devuelve los días de prueba que otorga.
+ * POST /api/onboarding/request — solicitud pública de registro.
+ * NO crea el tenant: queda pendiente de aprobación del superadmin (push de aviso).
+ * (El antiguo POST /register que creaba tenants sin aprobación fue eliminado.)
  */
-router.get('/promo/:code', signupLimiter, (req: Request, res: Response) => {
-  const days = config.saas.promoCodes[String(req.params['code'] ?? '').toUpperCase()];
-  res.json({ valid: !!days, trialDays: days ?? config.saas.defaultTrialDays });
-});
+router.post('/request', onboardingLimiter, asyncHandler(async (req: Request, res: Response) => {
+  const parsed = requestSchema.safeParse(req.body);
+  if (!parsed.success) throw new ValidationError(parsed.error.errors[0]?.message ?? 'Datos inválidos');
+  const d = parsed.data;
 
-/**
- * POST /api/onboarding/register
- * Crea un nuevo tenant (plan trial) + usuario admin en una transacción.
- * Devuelve token JWT listo para usar.
- */
-router.post('/register', signupLimiter, asyncHandler(async (req: Request, res: Response) => {
-  if (!config.saas.publicSignupEnabled) throw new ForbiddenError('El registro público está deshabilitado');
-
-  const data = registerSchema.safeParse(req.body);
-  if (!data.success) throw new ValidationError(data.error.errors[0]?.message ?? 'Datos inválidos');
-
-  const { companyName, slug, adminUsername, adminPassword, primaryColor, promoCode, website } = data.data;
-
-  if (website) {
-    // Bot detectado por honeypot — responder genérico sin crear nada
-    logger.warn('Onboarding honeypot triggered', { ip: req.ip, slug });
-    throw new ValidationError('Datos inválidos');
+  // Honeypot: los bots lo rellenan — responder como éxito sin guardar
+  if (d.website && d.website.trim() !== '') {
+    res.status(201).json({ status: 'success', message: 'Solicitud recibida' });
+    return;
   }
 
-  if (RESERVED_SLUGS.has(slug)) throw new ValidationError(`El subdominio "${slug}" no está disponible`);
+  // Captcha: firma válida, no expirado y respuesta correcta
+  const { a, b, exp, token, answer } = d.captcha;
+  if (exp < Date.now() || token !== captchaSign(a, b, exp) || answer !== a + b) {
+    throw new ValidationError('Verificación incorrecta — resuelve la suma de nuevo');
+  }
 
-  const promoDays = promoCode ? config.saas.promoCodes[promoCode.toUpperCase()] : undefined;
+  // Evitar duplicados pendientes del mismo email
+  const existing = await TenantRequest.findOne({ where: { email: d.email, status: 'pending' } });
+  if (!existing) {
+    await TenantRequest.create({
+      companyName: d.companyName,
+      contactName: d.contactName,
+      email: d.email,
+      phone: d.phone ?? null,
+      message: d.message ?? null,
+      status: 'pending',
+      tenantId: null,
+    });
 
-  const tenant = await tenantService.create({
-    slug,
-    name: companyName,
-    plan: 'trial',
-    adminUsername,
-    adminPassword,
-    ...(primaryColor !== undefined && { primaryColor }),
-    ...(promoDays !== undefined && { trialDays: promoDays }),
-  });
+    try {
+      const superadmins = await User.findAll({ where: { role: 'superadmin' }, attributes: ['id'] });
+      await pushService.notifyUsers(
+        superadmins.map(u => u.id),
+        'Nueva solicitud de registro',
+        `${d.companyName} — ${d.contactName} (${d.email}${d.phone ? `, ${d.phone}` : ''})`,
+        { url: '/superadmin' },
+      );
+    } catch (err) {
+      logger.error('[onboarding] Error notificando solicitud:', err);
+    }
+  }
 
-  logger.info('New tenant registered', { tenantId: tenant.id, slug, promoCode: promoDays ? promoCode : null });
-
-  const tenantInfo = await tenantService.getInfo(tenant.id);
-
-  // Find the created admin user to generate token
-  const { User } = await import('@/modules/user/user.model');
-  const admin = await User.findOne({ where: { tenantId: tenant.id, role: 'admin' } });
-  if (!admin) throw new Error('Error creating admin user');
-
-  const token = authService.generateToken(admin.id, admin.username, admin.role, admin.tenantId);
-
-  res.status(201).json({
-    message: 'Empresa registrada exitosamente',
-    token,
-    user: { id: admin.id, username: admin.username, role: admin.role, tenantId: admin.tenantId },
-    tenant: tenantInfo,
-  });
+  res.status(201).json({ status: 'success', message: 'Solicitud recibida — te contactaremos pronto' });
 }));
 
 export default router;

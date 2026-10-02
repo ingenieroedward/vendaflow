@@ -62,6 +62,17 @@ const ProductNew: React.FC = () => {
   
   const [includePrice, setIncludePrice] = useState(false);
 
+  // Sugerir el siguiente código (10001 → 10002) si el campo está vacío
+  useEffect(() => {
+    productService.getNextCode()
+      .then(code => {
+        if (code) {
+          setFormData(prev => (prev.code ? prev : { ...prev, code }));
+        }
+      })
+      .catch(() => {/* sin sugerencia si falla */});
+  }, []);
+
   // Load suppliers and categories on mount
   useEffect(() => {
     const loadSuppliers = async () => {
@@ -263,7 +274,7 @@ const ProductNew: React.FC = () => {
 
   return (
     <div className="bg-gray-50">
-      <div className="px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-7xl mx-auto">
+      <div className="px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-3xl mx-auto">
         {/* Mobile Header - Compact */}
         <div className="mb-4 sm:mb-6 lg:mb-8">
           <Button
@@ -276,10 +287,10 @@ const ProductNew: React.FC = () => {
             Volver
           </Button>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
             <div className="flex items-center space-x-3 sm:space-x-4">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                <Package className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary/15 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Package className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
               </div>
               <div className="min-w-0 flex-1">
                 <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
@@ -294,7 +305,7 @@ const ProductNew: React.FC = () => {
         </div>
 
         {/* Form - Mobile Optimized */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Product Information */}
             <div>
@@ -347,7 +358,7 @@ const ProductNew: React.FC = () => {
                   <select
                     value={formData.categoryId ?? ''}
                     onChange={(e) => setFormData(prev => ({ ...prev, categoryId: e.target.value ? Number(e.target.value) : null }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                   >
                     <option value="">Sin categoría</option>
                     {categories.map(cat => (
@@ -422,7 +433,7 @@ const ProductNew: React.FC = () => {
                             <select
                               value={entry.supplierId?.toString() || ''}
                               onChange={(e) => updatePriceEntry(entry.id, 'supplierId', e.target.value ? parseInt(e.target.value) : undefined)}
-                              className="w-full sm:flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                              className="w-full sm:flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-sm"
                             >
                               <option value="">Seleccionar proveedor</option>
                               {suppliers.map((supplier) => (
@@ -460,7 +471,7 @@ const ProductNew: React.FC = () => {
                               }}
                               step="0.01"
                               min="0"
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-sm"
                               placeholder="0.00"
                             />
                             <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">

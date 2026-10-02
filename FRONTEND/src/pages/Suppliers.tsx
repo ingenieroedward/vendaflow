@@ -15,7 +15,6 @@ const Suppliers: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [activeMenu, setActiveMenu] = useState<number | null>(null);
   const [modal, setModal] = useState<{ mode: 'create' | 'edit'; supplier?: Supplier } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Supplier | null>(null);
@@ -90,47 +89,34 @@ const Suppliers: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-white border-b border-gray-200 px-4 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <button onClick={() => navigate(-1)} className="p-2 -ml-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors">
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <div>
-              <h1 className="text-lg font-semibold text-gray-900">Proveedores</h1>
-              <p className="text-sm text-gray-500">{loading ? '...' : `${filtered.length} proveedores`}</p>
-            </div>
-          </div>
-          <div className="flex items-center space-x-2">
-            <button onClick={() => setIsSearchOpen(!isSearchOpen)} className="p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors">
-              {isSearchOpen ? <X className="w-5 h-5" /> : <Search className="w-5 h-5" />}
-            </button>
-            <Button variant="primary" icon={Plus} onClick={openCreate} size="sm" className="px-3">
-              Nuevo
-            </Button>
-          </div>
+      <div className="px-3 sm:px-6 lg:px-8 pt-4 sm:pt-8">
+        <div className="text-center mb-6 sm:mb-8">
+          <h1 className="text-xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2 px-2">Proveedores</h1>
+          <p className="text-sm sm:text-lg text-gray-600 px-2">Gestiona tus proveedores y sus contactos.</p>
+        </div>
+      </div>
+      <div className="px-3 sm:px-6 lg:px-8 flex flex-col sm:flex-row sm:items-center gap-2 sm:justify-between mb-4">
+        <div className="relative w-full sm:max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
+          <Input
+            type="text"
+            placeholder="Buscar proveedores..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <div className="flex items-center justify-between sm:justify-end gap-3">
+          <p className="text-sm text-gray-500">{loading ? '...' : `${filtered.length} proveedores`}</p>
+          <Button variant="primary" icon={Plus} onClick={openCreate} size="sm" className="px-3">
+            Nuevo
+          </Button>
         </div>
       </div>
 
-      {/* Search */}
-      {isSearchOpen && (
-        <div className="sticky top-16 z-20 bg-white border-b border-gray-200 px-4 py-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <Input
-              type="text"
-              placeholder="Buscar proveedores..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="pl-10"
-              autoFocus
-            />
-          </div>
-        </div>
-      )}
 
       {/* List */}
-      <div className="px-4 py-4 space-y-2">
+      <div className="px-3 sm:px-6 lg:px-8 py-2 space-y-2">
         {loading ? (
           <div className="flex justify-center py-16"><LoadingSpinner size="lg" /></div>
         ) : filtered.length === 0 ? (
@@ -151,8 +137,8 @@ const Suppliers: React.FC = () => {
             <div key={s.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3 flex-1 min-w-0">
-                  <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center flex-shrink-0">
-                    <Truck className="w-5 h-5 text-blue-600" />
+                  <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                    <Truck className="w-5 h-5 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-base font-medium text-gray-900 truncate">{s.name}</p>
@@ -171,7 +157,7 @@ const Suppliers: React.FC = () => {
                   {activeMenu === s.id && (
                     <>
                       <div className="fixed inset-0 z-40" onClick={() => setActiveMenu(null)} />
-                      <div className="absolute right-0 top-full mt-1 w-44 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                      <div className="absolute right-0 top-full mt-1 w-44 bg-white rounded-xl shadow-lg border border-gray-200 py-1 z-50">
                         <button
                           onClick={() => openEdit(s)}
                           className="flex items-center space-x-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
@@ -243,7 +229,7 @@ const Suppliers: React.FC = () => {
                 <button
                   onClick={handleSave}
                   disabled={saving || !form.name.trim()}
-                  className="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
+                  className="flex-1 px-4 py-2.5 bg-primary text-white rounded-xl text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
                 >
                   {saving ? 'Guardando...' : 'Guardar'}
                 </button>

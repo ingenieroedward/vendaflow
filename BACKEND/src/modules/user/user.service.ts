@@ -5,22 +5,32 @@ import {
   UserResponseDto,
   UsersListResponseDto,
 } from "./user.dto";
-import { NotFoundError, ConflictError } from "@/core/errors/AppError";
+import { NotFoundError, ConflictError, UnauthorizedError } from "@/core/errors/AppError";
 import {
   validateSchema,
   validatePartialSchema,
   paginationSchema,
   PaginationQuery,
 } from "@/core/utils/validation";
-import { createUserSchema, updateUserSchema } from "./user.dto";
+import { createUserSchema, updateUserSchema, changePasswordSchema, ChangePasswordDto, updateOwnProfileSchema, UpdateOwnProfileDto } from "./user.dto";
 import { Order } from "../order/order.model";
 import { Price } from "../price/price.model";
-import { assertWithinPlanLimit } from '@/modules/tenant/planLimits';
+
+async function assertUserQuota(tenantId: number) {
+  const { Tenant } = await import('@/modules/tenant/tenant.model');
+  const { User } = await import('./user.model');
+  const tenant = await Tenant.findByPk(tenantId);
+  if (!tenant) return;
+  const count = await User.count({ where: { tenantId } });
+  if (count >= tenant.maxUsers) {
+    throw new ConflictError(`Tu plan permite máximo ${tenant.maxUsers} usuarios. Actualiza el plan para agregar más.`);
+  }
+}
 
 export class UserService {
   async createUser(userData: CreateUserDto, tenantId: number): Promise<UserResponseDto> {
     const validatedData = validateSchema(createUserSchema, userData);
-    await assertWithinPlanLimit(tenantId, 'users');
+    await assertUserQuota(tenantId);
 
     const existingUser = await User.findOne({
       where: { tenantId, username: validatedData.username },
@@ -66,6 +76,31 @@ export class UserService {
     if (!user) {
       throw new NotFoundError("User not found");
     }
+    return this.mapToResponseDto(user);
+  }
+
+  // Cambio de contraseña propia: cualquier rol, exige la contraseña actual
+  async changeOwnPassword(userId: number, data: ChangePasswordDto): Promise<void> {
+    const validatedData = validateSchema(changePasswordSchema, data);
+    const user = await User.findByPk(userId);
+    if (!user) throw new NotFoundError('User not found');
+    const valid = await user.comparePassword(validatedData.currentPassword);
+    if (!valid) throw new UnauthorizedError('La contraseña actual es incorrecta');
+    await user.update({ password: validatedData.newPassword }); // @BeforeUpdate la hashea
+  }
+
+  // Perfil propio: cualquier rol, solo nombre/usuario (ver updateOwnProfileSchema)
+  async updateOwnProfile(userId: number, tenantId: number, data: UpdateOwnProfileDto): Promise<UserResponseDto> {
+    const validatedData = validateSchema(updateOwnProfileSchema, data);
+    const user = await User.findOne({ where: { id: userId, tenantId } });
+    if (!user) throw new NotFoundError('User not found');
+
+    if (validatedData.username && validatedData.username !== user.username) {
+      const existingUser = await User.findOne({ where: { tenantId, username: validatedData.username } });
+      if (existingUser) throw new ConflictError('User with this username already exists');
+    }
+
+    await user.update(validatedData as Partial<UserAttributes>);
     return this.mapToResponseDto(user);
   }
 
@@ -156,6 +191,7 @@ export class UserService {
   private mapToResponseDto(user: User): UserResponseDto {
     return {
       id: user.id,
+      name: user.name,
       username: user.username,
       role: user.role,
       createdAt: user.createdAt,

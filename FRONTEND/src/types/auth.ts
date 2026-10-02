@@ -10,26 +10,50 @@ export interface RegisterRequest {
 }
 
 export interface CreateUserRequest {
+  name?: string;
   username: string;
   password: string;
   role: 'admin' | 'buyer' | 'seller';
 }
 
 export interface UpdateUserRequest {
+  name?: string;
   username?: string;
   password?: string;
   role?: 'admin' | 'buyer' | 'seller';
+}
+
+export interface UpdateOwnProfileRequest {
+  name?: string;
+  username?: string;
 }
 
 export interface Tenant {
   id: number;
   slug: string;
   name: string;
-  plan: string;
+  // plan y trialEndsAt solo llegan de endpoints autenticados (/tenants/me);
+  // el endpoint público /tenants/slug/:slug ya no los expone
+  plan?: string;
   status: string;
   logoUrl: string | null;
   primaryColor: string;
-  trialEndsAt: string | null;
+  trialEndsAt?: string | null;
+  // DATEONLY — pagado hasta (inclusive). null = fuera del ciclo (cortesía/legado).
+  // Solo llega de /tenants/me (autenticado).
+  paidUntil?: string | null;
+  // solo llega de /tenants/me (autenticado) — features del plan (ver FeatureGate/useFeature)
+  features?: string[];
+  // datos fiscales del negocio del tenant — solo llegan de /tenants/me (autenticado),
+  // usados en TenantSettings y en los PDF de venta (ticket/carta)
+  nit?: string | null;
+  address?: string | null;
+  city?: string | null;
+  contactPhone?: string | null;
+  // correo de facturación — antes solo lo fijaba el superadmin al crear/editar
+  // el tenant; ahora también auto-editable (destino de los avisos de
+  // vencimiento de plan por email, además del push)
+  contactEmail?: string | null;
 }
 
 export interface LoginResponse {
@@ -52,6 +76,7 @@ export interface UsersResponse {
 
 export interface User {
   id: number;
+  name?: string | null;
   username: string;
   role: 'admin' | 'buyer' | 'seller';
   createdAt: string;
@@ -68,4 +93,6 @@ export interface AuthState {
   register: (data: RegisterRequest) => Promise<void>;
   logout: () => void;
   checkAuth: () => void;
+  /** Actualiza el usuario en memoria y localStorage — ej. tras guardar el perfil */
+  setUser: (user: User) => void;
 }

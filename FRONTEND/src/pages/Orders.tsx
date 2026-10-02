@@ -3,12 +3,12 @@ import { useNavigate } from "react-router-dom";
 import {
   Plus, Search, Eye, Edit, Trash2, Calendar, User,
   WifiOff, RefreshCw, AlertCircle, CloudOff, CheckCircle2, Clock,
-  RotateCcw, AlertTriangle
+  RotateCcw, AlertTriangle, CreditCard
 } from "lucide-react";
 import { useOrderStore } from "../store/orderStore";
 import { useAuthStore } from "../store/authStore";
 import { useUIStore } from "../store/uiStore";
-import { orderService } from "../services/orders";
+import { orderService, getReceivables, Receivables } from "../services/orders";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
 import ErrorMessage from "../components/ui/ErrorMessage";
 import Button from "../components/ui/Button";
@@ -17,7 +17,12 @@ import { es } from "date-fns/locale";
 import { Order, OrderItem } from "../types";
 import { db, SyncStatus, LocalOrder } from "../database/LocalDatabase";
 
-type TabType = 'active' | 'completed' | 'local' | 'trash';
+type TabType = 'active' | 'closed' | 'local' | 'trash';
+
+// Una orden cancelada ya no requiere acción, pero antes solo se excluía
+// 'completed' de "Activas" — las canceladas se quedaban ahí para siempre.
+// Completada y cancelada cierran el ciclo de la orden por igual.
+const CLOSED_ORDER_STATUSES: Order['status'][] = ['completed', 'cancelled'];
 
 interface LocalOrderMeta {
   order: LocalOrder;
@@ -34,7 +39,7 @@ const Orders: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('active');
   const { user } = useAuthStore();
   const { addNotification } = useUIStore();
-  const { orders, loading, error, pagination, getOrders, clearError, deleteOrder, syncPendingOrders, retryConflictOrder, pendingSync } =
+  const { orders, loading, error, pagination, getOrders, loadMoreOrders, clearError, deleteOrder, syncPendingOrders, retryConflictOrder, pendingSync } =
     useOrderStore();
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -50,7 +55,32 @@ const Orders: React.FC = () => {
   const [trashLoading, setTrashLoading] = useState(false);
   const [hardDeleteConfirm, setHardDeleteConfirm] = useState<number | null>(null);
 
+  // Cartera: órdenes a crédito sin pagar
+  const [receivables, setReceivables] = useState<Receivables | null>(null);
+
+  // Búsqueda en servidor (cubre órdenes no cargadas en la página actual)
+  const [serverResults, setServerResults] = useState<Order[] | null>(null);
+  useEffect(() => {
+    if (!navigator.onLine || search.trim().length < 2) { setServerResults(null); return; }
+    const t = setTimeout(async () => {
+      try {
+        const { searchOrdersServer } = await import('../services/orders');
+        const r = await searchOrdersServer(search.trim());
+        setServerResults(r);
+      } catch { setServerResults(null); }
+    }, 400);
+    return () => clearTimeout(t);
+  }, [search]);
+  const [receivablesDismissed, setReceivablesDismissed] = useState(
+    () => sessionStorage.getItem('receivablesBannerDismissed') === '1'
+  );
+
   useEffect(() => { getOrders(1, 50); }, [getOrders]);
+
+  useEffect(() => {
+    if (!navigator.onLine) return;
+    getReceivables().then(setReceivables).catch(() => setReceivables(null));
+  }, []);
 
   const loadLocalOrders = useCallback(async () => {
     setLoadingLocal(true);
@@ -161,7 +191,7 @@ const Orders: React.FC = () => {
 
   const handleDeleteLocal = async (localId: number) => {
     await db.orderItems.where('orderId').equals(localId).delete();
-    await db.syncQueue.where('entityLocalId').equals(localId).delete();
+    await db.syncQueue.where('entityLocalId').equals(localId).filter(e => e.entityType === 'order').delete();
     await db.orders.delete(localId);
     setLocalDeleteConfirm(null);
     loadLocalOrders();
@@ -174,10 +204,13 @@ const Orders: React.FC = () => {
     new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP" }).format(amount);
 
   const tabOrders = orders.filter((order) =>
-    activeTab === 'completed' ? order.status === 'completed' : order.status !== 'completed'
+    activeTab === 'closed' ? CLOSED_ORDER_STATUSES.includes(order.status) : !CLOSED_ORDER_STATUSES.includes(order.status)
   );
 
-  const filteredOrders = tabOrders.filter((order) => {
+  const searchBase = serverResults
+    ? serverResults.filter((order) => activeTab === 'closed' ? CLOSED_ORDER_STATUSES.includes(order.status) : !CLOSED_ORDER_STATUSES.includes(order.status))
+    : tabOrders;
+  const filteredOrders = searchBase.filter((order) => {
     const searchLower = search.toLowerCase();
     return (
       order.orderNumber.toString().includes(searchLower) ||
@@ -187,8 +220,8 @@ const Orders: React.FC = () => {
     );
   });
 
-  const activeCount = orders.filter(o => o.status !== 'completed').length;
-  const completedCount = orders.filter(o => o.status === 'completed').length;
+  const activeCount = orders.filter(o => !CLOSED_ORDER_STATUSES.includes(o.status)).length;
+  const closedCount = orders.filter(o => CLOSED_ORDER_STATUSES.includes(o.status)).length;
 
   const getPriceBreakdown = (order: Order) => {
     if (!order.items || order.items.length === 0) return { subtotal: order.totalAmount, tax: 0, total: order.totalAmount };
@@ -204,7 +237,7 @@ const Orders: React.FC = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "pending":    return "bg-yellow-100 text-yellow-800";
-      case "processing": return "bg-blue-100 text-blue-800";
+      case "processing": return "bg-primary/15 text-primary";
       case "completed":  return "bg-green-100 text-green-800";
       case "cancelled":  return "bg-red-100 text-red-800";
       default:           return "bg-gray-100 text-gray-800";
@@ -224,13 +257,13 @@ const Orders: React.FC = () => {
   const getSyncStatusIcon = (item: LocalOrderMeta) => {
     if (item.errorMsg) return <AlertCircle className="w-4 h-4 text-red-500" />;
     if (item.attempts > 0) return <AlertCircle className="w-4 h-4 text-orange-500" />;
-    return <Clock className="w-4 h-4 text-blue-500" />;
+    return <Clock className="w-4 h-4 text-primary" />;
   };
 
   const getSyncStatusLabel = (item: LocalOrderMeta) => {
     if (item.errorMsg) return <span className="text-xs text-red-600 font-medium">Error al sincronizar</span>;
     if (item.attempts > 0) return <span className="text-xs text-orange-600 font-medium">{item.attempts} intento{item.attempts > 1 ? 's' : ''} fallido{item.attempts > 1 ? 's' : ''}</span>;
-    return <span className="text-xs text-blue-600 font-medium">Pendiente de enviar</span>;
+    return <span className="text-xs text-primary font-medium">Pendiente de enviar</span>;
   };
 
   return (
@@ -275,30 +308,73 @@ const Orders: React.FC = () => {
 
         {error && <ErrorMessage message={error} onDismiss={clearError} onRetry={handleRefresh} className="mb-4 sm:mb-6" />}
 
+        {/* Cartera: crédito pendiente de cobro */}
+        {receivables && receivables.count > 0 && !receivablesDismissed && (
+          <div className={`mb-4 rounded-xl border p-4 relative ${receivables.overdueCount > 0 ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'}`}>
+            <button
+              onClick={() => { setReceivablesDismissed(true); sessionStorage.setItem('receivablesBannerDismissed', '1'); }}
+              className="absolute top-2.5 right-2.5 p-1 text-gray-400 hover:text-gray-600 rounded"
+              title="Ocultar (reaparece en la próxima sesión)"
+            >
+              <span className="text-sm leading-none">✕</span>
+            </button>
+            <div className="flex items-start gap-2.5">
+              <CreditCard className={`w-4 h-4 mt-0.5 flex-shrink-0 ${receivables.overdueCount > 0 ? 'text-red-600' : 'text-amber-600'}`} />
+              <div className="min-w-0 flex-1">
+                <p className={`text-sm font-semibold ${receivables.overdueCount > 0 ? 'text-red-800' : 'text-amber-800'}`}>
+                  Cartera: {formatCurrency(receivables.totalDue)} en {receivables.count} orden{receivables.count !== 1 ? 'es' : ''} a crédito
+                  {receivables.overdueCount > 0 && ` — ${receivables.overdueCount} vencida${receivables.overdueCount !== 1 ? 's' : ''}`}
+                </p>
+                <div className="mt-1 space-y-0.5">
+                  {receivables.orders.slice(0, 3).map(r => (
+                    <button
+                      key={r.id}
+                      onClick={() => navigate(`/orders/${r.id}`)}
+                      className={`block text-xs hover:underline text-left ${r.daysUntilDue !== null && r.daysUntilDue < 0 ? 'text-red-700' : 'text-amber-700'}`}
+                    >
+                      #{r.orderNumber} · {r.customer?.name ?? 'Cliente'} · {formatCurrency(r.balance)}{r.paidAmount > 0 && ` (abonado ${formatCurrency(r.paidAmount)})`}
+                      {r.daysUntilDue !== null && (
+                        r.daysUntilDue < 0
+                          ? ` — venció hace ${-r.daysUntilDue} día${r.daysUntilDue === -1 ? '' : 's'}`
+                          : r.daysUntilDue === 0
+                            ? ' — vence HOY'
+                            : ` — vence en ${r.daysUntilDue} día${r.daysUntilDue === 1 ? '' : 's'}`
+                      )}
+                    </button>
+                  ))}
+                  {receivables.orders.length > 3 && (
+                    <p className="text-xs text-gray-500">…y {receivables.orders.length - 3} más</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Tabs */}
         <div className="flex border-b border-gray-200 mb-4 overflow-x-auto scrollbar-none">
           <button
             onClick={() => { setActiveTab('active'); setSearch(''); }}
-            className={`px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'active' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+            className={`px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'active' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
           >
             <span className="flex items-center gap-1.5">
               Activas
               {activeCount > 0 && (
-                <span className={`px-1.5 py-0.5 rounded-full text-xs ${activeTab === 'active' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>
+                <span className={`px-1.5 py-0.5 rounded-full text-xs ${activeTab === 'active' ? 'bg-primary/15 text-primary' : 'bg-gray-100 text-gray-600'}`}>
                   {activeCount}
                 </span>
               )}
             </span>
           </button>
           <button
-            onClick={() => { setActiveTab('completed'); setSearch(''); }}
-            className={`px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'completed' ? 'border-green-600 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+            onClick={() => { setActiveTab('closed'); setSearch(''); }}
+            className={`px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'closed' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
           >
             <span className="flex items-center gap-1.5">
-              Entregadas
-              {completedCount > 0 && (
-                <span className={`px-1.5 py-0.5 rounded-full text-xs ${activeTab === 'completed' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
-                  {completedCount}
+              Cerradas
+              {closedCount > 0 && (
+                <span className={`px-1.5 py-0.5 rounded-full text-xs ${activeTab === 'closed' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'}`}>
+                  {closedCount}
                 </span>
               )}
             </span>
@@ -515,7 +591,7 @@ const Orders: React.FC = () => {
                 {tabOrders.length > 0 && (
                   <div className="flex gap-4 justify-between items-center px-1">
                     <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
-                      {activeTab === 'completed' ? 'Entregadas' : 'Activas'}
+                      {activeTab === 'closed' ? 'Cerradas' : 'Activas'}
                       <span className="text-gray-500 font-normal ml-2 text-sm sm:text-base">({tabOrders.length})</span>
                     </h2>
                     <div className="flex items-center w-full sm:w-auto gap-2">
@@ -524,7 +600,7 @@ const Orders: React.FC = () => {
                         placeholder="Buscar por cliente, usuario, orden o fecha"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="w-full sm:w-80 px-3 py-2 border rounded-md shadow-sm text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full sm:w-80 px-3 py-2 border rounded-md shadow-sm text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary"
                       />
                     </div>
                   </div>
@@ -536,7 +612,7 @@ const Orders: React.FC = () => {
                       const priceBreakdown = getPriceBreakdown(order);
                       const isLocal = (order as any)._isLocal;
                       return (
-                        <div key={order.id} className={`bg-white rounded-lg shadow-sm border p-4 sm:p-6 hover:shadow-md transition-shadow duration-200 ${isLocal ? 'border-amber-300' : 'border-gray-200'}`}>
+                        <div key={order.id} className={`bg-white rounded-xl shadow-sm border p-4 sm:p-6 hover:shadow-md transition-shadow duration-200 ${isLocal ? 'border-amber-300' : 'border-gray-200'}`}>
                           <div className="flex justify-between items-start mb-4">
                             <div>
                               <div className="flex items-center gap-2">
@@ -550,9 +626,29 @@ const Orders: React.FC = () => {
                               </div>
                               <p className="text-sm text-gray-500">{formatDate(order.createdAt)}</p>
                             </div>
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
-                              {getStatusText(order.status)}
-                            </span>
+                            <div className="flex flex-col items-end gap-1">
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
+                                {getStatusText(order.status)}
+                              </span>
+                              {order.paymentType === 'credit' && (
+                                order.paidAt ? (
+                                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                                    Crédito pagado
+                                  </span>
+                                ) : (
+                                  <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                                    order.paymentDueDate && new Date(`${order.paymentDueDate}T00:00:00`) < new Date()
+                                      ? 'bg-red-100 text-red-700'
+                                      : 'bg-amber-100 text-amber-700'
+                                  }`}>
+                                    <CreditCard className="w-3 h-3" />
+                                    {order.paymentDueDate
+                                      ? `Vence ${format(new Date(`${order.paymentDueDate}T00:00:00`), 'd MMM', { locale: es })}`
+                                      : 'Crédito'}
+                                  </span>
+                                )
+                              )}
+                            </div>
                           </div>
 
                           <div className="space-y-3 mb-4">
@@ -612,7 +708,7 @@ const Orders: React.FC = () => {
                   <div className="text-center py-12 sm:py-16 px-4">
                     <Calendar className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 mx-auto mb-4" />
                     <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">
-                      {activeTab === 'completed' ? 'No hay órdenes entregadas' : 'No hay órdenes activas'}
+                      {activeTab === 'closed' ? 'No hay órdenes cerradas' : 'No hay órdenes activas'}
                     </h3>
                     {activeTab === 'active' && (user?.role === "admin" || user?.role === "seller") && (
                       <>
@@ -627,26 +723,11 @@ const Orders: React.FC = () => {
               </>
             )}
 
-            {/* Paginación */}
-            {activeTab !== 'local' && activeTab !== 'trash' && !loading && pagination.totalPages > 1 && (
-              <div className="flex justify-center items-center gap-3 mt-6">
-                <Button
-                  variant="outline" size="sm"
-                  onClick={() => getOrders(pagination.page - 1, 50)}
-                  disabled={pagination.page <= 1 || loading}
-                >
-                  Anterior
-                </Button>
-                <span className="text-sm text-gray-600">
-                  Página {pagination.page} de {pagination.totalPages}
-                  <span className="text-gray-400 ml-1">({pagination.total} órdenes)</span>
-                </span>
-                <Button
-                  variant="outline" size="sm"
-                  onClick={() => getOrders(pagination.page + 1, 50)}
-                  disabled={pagination.page >= pagination.totalPages || loading}
-                >
-                  Siguiente
+            {/* Cargar más — acumula sobre las ya mostradas */}
+            {activeTab !== 'local' && activeTab !== 'trash' && !loading && orders.length < pagination.total && (
+              <div className="flex justify-center mt-6">
+                <Button variant="outline" size="sm" onClick={loadMoreOrders}>
+                  Cargar más órdenes ({orders.length} de {pagination.total})
                 </Button>
               </div>
             )}

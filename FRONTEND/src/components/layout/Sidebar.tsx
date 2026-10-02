@@ -1,13 +1,15 @@
-import { Package, ClipboardList, Users, LogOut, User, Shield, Truck, Tag, DollarSign, UserCheck, BarChart2, Warehouse, ShoppingCart, Settings } from 'lucide-react';
+import { Package, ClipboardList, Users, LogOut, User, Shield, Truck, Tag, DollarSign, UserCheck, BarChart2, Warehouse, ShoppingCart, Settings, AlertTriangle, Store, FileText, CreditCard } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { useTenantStore } from '../../store/tenantStore';
+import { useTenantRenewalStatus } from '../../hooks/useTenantRenewalStatus';
 
 interface NavItem {
   label: string;
   to: string;
   icon: React.FC<{ className?: string }>;
   roles: string[];
+  feature?: string; // si se define, solo se muestra si el tenant tiene esa feature del plan
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -17,15 +19,22 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Categorías', to: '/categories', icon: Tag, roles: ['buyer', 'admin'] },
   { label: 'Clientes', to: '/customers', icon: UserCheck, roles: ['seller', 'admin'] },
   { label: 'Órdenes', to: '/orders', icon: ClipboardList, roles: ['seller', 'admin'] },
+  { label: 'Cotizaciones', to: '/quotes', icon: FileText, roles: ['seller', 'admin'], feature: 'quotes' },
+  { label: 'Punto de venta', to: '/pos', icon: Store, roles: ['seller', 'admin'], feature: 'pos' },
   { label: 'Inventario', to: '/inventory', icon: Warehouse, roles: ['seller', 'admin'] },
   { label: 'Órdenes Compra', to: '/purchase-orders', icon: ShoppingCart, roles: ['seller', 'admin'] },
   { label: 'Informes', to: '/reports', icon: BarChart2, roles: ['seller', 'admin'] },
   { label: 'Usuarios', to: '/users', icon: Users, roles: ['admin'] },
+  { label: 'Facturación', to: '/billing', icon: CreditCard, roles: ['admin'] },
   { label: 'Configuración', to: '/settings', icon: Settings, roles: ['admin'] },
 ];
 
 const Sidebar = () => {
   const { user, logout } = useAuthStore();
+
+  // Aviso de trial/plan pago por vencer o vencido (solo admin, ≤7 días) —
+  // mismo hook que usa Header.tsx para el aviso equivalente en mobile.
+  const { trialDaysLeft, renewalDaysLeft } = useTenantRenewalStatus();
   const { tenant } = useTenantStore();
   const navigate = useNavigate();
   const location = useLocation();
@@ -36,7 +45,7 @@ const Sidebar = () => {
   };
 
   const visibleItems = NAV_ITEMS.filter(
-    (item) => user?.role && item.roles.includes(user.role)
+    (item) => user?.role && item.roles.includes(user.role) && (!item.feature || tenant?.features?.includes(item.feature))
   );
 
   const isActive = (to: string) => {
@@ -83,21 +92,72 @@ const Sidebar = () => {
         })}
       </nav>
 
+      {/* Trial por vencer */}
+      {trialDaysLeft !== null && (
+        <Link
+          to="/billing"
+          className="mx-3 mb-2 flex items-start gap-2 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-xl hover:bg-amber-100 transition-colors"
+        >
+          <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+          <span className="text-xs text-amber-800 leading-snug">
+            {trialDaysLeft <= 0
+              ? 'Tu período de prueba vence HOY'
+              : trialDaysLeft === 1
+                ? 'Tu prueba vence mañana'
+                : `Tu prueba vence en ${trialDaysLeft} días`}
+            <span className="block text-amber-600 font-medium mt-0.5">Activa un plan →</span>
+          </span>
+        </Link>
+      )}
+
+      {/* Plan pago por vencer / vencido */}
+      {renewalDaysLeft !== null && (
+        <Link
+          to="/billing"
+          className={`mx-3 mb-2 flex items-start gap-2 px-3 py-2.5 rounded-xl transition-colors ${
+            renewalDaysLeft < 0
+              ? 'bg-red-50 border border-red-200 hover:bg-red-100'
+              : 'bg-amber-50 border border-amber-200 hover:bg-amber-100'
+          }`}
+        >
+          <AlertTriangle className={`w-4 h-4 flex-shrink-0 mt-0.5 ${renewalDaysLeft < 0 ? 'text-red-600' : 'text-amber-600'}`} />
+          <span className={`text-xs leading-snug ${renewalDaysLeft < 0 ? 'text-red-800' : 'text-amber-800'}`}>
+            {renewalDaysLeft < 0
+              ? `Tu plan venció hace ${-renewalDaysLeft} día${renewalDaysLeft === -1 ? '' : 's'}`
+              : renewalDaysLeft === 0
+                ? 'Tu plan vence HOY'
+                : renewalDaysLeft === 1
+                  ? 'Tu plan vence mañana'
+                  : `Tu plan vence en ${renewalDaysLeft} días`}
+            <span className={`block font-medium mt-0.5 ${renewalDaysLeft < 0 ? 'text-red-600' : 'text-amber-600'}`}>
+              {renewalDaysLeft < 0 ? 'Reporta tu pago →' : 'Renueva tu plan →'}
+            </span>
+          </span>
+        </Link>
+      )}
+
       {/* User section */}
       {user && (
         <div className="border-t border-gray-100 px-3 py-4">
           <div className="flex items-center space-x-3 px-2 py-2 mb-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center shadow-sm flex-shrink-0">
+            <div className="w-8 h-8 bg-gradient-to-br from-primary/70 to-primary rounded-full flex items-center justify-center shadow-sm flex-shrink-0">
               <User className="w-4 h-4 text-white" />
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-gray-900 truncate">{user.username}</p>
+              <p className="text-sm font-semibold text-gray-900 truncate">{user.name || user.username}</p>
               <p className="text-xs text-gray-400 capitalize flex items-center space-x-1">
                 <Shield className="w-3 h-3 flex-shrink-0" />
                 <span>{user.role}</span>
               </p>
             </div>
           </div>
+          <Link
+            to="/profile"
+            className="flex items-center space-x-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors duration-150"
+          >
+            <User className="w-5 h-5 flex-shrink-0" />
+            <span>Mi perfil</span>
+          </Link>
           <button
             onClick={handleLogout}
             className="flex items-center space-x-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 transition-colors duration-150"

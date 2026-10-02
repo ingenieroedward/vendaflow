@@ -11,7 +11,7 @@ import { es } from 'date-fns/locale';
 
 const STATUS_LABELS: Record<string, { label: string; className: string }> = {
   draft:     { label: 'Borrador',  className: 'bg-gray-100 text-gray-700' },
-  ordered:   { label: 'Ordenado', className: 'bg-blue-100 text-blue-700' },
+  ordered:   { label: 'Ordenado', className: 'bg-primary/15 text-primary' },
   received:  { label: 'Recibido', className: 'bg-green-100 text-green-700' },
   cancelled: { label: 'Cancelado',className: 'bg-red-100 text-red red-700' },
 };
@@ -36,7 +36,12 @@ const PurchaseOrderDetail: React.FC = () => {
     setUpdating(true);
     try {
       await markAsReceived(po.id);
-      addNotification({ type: 'success', message: `Stock actualizado — ${po.poNumber} marcada como recibida` });
+      addNotification({
+        type: 'success',
+        message: po.affectsStock === false
+          ? `${po.poNumber} marcada como recibida (sin afectar inventario)`
+          : `Stock actualizado — ${po.poNumber} marcada como recibida`,
+      });
     } catch {
       addNotification({ type: 'error', message: 'Error al marcar como recibida' });
     }
@@ -58,7 +63,7 @@ const PurchaseOrderDetail: React.FC = () => {
 
   if (loading) return <LoadingSpinner />;
   if (error) return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <div className="max-w-2xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
       <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700">
         <AlertCircle size={16} /> {error}
       </div>
@@ -80,6 +85,11 @@ const PurchaseOrderDetail: React.FC = () => {
             <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${status.className}`}>
               {status.label}
             </span>
+            {po.affectsStock === false && (
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-500" title="Compra registrada solo por costos — el stock ya estaba cargado">
+                No suma inventario
+              </span>
+            )}
           </div>
           <p className="text-xs sm:text-sm text-gray-500 mt-1">
             {format(new Date(po.createdAt), "dd MMM yyyy", { locale: es })}
@@ -174,7 +184,7 @@ const PurchaseOrderDetail: React.FC = () => {
               <Button
                 onClick={() => handleStatusChange('ordered')}
                 disabled={updating}
-                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+                className="flex items-center gap-2 bg-primary hover:bg-primary/90"
               >
                 <Truck size={15} /> Marcar como Ordenado
               </Button>

@@ -49,7 +49,6 @@ const Users: React.FC = () => {
   const { addNotification } = useUIStore();
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [activeUserMenu, setActiveUserMenu] = useState<number | null>(null);
   const [pendingPermDelete, setPendingPermDelete] = useState<{ id: number; username: string } | null>(null);
 
@@ -180,14 +179,14 @@ const Users: React.FC = () => {
 
     if (role === "seller") {
       return (
-        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary/15 text-primary">
           <User2 className="w-3 h-3 mr-1" />
           Vendedor
         </span>
       );
     }
     return (
-      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary/15 text-primary">
         <User className="w-3 h-3 mr-1" />
         Comprador
       </span>
@@ -198,7 +197,8 @@ const Users: React.FC = () => {
     (user) =>
       user &&
       user.username &&
-      user.username.toLowerCase().includes(searchQuery.toLowerCase()) &&
+      (user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        user.name?.toLowerCase().includes(searchQuery.toLowerCase())) &&
       !user.deletedAt
   );
 
@@ -226,66 +226,35 @@ const Users: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 max-w-7xl mx-auto">
-      {/* Mobile Header */}
-      <div className="sticky top-0 z-30 border-b border-gray-200 px-4 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <button
-              onClick={() => navigate("/")}
-              className="p-2 -ml-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <div>
-              <h1 className="text-lg font-semibold text-gray-900">Usuarios</h1>
-              <p className="text-sm text-gray-500">
-                {filteredUsers.length} usuarios
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => setIsSearchOpen(!isSearchOpen)}
-              className="p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
-            >
-              {isSearchOpen ? (
-                <X className="w-5 h-5" />
-              ) : (
-                <Search className="w-5 h-5" />
-              )}
-            </button>
-            <Button
-              variant="primary"
-              icon={Plus}
-              onClick={handleCreateUser}
-              size="sm"
-              className="px-3"
-            >
-              Nuevo
-            </Button>
-          </div>
+      {/* Header */}
+      <div className="px-3 sm:px-6 lg:px-8 pt-4 sm:pt-8">
+        <div className="text-center mb-6 sm:mb-8">
+          <h1 className="text-xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2 px-2">Usuarios</h1>
+          <p className="text-sm sm:text-lg text-gray-600 px-2">Administra los usuarios y sus roles.</p>
+        </div>
+      </div>
+      <div className="px-3 sm:px-6 lg:px-8 flex flex-col sm:flex-row sm:items-center gap-2 sm:justify-between mb-4">
+        <div className="relative w-full sm:max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
+          <Input
+            type="text"
+            placeholder="Buscar usuarios..."
+            value={searchQuery}
+            onChange={(e) => handleSearch(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <div className="flex items-center justify-between sm:justify-end gap-3">
+          <p className="text-sm text-gray-500">{filteredUsers.length} usuarios</p>
+          <Button variant="primary" icon={Plus} onClick={handleCreateUser} size="sm" className="px-3">
+            Nuevo
+          </Button>
         </div>
       </div>
 
-      {/* Search Bar - Collapsible */}
-      {isSearchOpen && (
-        <div className="sticky top-16 z-20 border-b border-gray-200 px-4 py-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <Input
-              type="text"
-              placeholder="Buscar usuarios..."
-              value={searchQuery}
-              onChange={(e) => handleSearch(e.target.value)}
-              className="pl-10"
-              autoFocus
-            />
-          </div>
-        </div>
-      )}
 
       {/* Users List */}
-      <div className="px-4 py-4 space-y-2">
+      <div className="px-3 sm:px-6 lg:px-8 py-2 space-y-2">
         {filteredUsers.map((user) => (
           <div
             key={user.id}
@@ -294,13 +263,13 @@ const Users: React.FC = () => {
             <div className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3 flex-1 min-w-0">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <User className="w-6 h-6 text-blue-600" />
+                  <div className="w-12 h-12 bg-gradient-to-br from-primary/15 to-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <User className="w-6 h-6 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center space-x-2 mb-1">
                       <h3 className="text-base font-medium text-gray-900 truncate">
-                        {user.username}
+                        {user.name || user.username}
                       </h3>
                       {user.id === currentUser?.id && (
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -308,6 +277,9 @@ const Users: React.FC = () => {
                         </span>
                       )}
                     </div>
+                    {user.name && (
+                      <p className="text-xs text-gray-400 truncate mb-1">@{user.username}</p>
+                    )}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
                         {getRoleBadge(user.role)}
@@ -339,7 +311,7 @@ const Users: React.FC = () => {
                         className="fixed inset-0 z-40"
                         onClick={() => setActiveUserMenu(null)}
                       />
-                      <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                      <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-1 z-50">
                         <button
                           onClick={() => handleEditUser(user.id)}
                           className="flex items-center space-x-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
@@ -376,13 +348,13 @@ const Users: React.FC = () => {
             <div className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3 flex-1 min-w-0">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <User className="w-6 h-6 text-blue-600" />
+                  <div className="w-12 h-12 bg-gradient-to-br from-primary/15 to-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <User className="w-6 h-6 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center space-x-2 mb-1">
                       <h3 className="text-base font-medium text-gray-900 truncate">
-                        {user.username}
+                        {user.name || user.username}
                       </h3>
                       {user.id === currentUser?.id && (
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -390,6 +362,9 @@ const Users: React.FC = () => {
                         </span>
                       )}
                     </div>
+                    {user.name && (
+                      <p className="text-xs text-gray-400 truncate mb-1">@{user.username}</p>
+                    )}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
                         {getRoleBadge(user.role)}
@@ -421,7 +396,7 @@ const Users: React.FC = () => {
                         className="fixed inset-0 z-40"
                         onClick={() => setActiveUserMenu(null)}
                       />
-                      <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                      <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-1 z-50">
                         <button
                           onClick={() => handleRestoreUser(user.id)}
                           className="flex items-center space-x-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"

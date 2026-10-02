@@ -47,4 +47,56 @@ export class OrderService {
   }
 }
 
-export const orderService = new OrderService(); 
+export interface Receivables {
+  totalDue: number;
+  count: number;
+  overdueCount: number;
+  orders: Array<{
+    id: number;
+    orderNumber: string;
+    totalAmount: number;
+    /** Suma de abonos registrados (order_payments) */
+    paidAmount: number;
+    /** Saldo real pendiente = totalAmount − paidAmount */
+    balance: number;
+    paymentDueDate: string | null;
+    daysUntilDue: number | null;
+    customer: { id: number; name: string } | null;
+  }>;
+}
+
+export interface HomeStats {
+  pendingOrders: number;
+  salesThisMonth: number;
+  ordersThisMonth: number;
+  recentOrders: Array<{
+    id: number;
+    orderNumber: string;
+    status: 'pending' | 'processing' | 'completed' | 'cancelled';
+    totalAmount: number;
+    createdAt: string;
+    customer: { id: number; name: string } | null;
+  }>;
+}
+
+export const orderService = new OrderService();
+
+export async function getHomeStats(): Promise<HomeStats> {
+  const response = await apiService.get<ApiResponse<HomeStats>>('/orders/stats/home');
+  return response.data;
+}
+
+export async function searchOrdersServer(q: string): Promise<Order[]> {
+  const response = await apiService.get<ApiResponse<Order[]>>(`/orders/search?q=${encodeURIComponent(q)}`);
+  return response.data;
+}
+
+export async function getReceivables(): Promise<Receivables> {
+  const response = await apiService.get<ApiResponse<Receivables>>('/orders/receivables');
+  return response.data;
+}
+
+export async function markOrderPaid(id: number, paid = true): Promise<Order> {
+  const response = await apiService.patch<ApiResponse<Order>>(`/orders/${id}/pay`, { paid });
+  return response.data;
+} 

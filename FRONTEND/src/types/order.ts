@@ -13,6 +13,8 @@ export interface OrderItem {
   };
 }
 
+export type PaymentType = 'cash' | 'credit';
+
 export interface Order {
   id: number;
   orderNumber: string;
@@ -21,9 +23,14 @@ export interface Order {
   totalAmount: number;
   status: 'pending' | 'processing' | 'completed' | 'cancelled';
   notes?: string;
+  paymentType?: PaymentType;
+  paymentDueDate?: string | null;
+  reminderDays?: number | null;
+  paidAt?: string | null;
   customer: {
     id: number;
     name: string;
+    code?: string | null;
     nit?: string | null;
     contact?: string;
     address?: string;
@@ -42,6 +49,8 @@ export interface Order {
 export interface CreateOrderRequest {
   customerId: number;
   userId?: number;
+  /** Clave de idempotencia: el server no crea dos órdenes con el mismo ref */
+  clientRef?: string;
   items: {
     productId: number;
     quantity: number;
@@ -49,6 +58,9 @@ export interface CreateOrderRequest {
     taxRate: number;
   }[];
   notes?: string;
+  paymentType?: PaymentType;
+  paymentDueDate?: string | null;
+  reminderDays?: number | null;
 }
 
 export interface UpdateOrderRequest {
@@ -63,6 +75,9 @@ export interface UpdateOrderRequest {
   }[];
   status?: 'pending' | 'processing' | 'completed' | 'cancelled';
   notes?: string;
+  paymentType?: PaymentType;
+  paymentDueDate?: string | null;
+  reminderDays?: number | null;
 }
 
 export interface OrderFilters {

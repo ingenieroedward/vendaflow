@@ -23,9 +23,29 @@ const Login: React.FC = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate(user?.role === 'superadmin' ? '/superadmin' : '/');
+      if (user?.role === 'superadmin') { window.location.replace('https://admin.merco.edwsystem.com'); return; }
+      navigate('/');
     }
   }, [isAuthenticated, navigate, user]);
+
+  // Impersonación desde el panel superadmin: /login?impersonate=<token>
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('impersonate');
+    if (!token) return;
+    (async () => {
+      const { STORAGE_KEYS } = await import('../utils/constants');
+      try {
+        localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
+        const { apiService } = await import('../services/api');
+        const me = await apiService.get<{ status: string; data: { id: number; username: string; role: string; tenantId: number } }>('/auth/me');
+        localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(me.data));
+        window.location.replace('/'); // recarga limpia con la sesión ya persistida
+      } catch {
+        localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+      }
+    })();
+  }, []);
 
   const validateForm = (): boolean => {
     const newErrors: Partial<LoginRequest> = {};
@@ -67,7 +87,8 @@ const Login: React.FC = () => {
         message: 'Has iniciado sesión correctamente',
       });
       const { user: loggedUser } = useAuthStore.getState();
-      navigate(loggedUser?.role === 'superadmin' ? '/superadmin' : '/');
+      if (loggedUser?.role === 'superadmin') { window.location.replace('https://admin.merco.edwsystem.com'); return; }
+      navigate('/');
     } catch (error: unknown) {
       let errorMessage = 'Credenciales incorrectas';
       
@@ -86,7 +107,7 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-primary/10 to-indigo-100 flex flex-col">
       {/* Main Content */}
       <div className="flex-1 flex items-center justify-center py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-sm sm:max-w-md w-full space-y-6 sm:space-y-8">
@@ -110,7 +131,7 @@ const Login: React.FC = () => {
           </div>
 
           {/* Login Form */}
-          <div className="bg-white rounded-lg shadow-lg p-6 sm:p-8 space-y-6">
+          <div className="bg-white rounded-xl shadow-lg p-6 sm:p-8 space-y-6">
             <div>
               <h3 className="text-lg sm:text-xl font-semibold text-gray-900 text-center">
                 Iniciar Sesión
@@ -160,6 +181,10 @@ const Login: React.FC = () => {
                 {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
               </Button>
             </form>
+            <p className="text-center text-xs text-gray-400 mt-4">
+              ¿No tienes cuenta?{' '}
+              <a href="/registro" className="text-primary hover:underline font-medium">Solicita tu prueba gratis</a>
+            </p>
 
             
           </div>

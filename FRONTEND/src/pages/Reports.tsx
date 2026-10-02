@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { db } from '../database/LocalDatabase';
-import { orderService } from '../services/orders';
+import { orderService, getReceivables, Receivables } from '../services/orders';
+import { apiService } from '../services/api';
 import { purchaseOrderService } from '../services/purchaseOrders';
+import { productService } from '../services/products';
 import { useProductStore } from '../store/productStore';
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
@@ -12,12 +14,12 @@ import { es } from 'date-fns/locale';
 import {
   TrendingUp, ShoppingCart, DollarSign, RefreshCw,
   WifiOff, Package, Users, Warehouse, AlertTriangle, TrendingDown,
-  CheckCircle, Clock, FileText, PiggyBank,
+  CheckCircle, Clock, FileText, PiggyBank, CreditCard,
 } from 'lucide-react';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 
 type Period = 'daily' | 'monthly' | 'annual';
-type Tab = 'ventas' | 'inventario' | 'compras' | 'rentabilidad';
+type Tab = 'ventas' | 'inventario' | 'compras' | 'rentabilidad' | 'cartera';
 
 interface OrderRow {
   totalAmount: number;
@@ -86,6 +88,26 @@ const barColor = (value: number, max: number) => {
 
 const Reports: React.FC = () => {
   const [tab, setTab] = useState<Tab>('rentabilidad');
+
+  // Cartera: crédito pendiente de cobro
+  const [receivables, setReceivables] = useState<Receivables | null>(null);
+  useEffect(() => {
+    if (navigator.onLine) getReceivables().then(setReceivables).catch(() => setReceivables(null));
+  }, []);
+
+  const carteraByCustomer = useMemo(() => {
+    if (!receivables) return [];
+    const map = new Map<string, { name: string; total: number; count: number; overdue: number }>();
+    for (const o of receivables.orders) {
+      const key = o.customer?.name ?? 'Sin cliente';
+      const e = map.get(key) ?? { name: key, total: 0, count: 0, overdue: 0 };
+      e.total += o.balance;
+      e.count += 1;
+      if (o.daysUntilDue !== null && o.daysUntilDue < 0) e.overdue += 1;
+      map.set(key, e);
+    }
+    return [...map.values()].sort((a, b) => b.total - a.total);
+  }, [receivables]);
   const [period, setPeriod] = useState<Period>('daily');
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [purchaseOrders, setPurchaseOrders] = useState<PORow[]>([]);
@@ -93,6 +115,17 @@ const Reports: React.FC = () => {
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
 
   const { products, getProducts } = useProductStore();
+
+  // Costo por producto para el valor de stock a costo (Inventario) — mismo dato del COGS
+  // de Rentabilidad. Offline o si falla, el tab de Inventario simplemente no muestra costo.
+  // Declarado antes de invStats (más abajo) porque su useMemo lo usa desde el primer render.
+  const [productCosts, setProductCosts] = useState<Record<number, number> | null>(null);
+  useEffect(() => {
+    if (!navigator.onLine) return;
+    productService.getCosts()
+      .then(setProductCosts)
+      .catch(() => setProductCosts(null));
+  }, []);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -252,8 +285,28 @@ const Reports: React.FC = () => {
       .filter(p => p.stock > 0)
       .sort((a, b) => b.stock * b.salePrice - a.stock * a.salePrice)
       .slice(0, 8);
-    return { negative, outOfStock, lowStock, ok, totalValue, topStock };
-  }, [products]);
+
+    // Valor a costo — solo si se pudo cargar productCosts (online). Un producto sin costo
+    // registrado (sin compras ni precios de proveedor) no suma al total, igual que en COGS.
+    const hasCostData = productCosts !== null;
+    let totalCostValue = 0;
+    let productsWithoutCost = 0;
+    if (hasCostData) {
+      for (const p of products) {
+        if (p.stock <= 0) continue;
+        const cost = productCosts![p.id];
+        if (cost === undefined) { productsWithoutCost++; continue; }
+        totalCostValue += p.stock * cost;
+      }
+    }
+    const potentialProfit = totalValue - totalCostValue;
+    const potentialMargin = totalValue > 0 ? (potentialProfit / totalValue) * 100 : 0;
+
+    return {
+      negative, outOfStock, lowStock, ok, totalValue, topStock,
+      hasCostData, totalCostValue, productsWithoutCost, potentialProfit, potentialMargin,
+    };
+  }, [products, productCosts]);
 
   const invChartData = useMemo(() => [
     { label: 'Negativo', value: invStats.negative.length, fill: '#ef4444' },
@@ -361,6 +414,78 @@ const Reports: React.FC = () => {
     };
   }, [orders, purchaseOrders]);
 
+  // Rentabilidad real desde el servidor: utilidad = ventas − costo de lo vendido (COGS).
+  // Reemplaza el cálculo viejo (ventas − compras del período) que castigaba la carga de inventario.
+  const [profit, setProfit] = useState<{
+    months: Array<{ month: string; revenue: number; cogs: number; profit: number; margin: number }>;
+    current: { month: string; revenue: number; cogs: number; profit: number; margin: number };
+    purchasesThisMonth: number;
+    productsWithoutCost: number;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!navigator.onLine) return;
+    apiService.get<{ status: string; data: never }>('/orders/stats/profit')
+      .then(r => setProfit(r.data as never))
+      .catch(() => setProfit(null));
+  }, []);
+
+  const rent = useMemo(() => {
+    if (!profit) return rentStats;
+    const byMonth = new Map(profit.months.map(m => [m.month, m]));
+    const now = new Date();
+    const monthlyChart = Array.from({ length: 12 }, (_, i) => {
+      const d = subMonths(now, 11 - i);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const m = byMonth.get(key);
+      return {
+        label: format(colStartOfMonth(d), 'MMM yy', { locale: es }),
+        ingresos: m?.revenue ?? 0,
+        costos: m?.cogs ?? 0,
+        utilidad: m?.profit ?? 0,
+      };
+    });
+    const totalRevenue = profit.months.reduce((s, m) => s + m.revenue, 0);
+    const totalCost = profit.months.reduce((s, m) => s + m.cogs, 0);
+    const grossProfit = totalRevenue - totalCost;
+    const prevKey = (() => { const d = subMonths(now, 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; })();
+    const prev = byMonth.get(prevKey);
+    return {
+      ...rentStats,
+      totalRevenue,
+      totalCost,
+      grossProfit,
+      grossMargin: totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0,
+      monthRevenue: profit.current.revenue,
+      monthCost: profit.current.cogs,
+      monthProfit: profit.current.profit,
+      monthMargin: profit.current.margin,
+      profitPct: prev && prev.profit !== 0 ? Math.round(((profit.current.profit - prev.profit) / Math.abs(prev.profit)) * 100) : null,
+      monthlyChart,
+      hasCostData: profit.months.some(m => m.cogs > 0),
+    };
+  }, [profit, rentStats]);
+
+  const downloadMonthlyReport = async (month: string) => {
+    try {
+      const token = localStorage.getItem('vf_token');
+      const r = await fetch(`/api/orders/report/monthly?month=${month}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!r.ok) throw new Error('error');
+      const blob = await r.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `reporte-ventas-${month}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      alert('No se pudo descargar el reporte');
+    }
+  };
+  const [reportMonth, setReportMonth] = useState(() => new Date().toISOString().slice(0, 7));
+
   const hasData = orders.length > 0;
 
   const periods: { key: Period; label: string }[] = [
@@ -373,22 +498,23 @@ const Reports: React.FC = () => {
   const tabs: { key: Tab; label: string; icon: React.FC<any> }[] = [
     { key: 'rentabilidad',  label: 'Rentabilidad',  icon: PiggyBank },
     { key: 'ventas',        label: 'Ventas',        icon: TrendingUp },
+    { key: 'cartera',       label: 'Cartera',       icon: CreditCard },
     { key: 'compras',       label: 'Compras',       icon: ShoppingCart },
     { key: 'inventario',    label: 'Inventario',    icon: Warehouse },
   ];
 
   return (
     <div className="bg-gray-50 min-h-screen">
-      <div className="max-w-5xl mx-auto px-3 sm:px-6 py-4 sm:py-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
 
         {/* Header */}
-        <div className="flex items-start justify-between mb-5">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Informes</h1>
-            <p className="text-sm text-gray-400 mt-0.5">
-              {isOffline ? 'Datos locales (sin conexión)' : 'Datos en tiempo real del servidor'}
-            </p>
-          </div>
+        <div className="text-center mb-6 sm:mb-8">
+          <h1 className="text-xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2 px-2">Informes</h1>
+          <p className="text-sm sm:text-lg text-gray-600 px-2">
+            {isOffline ? 'Datos locales (sin conexión)' : 'Ventas, cartera, compras e inventario de tu negocio.'}
+          </p>
+        </div>
+        <div className="flex justify-end mb-4">
           <button
             onClick={loadData}
             disabled={loading}
@@ -406,31 +532,146 @@ const Reports: React.FC = () => {
           </div>
         )}
 
-        {/* Tabs */}
-        <div className="flex gap-1 mb-6 bg-white border border-gray-100 rounded-xl p-1 shadow-sm w-full sm:w-fit">
-          {tabs.map(t => (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className={`flex-1 sm:flex-none flex items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
-                tab === t.key ? 'bg-gray-900 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              <t.icon className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
-              <span>{t.label}</span>
-            </button>
-          ))}
+        {/* Tabs — 5 no caben estirados (flex-1) en una pantalla angosta: "Rentabilidad" fuerza
+            la fila a desbordar y arrastra a toda la página en horizontal. En mobile van en su
+            propia franja con scroll horizontal contenido, ancho natural (sin estirar). */}
+        <div className="mb-6 -mx-3 sm:mx-0 px-3 sm:px-0 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+          <div className="flex gap-1 bg-white border border-gray-200 rounded-xl p-1 shadow-sm w-fit">
+            {tabs.map(t => (
+              <button
+                key={t.key}
+                onClick={() => setTab(t.key)}
+                className={`flex items-center justify-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-medium whitespace-nowrap transition-all ${
+                  tab === t.key ? 'bg-gray-900 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <t.icon className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
+                <span>{t.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
         {loading ? (
           <div className="flex justify-center py-24"><LoadingSpinner size="lg" /></div>
         ) : (
           <>
+            {/* ════════════════ TAB: CARTERA ════════════════ */}
+            {tab === 'cartera' && (
+              <>
+                {!receivables || receivables.count === 0 ? (
+                  <div className="text-center py-20">
+                    <CheckCircle className="w-12 h-12 text-green-300 mx-auto mb-3" />
+                    <h3 className="text-base font-medium text-gray-900 mb-1">Sin cuentas por cobrar</h3>
+                    <p className="text-sm text-gray-400 max-w-sm mx-auto">
+                      No hay órdenes a crédito pendientes de pago. Las ventas a crédito aparecerán aquí hasta que se marquen pagadas.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    {/* KPIs */}
+                    <div className="grid grid-cols-3 gap-3 mb-6">
+                      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="w-7 h-7 bg-amber-50 rounded-lg flex items-center justify-center">
+                            <CreditCard className="w-3.5 h-3.5 text-amber-500" />
+                          </div>
+                          <p className="text-xs text-gray-400">Por cobrar</p>
+                        </div>
+                        <p className="text-lg sm:text-xl font-bold text-gray-900 truncate">{COP(receivables.totalDue)}</p>
+                      </div>
+                      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="w-7 h-7 bg-primary/10 rounded-lg flex items-center justify-center">
+                            <FileText className="w-3.5 h-3.5 text-primary" />
+                          </div>
+                          <p className="text-xs text-gray-400">Órdenes a crédito</p>
+                        </div>
+                        <p className="text-lg sm:text-xl font-bold text-gray-900">{receivables.count}</p>
+                      </div>
+                      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${receivables.overdueCount ? 'bg-red-50' : 'bg-gray-50'}`}>
+                            <AlertTriangle className={`w-3.5 h-3.5 ${receivables.overdueCount ? 'text-red-500' : 'text-gray-300'}`} />
+                          </div>
+                          <p className="text-xs text-gray-400">Vencidas</p>
+                        </div>
+                        <p className={`text-lg sm:text-xl font-bold ${receivables.overdueCount ? 'text-red-600' : 'text-gray-900'}`}>{receivables.overdueCount}</p>
+                      </div>
+                    </div>
+
+                    {/* Deuda por cliente */}
+                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-5 mb-6">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Users className="w-4 h-4 text-gray-400" />
+                        <h3 className="text-sm font-semibold text-gray-900">Deuda por cliente</h3>
+                      </div>
+                      <div className="space-y-3">
+                        {carteraByCustomer.map(c => (
+                          <div key={c.name} className="flex items-center gap-3">
+                            <div className="w-32 sm:w-44 flex-shrink-0 min-w-0">
+                              <p className="text-xs font-medium text-gray-700 truncate">{c.name}</p>
+                              <p className="text-[11px] text-gray-400">
+                                {c.count} orden{c.count !== 1 ? 'es' : ''}{c.overdue > 0 && <span className="text-red-500"> · {c.overdue} vencida{c.overdue !== 1 ? 's' : ''}</span>}
+                              </p>
+                            </div>
+                            <div className="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
+                              <div
+                                className={`h-full rounded-full ${c.overdue > 0 ? 'bg-red-400' : 'bg-amber-400'}`}
+                                style={{ width: `${Math.max(6, (c.total / (carteraByCustomer[0]?.total || 1)) * 100)}%` }}
+                              />
+                            </div>
+                            <span className="text-xs font-semibold text-gray-700 w-20 text-right flex-shrink-0">{COP(c.total)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Detalle de órdenes */}
+                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                      <div className="flex items-center gap-2 px-4 sm:px-5 py-3 border-b border-gray-200">
+                        <Clock className="w-4 h-4 text-gray-400" />
+                        <h3 className="text-sm font-semibold text-gray-900">Órdenes pendientes de cobro</h3>
+                      </div>
+                      <ul className="divide-y divide-gray-100">
+                        {receivables.orders.map(o => (
+                          <li key={o.id} className="flex items-center justify-between px-4 sm:px-5 py-2.5">
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-gray-900 truncate">
+                                #{o.orderNumber}
+                                {o.customer && <span className="text-gray-500 font-normal"> · {o.customer.name}</span>}
+                              </p>
+                              {o.paymentDueDate && (
+                                <p className={`text-[11px] ${o.daysUntilDue !== null && o.daysUntilDue < 0 ? 'text-red-600 font-medium' : 'text-gray-400'}`}>
+                                  {o.daysUntilDue === null ? '' :
+                                    o.daysUntilDue < 0 ? `Venció hace ${-o.daysUntilDue} día${o.daysUntilDue === -1 ? '' : 's'}` :
+                                    o.daysUntilDue === 0 ? 'Vence HOY' :
+                                    `Vence en ${o.daysUntilDue} día${o.daysUntilDue === 1 ? '' : 's'}`}
+                                </p>
+                              )}
+                            </div>
+                            <div className="flex-shrink-0 ml-3 text-right">
+                              <span className="text-sm font-semibold text-gray-800">{COP(o.balance)}</span>
+                              {o.paidAmount > 0 && (
+                                <p className="text-[11px] text-gray-400">
+                                  de {COP(o.totalAmount)} · abonado {COP(o.paidAmount)}
+                                </p>
+                              )}
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+
             {/* ════════════════ TAB: VENTAS ════════════════ */}
             {tab === 'ventas' && (
               <>
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-7 h-7 bg-emerald-50 rounded-lg flex items-center justify-center">
                         <TrendingUp className="w-4 h-4 text-emerald-500" />
@@ -442,10 +683,10 @@ const Reports: React.FC = () => {
                     </p>
                     <p className="text-xs text-gray-400 mt-0.5">{kpis.today.ordenes} órden{kpis.today.ordenes !== 1 ? 'es' : ''}</p>
                   </div>
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
                     <div className="flex items-center gap-2 mb-2">
-                      <div className="w-7 h-7 bg-blue-50 rounded-lg flex items-center justify-center">
-                        <ShoppingCart className="w-4 h-4 text-blue-500" />
+                      <div className="w-7 h-7 bg-primary/10 rounded-lg flex items-center justify-center">
+                        <ShoppingCart className="w-4 h-4 text-primary" />
                       </div>
                       <span className="text-xs font-medium text-gray-500">Este mes</span>
                     </div>
@@ -465,7 +706,7 @@ const Reports: React.FC = () => {
                       {kpis.month.ordenes} órd · {kpis.month.clientes} cliente{kpis.month.clientes !== 1 ? 's' : ''}
                     </p>
                   </div>
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-7 h-7 bg-violet-50 rounded-lg flex items-center justify-center">
                         <DollarSign className="w-4 h-4 text-violet-500" />
@@ -477,7 +718,7 @@ const Reports: React.FC = () => {
                     </p>
                     <p className="text-xs text-gray-400 mt-0.5">por orden</p>
                   </div>
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-7 h-7 bg-orange-50 rounded-lg flex items-center justify-center">
                         <Package className="w-4 h-4 text-orange-500" />
@@ -491,7 +732,7 @@ const Reports: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="flex gap-1 mb-5 bg-white border border-gray-100 rounded-xl p-1 shadow-sm w-full sm:w-fit">
+                <div className="flex gap-1 mb-5 bg-white border border-gray-200 rounded-xl p-1 shadow-sm w-full sm:w-fit">
                   {periods.map(p => (
                     <button
                       key={p.key}
@@ -506,14 +747,14 @@ const Reports: React.FC = () => {
                 </div>
 
                 {!hasData ? (
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 text-center">
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-12 text-center">
                     <Users className="w-12 h-12 text-gray-200 mx-auto mb-3" />
                     <p className="text-gray-400 font-medium">Sin datos de ventas</p>
                     <p className="text-gray-300 text-sm mt-1">Crea órdenes para ver los informes</p>
                   </div>
                 ) : (
                   <>
-                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-4">
+                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-4">
                       <div className="flex items-center justify-between mb-1">
                         <h2 className="text-sm font-semibold text-gray-700">Ventas</h2>
                         <span className="text-xs text-gray-400">{periodLabel}</span>
@@ -534,7 +775,7 @@ const Reports: React.FC = () => {
                       </ResponsiveContainer>
                     </div>
 
-                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-4">
+                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-4">
                       <div className="flex items-center justify-between mb-1">
                         <h2 className="text-sm font-semibold text-gray-700">Número de órdenes</h2>
                         <span className="text-xs text-gray-400">{periodLabel}</span>
@@ -556,7 +797,7 @@ const Reports: React.FC = () => {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                         <div className="flex items-center justify-between mb-4">
                           <h2 className="text-sm font-semibold text-gray-700">Top clientes</h2>
                           <span className="text-xs text-gray-400">{periodLabel}</span>
@@ -581,7 +822,7 @@ const Reports: React.FC = () => {
                                     </div>
                                   </div>
                                   <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                                    <div className="h-full rounded-full bg-blue-500 transition-all" style={{ width: `${pct}%` }} />
+                                    <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${pct}%` }} />
                                   </div>
                                 </div>
                               );
@@ -590,7 +831,7 @@ const Reports: React.FC = () => {
                         )}
                       </div>
 
-                      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                         <div className="flex items-center justify-between mb-4">
                           <h2 className="text-sm font-semibold text-gray-700">Estado de órdenes</h2>
                           <span className="text-xs text-gray-400">{periodLabel}</span>
@@ -642,7 +883,7 @@ const Reports: React.FC = () => {
               <>
                 {/* KPI cards */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-7 h-7 bg-indigo-50 rounded-lg flex items-center justify-center">
                         <Package className="w-4 h-4 text-indigo-500" />
@@ -652,7 +893,7 @@ const Reports: React.FC = () => {
                     <p className="text-lg font-bold text-gray-900">{products.length}</p>
                     <p className="text-xs text-gray-400 mt-0.5">registrados</p>
                   </div>
-                  <div className={`rounded-2xl border shadow-sm p-4 ${invStats.negative.length > 0 ? 'bg-red-50 border-red-200' : 'bg-white border-gray-100'}`}>
+                  <div className={`rounded-xl border shadow-sm p-4 ${invStats.negative.length > 0 ? 'bg-red-50 border-red-200' : 'bg-white border-gray-200'}`}>
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-7 h-7 bg-red-100 rounded-lg flex items-center justify-center">
                         <TrendingDown className="w-4 h-4 text-red-600" />
@@ -662,7 +903,7 @@ const Reports: React.FC = () => {
                     <p className={`text-lg font-bold ${invStats.negative.length > 0 ? 'text-red-700' : 'text-gray-900'}`}>{invStats.negative.length}</p>
                     <p className="text-xs text-gray-400 mt-0.5">requieren compra urgente</p>
                   </div>
-                  <div className={`rounded-2xl border shadow-sm p-4 ${invStats.outOfStock.length > 0 ? 'bg-orange-50 border-orange-200' : 'bg-white border-gray-100'}`}>
+                  <div className={`rounded-xl border shadow-sm p-4 ${invStats.outOfStock.length > 0 ? 'bg-orange-50 border-orange-200' : 'bg-white border-gray-200'}`}>
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-7 h-7 bg-orange-100 rounded-lg flex items-center justify-center">
                         <AlertTriangle className="w-4 h-4 text-orange-500" />
@@ -672,7 +913,7 @@ const Reports: React.FC = () => {
                     <p className={`text-lg font-bold ${invStats.outOfStock.length > 0 ? 'text-orange-600' : 'text-gray-900'}`}>{invStats.outOfStock.length}</p>
                     <p className="text-xs text-gray-400 mt-0.5">en cero</p>
                   </div>
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-7 h-7 bg-green-50 rounded-lg flex items-center justify-center">
                         <DollarSign className="w-4 h-4 text-green-500" />
@@ -684,9 +925,40 @@ const Reports: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Valor a costo — solo con datos de costo cargados (online) */}
+                {invStats.hasCostData && (
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-6">
+                    <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                      <h3 className="text-sm font-semibold text-gray-700">Valor del inventario</h3>
+                      {invStats.productsWithoutCost > 0 && (
+                        <span className="text-[11px] text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
+                          {invStats.productsWithoutCost} producto{invStats.productsWithoutCost !== 1 ? 's' : ''} sin costo registrado
+                        </span>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <p className="text-xs text-gray-400 mb-0.5">A precio de venta</p>
+                        <p className="text-sm font-bold text-gray-900">{COPShort(invStats.totalValue)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-400 mb-0.5">A costo</p>
+                        <p className="text-sm font-bold text-orange-600">{COPShort(invStats.totalCostValue)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-400 mb-0.5">Utilidad potencial</p>
+                        <p className={`text-sm font-bold ${invStats.potentialProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                          {COPShort(invStats.potentialProfit)}
+                        </p>
+                        <p className="text-xs text-gray-400">{invStats.potentialMargin.toFixed(0)}% margen</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                   {/* Distribución estado */}
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                     <h2 className="text-sm font-semibold text-gray-700 mb-4">Distribución de stock</h2>
                     <ResponsiveContainer width="100%" height={180}>
                       <BarChart data={invChartData} margin={{ top: 4, right: 4, left: 0, bottom: 4 }} barCategoryGap="30%">
@@ -710,7 +982,7 @@ const Reports: React.FC = () => {
                   </div>
 
                   {/* Top por valor */}
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                     <h2 className="text-sm font-semibold text-gray-700 mb-4">Top productos por valor en stock</h2>
                     {invStats.topStock.length === 0 ? (
                       <p className="text-xs text-gray-300 text-center py-6">Sin stock disponible</p>
@@ -719,6 +991,7 @@ const Reports: React.FC = () => {
                         {invStats.topStock.map((p, i) => {
                           const val = p.stock * p.salePrice;
                           const pct = invStats.totalValue > 0 ? Math.round((val / invStats.totalValue) * 100) : 0;
+                          const cost = invStats.hasCostData ? productCosts![p.id] : undefined;
                           return (
                             <div key={p.id}>
                               <div className="flex items-center justify-between mb-1">
@@ -734,6 +1007,11 @@ const Reports: React.FC = () => {
                               <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
                                 <div className="h-full rounded-full bg-indigo-500 transition-all" style={{ width: `${pct}%` }} />
                               </div>
+                              {invStats.hasCostData && (
+                                <p className="text-[11px] text-gray-400 mt-0.5 text-right">
+                                  {cost !== undefined ? `costo: ${COPShort(p.stock * cost)}` : 'sin costo registrado'}
+                                </p>
+                              )}
                             </div>
                           );
                         })}
@@ -744,7 +1022,7 @@ const Reports: React.FC = () => {
 
                 {/* Productos con stock negativo */}
                 {invStats.negative.length > 0 && (
-                  <div className="bg-white rounded-2xl border border-red-200 shadow-sm p-5 mb-4">
+                  <div className="bg-white rounded-xl border border-red-200 shadow-sm p-5 mb-4">
                     <h2 className="text-sm font-semibold text-red-700 mb-3 flex items-center gap-2">
                       <AlertTriangle className="w-4 h-4" />
                       Productos con stock negativo — requieren reposición
@@ -778,7 +1056,10 @@ const Reports: React.FC = () => {
                   </div>
                 )}
 
-                <p className="text-xs text-gray-300 mt-2 text-center">{products.length} productos · Valor calculado a precio de venta</p>
+                <p className="text-xs text-gray-300 mt-2 text-center">
+                  {products.length} productos · Valor calculado a precio de venta
+                  {invStats.hasCostData ? ' y a costo' : ' (conéctate para ver el costo)'}
+                </p>
               </>
             )}
 
@@ -787,17 +1068,17 @@ const Reports: React.FC = () => {
               <>
                 {/* KPI cards */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
                     <div className="flex items-center gap-2 mb-2">
-                      <div className="w-7 h-7 bg-blue-50 rounded-lg flex items-center justify-center">
-                        <DollarSign className="w-4 h-4 text-blue-500" />
+                      <div className="w-7 h-7 bg-primary/10 rounded-lg flex items-center justify-center">
+                        <DollarSign className="w-4 h-4 text-primary" />
                       </div>
                       <span className="text-xs font-medium text-gray-500">Invertido (recibido)</span>
                     </div>
                     <p className="text-lg font-bold text-gray-900">{COPShort(poStats.totalInvested)}</p>
                     <p className="text-xs text-gray-400 mt-0.5">{poStats.received.length} órd. recibidas</p>
                   </div>
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-7 h-7 bg-emerald-50 rounded-lg flex items-center justify-center">
                         <TrendingUp className="w-4 h-4 text-emerald-500" />
@@ -807,7 +1088,7 @@ const Reports: React.FC = () => {
                     <p className="text-lg font-bold text-gray-900">{COPShort(poStats.monthInvested)}</p>
                     <p className="text-xs text-gray-400 mt-0.5">en compras recibidas</p>
                   </div>
-                  <div className={`rounded-2xl border shadow-sm p-4 ${poStats.ordered.length > 0 ? 'bg-amber-50 border-amber-200' : 'bg-white border-gray-100'}`}>
+                  <div className={`rounded-xl border shadow-sm p-4 ${poStats.ordered.length > 0 ? 'bg-amber-50 border-amber-200' : 'bg-white border-gray-200'}`}>
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-7 h-7 bg-amber-100 rounded-lg flex items-center justify-center">
                         <Clock className="w-4 h-4 text-amber-500" />
@@ -817,7 +1098,7 @@ const Reports: React.FC = () => {
                     <p className={`text-lg font-bold ${poStats.ordered.length > 0 ? 'text-amber-700' : 'text-gray-900'}`}>{poStats.ordered.length}</p>
                     <p className="text-xs text-gray-400 mt-0.5">órd. ordenadas</p>
                   </div>
-                  <div className={`rounded-2xl border shadow-sm p-4 ${poStats.draft.length > 0 ? 'bg-gray-50 border-gray-200' : 'bg-white border-gray-100'}`}>
+                  <div className={`rounded-xl border shadow-sm p-4 ${poStats.draft.length > 0 ? 'bg-gray-50 border-gray-200' : 'bg-white border-gray-200'}`}>
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-7 h-7 bg-gray-100 rounded-lg flex items-center justify-center">
                         <FileText className="w-4 h-4 text-gray-400" />
@@ -831,7 +1112,7 @@ const Reports: React.FC = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                   {/* Gráfica compras mensuales */}
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                     <h2 className="text-sm font-semibold text-gray-700 mb-1">Compras últimos 6 meses</h2>
                     <p className="text-xs text-gray-400 mb-4">Monto total por mes</p>
                     {purchaseOrders.length === 0 ? (
@@ -852,7 +1133,7 @@ const Reports: React.FC = () => {
                   </div>
 
                   {/* Top proveedores */}
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                     <h2 className="text-sm font-semibold text-gray-700 mb-4">Top proveedores</h2>
                     {poStats.topSuppliers.length === 0 ? (
                       <p className="text-xs text-gray-300 text-center py-6">Sin órdenes de compra</p>
@@ -884,7 +1165,7 @@ const Reports: React.FC = () => {
                 </div>
 
                 {/* Estado de órdenes de compra */}
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-4">
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-4">
                   <h2 className="text-sm font-semibold text-gray-700 mb-4">Estado de órdenes de compra</h2>
                   {purchaseOrders.length === 0 ? (
                     <p className="text-xs text-gray-300 text-center py-6">Sin órdenes de compra registradas</p>
@@ -917,7 +1198,37 @@ const Reports: React.FC = () => {
             {/* ════════════════ TAB: RENTABILIDAD ════════════════ */}
             {tab === 'rentabilidad' && (
               <>
-                {!rentStats.hasCostData && (
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:justify-between mb-4">
+                  <p className="text-xs text-gray-400">
+                    Utilidad = ventas − costo de lo vendido. Las compras de inventario no se restan.
+                    {profit && profit.purchasesThisMonth > 0 && (
+                      <span className="block sm:inline sm:ml-1">Compras recibidas este mes: <b className="text-gray-600">{COPShort(profit.purchasesThisMonth)}</b> (informativo)</span>
+                    )}
+                  </p>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <input
+                      type="month" value={reportMonth} onChange={e => setReportMonth(e.target.value)}
+                      max={new Date().toISOString().slice(0, 7)}
+                      className="px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-600 bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                    <button
+                      onClick={() => downloadMonthlyReport(reportMonth)}
+                      className="px-3 py-1.5 text-xs font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-700 transition-colors whitespace-nowrap"
+                    >
+                      Descargar Excel del mes
+                    </button>
+                  </div>
+                </div>
+                {profit && profit.productsWithoutCost > 0 && (
+                  <div className="mb-4 flex items-start gap-2 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700">
+                    <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                    <span>
+                      {profit.productsWithoutCost} producto{profit.productsWithoutCost !== 1 ? 's' : ''} vendido{profit.productsWithoutCost !== 1 ? 's' : ''} sin costo registrado — su utilidad se calcula con costo $0.
+                      Registra sus compras o el precio del proveedor para afinar el margen.
+                    </span>
+                  </div>
+                )}
+                {!rent.hasCostData && (
                   <div className="mb-4 flex items-start gap-2 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700">
                     <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
                     Sin órdenes de compra recibidas — los costos aparecen en $0. Registra compras para ver el margen real.
@@ -926,66 +1237,66 @@ const Reports: React.FC = () => {
 
                 {/* KPIs */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-7 h-7 bg-emerald-50 rounded-lg flex items-center justify-center">
                         <TrendingUp className="w-4 h-4 text-emerald-500" />
                       </div>
                       <span className="text-xs font-medium text-gray-500">Ingresos totales</span>
                     </div>
-                    <p className="text-lg font-bold text-gray-900">{COPShort(rentStats.totalRevenue)}</p>
+                    <p className="text-lg font-bold text-gray-900">{COPShort(rent.totalRevenue)}</p>
                     <p className="text-xs text-gray-400 mt-0.5">{orders.length} órdenes</p>
                   </div>
 
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-7 h-7 bg-orange-50 rounded-lg flex items-center justify-center">
                         <ShoppingCart className="w-4 h-4 text-orange-500" />
                       </div>
-                      <span className="text-xs font-medium text-gray-500">Costo compras</span>
+                      <span className="text-xs font-medium text-gray-500">Costo de lo vendido</span>
                     </div>
-                    <p className="text-lg font-bold text-gray-900">{COPShort(rentStats.totalCost)}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">POs recibidas</p>
+                    <p className="text-lg font-bold text-gray-900">{COPShort(rent.totalCost)}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">de las ventas (no incluye inventario comprado)</p>
                   </div>
 
-                  <div className={`rounded-2xl border shadow-sm p-4 ${rentStats.grossProfit >= 0 ? 'bg-emerald-50 border-emerald-100' : 'bg-red-50 border-red-100'}`}>
+                  <div className={`rounded-xl border shadow-sm p-4 ${rent.grossProfit >= 0 ? 'bg-emerald-50 border-emerald-100' : 'bg-red-50 border-red-100'}`}>
                     <div className="flex items-center gap-2 mb-2">
-                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${rentStats.grossProfit >= 0 ? 'bg-emerald-100' : 'bg-red-100'}`}>
-                        <PiggyBank className={`w-4 h-4 ${rentStats.grossProfit >= 0 ? 'text-emerald-600' : 'text-red-500'}`} />
+                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${rent.grossProfit >= 0 ? 'bg-emerald-100' : 'bg-red-100'}`}>
+                        <PiggyBank className={`w-4 h-4 ${rent.grossProfit >= 0 ? 'text-emerald-600' : 'text-red-500'}`} />
                       </div>
                       <span className="text-xs font-medium text-gray-500">Utilidad bruta</span>
                     </div>
-                    <p className={`text-lg font-bold ${rentStats.grossProfit >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>
-                      {COPShort(rentStats.grossProfit)}
+                    <p className={`text-lg font-bold ${rent.grossProfit >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>
+                      {COPShort(rent.grossProfit)}
                     </p>
                     <p className="text-xs text-gray-400 mt-0.5">Ingresos − Costos</p>
                   </div>
 
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-7 h-7 bg-violet-50 rounded-lg flex items-center justify-center">
                         <DollarSign className="w-4 h-4 text-violet-500" />
                       </div>
                       <span className="text-xs font-medium text-gray-500">Margen bruto</span>
                     </div>
-                    <p className={`text-lg font-bold ${rentStats.grossMargin >= 30 ? 'text-emerald-700' : rentStats.grossMargin >= 10 ? 'text-amber-600' : 'text-red-600'}`}>
-                      {rentStats.grossMargin.toFixed(1)}%
+                    <p className={`text-lg font-bold ${rent.grossMargin >= 30 ? 'text-emerald-700' : rent.grossMargin >= 10 ? 'text-amber-600' : 'text-red-600'}`}>
+                      {rent.grossMargin.toFixed(1)}%
                     </p>
                     <p className="text-xs text-gray-400 mt-0.5">
-                      {rentStats.grossMargin >= 30 ? 'Saludable' : rentStats.grossMargin >= 10 ? 'Aceptable' : 'Bajo'}
+                      {rent.grossMargin >= 30 ? 'Saludable' : rent.grossMargin >= 10 ? 'Aceptable' : 'Bajo'}
                     </p>
                   </div>
                 </div>
 
                 {/* Este mes */}
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-6">
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-6">
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-sm font-semibold text-gray-700">Este mes</h3>
-                    {rentStats.profitPct !== null && (
+                    {rent.profitPct !== null && (
                       <span className={`text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ml-2 ${
-                        rentStats.profitPct >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'
+                        rent.profitPct >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'
                       }`}>
-                        {rentStats.profitPct >= 0 ? '+' : ''}{rentStats.profitPct}%
+                        {rent.profitPct >= 0 ? '+' : ''}{rent.profitPct}%
                         <span className="hidden sm:inline"> vs mes anterior</span>
                       </span>
                     )}
@@ -993,29 +1304,29 @@ const Reports: React.FC = () => {
                   <div className="grid grid-cols-3 gap-2">
                     <div>
                       <p className="text-xs text-gray-400 mb-0.5">Ingresos</p>
-                      <p className="text-sm font-bold text-gray-900">{COPShort(rentStats.monthRevenue)}</p>
+                      <p className="text-sm font-bold text-gray-900">{COPShort(rent.monthRevenue)}</p>
                     </div>
                     <div>
                       <p className="text-xs text-gray-400 mb-0.5">Costos</p>
-                      <p className="text-sm font-bold text-orange-600">{COPShort(rentStats.monthCost)}</p>
+                      <p className="text-sm font-bold text-orange-600">{COPShort(rent.monthCost)}</p>
                     </div>
                     <div>
                       <p className="text-xs text-gray-400 mb-0.5">Utilidad</p>
-                      <p className={`text-sm font-bold ${rentStats.monthProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                        {COPShort(rentStats.monthProfit)}
+                      <p className={`text-sm font-bold ${rent.monthProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                        {COPShort(rent.monthProfit)}
                       </p>
                       <p className="text-xs text-gray-400">
-                        {rentStats.monthMargin.toFixed(0)}% margen
+                        {rent.monthMargin.toFixed(0)}% margen
                       </p>
                     </div>
                   </div>
                 </div>
 
                 {/* Gráfica dual: Ingresos vs Costos 12 meses */}
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-6">
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-6">
                   <h3 className="text-sm font-semibold text-gray-700 mb-4">Ingresos vs Costos — últimos 12 meses</h3>
                   <ResponsiveContainer width="100%" height={220}>
-                    <BarChart data={rentStats.monthlyChart} barGap={2} barCategoryGap="25%">
+                    <BarChart data={rent.monthlyChart} barGap={2} barCategoryGap="25%">
                       <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
                       <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
                       <YAxis tickFormatter={COPShort} tick={{ fontSize: 10, fill: '#9ca3af' }} tickLine={false} axisLine={false} width={48} />
@@ -1031,10 +1342,10 @@ const Reports: React.FC = () => {
                 </div>
 
                 {/* Utilidad mensual */}
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-4">
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-4">
                   <h3 className="text-sm font-semibold text-gray-700 mb-4">Utilidad mensual</h3>
                   <ResponsiveContainer width="100%" height={160}>
-                    <LineChart data={rentStats.monthlyChart}>
+                    <LineChart data={rent.monthlyChart}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
                       <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
                       <YAxis tickFormatter={COPShort} tick={{ fontSize: 10, fill: '#9ca3af' }} tickLine={false} axisLine={false} width={48} />
@@ -1054,9 +1365,9 @@ const Reports: React.FC = () => {
                       />
                     </LineChart>
                   </ResponsiveContainer>
-                  {rentStats.bestMonth && rentStats.bestMonth.utilidad > 0 && (
+                  {rent.bestMonth && rent.bestMonth.utilidad > 0 && (
                     <p className="text-xs text-gray-400 mt-2 text-center">
-                      Mejor mes: <span className="font-semibold text-emerald-600">{rentStats.bestMonth.label}</span> — {COP(rentStats.bestMonth.utilidad)}
+                      Mejor mes: <span className="font-semibold text-emerald-600">{rent.bestMonth.label}</span> — {COP(rent.bestMonth.utilidad)}
                     </p>
                   )}
                 </div>

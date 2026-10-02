@@ -19,6 +19,7 @@ export interface PurchaseOrderAttributes {
   totalAmount: number;
   status: PurchaseOrderStatus;
   notes: string | null;
+  affectsStock: boolean; // false = compra histórica/carga inicial, no suma inventario
   createdAt: Date;
   updatedAt: Date;
   deletedAt?: Date;
@@ -73,6 +74,9 @@ export class PurchaseOrder extends Model<PurchaseOrderAttributes, PurchaseOrderC
 
   @Column({ type: DataType.TEXT, allowNull: true })
   notes!: string | null;
+
+  @Column({ type: DataType.BOOLEAN, allowNull: false, defaultValue: true })
+  affectsStock!: boolean;
 
   @HasMany(() => PurchaseOrderItem)
   items!: PurchaseOrderItem[];

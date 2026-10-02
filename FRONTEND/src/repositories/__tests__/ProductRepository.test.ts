@@ -48,8 +48,8 @@ describe('ProductRepository', () => {
 
       const queueItems = await db.syncQueue.toArray();
       expect(queueItems.length).toBe(1);
-      expect(queueItems[0].entityType).toBe('Product');
-      expect(queueItems[0].operation).toBe('CREATE');
+      expect(queueItems[0].entityType).toBe('product');
+      expect(queueItems[0].operation).toBe('create');
     });
 
     it('should throw error if validation fails', async () => {
@@ -107,7 +107,7 @@ describe('ProductRepository', () => {
 
       const queueItems = await db.syncQueue.toArray();
       expect(queueItems.length).toBe(1);
-      expect(queueItems[0].operation).toBe('UPDATE');
+      expect(queueItems[0].operation).toBe('update');
     });
 
     it('should throw error if product not found', async () => {
@@ -178,7 +178,7 @@ describe('ProductRepository', () => {
 
       const queueItems = await db.syncQueue.toArray();
       expect(queueItems.length).toBe(1);
-      expect(queueItems[0].operation).toBe('DELETE');
+      expect(queueItems[0].operation).toBe('delete');
     });
 
     it('should throw error if product already deleted', async () => {

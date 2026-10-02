@@ -18,11 +18,21 @@ export interface CreateMovementData {
 export class StockMovementService {
   async createMovement(data: CreateMovementData): Promise<StockMovement> {
     const t = data.transaction ?? null;
-    const product = await Product.findByPk(data.productId, { transaction: t });
+    // Filtra por tenant (evita mutar stock ajeno) y bloquea la fila dentro de
+    // la transacción para que dos ventas simultáneas no pisen el mismo stock
+    const product = await Product.findOne({
+      where: { id: data.productId, tenantId: data.tenantId },
+      transaction: t,
+      ...(t ? { lock: t.LOCK.UPDATE } : {}),
+    });
     if (!product) throw new Error(`Product ${data.productId} not found`);
 
+    // Los DECIMAL de MySQL llegan como string desde Sequelize — sin coerción,
+    // stockBefore + quantity concatena texto ("100" + "5.00" = "1005.00")
+    const quantity = Number(data.quantity);
+    if (!Number.isFinite(quantity)) throw new Error(`Cantidad inválida para producto ${data.productId}`);
     const stockBefore = Number(product.stock);
-    const stockAfter = stockBefore + data.quantity;
+    const stockAfter = stockBefore + quantity;
 
     await product.update({ stock: stockAfter }, { transaction: t });
 
@@ -31,7 +41,7 @@ export class StockMovementService {
         tenantId: data.tenantId,
         productId: data.productId,
         type: data.type,
-        quantity: data.quantity,
+        quantity,
         stockBefore,
         stockAfter,
         referenceId: data.referenceId ?? null,
@@ -43,14 +53,14 @@ export class StockMovementService {
     );
   }
 
-  async getMovementsByProduct(productId: number, query: PaginationQuery) {
+  async getMovementsByProduct(productId: number, query: PaginationQuery, tenantId: number) {
     const { page, limit } = validateSchema(paginationSchema, query);
     const validatedPage = page || 1;
     const validatedLimit = limit || 20;
     const offset = (validatedPage - 1) * validatedLimit;
 
     const { count, rows } = await StockMovement.findAndCountAll({
-      where: { productId },
+      where: { productId, tenantId },
       order: [['createdAt', 'DESC']],
       limit: validatedLimit,
       offset,
@@ -67,13 +77,14 @@ export class StockMovementService {
     };
   }
 
-  async getAllMovements(query: PaginationQuery) {
+  async getAllMovements(query: PaginationQuery, tenantId: number) {
     const { page, limit } = validateSchema(paginationSchema, query);
     const validatedPage = page || 1;
     const validatedLimit = limit || 20;
     const offset = (validatedPage - 1) * validatedLimit;
 
     const { count, rows } = await StockMovement.findAndCountAll({
+      where: { tenantId },
       include: [
         { model: Product, as: 'product', attributes: ['id', 'name', 'code', 'unit'] },
       ],

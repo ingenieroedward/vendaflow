@@ -13,6 +13,10 @@ export async function updateMyTheme(data: {
   name?: string;
   primaryColor?: string;
   logoUrl?: string | null;
+  nit?: string | null;
+  address?: string | null;
+  city?: string | null;
+  contactEmail?: string | null;
 }): Promise<void> {
   await apiService.put<unknown>('/tenants/me/theme', data);
 }
@@ -21,11 +25,9 @@ interface TenantResponse {
   id: number;
   slug: string;
   name: string;
-  plan: string;
   status: string;
   logoUrl: string | null;
   primaryColor: string;
-  trialEndsAt: string | null;
 }
 
 export async function fetchTenantBySlug(slug: string): Promise<Tenant | null> {

@@ -9,7 +9,8 @@ import {
 import { NotFoundError } from '@/core/errors/AppError';
 import { validateSchema, validatePartialSchema, paginationSchema, PaginationQuery } from '@/core/utils/validation';
 import { createCustomerSchema, updateCustomerSchema, searchCustomerSchema } from './customer.dto';
-import { Op } from 'sequelize';
+import { Op, fn, col } from 'sequelize';
+import { Order } from '@/modules/order/order.model';
 
 export class CustomerService {
   async createCustomer(customerData: CreateCustomerDto, tenantId: number): Promise<CustomerResponseDto> {
@@ -31,7 +32,41 @@ export class CustomerService {
       order: [['createdAt', 'DESC']],
     });
 
-    const customers = rows.map(customer => this.mapToResponseDto(customer));
+    // Saldo pendiente (cartera) por cliente: total a crédito sin pagar MENOS
+    // abonos registrados (antes ignoraba order_payments y mostraba de más)
+    const creditOrders = rows.length
+      ? await Order.findAll({
+          where: {
+            tenantId,
+            customerId: rows.map(r => r.id),
+            paymentType: 'credit',
+            paidAt: null,
+            status: { [Op.ne]: 'cancelled' },
+          },
+          attributes: ['id', 'customerId', 'totalAmount'],
+          raw: true,
+        }) as unknown as Array<{ id: number; customerId: number; totalAmount: string }>
+      : [];
+    const { OrderPayment } = await import('../order/order-payment.model');
+    const paidRows = creditOrders.length
+      ? await OrderPayment.findAll({
+          where: { orderId: creditOrders.map(o => o.id) },
+          attributes: ['orderId', [fn('SUM', col('amount')), 'paid']],
+          group: ['orderId'],
+          raw: true,
+        }) as unknown as Array<{ orderId: number; paid: string }>
+      : [];
+    const paidMap = new Map(paidRows.map(pr => [pr.orderId, Number(pr.paid)]));
+    const balanceMap = new Map<number, number>();
+    for (const o of creditOrders) {
+      const balance = Math.max(0, Number(o.totalAmount) - (paidMap.get(o.id) ?? 0));
+      balanceMap.set(o.customerId, (balanceMap.get(o.customerId) ?? 0) + balance);
+    }
+
+    const customers = rows.map(customer => ({
+      ...this.mapToResponseDto(customer),
+      creditBalance: balanceMap.get(customer.id) ?? 0,
+    }));
     const totalPages = Math.ceil(Number(count) / validatedLimit);
 
     return {
