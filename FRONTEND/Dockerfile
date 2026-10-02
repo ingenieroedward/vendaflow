@@ -11,6 +11,11 @@ COPY package*.json ./
 RUN npm ci
 
 COPY . .
+
+# CI: typecheck + tests en el build — si fallan, el deploy se aborta
+RUN npm run typecheck
+RUN npm test
+
 RUN npm run build
 
 # ── Stage 2: Serve ───────────────────────────────────────────────────────────

@@ -42,6 +42,7 @@ export interface CustomerResponseDto {
   note: string | null;
   createdAt: Date;
   updatedAt: Date;
+  creditBalance?: number; // saldo de crédito pendiente de cobro
 }
 
 // Customers List Response DTO

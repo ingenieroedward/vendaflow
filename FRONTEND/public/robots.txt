@@ -1,8 +1,8 @@
 # Merco — https://merco.edwsystem.com
+# Los subdominios de tenants reciben X-Robots-Tag: noindex desde nginx.
 User-agent: *
 Allow: /
 Disallow: /api/
-Disallow: /superadmin
 Disallow: /login
 Disallow: /test-sw.html
 Disallow: /clear-app-data.html
@@ -21,7 +21,6 @@ User-agent: Applebot-Extended
 User-agent: Bingbot
 Allow: /
 Disallow: /api/
-Disallow: /superadmin
 Disallow: /login
 Disallow: /test-sw.html
 Disallow: /clear-app-data.html

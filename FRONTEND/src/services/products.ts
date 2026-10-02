@@ -13,6 +13,25 @@ import {
 } from '../types';
 
 export class ProductService {
+  // Productos con stock en o bajo el mínimo
+  async getStockAlerts(): Promise<Product[]> {
+    const response = await apiService.get<ApiResponse<Product[]>>('/products/stock/alerts');
+    return response.data;
+  }
+
+  // Siguiente código sugerido (10001 → 10002, ASE003 → ASE004)
+  async getNextCode(): Promise<string | null> {
+    const response = await apiService.get<ApiResponse<{ nextCode: string | null }>>('/products/next-code');
+    return response.data.nextCode;
+  }
+
+  // Costo por producto: último costo de compra, o menor precio de proveedor si no hay
+  // compras registradas — mismo dato que el COGS de Rentabilidad. { [productId]: costo }
+  async getCosts(): Promise<Record<number, number>> {
+    const response = await apiService.get<ApiResponse<Record<number, number>>>('/products/costs');
+    return response.data;
+  }
+
   // Products
   async searchProducts(query: string, includePrices: boolean = true): Promise<Product[]> {
     try {

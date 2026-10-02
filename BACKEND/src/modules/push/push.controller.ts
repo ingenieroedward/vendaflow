@@ -10,6 +10,11 @@ export class PushController {
     res.json({ publicKey: config.vapid.publicKey });
   });
 
+  sendTest = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const result = await pushService.sendTestToUser(req.user!.id);
+    res.json({ status: 'success', data: result });
+  });
+
   subscribe = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const userId = req.user!.id;
     const subscription = req.body as SubscriptionPayload;
@@ -29,7 +34,7 @@ export class PushController {
       throw new AppError('Endpoint required', 400);
     }
 
-    await pushService.unsubscribe(endpoint);
+    await pushService.unsubscribe(endpoint, req.user!.id);
     res.json({ message: 'Unsubscribed successfully' });
   });
 }

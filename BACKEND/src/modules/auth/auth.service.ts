@@ -43,6 +43,25 @@ export class AuthService {
     const isPasswordValid = await user.comparePassword(validatedData.password);
     if (!isPasswordValid) throw new UnauthorizedError('Invalid username or password');
 
+    // 2FA: si el superadmin tiene TOTP activo, exigir el código de 6 dígitos
+    // (o un código de respaldo — sin esto, perder el teléfono deja la cuenta
+    // bloqueada para siempre: no hay forma de llegar a un endpoint
+    // autenticado para desactivar el 2FA sin haber podido iniciar sesión).
+    if (user.role === 'superadmin' && user.totpSecret) {
+      const { verifyTotp, findBackupCodeIndex } = await import('@/core/totp');
+      const code = (validatedData as { totp?: string }).totp;
+      if (!code) throw new UnauthorizedError('TOTP_REQUIRED');
+      if (!verifyTotp(user.totpSecret, code)) {
+        const hashes: string[] = user.totpBackupCodes ? JSON.parse(user.totpBackupCodes) : [];
+        const idx = findBackupCodeIndex(hashes, code);
+        if (idx === -1) throw new UnauthorizedError('Código de verificación incorrecto');
+        // Se consume: un código de respaldo es de un solo uso. No desactiva
+        // el 2FA — solo abre esta sesión para poder reconfigurarlo.
+        hashes.splice(idx, 1);
+        await user.update({ totpBackupCodes: JSON.stringify(hashes) });
+      }
+    }
+
     // Fetch tenant separately to avoid association alias issues
     const tenantData = user.tenantId ? await Tenant.findByPk(user.tenantId) : null;
 
@@ -56,7 +75,7 @@ export class AuthService {
     const token = this.generateToken(user.id, user.username, user.role, user.tenantId);
 
     return {
-      user: { id: user.id, username: user.username, role: user.role, tenantId: user.tenantId },
+      user: { id: user.id, name: user.name, username: user.username, role: user.role, tenantId: user.tenantId },
       token,
       tenant: tenantData ? {
         id: tenantData.id,

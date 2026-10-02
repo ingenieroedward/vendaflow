@@ -195,6 +195,9 @@ export class OrderRepository extends BaseRepository<
     return await db.transaction('rw', [db.orders, db.orderItems, db.syncQueue], async () => {
       // Create order
       const orderWithMeta = {
+        // Fecha de creación local — el valor del servidor la reemplaza al sincronizar.
+        // Sin esto, las órdenes creadas offline no aparecen en filtros por fecha.
+        createdAt: new Date().toISOString(),
         ...data.order,
         ...createBaseModel(userId)
       } as Omit<LocalOrder, 'id'>;
@@ -222,11 +225,12 @@ export class OrderRepository extends BaseRepository<
 
         if (itemId) {
           await db.syncQueue.add({
-            entityType: 'OrderItem',
-            entityId: itemId,
-            operation: 'CREATE',
-            createdAt: new Date().toISOString(),
-            retries: 0
+            entityType: 'order_item',
+            entityLocalId: itemId,
+            operation: 'create',
+            data: {},
+            attempts: 0,
+            createdAt: Date.now(),
           } as any);
         }
       }
@@ -305,11 +309,12 @@ export class OrderRepository extends BaseRepository<
           });
 
           await db.syncQueue.add({
-            entityType: 'OrderItem',
-            entityId: existingItem.id,
-            operation: 'DELETE',
-            createdAt: new Date().toISOString(),
-            retries: 0
+            entityType: 'order_item',
+            entityLocalId: existingItem.id,
+            operation: 'delete',
+            data: {},
+            attempts: 0,
+            createdAt: Date.now(),
           } as any);
         }
       }
@@ -333,11 +338,12 @@ export class OrderRepository extends BaseRepository<
       for (const item of createdItems) {
         if (item.id) {
           await db.syncQueue.add({
-            entityType: 'OrderItem',
-            entityId: item.id,
-            operation: 'CREATE',
-            createdAt: new Date().toISOString(),
-            retries: 0
+            entityType: 'order_item',
+            entityLocalId: item.id,
+            operation: 'create',
+            data: {},
+            attempts: 0,
+            createdAt: Date.now(),
           } as any);
         }
       }
@@ -399,11 +405,12 @@ export class OrderRepository extends BaseRepository<
           });
 
           await db.syncQueue.add({
-            entityType: 'OrderItem',
-            entityId: item.id,
-            operation: 'DELETE',
-            createdAt: new Date().toISOString(),
-            retries: 0
+            entityType: 'order_item',
+            entityLocalId: item.id,
+            operation: 'delete',
+            data: {},
+            attempts: 0,
+            createdAt: Date.now(),
           } as any);
         }
       }

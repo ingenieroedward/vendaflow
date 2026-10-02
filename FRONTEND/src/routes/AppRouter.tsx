@@ -3,28 +3,38 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import { useAuthStore } from '../store/authStore';
 import Layout from '../components/layout/Layout';
 import Login from '../pages/Login';
-import Superadmin from '../pages/Superadmin';
-import Home from '../pages/Home';
-import ProductDetail from '../pages/ProductDetail';
-import ProductNew from '../pages/ProductNew';
-import ProductEdit from '../pages/ProductEdit';
-import OrderDetail from '../pages/OrderDetail';
-import OrderNew from '../pages/OrderNew';
-import Orders from '../pages/Orders';
-import Users from '../pages/Users';
-import UserNew from '../pages/UserNew';
-import UserEdit from '../pages/UserEdit';
-import OrderEdit from '../pages/OrderEdit';
-import Suppliers from '../pages/Suppliers';
-import Categories from '../pages/Categories';
-import Prices from '../pages/Prices';
-import Customers from '../pages/Customers';
-import Reports from '../pages/Reports';
-import Inventory from '../pages/Inventory';
-import PurchaseOrders from '../pages/PurchaseOrders';
-import PurchaseOrderNew from '../pages/PurchaseOrderNew';
-import PurchaseOrderDetail from '../pages/PurchaseOrderDetail';
-import TenantSettings from '../pages/TenantSettings';
+import Registro from '../pages/Registro';
+import Landing from '../pages/Landing';
+import FeatureGate from '../components/ui/FeatureGate';
+import { detectTenantSlug } from '../services/tenant';
+const Home = React.lazy(() => import('../pages/Home'));
+const ProductDetail = React.lazy(() => import('../pages/ProductDetail'));
+const ProductNew = React.lazy(() => import('../pages/ProductNew'));
+const ProductEdit = React.lazy(() => import('../pages/ProductEdit'));
+const OrderDetail = React.lazy(() => import('../pages/OrderDetail'));
+const OrderNew = React.lazy(() => import('../pages/OrderNew'));
+const Orders = React.lazy(() => import('../pages/Orders'));
+const Users = React.lazy(() => import('../pages/Users'));
+const UserNew = React.lazy(() => import('../pages/UserNew'));
+const UserEdit = React.lazy(() => import('../pages/UserEdit'));
+const OrderEdit = React.lazy(() => import('../pages/OrderEdit'));
+const Quotes = React.lazy(() => import('../pages/Quotes'));
+const QuoteNew = React.lazy(() => import('../pages/QuoteNew'));
+const QuoteDetail = React.lazy(() => import('../pages/QuoteDetail'));
+const QuoteEdit = React.lazy(() => import('../pages/QuoteEdit'));
+const Suppliers = React.lazy(() => import('../pages/Suppliers'));
+const Categories = React.lazy(() => import('../pages/Categories'));
+const Prices = React.lazy(() => import('../pages/Prices'));
+const Customers = React.lazy(() => import('../pages/Customers'));
+const Reports = React.lazy(() => import('../pages/Reports'));
+const Inventory = React.lazy(() => import('../pages/Inventory'));
+const Pos = React.lazy(() => import('../pages/Pos'));
+const PurchaseOrders = React.lazy(() => import('../pages/PurchaseOrders'));
+const PurchaseOrderNew = React.lazy(() => import('../pages/PurchaseOrderNew'));
+const PurchaseOrderDetail = React.lazy(() => import('../pages/PurchaseOrderDetail'));
+const TenantSettings = React.lazy(() => import('../pages/TenantSettings'));
+const Billing = React.lazy(() => import('../pages/Billing'));
+const Profile = React.lazy(() => import('../pages/Profile'));
 
 // Protected Route Component
 interface RouteProps {
@@ -45,13 +55,6 @@ const AdminRoute: React.FC<RouteProps> = ({ children }) => {
   return <>{children}</>;
 };
 
-// Superadmin Route — standalone, no app chrome
-const SuperadminRoute: React.FC<RouteProps> = ({ children }) => {
-  const { isAuthenticated, user } = useAuthStore();
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
-  if (user?.role !== 'superadmin') return <Navigate to="/" replace />;
-  return <>{children}</>;
-};
 
 // Buyer Route Component (admin or buyer) - Acceso a productos
 const BuyerRoute: React.FC<RouteProps> = ({ children }) => {
@@ -85,12 +88,25 @@ const SellerRoute: React.FC<RouteProps> = ({ children }) => {
   return <>{children}</>;
 };
 
+// Auth Route Component — cualquier rol autenticado (admin/buyer/seller), sin
+// restricción adicional. Para páginas como el perfil propio, donde todos los
+// roles necesitan entrar.
+const AuthRoute: React.FC<RouteProps> = ({ children }) => {
+  const { isAuthenticated } = useAuthStore();
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <>{children}</>;
+};
+
 // Public Route Component (redirects to home if authenticated)
 const PublicRoute: React.FC<RouteProps> = ({ children }) => {
   const { isAuthenticated, user } = useAuthStore();
 
   if (isAuthenticated) {
-    return <Navigate to={user?.role === 'superadmin' ? '/superadmin' : '/'} replace />;
+    return <Navigate to={'/'} replace />;
   }
 
   return <>{children}</>;
@@ -107,12 +123,6 @@ const AppRouter: React.FC = () => {
   return (
     <Router>
       <Routes>
-        {/* Superadmin panel — rendered without app chrome (no Sidebar/Header/BottomNav) */}
-        <Route
-          path="/superadmin"
-          element={<SuperadminRoute><Superadmin /></SuperadminRoute>}
-        />
-
         {/* All other routes inside Layout */}
         <Route path="*" element={
           <Layout>
@@ -124,7 +134,14 @@ const AppRouter: React.FC = () => {
   );
 };
 
+const PageFallback = (
+  <div className="flex items-center justify-center py-24">
+    <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />
+  </div>
+);
+
 const InnerRoutes: React.FC = () => (
+  <React.Suspense fallback={PageFallback}>
   <Routes>
     {/* Public Routes */}
     <Route
@@ -136,14 +153,20 @@ const InnerRoutes: React.FC = () => (
             } 
           />
 
+          <Route path="/registro" element={<Registro />} />
+
           {/* Protected Routes */}
-          <Route 
-            path="/" 
+          <Route
+            path="/"
             element={
-              <BuyerRoute>
-                <Home />
-              </BuyerRoute>
-            } 
+              detectTenantSlug() ? (
+                <BuyerRoute>
+                  <Home />
+                </BuyerRoute>
+              ) : (
+                <Landing />
+              )
+            }
           />
 
           {/* Product Routes - Solo admin y buyer */}
@@ -199,13 +222,55 @@ const InnerRoutes: React.FC = () => (
               </SellerRoute>
             } 
           />
-          <Route 
-            path="/orders/:id/edit" 
+          <Route
+            path="/orders/:id/edit"
             element={
               <SellerRoute>
                 <OrderEdit />
               </SellerRoute>
-            } 
+            }
+          />
+
+          {/* Quote Routes - Solo admin y seller, gateado por plan */}
+          <Route
+            path="/quotes"
+            element={
+              <SellerRoute>
+                <FeatureGate feature="quotes">
+                  <Quotes />
+                </FeatureGate>
+              </SellerRoute>
+            }
+          />
+          <Route
+            path="/quotes/new"
+            element={
+              <SellerRoute>
+                <FeatureGate feature="quotes">
+                  <QuoteNew />
+                </FeatureGate>
+              </SellerRoute>
+            }
+          />
+          <Route
+            path="/quotes/:id"
+            element={
+              <SellerRoute>
+                <FeatureGate feature="quotes">
+                  <QuoteDetail />
+                </FeatureGate>
+              </SellerRoute>
+            }
+          />
+          <Route
+            path="/quotes/:id/edit"
+            element={
+              <SellerRoute>
+                <FeatureGate feature="quotes">
+                  <QuoteEdit />
+                </FeatureGate>
+              </SellerRoute>
+            }
           />
 
           {/* Buyer Routes - Precios, Proveedores, Categorías */}
@@ -282,6 +347,18 @@ const InnerRoutes: React.FC = () => (
             } 
           />
 
+          {/* POS - seller y admin, gateado por plan */}
+          <Route
+            path="/pos"
+            element={
+              <SellerRoute>
+                <FeatureGate feature="pos">
+                  <Pos />
+                </FeatureGate>
+              </SellerRoute>
+            }
+          />
+
           {/* Inventory & Purchase Orders - seller y admin */}
           <Route
             path="/inventory"
@@ -316,6 +393,16 @@ const InnerRoutes: React.FC = () => (
             }
           />
 
+    {/* Perfil propio — cualquier rol */}
+    <Route
+      path="/profile"
+      element={
+        <AuthRoute>
+          <Profile />
+        </AuthRoute>
+      }
+    />
+
     {/* Admin: tenant settings */}
     <Route
       path="/settings"
@@ -326,9 +413,20 @@ const InnerRoutes: React.FC = () => (
       }
     />
 
+    {/* Admin: plan, límites y pagos a Merco (separado de Configuración) */}
+    <Route
+      path="/billing"
+      element={
+        <AdminRoute>
+          <Billing />
+        </AdminRoute>
+      }
+    />
+
     {/* Redirect any unknown routes to home */}
     <Route path="*" element={<Navigate to="/" replace />} />
   </Routes>
+  </React.Suspense>
 );
 
 export default AppRouter;

@@ -10,16 +10,55 @@ import {
   ProductsListResponseDto,
   SearchProductDto
 } from './product.dto';
-import { NotFoundError } from '@/core/errors/AppError';
+import { NotFoundError, ConflictError } from '@/core/errors/AppError';
 import { validateSchema, validatePartialSchema, paginationSchema, PaginationQuery } from '@/core/utils/validation';
 import { createProductSchema, updateProductSchema, searchProductSchema, adjustStockSchema } from './product.dto';
+import { StockMovementService } from '@/modules/stock-movement/stock-movement.service';
 import { Op, literal } from 'sequelize';
-import { assertWithinPlanLimit } from '@/modules/tenant/planLimits';
 
 export class ProductService {
+  private stockMovementService = new StockMovementService();
+
+  // Sugiere el siguiente código a partir del último producto creado del tenant:
+  // 10001 → 10002, ASE003 → ASE004 (conserva prefijo y ceros a la izquierda)
+  async getNextCode(tenantId: number): Promise<{ nextCode: string | null }> {
+    const last = await Product.findOne({
+      where: { tenantId },
+      order: [['createdAt', 'DESC']],
+      attributes: ['code'],
+    });
+    const match = last?.code?.match(/^(.*?)(\d+)$/);
+    if (!match) return { nextCode: null };
+
+    const prefix = match[1]!;
+    const digits = match[2]!;
+    let n = parseInt(digits, 10);
+    // Avanzar hasta un código libre (incluye soft-deleted: el índice único los cuenta)
+    for (let i = 0; i < 100; i++) {
+      n += 1;
+      const candidate = prefix + String(n).padStart(digits.length, '0');
+      const exists = await Product.findOne({
+        where: { tenantId, code: candidate },
+        attributes: ['id'],
+        paranoid: false,
+      });
+      if (!exists) return { nextCode: candidate };
+    }
+    return { nextCode: null };
+  }
+
   async createProduct(productData: CreateProductDto, tenantId: number): Promise<ProductResponseDto> {
     const validatedData = validateSchema(createProductSchema, productData);
-    await assertWithinPlanLimit(tenantId, 'products');
+
+    // Cuota del plan
+    const { Tenant } = await import('@/modules/tenant/tenant.model');
+    const tenant = await Tenant.findByPk(tenantId);
+    if (tenant) {
+      const count = await Product.count({ where: { tenantId } });
+      if (count >= tenant.maxProducts) {
+        throw new ConflictError(`Tu plan permite máximo ${tenant.maxProducts} productos. Actualiza el plan para agregar más.`);
+      }
+    }
 
     if (validatedData.categoryId) {
       const category = await Category.findOne({ where: { id: validatedData.categoryId, tenantId } });
@@ -98,7 +137,7 @@ export class ProductService {
     return this.mapToResponseDto(product);
   }
 
-  async updateProduct(id: number, updateData: UpdateProductDto, tenantId: number): Promise<ProductResponseDto> {
+  async updateProduct(id: number, updateData: UpdateProductDto, tenantId: number, userId?: number): Promise<ProductResponseDto> {
     const validatedData = validatePartialSchema(updateProductSchema, updateData) as Partial<UpdateProductDto>;
 
     const product = await Product.findOne({ where: { id, tenantId } });
@@ -113,7 +152,29 @@ export class ProductService {
       }
     }
 
-    await product.update(validatedData as any);
+    // Si la edición cambia el stock, registrarlo como ajuste en el kardex
+    // en vez de sobreescribir en silencio (el movimiento aplica el nuevo stock)
+    const stockDiff = validatedData.stock !== undefined && userId !== undefined
+      ? validatedData.stock - Number(product.stock)
+      : 0;
+    if (stockDiff !== 0) delete validatedData.stock;
+
+    await Product.sequelize!.transaction(async (t) => {
+      await product.update(validatedData as any, { transaction: t });
+      if (stockDiff !== 0) {
+        await this.stockMovementService.createMovement({
+          tenantId,
+          productId: product.id,
+          type: 'adjustment',
+          quantity: stockDiff,
+          referenceType: 'adjustment',
+          userId: userId!,
+          notes: 'Ajuste desde edición de producto',
+          transaction: t,
+        });
+      }
+    });
+    await product.reload();
     return this.mapToResponseDto(product);
   }
 
@@ -213,11 +274,62 @@ export class ProductService {
     return products.map(p => this.mapToResponseDto(p));
   }
 
-  async adjustStock(id: number, data: AdjustStockDto, tenantId: number): Promise<ProductResponseDto> {
+  // Costo por producto: último costo de compra recibida; si no hay, el menor precio de
+  // proveedor registrado. Misma lógica que OrderService.getProductCostMap usa para el COGS
+  // de Rentabilidad — vive aquí para que también la use el valor de stock a costo (Inventario).
+  async getCostMap(tenantId: number): Promise<Map<number, number>> {
+    const { PurchaseOrder } = await import('@/modules/purchase-order/purchase-order.model');
+    const { PurchaseOrderItem } = await import('@/modules/purchase-order/purchase-order-item/purchase-order-item.model');
+
+    const costMap = new Map<number, number>();
+
+    const poItems = await PurchaseOrderItem.findAll({
+      include: [{
+        model: PurchaseOrder,
+        as: 'purchaseOrder',
+        attributes: [],
+        where: { tenantId, status: { [Op.ne]: 'cancelled' } },
+        required: true,
+      }],
+      attributes: ['productId', 'unitCost', 'createdAt'],
+      order: [['createdAt', 'DESC']],
+      raw: true,
+    }) as unknown as Array<{ productId: number; unitCost: string }>;
+    for (const it of poItems) {
+      if (!costMap.has(it.productId)) costMap.set(it.productId, Number(it.unitCost));
+    }
+
+    const prices = await Price.findAll({
+      where: { tenantId },
+      attributes: ['productId', [literal('MIN(price)'), 'minPrice']],
+      group: ['productId'],
+      raw: true,
+    }) as unknown as Array<{ productId: number; minPrice: string }>;
+    for (const p of prices) {
+      if (!costMap.has(p.productId)) costMap.set(p.productId, Number(p.minPrice));
+    }
+
+    return costMap;
+  }
+
+  async adjustStock(id: number, data: AdjustStockDto, tenantId: number, userId: number): Promise<ProductResponseDto> {
     const validatedData = validateSchema(adjustStockSchema, data);
     const product = await Product.findOne({ where: { id, tenantId } });
     if (!product) throw new NotFoundError('Product not found');
-    await product.update({ stock: Number(product.stock) + validatedData.quantity });
+    // El movimiento actualiza el stock del producto y deja rastro en el kardex
+    await Product.sequelize!.transaction(async (t) => {
+      await this.stockMovementService.createMovement({
+        tenantId,
+        productId: product.id,
+        type: 'adjustment',
+        quantity: validatedData.quantity,
+        referenceType: 'adjustment',
+        userId,
+        notes: validatedData.notes ?? 'Ajuste manual de inventario',
+        transaction: t,
+      });
+    });
+    await product.reload();
     return this.mapToResponseDto(product);
   }
 

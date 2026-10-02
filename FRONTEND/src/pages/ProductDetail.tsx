@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Package, Tag, Calendar, Edit, TrendingUp, Trash2 } from 'lucide-react';
+import Breadcrumbs from '../components/ui/Breadcrumbs';
 import { useProductStore } from '../store/productStore';
 import { useUIStore } from '../store/uiStore';
 import { useAuthStore } from '../store/authStore';
@@ -326,6 +327,10 @@ const ProductDetail: React.FC = () => {
       <div className="px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-7xl mx-auto">
         {/* Mobile Header - Compact */}
         <div className="mb-4 sm:mb-6 lg:mb-8">
+          <Breadcrumbs
+            items={[{ label: 'Productos', to: '/' }, { label: product?.name ?? 'Detalle' }]}
+            className="mb-2"
+          />
           <Button
             variant="ghost"
             icon={ArrowLeft}
@@ -336,11 +341,11 @@ const ProductDetail: React.FC = () => {
             Volver
           </Button>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
             <div className="flex md:items-center  justify-between">
               <div className="flex items-start space-x-3 sm:space-x-4 mb-4 lg:mb-0">
-                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-blue-100 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
-                  <Package className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
+                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-primary/15 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Package className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 mb-1 sm:mb-2">
@@ -348,7 +353,7 @@ const ProductDetail: React.FC = () => {
                   </h1>
                   <div className="flex items-center gap-2 mt-1">
                     <span className="text-xs sm:text-sm text-gray-500">Precio de venta:</span>
-                    <span className="text-base sm:text-lg font-semibold text-blue-600">
+                    <span className="text-base sm:text-lg font-semibold text-primary">
                       {typeof product.salePrice === 'number' && !isNaN(product.salePrice)
                         ? formatCurrency(product.salePrice)
                         : '-'}
@@ -356,7 +361,7 @@ const ProductDetail: React.FC = () => {
                   </div>
                   <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-500">
                     <div className="flex items-center">
-                      <span className="font-medium text-blue-600">{product.code}</span>
+                      <span className="font-medium text-primary">{product.code}</span>
                     </div>
                     <div className="flex items-center">
                       <Tag className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
@@ -424,7 +429,7 @@ const ProductDetail: React.FC = () => {
         {pricesLoading ? (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="bg-white rounded-lg p-3 sm:p-6 shadow-sm border border-gray-200 animate-pulse">
+              <div key={i} className="bg-white rounded-xl p-3 sm:p-6 shadow-sm border border-gray-200 animate-pulse">
                 <div className="h-4 bg-gray-200 rounded w-3/4 mb-2" />
                 <div className="h-7 bg-gray-200 rounded w-1/2" />
               </div>
@@ -432,19 +437,19 @@ const ProductDetail: React.FC = () => {
           </div>
         ) : prices.length > 0 && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
-            <div className="bg-white rounded-lg p-3 sm:p-6 shadow-sm border border-gray-200">
+            <div className="bg-white rounded-xl p-3 sm:p-6 shadow-sm border border-gray-200">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs sm:text-sm font-medium text-gray-600">Proveedores</p>
                   <p className="text-lg sm:text-2xl font-bold text-gray-900">{prices.length}</p>
                 </div>
-                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <Package className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary/15 rounded-lg flex items-center justify-center">
+                  <Package className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-lg p-3 sm:p-6 shadow-sm border border-gray-200">
+            <div className="bg-white rounded-xl p-3 sm:p-6 shadow-sm border border-gray-200">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs sm:text-sm font-medium text-gray-600">Menor precio</p>
@@ -456,7 +461,7 @@ const ProductDetail: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-white rounded-lg p-3 sm:p-6 shadow-sm border border-gray-200">
+            <div className="bg-white rounded-xl p-3 sm:p-6 shadow-sm border border-gray-200">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs sm:text-sm font-medium text-gray-600">Mayor precio</p>
@@ -468,14 +473,14 @@ const ProductDetail: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-white rounded-lg p-3 sm:p-6 shadow-sm border border-gray-200">
+            <div className="bg-white rounded-xl p-3 sm:p-6 shadow-sm border border-gray-200">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs sm:text-sm font-medium text-gray-600">Precio promedio</p>
-                  <p className="text-lg sm:text-2xl font-bold text-blue-600">{formatCurrency(averagePrice)}</p>
+                  <p className="text-lg sm:text-2xl font-bold text-primary">{formatCurrency(averagePrice)}</p>
                 </div>
-                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <span className="text-blue-600 font-bold text-xs sm:text-sm">Ø</span>
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary/15 rounded-lg flex items-center justify-center">
+                  <span className="text-primary font-bold text-xs sm:text-sm">Ø</span>
                 </div>
               </div>
             </div>
@@ -500,7 +505,7 @@ const ProductDetail: React.FC = () => {
           </div>
 
           {pricesLoading ? (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden animate-pulse">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden animate-pulse">
               {[...Array(3)].map((_, i) => (
                 <div key={i} className="flex items-center px-4 py-4 border-b border-gray-100 last:border-0 gap-4">
                   <div className="h-4 bg-gray-200 rounded w-1/3" />
@@ -517,7 +522,7 @@ const ProductDetail: React.FC = () => {
         {/* Product Info - Mobile Optimized */}
         {product.category?.description && (
           <div className="mt-6 sm:mt-8">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
               <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">
                 Información de categoría
               </h3>
@@ -543,7 +548,7 @@ const ProductDetail: React.FC = () => {
                   name="supplierId"
                   value={priceForm.supplierId}
                   onChange={handlePriceInputChange}
-                  className="flex-1 mt-1 block pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                  className="flex-1 mt-1 block pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm rounded-md"
                 >
                   <option value="">Seleccionar Proveedor</option>
                   {suppliers.map(supplier => (

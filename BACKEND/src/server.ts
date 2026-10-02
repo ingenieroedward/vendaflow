@@ -1,9 +1,16 @@
 import 'dotenv/config';
+import '@/core/sentry'; // init antes que la app para capturar todo
 
 import app from './app';
 import { config } from '@/config';
 import { initializeDatabase, closeDatabase } from '@/database';
 import { ensureSuperadmin } from '@/core/startup/ensureSuperadmin';
+import { ensureDemoData } from '@/core/startup/ensureDemoData';
+import { ensureSchema } from '@/core/startup/ensureSchema';
+import { startPaymentReminderJob } from '@/core/jobs/paymentReminders';
+import { startTrialExpiryJob } from '@/core/jobs/trialExpiry';
+import { startSubscriptionRenewalJob } from '@/core/jobs/subscriptionRenewal';
+import { startWeeklyDigestJob } from '@/core/jobs/weeklyDigest';
 
 const PORT = config.server.port;
 
@@ -51,8 +58,22 @@ const startServer = async (): Promise<void> => {
     // Initialize database (with retries) AFTER server is already listening
     await initializeDatabase();
 
+    // Add any missing columns to existing tables (no migrations in this project)
+    await ensureSchema();
+
     // Ensure superadmin exists
     await ensureSuperadmin();
+
+    // Ensure demo tenant/user if DEMO_ADMIN_PASSWORD is set
+    await ensureDemoData();
+
+    // Daily push reminders for credit orders about to expire
+    startPaymentReminderJob();
+
+    // Daily trial management: suspend expired trials + expiry warnings
+    startTrialExpiryJob();
+    startSubscriptionRenewalJob();
+    startWeeklyDigestJob();
 
     console.log('✅ Database ready — all systems operational');
   } catch (error) {

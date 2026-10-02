@@ -14,7 +14,7 @@ const Footer: React.FC = () => {
                 href="https://edwsystem.com" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="text-blue-600 hover:text-blue-500 transition-colors duration-200 font-medium"
+                className="text-primary hover:text-primary transition-colors duration-200 font-medium"
               >
                 Edwsystem
               </a>

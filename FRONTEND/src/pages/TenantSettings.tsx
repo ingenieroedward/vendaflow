@@ -1,18 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Save, Palette, Building2 } from 'lucide-react';
+import { Save, Palette, Building2, Lock } from 'lucide-react';
 import { useTenantStore } from '../store/tenantStore';
 import { useUIStore } from '../store/uiStore';
+import { useFeature } from '../hooks/useFeature';
 import { getMyTenant, updateMyTheme } from '../services/tenant';
 
 const TenantSettings: React.FC = () => {
   const { tenant: currentTenant, setTenant } = useTenantStore();
   const { addNotification } = useUIStore();
+  const hasCustomBranding = useFeature('custom_branding');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
   const [form, setForm] = useState({
     name: '',
     primaryColor: '#2563eb',
     logoUrl: '',
+    nit: '',
+    address: '',
+    city: '',
   });
 
   useEffect(() => {
@@ -20,8 +26,11 @@ const TenantSettings: React.FC = () => {
       if (t) {
         setForm({
           name: t.name,
-          primaryColor: t.primaryColor ?? '#2563eb',
-          logoUrl: t.logoUrl ?? '',
+          primaryColor: (t as any).primaryColor ?? '#2563eb',
+          logoUrl: (t as any).logoUrl ?? '',
+          nit: t.nit ?? '',
+          address: t.address ?? '',
+          city: t.city ?? '',
         });
       }
     }).finally(() => setLoading(false));
@@ -37,7 +46,12 @@ const TenantSettings: React.FC = () => {
       await updateMyTheme({
         name: form.name,
         ...(form.primaryColor && { primaryColor: form.primaryColor }),
-        logoUrl: form.logoUrl || null,
+        // Sin la feature, el campo está oculto — no reenviar un logoUrl
+        // heredado de antes de un downgrade, o el backend lo rechaza
+        ...(hasCustomBranding && { logoUrl: form.logoUrl || null }),
+        nit: form.nit || null,
+        address: form.address || null,
+        city: form.city || null,
       });
 
       // Apply immediately — setTenant triggers applyTheme() for instant CSS update
@@ -46,7 +60,10 @@ const TenantSettings: React.FC = () => {
           ...currentTenant,
           name: form.name,
           primaryColor: form.primaryColor,
-          logoUrl: form.logoUrl || null,
+          ...(hasCustomBranding && { logoUrl: form.logoUrl || null }),
+          nit: form.nit || null,
+          address: form.address || null,
+          city: form.city || null,
         });
       }
 
@@ -71,10 +88,10 @@ const TenantSettings: React.FC = () => {
   }
 
   return (
-    <div className="max-w-xl mx-auto px-4 py-6 sm:py-8">
-      <div className="flex items-center gap-2.5 mb-6">
-        <Settings className="w-5 h-5 text-gray-400" />
-        <h1 className="text-lg font-bold text-gray-900">Configuración de Empresa</h1>
+    <div className="max-w-2xl mx-auto px-4 py-6 sm:py-8">
+      <div className="text-center mb-6 sm:mb-8">
+        <h1 className="text-xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2 px-2">Configuración</h1>
+        <p className="text-sm sm:text-lg text-gray-600 px-2">Identidad y personalización de tu empresa.</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -100,23 +117,67 @@ const TenantSettings: React.FC = () => {
               URL del logo
               <span className="font-normal text-gray-400 ml-1">(opcional)</span>
             </label>
-            <input
-              name="logoUrl" value={form.logoUrl} onChange={handle}
-              placeholder="https://ejemplo.com/logo.png"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
-            />
-            {form.logoUrl && (
-              <div className="mt-2 flex items-center gap-3 p-2.5 bg-gray-50 rounded-lg border border-gray-200">
-                <img
-                  src={form.logoUrl}
-                  alt="Logo preview"
-                  className="w-8 h-8 object-contain flex-shrink-0"
-                  onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+            {hasCustomBranding ? (
+              <>
+                <input
+                  name="logoUrl" value={form.logoUrl} onChange={handle}
+                  placeholder="https://ejemplo.com/logo.png"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                 />
-                <span className="text-xs text-gray-400">Vista previa del logo</span>
+                {form.logoUrl && (
+                  <div className="mt-2 flex items-center gap-3 p-2.5 bg-gray-50 rounded-lg border border-gray-200">
+                    <img
+                      src={form.logoUrl}
+                      alt="Logo preview"
+                      className="w-8 h-8 object-contain flex-shrink-0"
+                      onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    />
+                    <span className="text-xs text-gray-400">Vista previa del logo</span>
+                  </div>
+                )}
+                <p className="mt-1.5 text-[11px] text-gray-400">Aparece al instalar la app, en el login, el menú y los recibos impresos.</p>
+              </>
+            ) : (
+              <div className="flex items-start gap-2 px-3 py-2.5 bg-gray-50 border border-dashed border-gray-300 rounded-lg text-xs text-gray-500">
+                <Lock className="w-3.5 h-3.5 text-gray-400 flex-shrink-0 mt-0.5" />
+                <span>Disponible en el plan Pro — tu logo en la app, en el login y en los recibos impresos, en vez del de Merco.</span>
               </div>
             )}
           </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              NIT <span className="font-normal text-gray-400 ml-1">(opcional)</span>
+            </label>
+            <input
+              name="nit" value={form.nit} onChange={handle}
+              placeholder="900.123.456-7"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              Dirección <span className="font-normal text-gray-400 ml-1">(opcional)</span>
+            </label>
+            <input
+              name="address" value={form.address} onChange={handle}
+              placeholder="Calle 10 # 20-30"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              Ciudad <span className="font-normal text-gray-400 ml-1">(opcional)</span>
+            </label>
+            <input
+              name="city" value={form.city} onChange={handle}
+              placeholder="Bogotá"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+            />
+          </div>
+          <p className="text-[11px] text-gray-400 -mt-2">NIT, dirección y ciudad aparecen en tus PDF de venta (ticket y hoja carta).</p>
         </div>
 
         {/* Branding */}

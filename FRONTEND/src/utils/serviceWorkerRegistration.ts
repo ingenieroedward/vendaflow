@@ -50,6 +50,14 @@ export function register(config?: Config): void {
 /**
  * Registra un Service Worker válido
  */
+// Registro más reciente con una versión nueva esperando activarse — expuesto
+// para que un componente que monte DESPUÉS de detectarse la actualización
+// (poco probable, pero posible) igual pueda mostrar el aviso.
+let pendingUpdate: ServiceWorkerRegistration | null = null;
+export function getPendingUpdate(): ServiceWorkerRegistration | null {
+  return pendingUpdate;
+}
+
 function registerValidSW(swUrl: string, config?: Config): void {
   navigator.serviceWorker
     .register(swUrl)
@@ -70,6 +78,9 @@ function registerValidSW(swUrl: string, config?: Config): void {
                 '[SW Registration] Nueva versión disponible. La aplicación se actualizará cuando ' +
                   'todas las pestañas estén cerradas. Para forzar la actualización, cierra todas las pestañas.'
               );
+
+              pendingUpdate = registration;
+              window.dispatchEvent(new CustomEvent('sw-update-available', { detail: registration }));
 
               // Callback de actualización
               if (config && config.onUpdate) {

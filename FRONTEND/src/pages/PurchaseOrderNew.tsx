@@ -24,6 +24,7 @@ const PurchaseOrderNew: React.FC = () => {
 
   const [supplierId, setSupplierId] = useState<number | ''>('');
   const [notes, setNotes] = useState('');
+  const [affectsStock, setAffectsStock] = useState(true);
   const [items, setItems] = useState<LocalItem[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState<number>(1);
@@ -81,6 +82,7 @@ const PurchaseOrderNew: React.FC = () => {
         supplierId: Number(supplierId),
         notes: notes || undefined,
         status: 'draft',
+        affectsStock,
         items: items.map(i => ({ productId: i.productId, quantity: i.quantity, unitCost: i.unitCost })),
       });
       addNotification({ type: 'success', message: `Orden ${po.poNumber} creada exitosamente` });
@@ -91,7 +93,7 @@ const PurchaseOrderNew: React.FC = () => {
   };
 
   return (
-    <div className="p-4 max-w-4xl mx-auto">
+    <div className="max-w-2xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
       <div className="flex items-center justify-between mb-6">
         <div className="min-w-0 flex-1">
           <h1 className="text-lg sm:text-2xl font-bold text-gray-900">Nueva Orden de Compra</h1>
@@ -142,6 +144,20 @@ const PurchaseOrderNew: React.FC = () => {
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
+          <label className="flex items-start gap-2.5 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={affectsStock}
+              onChange={e => setAffectsStock(e.target.checked)}
+              className="mt-0.5 w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+            />
+            <span className="text-sm text-gray-700">
+              Sumar al inventario al recibir
+              <span className="block text-xs text-gray-400 mt-0.5">
+                Desmárcalo si el stock ya fue cargado (ej. carga inicial) y solo registras la compra por costos.
+              </span>
+            </span>
+          </label>
         </div>
       </div>
 

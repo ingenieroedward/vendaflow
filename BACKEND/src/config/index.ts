@@ -25,12 +25,13 @@ export const config = {
     secret: (() => {
       const secret = process.env['JWT_SECRET'];
       if (!secret) {
-        const fallback = 'dev_jwt_secret_change_in_production';
+        // En producción arrancar sin secreto sería fatal: el fallback está en el
+        // repo público y cualquiera podría firmar un JWT de superadmin
         if (process.env['NODE_ENV'] === 'production') {
-          // Log warning but don't crash — let the health check pass so logs are visible
-          console.error('[CONFIG] WARNING: JWT_SECRET not set in production — using insecure fallback');
+          console.error('[CONFIG] FATAL: JWT_SECRET no está definido en producción — abortando');
+          process.exit(1);
         }
-        return fallback;
+        return 'dev_jwt_secret_change_in_production';
       }
       return secret;
     })(),
@@ -62,27 +63,6 @@ export const config = {
     level: process.env['LOG_LEVEL'] || 'debug',
     maxFiles: process.env['LOG_MAX_FILES'] || '14d',
     maxSize: process.env['LOG_MAX_SIZE'] || '20m',
-  },
-
-  // SaaS: registro público, promociones y enforcement de planes.
-  // Los flags de enforcement están APAGADOS por defecto para no afectar
-  // tenants existentes en producción — activarlos solo tras revisar sus datos.
-  saas: {
-    defaultTrialDays: parseInt(process.env['TRIAL_DAYS'] || '14'),
-    // LAUNCH_PROMO_CODES=LANZAMIENTO:30,FUNDADOR:30 → código:días de prueba
-    promoCodes: (process.env['LAUNCH_PROMO_CODES'] || 'LANZAMIENTO:30')
-      .split(',')
-      .map(entry => entry.trim())
-      .filter(Boolean)
-      .reduce<Record<string, number>>((acc, entry) => {
-        const [code, days] = entry.split(':');
-        const parsed = parseInt(days || '', 10);
-        if (code && parsed > 0) acc[code.toUpperCase()] = parsed;
-        return acc;
-      }, {}),
-    publicSignupEnabled: process.env['PUBLIC_SIGNUP_ENABLED'] !== 'false',
-    enforceTrialExpiry: process.env['ENFORCE_TRIAL_EXPIRY'] === 'true',
-    enforcePlanLimits: process.env['ENFORCE_PLAN_LIMITS'] === 'true',
   },
 
   // VAPID (Web Push)

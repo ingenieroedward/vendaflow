@@ -12,6 +12,7 @@ export const createPurchaseOrderSchema = z.object({
   poNumber: z.string().max(50).optional(),
   status: z.enum(['draft', 'ordered', 'received', 'cancelled']).default('draft'),
   notes: z.string().optional(),
+  affectsStock: z.boolean().default(true),
   items: z.array(purchaseOrderItemSchema).min(1, 'At least one item is required'),
 });
 
@@ -41,6 +42,7 @@ export interface PurchaseOrderResponseDto {
   userId: number;
   totalAmount: number;
   status: string;
+  affectsStock: boolean;
   notes: string | null;
   supplier?: { id: number; name: string; contact: string; location: string } | undefined;
   user?: { id: number; username: string } | undefined;

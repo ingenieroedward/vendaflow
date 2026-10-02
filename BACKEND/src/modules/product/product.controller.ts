@@ -39,7 +39,7 @@ export class ProductController {
   updateProduct = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const tenantId = req.user!.tenantId;
     const updateData: UpdateProductDto = req.body;
-    const product = await this.productService.updateProduct(Number(req.params['id']), updateData, tenantId);
+    const product = await this.productService.updateProduct(Number(req.params['id']), updateData, tenantId, req.user!.id);
     res.status(200).json({ status: 'success', data: product });
   });
 
@@ -69,6 +69,11 @@ export class ProductController {
     res.status(200).json({ status: 'success', data: result.products, pagination: result.pagination });
   });
 
+  getNextCode = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const result = await this.productService.getNextCode(req.user!.tenantId);
+    res.status(200).json({ status: 'success', data: result });
+  });
+
   getStockAlerts = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const tenantId = req.user!.tenantId;
     const products = await this.productService.getStockAlerts(tenantId);
@@ -77,7 +82,16 @@ export class ProductController {
 
   adjustStock = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const tenantId = req.user!.tenantId;
-    const product = await this.productService.adjustStock(Number(req.params['id']), req.body, tenantId);
+    const product = await this.productService.adjustStock(Number(req.params['id']), req.body, tenantId, req.user!.id);
     res.status(200).json({ status: 'success', data: product });
+  });
+
+  // Costo por producto (último costo de compra, o menor precio de proveedor si no hay compras).
+  // Mismo dato que alimenta el COGS de Rentabilidad — se expone aparte para el valor de
+  // stock a costo en Inventario, sin acoplar ese cálculo al de reportes de ventas.
+  getCosts = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const tenantId = req.user!.tenantId;
+    const costMap = await this.productService.getCostMap(tenantId);
+    res.status(200).json({ status: 'success', data: Object.fromEntries(costMap) });
   });
 }

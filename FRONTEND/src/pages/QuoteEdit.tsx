@@ -1,0 +1,727 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { ArrowLeft, Plus, Trash2, Save, Package, User, FileText, CalendarClock } from 'lucide-react';
+import { useQuoteStore } from '../store/quoteStore';
+import { useProductStore } from '../store/productStore';
+import { useCustomerStore } from '../store/customerStore';
+import { useAuthStore } from '../store/authStore';
+import { useUIStore } from '../store/uiStore';
+import LoadingSpinner from '../components/ui/LoadingSpinner';
+import ErrorMessage from '../components/ui/ErrorMessage';
+import Button from '../components/ui/Button';
+import Input from '../components/ui/Input';
+import CustomerSearch from '../components/features/CustomerSearch';
+import ProductSearch from '../components/features/ProductSearch';
+import CustomerModal from '../components/ui/CustomerModal';
+import { UpdateQuoteRequest } from '../types/quote';
+import { Product } from '../types';
+import { Customer } from '../types/customer';
+import { productService } from '../services/products';
+import { useNetworkStatus } from '../hooks/useNetworkStatus';
+
+interface QuoteLineItem {
+  id: number;
+  productId: number;
+  quantity: number;
+  unitPrice: number;
+  taxRate: number;
+  product: Product;
+  _isNew?: boolean;
+}
+
+function getProductUnit(product: Record<string, unknown>): string {
+  return typeof product.unit === 'string' ? product.unit : '';
+}
+
+const QuoteEdit: React.FC = () => {
+  const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
+  const { user } = useAuthStore();
+  const { isOffline } = useNetworkStatus();
+  const {
+    currentQuote,
+    getQuoteById,
+    updateQuote,
+    loading,
+    error,
+    clearError,
+  } = useQuoteStore();
+  const { products, getProducts, loading: productsLoading } = useProductStore();
+  const { customers, getCustomers, loading: customersLoading } = useCustomerStore();
+  const { addNotification } = useUIStore();
+
+  const [quoteItems, setQuoteItems] = useState<QuoteLineItem[]>([]);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [quantity, setQuantity] = useState<number>(1);
+  const [unitPrice, setUnitPrice] = useState<number>(0);
+  const [taxRate, setTaxRate] = useState<number>(0);
+  const [notes, setNotes] = useState<string>('');
+  const [validUntil, setValidUntil] = useState<string>('');
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [showCustomerModal, setShowCustomerModal] = useState(false);
+  const [includeProducts, setIncludeProducts] = useState(false);
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
+
+  // Reset state when id changes (prevents stale data from previous quote)
+  useEffect(() => {
+    setIsDataLoaded(false);
+    setQuoteItems([]);
+    setIncludeProducts(false);
+    setSelectedCustomer(null);
+    setNotes('');
+    setValidUntil('');
+  }, [id]);
+
+  useEffect(() => {
+    if (id) {
+      getQuoteById(parseInt(id));
+    }
+    getProducts(1, 2000, false);
+    getCustomers(1, 100);
+  }, [id, getQuoteById, getProducts, getCustomers]);
+
+  // Load quote data when quote is fetched
+  useEffect(() => {
+    if (currentQuote && !isDataLoaded && currentQuote.id === parseInt(id!)) {
+      // Set customer
+      const fullCustomer = customers.find(c => c.id === currentQuote.customer.id);
+      if (fullCustomer) {
+        setSelectedCustomer(fullCustomer);
+      } else {
+        // Fallback: crea un objeto Customer con los campos requeridos
+        setSelectedCustomer({
+          ...currentQuote.customer,
+          createdAt: '',
+          updatedAt: ''
+        });
+      }
+
+      setNotes(currentQuote.notes || '');
+      setValidUntil(currentQuote.validUntil ? currentQuote.validUntil.slice(0, 10) : '');
+
+      // Asegura que quote.items exista antes de mapear
+      if (!currentQuote.items) {
+        setQuoteItems([]);
+        setIsDataLoaded(true);
+        return;
+      }
+      // Convert quote items to the local format
+      const items: QuoteLineItem[] = currentQuote.items.map((item) => {
+        const fullProduct = products.find(p => p.id === item.product.id);
+        const baseProduct = fullProduct || {
+          id: item.product.id,
+          name: item.product.name,
+          code: item.product.code,
+          unit: getProductUnit(item.product),
+          categoryId: 0,
+          salePrice: item.unitPrice,
+          createdAt: '',
+          updatedAt: '',
+          prices: [],
+        };
+        return {
+          id: item.id,
+          productId: item.product.id,
+          quantity: Number(item.quantity),
+          unitPrice: Number(item.unitPrice),
+          taxRate: Number(item.taxRate),
+          product: baseProduct,
+          _isNew: false,
+        };
+      });
+
+      setQuoteItems(items);
+
+      if (items.length > 0) {
+        setIncludeProducts(true);
+      }
+
+      setIsDataLoaded(true);
+    }
+  }, [currentQuote, isDataLoaded, products, customers, id]);
+
+  const handleAddItem = () => {
+    if (!selectedProduct || quantity <= 0 || unitPrice <= 0) {
+      return;
+    }
+
+    const newItem: QuoteLineItem = {
+      id: Date.now(),
+      productId: selectedProduct.id,
+      quantity,
+      unitPrice,
+      taxRate,
+      product: selectedProduct,
+      _isNew: true,
+    };
+
+    setQuoteItems([...quoteItems, newItem]);
+    setSelectedProduct(null);
+    setQuantity(1);
+    setUnitPrice(0);
+    setTaxRate(0);
+  };
+
+  const handleRemoveItem = (id: number) => {
+    setQuoteItems(prev => {
+      const newItems = prev.filter(item => item.id !== id);
+      if (newItems.length === 0) {
+        setIncludeProducts(false);
+      }
+      return newItems;
+    });
+  };
+
+  const handleProductSelect = (product: Product | null) => {
+    if (product) {
+      setSelectedProduct(product);
+      setUnitPrice(product.salePrice ?? 0);
+      setTaxRate(0);
+    } else {
+      setSelectedProduct(null);
+      setUnitPrice(0);
+      setTaxRate(0);
+    }
+  };
+
+  const updateQuoteItem = (id: number, field: keyof QuoteLineItem, value: number) => {
+    setQuoteItems(prev => prev.map(item =>
+      item.id === id ? { ...item, [field]: value } : item
+    ));
+  };
+
+  const calculateSubtotal = () => {
+    return quoteItems.reduce((total, item) => total + (item.quantity * item.unitPrice), 0);
+  };
+
+  const calculateTotalTax = () => {
+    return quoteItems.reduce((total, item) => {
+      const itemSubtotal = item.quantity * item.unitPrice;
+      return total + (itemSubtotal * (item.taxRate / 100));
+    }, 0);
+  };
+
+  const calculateTotal = () => {
+    return calculateSubtotal() + calculateTotalTax();
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!id) {
+      addNotification({
+        type: 'error',
+        title: 'Error',
+        message: 'No se pudo encontrar el ID de la cotización',
+      });
+      return;
+    }
+
+    if (quoteItems.length === 0) {
+      addNotification({
+        type: 'error',
+        title: 'Error',
+        message: 'Debes agregar al menos un producto a la cotización',
+      });
+      return;
+    }
+
+    if (!selectedCustomer) {
+      addNotification({
+        type: 'error',
+        title: 'Error',
+        message: 'Debes seleccionar un cliente',
+      });
+      return;
+    }
+
+    const quoteData: UpdateQuoteRequest = {
+      customerId: Number(selectedCustomer.id),
+      items: quoteItems.map(item => ({
+        ...(!item._isNew && { id: item.id }),
+        productId: Number(item.productId),
+        quantity: Number(item.quantity),
+        unitPrice: Number(item.unitPrice),
+        taxRate: Number(item.taxRate),
+      })),
+      notes: notes.trim() || undefined,
+      validUntil: validUntil || undefined,
+    };
+
+    try {
+      await updateQuote(parseInt(id), quoteData);
+      addNotification({
+        type: 'success',
+        title: 'Cotización actualizada',
+        message: 'La cotización se ha actualizado correctamente',
+      });
+      navigate(`/quotes/${id}`);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'Error al actualizar la cotización';
+      addNotification({ type: 'error', title: 'Error', message: msg });
+    }
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('es-CO', {
+      style: 'currency',
+      currency: 'COP',
+    }).format(amount);
+  };
+
+  const handleCreateCustomer = () => {
+    setShowCustomerModal(true);
+  };
+
+  const handleCustomerCreated = (newCustomer: Customer) => {
+    setSelectedCustomer(newCustomer);
+    setShowCustomerModal(false);
+  };
+
+  const handleBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate('/quotes');
+    }
+  };
+
+  // Show loading while fetching quote data
+  if (loading || !isDataLoaded) {
+    return (
+      <div className="bg-gray-50 min-h-screen">
+        <div className="max-w-2xl mx-auto px-3 py-4">
+          <div className="flex items-center justify-center h-64">
+            <LoadingSpinner size="lg" />
+            <span className="ml-3 text-gray-500">Cargando cotización...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error if quote not found
+  if (!currentQuote) {
+    return (
+      <div className="bg-gray-50 min-h-screen">
+        <div className="max-w-2xl mx-auto px-3 py-4">
+          <div className="text-center py-12">
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              Cotización no encontrada
+            </h2>
+            <p className="text-gray-600 mb-4">
+              La cotización que buscas no existe o no tienes permisos para verla.
+            </p>
+            <Button onClick={() => navigate('/quotes')}>
+              Volver a cotizaciones
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (currentQuote.status === 'converted') {
+    return (
+      <div className="bg-gray-50 min-h-screen">
+        <div className="max-w-2xl mx-auto px-3 py-4">
+          <div className="text-center py-12">
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              Cotización ya convertida
+            </h2>
+            <p className="text-gray-600 mb-4">
+              Esta cotización ya se convirtió en una orden y no se puede editar.
+            </p>
+            <Button onClick={() => navigate(`/quotes/${id}`)}>
+              Ver cotización
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-gray-50">
+      <div className="max-w-2xl mx-auto px-3 py-4">
+        {/* Mobile Header - Compact */}
+        <div className="mb-4 sm:mb-6 lg:mb-8">
+          <Button
+            variant="ghost"
+            icon={ArrowLeft}
+            onClick={handleBack}
+            className="mb-3 sm:mb-4 -ml-2"
+            size="sm"
+          >
+            Volver
+          </Button>
+
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+            <div className="flex items-center space-x-3 sm:space-x-4">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary/15 rounded-lg flex items-center justify-center flex-shrink-0">
+                <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
+                  Editar cotización #{currentQuote.quoteNumber}
+                </h1>
+                <p className="text-sm sm:text-base text-gray-600 mt-1">
+                  Modifica los detalles de la cotización
+                </p>
+              </div>
+              <div className="text-xs lg:text-sm text-gray-500 text-right">
+                <span className="hidden sm:inline">{user?.username} • </span>
+                {user?.role}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Error Message */}
+        {error && (
+          <ErrorMessage
+            message={error}
+            onDismiss={clearError}
+            className="mb-4 lg:mb-6"
+          />
+        )}
+
+        {/* Form - Mobile Optimized */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Customer Information */}
+            <div>
+              <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-4 flex items-center">
+                <User className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                Información del cliente
+              </h3>
+
+              {customersLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <LoadingSpinner size="md" />
+                  <span className="ml-2 text-sm text-gray-500">Cargando clientes...</span>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div>
+                    <CustomerSearch
+                      onCustomerSelect={setSelectedCustomer}
+                      selectedCustomer={selectedCustomer}
+                      customers={customers}
+                      placeholder="Buscar cliente..."
+                    />
+                  </div>
+
+                  <div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      icon={Plus}
+                      onClick={handleCreateCustomer}
+                      className="w-full sm:w-auto"
+                      size="sm"
+                    >
+                      Crear nuevo cliente
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Products Section - Mobile Optimized */}
+            <div className="border-t pt-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 mb-4">
+                <h3 className="text-base sm:text-lg font-medium text-gray-900 flex items-center">
+                  <Package className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                  Productos de la cotización
+                </h3>
+                <Button
+                  type="button"
+                  variant="outline"
+                  icon={Plus}
+                  onClick={() => {
+                    setIncludeProducts(true);
+                  }}
+                  size="sm"
+                  className="w-full sm:w-auto"
+                >
+                  Agregar producto
+                </Button>
+              </div>
+
+              {includeProducts && (
+                <div className="space-y-4">
+                  {/* Product Selection */}
+                  <div className="p-3 sm:p-4 border border-gray-200 rounded-lg bg-gray-50">
+                    <h4 className="text-sm font-medium text-gray-900 mb-3">
+                      Seleccionar producto
+                    </h4>
+
+                    <div className="space-y-4">
+                      {productsLoading ? (
+                        <div className="flex items-center justify-center py-8">
+                          <LoadingSpinner size="md" />
+                          <span className="ml-2 text-sm text-gray-500">Cargando productos...</span>
+                        </div>
+                      ) : (
+                        <ProductSearch
+                          onProductSelect={handleProductSelect}
+                          selectedProduct={selectedProduct}
+                          products={products}
+                          placeholder="Buscar producto..."
+                          searchFn={!isOffline ? (q) => productService.searchProducts(q, false) : undefined}
+                        />
+                      )}
+
+                      {selectedProduct && (
+                        <div className="space-y-4 sm:space-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:gap-4">
+                          <div>
+                            <Input
+                              label="Cantidad"
+                              type="number"
+                              value={quantity}
+                              onChange={(e) => setQuantity(parseInt(e.target.value) || 0)}
+                              min="1"
+                              required
+                            />
+                          </div>
+
+                          <div>
+                            <Input
+                              label="Precio unitario"
+                              type="number"
+                              value={unitPrice === 0 ? '' : String(unitPrice)}
+                              onChange={(e) => setUnitPrice(parseFloat(e.target.value) || 0)}
+                              min="0"
+                              step="0.01"
+                              required
+                            />
+                          </div>
+
+                          <div>
+                            <Input
+                              label="IVA (%)"
+                              type="number"
+                              value={taxRate}
+                              onChange={(e) => setTaxRate(parseFloat(e.target.value) || 0)}
+                              min="0"
+                              max="100"
+                              step="0.01"
+                              required
+                            />
+                          </div>
+
+                          <div className="flex items-end">
+                            <Button
+                              type="button"
+                              variant="primary"
+                              icon={Plus}
+                              onClick={handleAddItem}
+                              disabled={quantity <= 0 || unitPrice <= 0}
+                              className="w-full"
+                              size="sm"
+                            >
+                              Agregar
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Quote Items List */}
+                  {quoteItems.length > 0 && (
+                    <div className="space-y-4">
+                      {quoteItems.map((item, index) => (
+                        <div key={item.id} className="p-3 sm:p-4 border border-gray-200 rounded-lg bg-gray-50">
+                          <div className="flex items-center justify-between mb-3">
+                            <h4 className="text-sm font-medium text-gray-900">
+                              Producto #{index + 1}
+                            </h4>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              onClick={() => handleRemoveItem(item.id)}
+                              size="sm"
+                              className="text-red-600 hover:text-red-700 -mr-2"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+
+                          <div className="mb-3">
+                            <p className="font-medium text-sm">{item.product.name}</p>
+                            <p className="text-xs text-gray-500">Código: {item.product.code}</p>
+                          </div>
+
+                          {/* Mobile: Stack quantity, price, tax vertically */}
+                          <div className="space-y-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Cantidad
+                              </label>
+                              <input
+                                type="number"
+                                value={item.quantity}
+                                onChange={(e) => {
+                                  const value = parseInt(e.target.value) || 0;
+                                  updateQuoteItem(item.id, 'quantity', value);
+                                }}
+                                min="1"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-sm"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Precio unitario
+                              </label>
+                              <input
+                                type="number"
+                                value={item.unitPrice}
+                                onChange={(e) => {
+                                  const value = parseFloat(e.target.value) || 0;
+                                  updateQuoteItem(item.id, 'unitPrice', value);
+                                }}
+                                min="0"
+                                step="0.01"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-sm"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                IVA (%)
+                              </label>
+                              <input
+                                type="number"
+                                value={item.taxRate}
+                                onChange={(e) => {
+                                  const value = parseFloat(e.target.value) || 0;
+                                  updateQuoteItem(item.id, 'taxRate', value);
+                                }}
+                                min="0"
+                                max="100"
+                                step="0.01"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-sm"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="mt-3 pt-3 border-t border-gray-200">
+                            <div className="flex justify-between items-center text-sm">
+                              <span>Subtotal:</span>
+                              <span>{formatCurrency(item.quantity * item.unitPrice)}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-sm">
+                              <span>IVA:</span>
+                              <span>{formatCurrency((item.quantity * item.unitPrice) * (item.taxRate / 100))}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-sm font-semibold">
+                              <span>Total:</span>
+                              <span className="text-primary">
+                                {formatCurrency((item.quantity * item.unitPrice) * (1 + item.taxRate / 100))}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+
+                      {/* Quote Summary */}
+                      <div className="p-4 bg-primary/10 border border-primary/25 rounded-lg">
+                        <h4 className="text-sm font-medium text-primary mb-3">
+                          Resumen de la cotización
+                        </h4>
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center text-sm">
+                            <span>Subtotal:</span>
+                            <span>{formatCurrency(calculateSubtotal())}</span>
+                          </div>
+                          <div className="flex justify-between items-center text-sm">
+                            <span>IVA total:</span>
+                            <span>{formatCurrency(calculateTotalTax())}</span>
+                          </div>
+                          <div className="flex justify-between items-center border-t pt-2">
+                            <span className="text-base font-semibold">Total:</span>
+                            <span className="text-lg font-bold text-primary">
+                              {formatCurrency(calculateTotal())}
+                            </span>
+                          </div>
+                          <p className="text-xs text-primary mt-2">
+                            {quoteItems.length} producto{quoteItems.length !== 1 ? 's' : ''} en la cotización
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Validez */}
+            <div className="border-t pt-6">
+              <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-4 flex items-center">
+                <CalendarClock className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                Válida hasta <span className="text-gray-400 font-normal ml-1">(opcional)</span>
+              </h3>
+              <input
+                type="date"
+                value={validUntil}
+                onChange={(e) => setValidUntil(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+              />
+            </div>
+
+            {/* Notes Section */}
+            <div className="border-t pt-6">
+              <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-4 flex items-center">
+                <FileText className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                Notas adicionales (Opcional)
+              </h3>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary resize-none text-sm"
+                placeholder="Agrega notas adicionales para esta cotización..."
+              />
+            </div>
+
+            {/* Mobile: Stack buttons vertically, make them full width */}
+            <div className="flex gap-4 flex-col sm:flex-row sm:justify-end space-y-3 sm:space-y-0 sm:space-x-3 pt-6 border-t">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleBack}
+                disabled={loading}
+                className="w-full sm:w-auto order-2 sm:order-1"
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                variant="primary"
+                icon={Save}
+                loading={loading}
+                disabled={loading || quoteItems.length === 0 || !selectedCustomer}
+                className="w-full sm:w-auto order-1 sm:order-2"
+              >
+                {loading ? 'Guardando...' : 'Guardar cambios'}
+              </Button>
+            </div>
+          </form>
+        </div>
+
+        {/* Customer Modal */}
+        {showCustomerModal && (
+          <CustomerModal
+            onClose={() => setShowCustomerModal(false)}
+            onCustomerCreated={handleCustomerCreated}
+          />
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default QuoteEdit;

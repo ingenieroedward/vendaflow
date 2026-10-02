@@ -28,6 +28,7 @@ services:
     container_name: merco-backend
     environment:
       NODE_ENV: production
+      TZ: America/Bogota
       PORT: 3005
       DB_HOST: mysql
       DB_PORT: 3306
@@ -36,6 +37,14 @@ services:
       DB_PASSWORD: ${MYSQL_PASSWORD:-merco_password}
       DB_DIALECT: mysql
       JWT_SECRET: ${JWT_SECRET}
+      SENTRY_DSN: ${SENTRY_DSN}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      SMTP_FROM: ${SMTP_FROM}
+      DOKPLOY_API_TOKEN: ${DOKPLOY_API_TOKEN}
+      DOKPLOY_URL: ${DOKPLOY_URL:-http://dokploy:3000}
       JWT_EXPIRES_IN: 24h
       CORS_ORIGIN: https://merco.edwsystem.com,https://api.merco.edwsystem.com,https://localhost,capacitor://localhost
       CORS_WILDCARD_ORIGIN: "*.merco.edwsystem.com"
@@ -43,13 +52,9 @@ services:
       VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY}
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY}
       VAPID_SUBJECT: mailto:admin@edwsystem.com
-      # Lanzamiento / SaaS — enforcement APAGADO por defecto (ver CLAUDE.md antes de activar)
-      LAUNCH_PROMO_CODES: ${LAUNCH_PROMO_CODES:-LANZAMIENTO:30}
-      PUBLIC_SIGNUP_ENABLED: ${PUBLIC_SIGNUP_ENABLED:-true}
-      ENFORCE_TRIAL_EXPIRY: ${ENFORCE_TRIAL_EXPIRY:-false}
-      ENFORCE_PLAN_LIMITS: ${ENFORCE_PLAN_LIMITS:-false}
       SUPERADMIN_USERNAME: ${SUPERADMIN_USERNAME:-superadmin}
       SUPERADMIN_PASSWORD: ${SUPERADMIN_PASSWORD}
+      DEMO_ADMIN_PASSWORD: ${DEMO_ADMIN_PASSWORD}
     volumes:
       - backend_logs:/app/logs
     depends_on:
@@ -89,6 +94,36 @@ services:
       - "traefik.http.routers.merco-wildcard-http.entrypoints=web"
       - "traefik.http.routers.merco-wildcard-http.middlewares=redirect-to-https@docker"
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+
+  # ── Admin (Superadmin) ───────────────────────────────────────────────────
+  # Proyecto propio en ADMIN/ (antes vivía como build multi-entry dentro de
+  # FRONTEND/). Host() exacto con prioridad explícita por encima del
+  # HostRegexp wildcard de arriba, que también matchearía este subdominio —
+  # sin la prioridad, cuál gana quedaría a criterio interno de Traefik.
+  admin-frontend:
+    build:
+      context: ./ADMIN
+      args:
+        VITE_API_BASE_URL: https://api.merco.edwsystem.com/api
+    container_name: merco-admin-frontend
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - dokploy-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.merco-admin.rule=Host(`admin.merco.edwsystem.com`)"
+      - "traefik.http.routers.merco-admin.entrypoints=websecure"
+      - "traefik.http.routers.merco-admin.tls=true"
+      - "traefik.http.routers.merco-admin.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.merco-admin.priority=100"
+      - "traefik.http.services.merco-admin.loadbalancer.server.port=80"
+      - "traefik.http.routers.merco-admin-http.rule=Host(`admin.merco.edwsystem.com`)"
+      - "traefik.http.routers.merco-admin-http.entrypoints=web"
+      - "traefik.http.routers.merco-admin-http.priority=100"
+      - "traefik.http.routers.merco-admin-http.middlewares=redirect-to-https@docker"
 
 networks:
   dokploy-network:

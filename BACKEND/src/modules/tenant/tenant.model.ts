@@ -9,7 +9,6 @@ import {
   HasMany,
 } from 'sequelize-typescript';
 import { User } from '../user/user.model';
-import { config } from '@/config';
 
 export type TenantStatus = 'active' | 'trial' | 'suspended' | 'cancelled';
 export type TenantPlan = 'trial' | 'basic' | 'pro' | 'enterprise';
@@ -26,6 +25,17 @@ export interface TenantAttributes {
   maxUsers: number;
   maxProducts: number;
   maxOrdersPerMonth: number;
+  customPrice: number | null; // precio especial COP/mes (null = precio de lista del plan)
+  paidUntil: string | null; // DATEONLY — pagado hasta (inclusive). null = fuera del ciclo (cortesía/legado)
+  suspendedReason: string | null; // trial_expired | nonpayment | manual
+  contactName: string | null;
+  contactEmail: string | null; // canal de respaldo para avisos de cobro/suspensión
+  contactPhone: string | null; // WhatsApp
+  cancelledAt: Date | null; // fecha de cancelación (offboarding; purga elegible a los 90 días)
+  customFeatures: string | null; // JSON array de FeatureKey — override de PLAN_FEATURES negociado por tenant
+  nit: string | null; // datos fiscales del negocio del tenant, para sus propios PDF (carta/ticket)
+  address: string | null;
+  city: string | null;
   createdAt: Date;
   updatedAt: Date;
   deletedAt?: Date;
@@ -72,6 +82,39 @@ export class Tenant extends Model<TenantAttributes, TenantCreationAttributes> {
   @Column({ type: DataType.INTEGER, allowNull: false, defaultValue: 50 })
   maxOrdersPerMonth!: number;
 
+  @Column({ type: DataType.DECIMAL(12, 2), allowNull: true })
+  customPrice!: number | null;
+
+  @Column({ type: DataType.DATEONLY, allowNull: true })
+  paidUntil!: string | null;
+
+  @Column({ type: DataType.STRING(20), allowNull: true })
+  suspendedReason!: string | null;
+
+  @Column({ type: DataType.STRING(120), allowNull: true })
+  contactName!: string | null;
+
+  @Column({ type: DataType.STRING(255), allowNull: true })
+  contactEmail!: string | null;
+
+  @Column({ type: DataType.STRING(30), allowNull: true })
+  contactPhone!: string | null;
+
+  @Column({ type: DataType.DATE, allowNull: true })
+  cancelledAt!: Date | null;
+
+  @Column({ type: DataType.STRING(500), allowNull: true })
+  customFeatures!: string | null;
+
+  @Column({ type: DataType.STRING(30), allowNull: true })
+  nit!: string | null;
+
+  @Column({ type: DataType.STRING(255), allowNull: true })
+  address!: string | null;
+
+  @Column({ type: DataType.STRING(120), allowNull: true })
+  city!: string | null;
+
   @CreatedAt override createdAt!: Date;
   @UpdatedAt override updatedAt!: Date;
   @DeletedAt override deletedAt?: Date;
@@ -79,14 +122,7 @@ export class Tenant extends Model<TenantAttributes, TenantCreationAttributes> {
   @HasMany(() => User)
   users!: User[];
 
-  get isTrialExpired(): boolean {
-    return this.status === 'trial' && !!this.trialEndsAt && this.trialEndsAt.getTime() < Date.now();
-  }
-
   get isActive(): boolean {
-    if (this.status === 'active') return true;
-    if (this.status !== 'trial') return false;
-    // Solo bloquea pruebas vencidas si ENFORCE_TRIAL_EXPIRY=true
-    return !(config.saas.enforceTrialExpiry && this.isTrialExpired);
+    return this.status === 'active' || this.status === 'trial';
   }
 }
