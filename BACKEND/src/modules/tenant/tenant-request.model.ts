@@ -11,12 +11,17 @@ export interface TenantRequestAttributes {
   message: string | null;
   status: TenantRequestStatus;
   tenantId: number | null; // tenant creado al aprobar
+  source: string | null; // origen normalizado (ver attribution.ts); null = antes del seguimiento
+  campaign: string | null; // utm_campaign saneado
   createdAt: Date;
   updatedAt: Date;
 }
 
 export interface TenantRequestCreationAttributes
-  extends Omit<TenantRequestAttributes, 'id' | 'createdAt' | 'updatedAt'> {}
+  extends Omit<TenantRequestAttributes, 'id' | 'source' | 'campaign' | 'createdAt' | 'updatedAt'> {
+  source?: string | null;
+  campaign?: string | null;
+}
 
 // Solicitudes de registro público — el superadmin las aprueba o rechaza
 @Table({ tableName: 'tenant_requests', timestamps: true })
@@ -44,6 +49,12 @@ export class TenantRequest extends Model<TenantRequestAttributes, TenantRequestC
 
   @Column({ type: DataType.INTEGER, allowNull: true })
   tenantId!: number | null;
+
+  @Column({ type: DataType.STRING(20), allowNull: true })
+  source!: string | null;
+
+  @Column({ type: DataType.STRING(50), allowNull: true })
+  campaign!: string | null;
 
   @CreatedAt override createdAt!: Date;
   @UpdatedAt override updatedAt!: Date;

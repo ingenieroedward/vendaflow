@@ -19,6 +19,7 @@ import { computePaymentPeriod, toDateOnly } from './subscription';
 import { sendEmail, renderEmail } from '@/core/email';
 import sequelize from '@/database';
 import { Op, fn, col } from 'sequelize';
+import { aggregateBySource } from './attribution';
 import bcrypt from 'bcryptjs';
 
 const PLAN_LIMITS: Record<TenantPlan, { maxUsers: number; maxProducts: number; maxOrdersPerMonth: number }> = {
@@ -627,10 +628,15 @@ export class TenantService {
     const metrics = await MetricDaily.findAll({ where: { date: { [Op.gte]: sinceStr } }, raw: true });
     const sum = (key: string) => metrics.filter(m => m.key === key).reduce((s, m) => s + m.count, 0);
 
-    const [requests, approved] = await Promise.all([
-      TenantRequest.count({ where: { createdAt: { [Op.gte]: since } } }),
-      TenantRequest.count({ where: { createdAt: { [Op.gte]: since }, status: 'approved' } }),
-    ]);
+    const reqRows = await TenantRequest.findAll({
+      where: { createdAt: { [Op.gte]: since } },
+      attributes: ['source', 'status'],
+      raw: true,
+    });
+    const requests = reqRows.length;
+    const approved = reqRows.filter(r => r.status === 'approved').length;
+
+    const bySource = aggregateBySource(metrics, reqRows);
 
     return {
       days: 30,
@@ -638,6 +644,7 @@ export class TenantService {
       registroViews: sum('registro_view'),
       requests,
       approved,
+      bySource,
     };
   }
 

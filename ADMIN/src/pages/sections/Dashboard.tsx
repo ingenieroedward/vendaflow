@@ -1,15 +1,7 @@
 import React from 'react';
 import { Building2, TrendingUp, Users, AlertTriangle, ClipboardList, Activity, Inbox, Receipt, Wallet, CheckCircle2, ChevronRight } from 'lucide-react';
-import { TenantSummary, PlatformStats, TenantRequestItem, PlanPaymentItem, FinanceData } from '../../services/tenantAdmin';
-import { daysUntil, SectionKey } from '../../utils/adminHelpers';
-
-interface FunnelData {
-  days: number;
-  landingViews: number;
-  registroViews: number;
-  requests: number;
-  approved: number;
-}
+import { TenantSummary, PlatformStats, TenantRequestItem, PlanPaymentItem, FinanceData, FunnelData } from '../../services/tenantAdmin';
+import { daysUntil, SectionKey, sourceLabel } from '../../utils/adminHelpers';
 
 const Dashboard: React.FC<{
   tenants: TenantSummary[];
@@ -288,6 +280,48 @@ const Dashboard: React.FC<{
                 {i < 3 && <span className="hidden sm:block absolute -right-2.5 top-1/2 -translate-y-1/2 text-gray-300 text-sm">→</span>}
               </div>
             ))}
+          </div>
+
+          {/* Desglose por origen (anuncio, Google, WhatsApp…) */}
+          <div className="mt-5">
+            <p className="text-xs font-semibold text-gray-700 mb-2">Por origen</p>
+            {funnel.bySource && funnel.bySource.length > 0 ? (
+              <div className="overflow-x-auto -mx-1">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="text-left text-[11px] uppercase tracking-wide text-gray-400">
+                      <th className="px-1 py-1.5 font-medium">Origen</th>
+                      <th className="px-1 py-1.5 font-medium text-right">Visitas</th>
+                      <th className="hidden sm:table-cell px-1 py-1.5 font-medium text-right">Registro</th>
+                      <th className="px-1 py-1.5 font-medium text-right">Solicitudes</th>
+                      <th className="hidden sm:table-cell px-1 py-1.5 font-medium text-right">Aprobadas</th>
+                      <th className="px-1 py-1.5 font-medium text-right"><span className="hidden sm:inline">Conversión</span><span className="sm:hidden">Conv.</span></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {funnel.bySource.map(r => (
+                      <tr key={r.source} className="text-gray-700">
+                        <td className="px-1 py-1.5 font-medium text-gray-900">{sourceLabel(r.source)}</td>
+                        <td className="px-1 py-1.5 text-right tabular-nums">{r.landingViews}</td>
+                        <td className="hidden sm:table-cell px-1 py-1.5 text-right tabular-nums">{r.registroViews}</td>
+                        <td className="px-1 py-1.5 text-right tabular-nums">{r.requests}</td>
+                        <td className="hidden sm:table-cell px-1 py-1.5 text-right tabular-nums">{r.approved}</td>
+                        <td className="px-1 py-1.5 text-right tabular-nums text-gray-500"
+                          title="Solicitudes sobre visitas a la landing de este origen">
+                          {r.landingViews > 0 ? `${Math.round((r.requests / r.landingViews) * 100)}%` : '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="text-xs text-gray-400">Aún no hay visitas con origen registrado.</p>
+            )}
+            <p className="mt-2 text-[11px] text-gray-400">
+              Etiqueta los enlaces de tus anuncios para separarlos:{' '}
+              <span className="font-mono text-gray-500 break-all">merco.edwsystem.com/?utm_source=facebook&amp;utm_campaign=lanzamiento</span>
+            </p>
           </div>
         </div>
       )}

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { sourceLabel } from '../../utils/adminHelpers';
 import { Inbox } from 'lucide-react';
 import { tenantAdminService, TenantRequestItem } from '../../services/tenantAdmin';
 import ApproveRequestModal from '../../components/ApproveRequestModal';
@@ -44,7 +45,10 @@ const Solicitudes: React.FC<{
                   <p className="text-sm font-semibold text-gray-900">{r.companyName}</p>
                   <p className="text-xs text-gray-500">{r.contactName} · {r.email}{r.phone ? ` · ${r.phone}` : ''}</p>
                   {r.message && <p className="text-xs text-gray-400 mt-0.5 italic truncate">"{r.message}"</p>}
-                  <p className="text-[11px] text-gray-400 mt-0.5">{new Date(r.createdAt).toLocaleString('es-CO')}</p>
+                  <p className="text-[11px] text-gray-400 mt-0.5">
+                    {new Date(r.createdAt).toLocaleString('es-CO')}
+                    {r.source && <> · vía <span className="font-medium text-gray-600">{sourceLabel(r.source)}</span>{r.campaign ? ` (${r.campaign})` : ''}</>}
+                  </p>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   {r.status === 'pending' ? (

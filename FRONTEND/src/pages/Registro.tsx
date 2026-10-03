@@ -5,6 +5,7 @@ import {
   ArrowRight, WifiOff, AlertTriangle, Mail, ClipboardList, KeyRound,
 } from 'lucide-react';
 import { apiService } from '../services/api';
+import { getAttribution } from '../utils/attribution';
 
 interface Captcha { question: string; a: number; b: number; exp: number; token: string }
 
@@ -42,7 +43,7 @@ const Registro: React.FC = () => {
   };
   useEffect(() => {
     loadCaptcha();
-    apiService.post('/onboarding/track', { event: 'registro_view' }).catch(() => {});
+    apiService.post('/onboarding/track', { event: 'registro_view', source: getAttribution().source }).catch(() => {});
   }, []);
 
   const handle = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
@@ -58,6 +59,7 @@ const Registro: React.FC = () => {
         ...form,
         phone: form.phone || undefined,
         message: form.message || undefined,
+        ...getAttribution(),
         website,
         captcha: { a: captcha.a, b: captcha.b, exp: captcha.exp, token: captcha.token, answer: Number(answer) },
       });

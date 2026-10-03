@@ -98,6 +98,21 @@ export async function ensureSchema(): Promise<void> {
     // la tabla aún no existe — sync la crea completa
   }
 
+  // tenant_requests: atribución del embudo (de dónde llegó la solicitud)
+  try {
+    const trCols = await qi.describeTable('tenant_requests');
+    const trMissing: Array<{ name: string; spec: object }> = [
+      { name: 'source', spec: { type: DataType.STRING(20), allowNull: true } },
+      { name: 'campaign', spec: { type: DataType.STRING(50), allowNull: true } },
+    ].filter(c => !(c.name in trCols));
+    for (const col of trMissing) {
+      await qi.addColumn('tenant_requests', col.name, col.spec as never);
+      logger.info(`[ensureSchema] Column tenant_requests.${col.name} added`);
+    }
+  } catch {
+    // la tabla aún no existe — sync la crea completa
+  }
+
   const poColumns = await qi.describeTable('purchase_orders');
   if (!('affectsStock' in poColumns)) {
     await qi.addColumn('purchase_orders', 'affectsStock', {

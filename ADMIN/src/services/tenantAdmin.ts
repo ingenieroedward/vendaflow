@@ -76,7 +76,26 @@ export interface TenantRequestItem {
   message: string | null;
   status: 'pending' | 'approved' | 'rejected';
   tenantId: number | null;
+  source?: string | null; // origen normalizado; null = antes del seguimiento
+  campaign?: string | null;
   createdAt: string;
+}
+
+export interface FunnelSourceRow {
+  source: string;
+  landingViews: number;
+  registroViews: number;
+  requests: number;
+  approved: number;
+}
+
+export interface FunnelData {
+  days: number;
+  landingViews: number;
+  registroViews: number;
+  requests: number;
+  approved: number;
+  bySource?: FunnelSourceRow[]; // opcional: backend previo a v1.16.4 no lo envía
 }
 
 export interface FinanceTenantRow {
@@ -184,7 +203,7 @@ export const tenantAdminService = {
   registerPayment: async (tenantId: number, payload: RegisterPaymentPayload) =>
     (await apiService.post<Wrapped<PlanPaymentItem>>(`/tenants/${tenantId}/payments`, payload)).data,
   getFunnel: async () =>
-    (await apiService.get<Wrapped<{ days: number; landingViews: number; registroViews: number; requests: number; approved: number }>>('/tenants/platform/funnel')).data,
+    (await apiService.get<Wrapped<FunnelData>>('/tenants/platform/funnel')).data,
   getPlatformSettings: async () =>
     (await apiService.get<Wrapped<PlatformSettings>>('/tenants/platform/settings')).data,
   updatePlatformSettings: async (payload: Partial<PlatformSettings>) =>

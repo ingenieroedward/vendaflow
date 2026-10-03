@@ -7,6 +7,22 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ## [Unreleased]
 
+## [1.16.4] — 2026-10-03 — Embudo comercial por origen
+
+### Added
+
+- **Atribución del embudo público**: cada visita a la landing/registro y cada solicitud de
+  registro guardan de dónde llegó (Facebook, Instagram, Google, WhatsApp, ChatGPT, etc.).
+  - Navegador (`FRONTEND/src/utils/attribution.ts`): `utm_source`/`utm_campaign`, click IDs
+    de anuncios (`fbclid`, `gclid`, `ttclid`) o el referrer externo. Primer contacto
+    guardado 30 días en `localStorage` (sin cookies ni datos personales).
+  - Backend (`modules/tenant/attribution.ts`): normaliza a una lista cerrada de orígenes —
+    el texto del cliente nunca se guarda tal cual. `/onboarding/track` cuenta además
+    `<evento>:<origen>` en `metrics_daily`; `tenant_requests.source`/`campaign` (nuevas
+    columnas, `ensureSchema`). `GET /tenants/platform/funnel` devuelve `bySource`.
+  - Panel superadmin: tabla "Por origen" en la card Embudo comercial y "vía <origen>
+    (campaña)" en cada solicitud de la Bandeja.
+
 ---
 
 ## [2026-06-25] — QA Audit, Hotfixes producción, Mobile & Reports
