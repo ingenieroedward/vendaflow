@@ -49,3 +49,12 @@ export function tenantAppUrl(slug: string): string {
   const base = 'merco.edwsystem.com';
   return `https://${slug}.${base}`;
 }
+
+// Orígenes del embudo público — debe reflejar SOURCES de BACKEND/src/modules/tenant/attribution.ts
+const SOURCE_LABELS: Record<string, string> = {
+  facebook: 'Facebook', instagram: 'Instagram', google: 'Google', bing: 'Bing',
+  whatsapp: 'WhatsApp', tiktok: 'TikTok', youtube: 'YouTube', linkedin: 'LinkedIn',
+  chatgpt: 'ChatGPT', ia: 'Otras IA', email: 'Correo', otro: 'Otro sitio',
+  directo: 'Directo', sin_dato: 'Sin dato (antes del seguimiento)',
+};
+export const sourceLabel = (source: string): string => SOURCE_LABELS[source] ?? source;

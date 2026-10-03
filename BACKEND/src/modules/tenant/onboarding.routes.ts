@@ -9,6 +9,7 @@ import { TenantRequest } from './tenant-request.model';
 import { User } from '@/modules/user/user.model';
 import { pushService } from '@/modules/push/push.service';
 import logger from '@/core/logger';
+import { normalizeSource, sanitizeCampaign } from './attribution';
 
 const router = Router();
 
@@ -31,15 +32,20 @@ router.get('/captcha', onboardingLimiter, (_req: Request, res: Response) => {
   res.json({ question: `¿Cuánto es ${a} + ${b}?`, a, b, exp, token: captchaSign(a, b, exp) });
 });
 
-// Tracking del embudo público (contador diario, sin cookies ni datos personales)
+// Tracking del embudo público (contador diario, sin cookies ni datos personales).
+// Además del total por evento, cuenta `<evento>:<origen>` con el origen ya
+// normalizado a una lista cerrada (attribution.ts) — nunca el texto del cliente.
 const VALID_EVENTS = new Set(['landing_view', 'registro_view']);
 router.post('/track', asyncHandler(async (req: Request, res: Response) => {
   const event = String(req.body?.event ?? '');
   if (VALID_EVENTS.has(event)) {
     const { MetricDaily } = await import('./metric-daily.model');
     const today = new Date().toISOString().slice(0, 10);
-    const [row] = await MetricDaily.findOrCreate({ where: { date: today, key: event }, defaults: { date: today, key: event, count: 0 } });
-    await row.increment('count');
+    const keys = [event, `${event}:${normalizeSource(req.body?.source)}`];
+    for (const key of keys) {
+      const [row] = await MetricDaily.findOrCreate({ where: { date: today, key }, defaults: { date: today, key, count: 0 } });
+      await row.increment('count');
+    }
   }
   res.status(204).end();
 }));
@@ -57,6 +63,11 @@ const requestSchema = z.object({
   email: z.string().email().max(255),
   phone: z.string().max(50).optional(),
   message: z.string().max(1000).optional(),
+  // atribución (opcional; se normaliza, nunca se guarda tal cual). z.unknown a
+  // propósito: un utm raro (largo, tipo inválido) nunca debe bloquear el registro —
+  // normalizeSource/sanitizeCampaign recortan o descartan lo que no sirva.
+  source: z.unknown().optional(),
+  campaign: z.unknown().optional(),
   // anti-bot
   website: z.string().optional(), // honeypot: los humanos lo dejan vacío
   captcha: z.object({ a: z.number(), b: z.number(), exp: z.number(), token: z.string(), answer: z.number() }),
@@ -95,6 +106,8 @@ router.post('/request', onboardingLimiter, asyncHandler(async (req: Request, res
       message: d.message ?? null,
       status: 'pending',
       tenantId: null,
+      source: normalizeSource(d.source),
+      campaign: sanitizeCampaign(d.campaign),
     });
 
     try {
