@@ -6,6 +6,7 @@ import {
   CircleDollarSign, AlertTriangle, Clock,
 } from 'lucide-react';
 import { apiService } from '../services/api';
+import { getAttribution } from '../utils/attribution';
 
 const COP = (n: number) =>
   new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
@@ -138,7 +139,7 @@ const Landing: React.FC = () => {
   const [prices, setPrices] = useState<Record<string, number> | null>(null);
 
   useEffect(() => {
-    apiService.post('/onboarding/track', { event: 'landing_view' }).catch(() => {});
+    apiService.post('/onboarding/track', { event: 'landing_view', source: getAttribution().source }).catch(() => {});
     apiService.get<{ prices: Record<string, number> }>('/onboarding/plans')
       .then(r => setPrices(r.prices)).catch(() => setPrices(null));
   }, []);

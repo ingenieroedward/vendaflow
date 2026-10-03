@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Building2, LogOut, X, Megaphone, LayoutDashboard, Inbox, Wallet, ScrollText, Settings, Bell, BellOff, RefreshCw } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { usePushNotifications } from '../hooks/usePushNotifications';
-import { tenantAdminService, TenantSummary, TenantRequestItem, PlanPaymentItem, FinanceData, AuditLogItem, PlatformSettings, PlatformStats } from '../services/tenantAdmin';
+import { tenantAdminService, TenantSummary, TenantRequestItem, PlanPaymentItem, FinanceData, AuditLogItem, PlatformSettings, PlatformStats, FunnelData } from '../services/tenantAdmin';
 import { SectionKey, SECTION_KEYS, SECTION_TITLES } from '../utils/adminHelpers';
 import BroadcastModal from '../components/BroadcastModal';
 import RegisterPaymentModal from '../components/RegisterPaymentModal';
@@ -13,14 +13,6 @@ import Bandeja from './sections/Bandeja';
 import Configuracion from './sections/Configuracion';
 import Finanzas from './sections/Finanzas';
 import Auditoria from './sections/Auditoria';
-
-interface FunnelData {
-  days: number;
-  landingViews: number;
-  registroViews: number;
-  requests: number;
-  approved: number;
-}
 
 const Superadmin: React.FC = () => {
   const { user, logout } = useAuthStore();
