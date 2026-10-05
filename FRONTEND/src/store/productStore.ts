@@ -361,6 +361,14 @@ export const useProductStore = create<ProductState>((set) => ({
     set({ loading: true, error: null });
     try {
       await productService.deleteProduct(id);
+      // Quitarlo también del caché offline: si no, sin conexión seguiría en la
+      // lista y podría terminar en un borrador de orden (→ 404 al guardar).
+      try {
+        await db.transaction('rw', db.products, db.prices, async () => {
+          await db.products.where('serverId').equals(id).delete();
+          await db.prices.where('productId').equals(id).delete();
+        });
+      } catch { /* el caché se corrige en el próximo seed; el borrado ya ocurrió */ }
       set(state => ({
         products: state.products.filter(p => p.id !== id),
         currentProduct: state.currentProduct?.id === id ? null : state.currentProduct,
