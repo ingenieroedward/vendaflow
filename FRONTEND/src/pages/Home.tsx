@@ -1,15 +1,27 @@
-import React, {  useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, RefreshCw, Package, TrendingUp } from 'lucide-react';
 import { useProductStore } from '../store/productStore';
 import { useTenantStore } from '../store/tenantStore';
 import { useAuthStore } from '../store/authStore';
 import SearchBar from '../components/features/SearchBar';
-import ProductCard from '../components/features/ProductCard';
+import ProductDetailsPanel from '../components/features/ProductDetailsPanel';
 import Pagination from '../components/features/Pagination';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import ErrorMessage from '../components/ui/ErrorMessage';
 import Button from '../components/ui/Button';
+import { Product } from '../types';
+
+// Productos por página en la lista (antes 10 tarjetas grandes)
+const PAGE_SIZE = 25;
+
+const formatCurrency = (amount: number) =>
+  new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
+
+const formatDate = (dateString: string) =>
+  new Date(dateString).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
+
+const minCost = (p: Product) => (p.prices?.length ? Math.min(...p.prices.map(pr => pr.price)) : null);
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
@@ -25,9 +37,11 @@ const Home: React.FC = () => {
     clearError 
   } = useProductStore();
 
+  const [selected, setSelected] = useState<Product | null>(null);
+
   useEffect(() => {
     if (!searchQuery) {
-      getProducts(1,10,false);
+      getProducts(1, PAGE_SIZE, false);
     }
   }, []);
 
@@ -44,12 +58,13 @@ const Home: React.FC = () => {
     getProducts(page, pagination.limit);
   };
 
-  const handleProductClick = (productId: number) => {
-    navigate(`/products/${productId}`);
-  };
+  // Clic en un producto → panel de detalles a la derecha (sin salir de la lista)
+  const handleProductClick = (product: Product) => setSelected(product);
 
   const handleSearchResultClick = (productId: number) => {
-    navigate(`/products/${productId}`);
+    const product = products.find(p => p.id === productId);
+    if (product) setSelected(product);
+    else navigate(`/products/${productId}`);
   };
 
   const showSearchResults = searchQuery.trim().length > 0;
@@ -174,17 +189,69 @@ const Home: React.FC = () => {
                 </div>
               )}
 
-              {/* Products Grid - Optimizado para mobile */}
+              {/* Lista de productos: tabla en desktop, filas compactas en mobile */}
               {products.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                  {products.map((product) => (
-                    <ProductCard
-                      key={product.id}
-                      product={product}
-                      onClick={() => handleProductClick(product.id)}
-                     
-                    />
-                  ))}
+                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                  <table className="hidden md:table w-full text-sm">
+                    <thead className="bg-gray-50 text-left text-xs font-medium text-gray-500">
+                      <tr>
+                        <th className="px-4 py-2.5 font-medium">Código</th>
+                        <th className="px-4 py-2.5 font-medium">Producto</th>
+                        <th className="px-4 py-2.5 font-medium">Unidad</th>
+                        <th className="px-4 py-2.5 font-medium text-right">Precio venta</th>
+                        <th className="px-4 py-2.5 font-medium text-right">Menor costo</th>
+                        <th className="px-4 py-2.5 font-medium text-right">Proveedores</th>
+                        <th className="px-4 py-2.5 font-medium text-right">Actualizado</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {products.map((product) => {
+                        const cost = minCost(product);
+                        const isSelected = selected?.id === product.id;
+                        return (
+                          <tr
+                            key={product.id}
+                            onClick={() => handleProductClick(product)}
+                            className={`cursor-pointer transition-colors ${isSelected ? 'bg-primary/5' : 'hover:bg-gray-50'}`}
+                          >
+                            <td className="px-4 py-2.5 font-mono text-xs text-primary whitespace-nowrap">{product.code}</td>
+                            <td className="px-4 py-2.5 font-medium text-gray-900">{product.name}</td>
+                            <td className="px-4 py-2.5 text-gray-600 whitespace-nowrap">{product.unit}</td>
+                            <td className="px-4 py-2.5 text-right font-semibold text-gray-900 whitespace-nowrap">{formatCurrency(product.salePrice)}</td>
+                            <td className="px-4 py-2.5 text-right whitespace-nowrap">
+                              {cost !== null ? <span className="text-green-700">{formatCurrency(cost)}</span> : <span className="text-gray-300">—</span>}
+                            </td>
+                            <td className="px-4 py-2.5 text-right text-gray-600">{product.prices?.length ?? 0}</td>
+                            <td className="px-4 py-2.5 text-right text-gray-500 whitespace-nowrap">{formatDate(product.updatedAt)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+
+                  <ul className="md:hidden divide-y divide-gray-100">
+                    {products.map((product) => {
+                      const cost = minCost(product);
+                      return (
+                        <li key={product.id}>
+                          <button
+                            onClick={() => handleProductClick(product)}
+                            className="w-full flex items-center gap-3 px-3 py-3 text-left active:bg-gray-50"
+                          >
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-900 leading-snug break-words">{product.name}</p>
+                              <p className="text-xs text-gray-500 mt-0.5">
+                                <span className="font-mono text-primary">{product.code}</span>
+                                <span className="text-gray-300 mx-1">•</span>{product.unit}
+                                {cost !== null && <><span className="text-gray-300 mx-1">•</span>costo <span className="text-green-700">{formatCurrency(cost)}</span></>}
+                              </p>
+                            </div>
+                            <span className="text-sm font-semibold text-gray-900 whitespace-nowrap">{formatCurrency(product.salePrice)}</span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
                 </div>
               ) : !loading && (
                 <div className="text-center py-12 sm:py-16 px-4">
@@ -224,6 +291,8 @@ const Home: React.FC = () => {
           )}
         </div>
       </div>
+
+      <ProductDetailsPanel product={selected} onClose={() => setSelected(null)} />
     </div>
   );
 };
