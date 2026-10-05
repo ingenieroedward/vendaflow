@@ -7,6 +7,20 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ## [Unreleased]
 
+## [1.16.5] — 2026-10-05 — Orden atascada por producto eliminado
+
+### Fixed
+
+- **Orden/cotización atascada con un producto eliminado** (reportado en producción: `POST /api/orders`
+  → 404 "Product with ID 327 not found"). El formulario restaura un borrador de `localStorage`; si un
+  producto del borrador se había eliminado (`deleteProduct` borra con `force: true`), cada intento de
+  guardar fallaba con un mensaje en inglés y el borrador —que no se limpia al fallar— volvía a traer
+  el mismo producto.
+  - Backend: `modules/product/product-errors.ts` (`productNotFoundError`) — 404 en español que termina
+    en `(ID n)`, usado en órdenes, cotizaciones (crear y editar) y órdenes de compra.
+  - Frontend: `utils/missingProduct.ts` — `OrderNew`/`QuoteNew` quitan ese ítem del formulario (y por
+    ende del borrador), avisan cuál fue y limpian el error crudo; el siguiente intento se guarda.
+
 ## [1.16.4] — 2026-10-03 — Embudo comercial por origen
 
 ### Added
