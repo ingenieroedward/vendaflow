@@ -3,6 +3,7 @@ import { QuoteItem, QuoteItemAttributes } from './quote-item.model';
 import { Customer } from '@/modules/customer/customer.model';
 import { User } from '@/modules/user/user.model';
 import { Product } from '@/modules/product/product.model';
+import { productNotFoundError } from '@/modules/product/product-errors';
 import {
   CreateQuoteDto,
   UpdateQuoteDto,
@@ -85,7 +86,7 @@ export class QuoteService {
     for (const item of validatedData.items) {
       const product = await Product.findOne({ where: { id: item.productId, tenantId } });
       if (!product) {
-        throw new NotFoundError(`Product with ID ${item.productId} not found`);
+        throw await productNotFoundError(item.productId, tenantId);
       }
     }
 
@@ -240,7 +241,7 @@ export class QuoteService {
             typeof item.taxRate === 'number'
           ) {
             const product = await Product.findOne({ where: { id: item.productId, tenantId }, transaction });
-            if (!product) throw new NotFoundError(`Product with ID ${item.productId} not found`);
+            if (!product) throw await productNotFoundError(item.productId, tenantId, transaction);
 
             if (item.id && existingItemIds.includes(item.id)) {
               await QuoteItem.update(
