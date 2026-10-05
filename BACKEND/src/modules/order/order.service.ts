@@ -388,7 +388,7 @@ export class OrderService {
           model: OrderItem,
           as: 'orderItems',
           attributes: ['productId', 'quantity', 'unitPrice', 'taxRate', 'totalPrice'],
-          include: [{ model: Product, as: 'product', attributes: ['name', 'code', 'unit', 'stock'] }],
+          include: [{ model: Product, as: 'product', paranoid: false, attributes: ['name', 'code', 'unit', 'stock'] }],
         },
       ],
       order: [['createdAt', 'ASC']],
@@ -664,6 +664,7 @@ export class OrderService {
           include: [
             {
               model: Product,
+              paranoid: false, // historial: mostrar también productos archivados
               as: 'product',
               attributes: ['id', 'name', 'code', 'unit'],
             },
@@ -707,6 +708,7 @@ export class OrderService {
           include: [
             {
               model: Product,
+              paranoid: false, // historial: mostrar también productos archivados
               as: 'product',
             },
           ],
@@ -880,6 +882,7 @@ export class OrderService {
             include: [
               {
                 model: Product,
+                paranoid: false, // historial: mostrar también productos archivados
                 as: 'product',
                 attributes: ['id', 'name', 'code', 'unit'],
               },
@@ -1011,6 +1014,7 @@ export class OrderService {
           include: [
             {
               model: Product,
+              paranoid: false, // historial: mostrar también productos archivados
               as: 'product',
               attributes: ['id', 'name', 'code', 'unit'],
             },
@@ -1049,6 +1053,7 @@ export class OrderService {
           include: [
             {
               model: Product,
+              paranoid: false, // historial: mostrar también productos archivados
               as: 'product',
               attributes: ['id', 'name', 'code', 'unit'],
             },

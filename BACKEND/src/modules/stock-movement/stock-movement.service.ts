@@ -20,8 +20,12 @@ export class StockMovementService {
     const t = data.transaction ?? null;
     // Filtra por tenant (evita mutar stock ajeno) y bloquea la fila dentro de
     // la transacción para que dos ventas simultáneas no pisen el mismo stock
+    // paranoid: false — reconciliar stock de documentos viejos (cancelar/editar una
+    // orden, recibir una compra) debe funcionar aunque el producto se haya archivado.
+    // Las ventas NUEVAS no llegan acá con un archivado: createOrder lo rechaza antes.
     const product = await Product.findOne({
       where: { id: data.productId, tenantId: data.tenantId },
+      paranoid: false,
       transaction: t,
       ...(t ? { lock: t.LOCK.UPDATE } : {}),
     });
@@ -86,7 +90,7 @@ export class StockMovementService {
     const { count, rows } = await StockMovement.findAndCountAll({
       where: { tenantId },
       include: [
-        { model: Product, as: 'product', attributes: ['id', 'name', 'code', 'unit'] },
+        { model: Product, as: 'product', paranoid: false, attributes: ['id', 'name', 'code', 'unit'] },
       ],
       order: [['createdAt', 'DESC']],
       limit: validatedLimit,

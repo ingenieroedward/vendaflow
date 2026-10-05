@@ -15,6 +15,7 @@ import { validateSchema, validatePartialSchema, paginationSchema, PaginationQuer
 import { createProductSchema, updateProductSchema, searchProductSchema, adjustStockSchema } from './product.dto';
 import { StockMovementService } from '@/modules/stock-movement/stock-movement.service';
 import { Op, literal } from 'sequelize';
+import { archivedProductCode } from './product-errors';
 
 export class ProductService {
   private stockMovementService = new StockMovementService();
@@ -184,8 +185,15 @@ export class ProductService {
       throw new NotFoundError('Product not found');
     }
 
-    await Price.destroy({ where: { productId: id, tenantId }, force: true });
-    await product.destroy({ force: true });
+    // Borrado LÓGICO: el producto puede estar en órdenes, cotizaciones, compras y
+    // kardex (FK sin cascada — el borrado físico fallaba con 500). Se oculta del
+    // catálogo y de ventas nuevas, el historial lo sigue mostrando, y el código se
+    // libera para poder crear otro producto con el mismo.
+    await Product.sequelize!.transaction(async (t) => {
+      await Price.destroy({ where: { productId: id, tenantId }, force: true, transaction: t });
+      await product.update({ code: archivedProductCode(product.code, id) }, { transaction: t });
+      await product.destroy({ transaction: t });
+    });
   }
 
   async searchProducts(searchData: SearchProductDto, tenantId: number, required_prices: boolean = true): Promise<ProductResponseDto[]> {

@@ -610,7 +610,8 @@ const ProductDetail: React.FC = () => {
           <div className="space-y-4">
             <p className="text-sm text-gray-600">
               ¿Estás seguro de que quieres eliminar <span className="font-semibold">{product?.name}</span>?
-              Esta acción eliminará el producto y <span className="font-semibold">todos sus precios</span> de forma permanente. No se puede deshacer.
+              Dejará de aparecer en el catálogo y en ventas nuevas, y se borrarán <span className="font-semibold">todos sus precios</span>.
+              Las órdenes, cotizaciones y compras donde ya aparece lo seguirán mostrando, y su código queda libre para otro producto.
             </p>
             <div className="flex justify-end space-x-3">
               <Button variant="outline" onClick={() => setShowDeleteConfirm(false)} disabled={deleting}>
