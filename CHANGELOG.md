@@ -7,6 +7,19 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ## [Unreleased]
 
+## [1.16.7] — 2026-10-05 — Lista de productos con panel de detalles
+
+### Changed
+
+- **Inicio (`/`)**: la grilla de tarjetas (10 por página, nombres cortados en "AMORTIG…") pasa a una
+  **lista**: tabla en desktop (código, producto, unidad, precio venta, menor costo, proveedores,
+  actualizado) y filas compactas en mobile, **25 por página**.
+- Clic en un producto (o en un resultado del buscador) abre un **panel lateral derecho**
+  (`components/features/ProductDetailsPanel.tsx`) con precio de venta, stock, menor costo, margen y
+  proveedores ordenados por precio, y botones **Editar** (directo a `/products/:id/edit`) y Ver ficha.
+  Cierra con Esc, la X o clic afuera; en mobile ocupa toda la pantalla.
+- `ProductCard.tsx` eliminado (solo lo usaba el inicio; su botón de editar no hacía nada).
+
 ## [1.16.6] — 2026-10-05 — Eliminar productos con historial
 
 ### Fixed
