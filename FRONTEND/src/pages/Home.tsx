@@ -6,6 +6,7 @@ import { useTenantStore } from '../store/tenantStore';
 import { useAuthStore } from '../store/authStore';
 import SearchBar from '../components/features/SearchBar';
 import ProductDetailsPanel from '../components/features/ProductDetailsPanel';
+import ProductCard from '../components/features/ProductCard';
 import Pagination from '../components/features/Pagination';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import ErrorMessage from '../components/ui/ErrorMessage';
@@ -58,12 +59,18 @@ const Home: React.FC = () => {
     getProducts(page, pagination.limit);
   };
 
-  // Clic en un producto → panel de detalles a la derecha (sin salir de la lista)
-  const handleProductClick = (product: Product) => setSelected(product);
+  // Desktop: clic → panel de detalles a la derecha (sin salir de la lista).
+  // Mobile: abre la ficha del producto, como siempre (decisión del usuario).
+  const isDesktop = () => window.matchMedia('(min-width: 768px)').matches;
+
+  const handleProductClick = (product: Product) => {
+    if (isDesktop()) setSelected(product);
+    else navigate(`/products/${product.id}`);
+  };
 
   const handleSearchResultClick = (productId: number) => {
     const product = products.find(p => p.id === productId);
-    if (product) setSelected(product);
+    if (product && isDesktop()) setSelected(product);
     else navigate(`/products/${productId}`);
   };
 
@@ -191,8 +198,9 @@ const Home: React.FC = () => {
 
               {/* Lista de productos: tabla en desktop, filas compactas en mobile */}
               {products.length > 0 ? (
-                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                  <table className="hidden md:table w-full text-sm">
+                <>
+                <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-hidden">
+                  <table className="w-full text-sm">
                     <thead className="bg-gray-50 text-left text-xs font-medium text-gray-500">
                       <tr>
                         <th className="px-4 py-2.5 font-medium">Código</th>
@@ -228,31 +236,15 @@ const Home: React.FC = () => {
                       })}
                     </tbody>
                   </table>
-
-                  <ul className="md:hidden divide-y divide-gray-100">
-                    {products.map((product) => {
-                      const cost = minCost(product);
-                      return (
-                        <li key={product.id}>
-                          <button
-                            onClick={() => handleProductClick(product)}
-                            className="w-full flex items-center gap-3 px-3 py-3 text-left active:bg-gray-50"
-                          >
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-gray-900 leading-snug break-words">{product.name}</p>
-                              <p className="text-xs text-gray-500 mt-0.5">
-                                <span className="font-mono text-primary">{product.code}</span>
-                                <span className="text-gray-300 mx-1">•</span>{product.unit}
-                                {cost !== null && <><span className="text-gray-300 mx-1">•</span>costo <span className="text-green-700">{formatCurrency(cost)}</span></>}
-                              </p>
-                            </div>
-                            <span className="text-sm font-semibold text-gray-900 whitespace-nowrap">{formatCurrency(product.salePrice)}</span>
-                          </button>
-                        </li>
-                      );
-                    })}
-                  </ul>
                 </div>
+
+                {/* Mobile: tarjetas, como antes */}
+                <div className="md:hidden grid grid-cols-1 gap-4">
+                  {products.map((product) => (
+                    <ProductCard key={product.id} product={product} onClick={() => handleProductClick(product)} />
+                  ))}
+                </div>
+                </>
               ) : !loading && (
                 <div className="text-center py-12 sm:py-16 px-4">
                   <Package className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 mx-auto mb-4" />
