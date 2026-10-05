@@ -159,7 +159,7 @@ export class QuoteService {
         {
           model: QuoteItem,
           as: 'quoteItems',
-          include: [{ model: Product, as: 'product', attributes: ['id', 'name', 'code', 'unit'] }],
+          include: [{ model: Product, as: 'product', paranoid: false, attributes: ['id', 'name', 'code', 'unit'] }],
         },
       ],
       limit: validatedLimit,
@@ -182,7 +182,7 @@ export class QuoteService {
       include: [
         { model: Customer, as: 'customer' },
         { model: User, as: 'user' },
-        { model: QuoteItem, as: 'quoteItems', include: [{ model: Product, as: 'product' }] },
+        { model: QuoteItem, as: 'quoteItems', include: [{ model: Product, as: 'product', paranoid: false }] },
       ],
     });
 
@@ -240,8 +240,13 @@ export class QuoteService {
             typeof item.unitPrice === 'number' &&
             typeof item.taxRate === 'number'
           ) {
-            const product = await Product.findOne({ where: { id: item.productId, tenantId }, transaction });
-            if (!product) throw await productNotFoundError(item.productId, tenantId, transaction);
+            // Validar solo ítems nuevos o que cambian de producto: un ítem que ya estaba
+            // puede apuntar a un producto archivado y no debe impedir editar la cotización.
+            const unchanged = existingItems.some(e => e.id === item.id && e.productId === item.productId);
+            if (!unchanged) {
+              const product = await Product.findOne({ where: { id: item.productId, tenantId }, transaction });
+              if (!product) throw await productNotFoundError(item.productId, tenantId, transaction);
+            }
 
             if (item.id && existingItemIds.includes(item.id)) {
               await QuoteItem.update(
@@ -287,7 +292,7 @@ export class QuoteService {
           {
             model: QuoteItem,
             as: 'quoteItems',
-            include: [{ model: Product, as: 'product', attributes: ['id', 'name', 'code', 'unit'] }],
+            include: [{ model: Product, as: 'product', paranoid: false, attributes: ['id', 'name', 'code', 'unit'] }],
           },
         ],
       });
@@ -354,7 +359,7 @@ export class QuoteService {
         {
           model: QuoteItem,
           as: 'quoteItems',
-          include: [{ model: Product, as: 'product', attributes: ['id', 'name', 'code', 'unit'] }],
+          include: [{ model: Product, as: 'product', paranoid: false, attributes: ['id', 'name', 'code', 'unit'] }],
         },
       ],
       order: [['createdAt', 'DESC']],
@@ -378,7 +383,7 @@ export class QuoteService {
         {
           model: QuoteItem,
           as: 'quoteItems',
-          include: [{ model: Product, as: 'product', attributes: ['id', 'name', 'code', 'unit'] }],
+          include: [{ model: Product, as: 'product', paranoid: false, attributes: ['id', 'name', 'code', 'unit'] }],
         },
       ],
       limit: validatedLimit,

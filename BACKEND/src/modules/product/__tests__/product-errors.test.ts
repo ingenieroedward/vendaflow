@@ -32,3 +32,23 @@ describe('productNotFoundError', () => {
     expect(ids[ids.length - 1]).toBe(42);
   });
 });
+
+describe('archivedProductCode', () => {
+  // import tardío: el mock de product.model de arriba no le afecta (función pura)
+  const { archivedProductCode } = jest.requireActual('../product-errors') as typeof import('../product-errors');
+
+  it('marca el código y lo hace único por id', () => {
+    expect(archivedProductCode('327', 156)).toBe('327 (eliminado #156)');
+    expect(archivedProductCode('327', 157)).not.toBe(archivedProductCode('327', 156));
+  });
+
+  it('nunca supera STRING(255), aun con códigos largos', () => {
+    const out = archivedProductCode('X'.repeat(300), 999999);
+    expect(out.length).toBeLessThanOrEqual(255);
+    expect(out.endsWith(' (eliminado #999999)')).toBe(true);
+  });
+
+  it('libera el código original (el archivado ya no es igual)', () => {
+    expect(archivedProductCode('ABC-1', 1)).not.toBe('ABC-1');
+  });
+});

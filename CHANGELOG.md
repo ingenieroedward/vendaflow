@@ -7,6 +7,25 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ## [Unreleased]
 
+## [1.16.6] — 2026-10-05 — Eliminar productos con historial
+
+### Fixed
+
+- **No se podía eliminar un producto que ya se había vendido/comprado** (producción: `DELETE
+  /api/products/156` → 500). `deleteProduct` borraba con `force: true` y las FK de `order_items`,
+  `quote_items`, `purchase_order_items` y `stock_movements` (sin cascada) lo impedían.
+  - Ahora es **borrado lógico** (el modelo ya era `paranoid`): sale del catálogo, búsquedas y ventas
+    nuevas; el código pasa a `<código> (eliminado #id)` (`archivedProductCode`) para **liberar el
+    original** — el índice único `(tenantId, code)` incluye filas eliminadas. Precios se siguen
+    borrando.
+  - Historial intacto: los `include` de Product en órdenes, cotizaciones, compras, reporte mensual y
+    kardex usan `paranoid: false`. `createMovement` también, para que cancelar/editar/restaurar una
+    orden vieja o recibir una compra vieja siga ajustando stock.
+  - Editar una cotización ya no revalida los ítems que no cambian (antes una cotización con un
+    producto archivado quedaba ineditable). Ítems nuevos con un archivado → 404 claro.
+  - Frontend: al eliminar se borra también del caché offline (Dexie) con sus precios; el texto de
+    confirmación explica que el historial se conserva y el código queda libre.
+
 ## [1.16.5] — 2026-10-05 — Orden atascada por producto eliminado
 
 ### Fixed

@@ -136,7 +136,7 @@ export class PurchaseOrderService {
         {
           model: PurchaseOrderItem,
           as: 'items',
-          include: [{ model: Product, as: 'product', attributes: ['id', 'name', 'code', 'unit', 'stock'] }],
+          include: [{ model: Product, as: 'product', paranoid: false, attributes: ['id', 'name', 'code', 'unit', 'stock'] }],
         },
       ],
       limit: validatedLimit,
@@ -164,7 +164,7 @@ export class PurchaseOrderService {
         {
           model: PurchaseOrderItem,
           as: 'items',
-          include: [{ model: Product, as: 'product', attributes: ['id', 'name', 'code', 'unit', 'stock'] }],
+          include: [{ model: Product, as: 'product', paranoid: false, attributes: ['id', 'name', 'code', 'unit', 'stock'] }],
         },
       ],
     });
