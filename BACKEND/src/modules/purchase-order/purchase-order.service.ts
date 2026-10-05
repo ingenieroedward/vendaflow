@@ -3,6 +3,7 @@ import { Transaction } from 'sequelize';
 import { PurchaseOrder } from './purchase-order.model';
 import { PurchaseOrderItem } from './purchase-order-item/purchase-order-item.model';
 import { Product } from '@/modules/product/product.model';
+import { productNotFoundError } from '@/modules/product/product-errors';
 import { Supplier } from '@/modules/supplier/supplier.model';
 import { User } from '@/modules/user/user.model';
 import { StockMovementService } from '@/modules/stock-movement/stock-movement.service';
@@ -42,7 +43,7 @@ export class PurchaseOrderService {
 
     for (const item of validatedData.items) {
       const product = await Product.findOne({ where: { id: item.productId, tenantId } });
-      if (!product) throw new NotFoundError(`Product with ID ${item.productId} not found`);
+      if (!product) throw await productNotFoundError(item.productId, tenantId);
     }
 
     let poNumberBase = validatedData.poNumber;

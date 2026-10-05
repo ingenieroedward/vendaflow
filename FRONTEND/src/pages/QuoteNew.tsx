@@ -23,6 +23,7 @@ import ErrorMessage from "../components/ui/ErrorMessage";
 import Button from "../components/ui/Button";
 import CustomerSearch from "../components/features/CustomerSearch";
 import ProductSearch from "../components/features/ProductSearch";
+import { removeMissingProduct } from '../utils/missingProduct';
 import CustomerModal from "../components/ui/CustomerModal";
 import { CreateQuoteRequest } from "../types/quote";
 import { Product } from "../types";
@@ -222,6 +223,19 @@ const QuoteNew: React.FC = () => {
       }
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : 'Error al crear la cotización';
+      // Producto eliminado (típico de un borrador viejo): quitarlo para no quedar
+      // atascado — el borrador se actualiza solo al cambiar los ítems.
+      const fixed = removeMissingProduct(msg, quoteItems);
+      if (fixed) {
+        setQuoteItems(fixed.items);
+        clearError(); // el aviso de abajo reemplaza el error crudo del store
+        addNotification({
+          type: 'warning',
+          title: 'Producto no disponible',
+          message: `"${fixed.productName}" ya no existe y se quitó de la cotización. Revisa y vuelve a guardar.`,
+        });
+        return;
+      }
       addNotification({ type: 'error', title: 'Error', message: msg });
     }
   };

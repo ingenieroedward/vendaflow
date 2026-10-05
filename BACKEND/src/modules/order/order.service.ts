@@ -3,6 +3,7 @@ import { OrderItem, OrderItemAttributes } from './order-item.model';
 import { Customer } from '@/modules/customer/customer.model';
 import { User } from '@/modules/user/user.model';
 import { Product } from '@/modules/product/product.model';
+import { productNotFoundError } from '@/modules/product/product-errors';
 import { 
   CreateOrderDto, 
   UpdateOrderDto, 
@@ -96,7 +97,7 @@ export class OrderService {
     for (const item of validatedData.items) {
       const product = await Product.findOne({ where: { id: item.productId, tenantId } });
       if (!product) {
-        throw new NotFoundError(`Product with ID ${item.productId} not found`);
+        throw await productNotFoundError(item.productId, tenantId);
       }
     }
 

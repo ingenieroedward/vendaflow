@@ -27,6 +27,7 @@ import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
 import CustomerSearch from "../components/features/CustomerSearch";
 import ProductSearch from "../components/features/ProductSearch";
+import { removeMissingProduct } from '../utils/missingProduct';
 import CustomerModal from "../components/ui/CustomerModal";
 import { CreateOrderRequest } from "../types/order";
 import { Product } from "../types";
@@ -232,6 +233,19 @@ const OrderNew: React.FC = () => {
       }
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : 'Error al crear la orden';
+      // Producto eliminado (típico de un borrador viejo): quitarlo para no quedar
+      // atascado — el borrador se actualiza solo al cambiar los ítems.
+      const fixed = removeMissingProduct(msg, orderItems);
+      if (fixed) {
+        setOrderItems(fixed.items);
+        clearError(); // el aviso de abajo reemplaza el error crudo del store
+        addNotification({
+          type: 'warning',
+          title: 'Producto no disponible',
+          message: `"${fixed.productName}" ya no existe y se quitó de la orden. Revisa y vuelve a guardar.`,
+        });
+        return;
+      }
       addNotification({ type: 'error', title: 'Error', message: msg });
     }
   };
