@@ -7,6 +7,15 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ## [Unreleased]
 
+## [1.16.8] — 2026-10-05 — Productos: tarjetas en mobile
+
+### Changed
+
+- **Inicio en mobile vuelve a tarjetas** (decisión del usuario): la lista en tabla + panel lateral
+  de la v1.16.7 queda **solo en desktop** (≥768px). En mobile, `ProductCard` restaurado con el
+  encabezado corregido (nombre completo en su propio renglón, código · unidad · fecha debajo) y su
+  botón de editar funcionando; tocar una tarjeta abre la ficha (`/products/:id`), como antes.
+
 ## [1.16.7] — 2026-10-05 — Lista de productos con panel de detalles
 
 ### Changed
