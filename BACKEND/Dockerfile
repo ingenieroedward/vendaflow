@@ -1,5 +1,5 @@
 # ── Stage 1: Build ──────────────────────────────────────────────────────────
-FROM node:18-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
@@ -17,7 +17,7 @@ RUN npm test
 RUN npm run build
 
 # ── Stage 2: Production ──────────────────────────────────────────────────────
-FROM node:18-alpine
+FROM node:22-alpine
 
 # tzdata para TZ=America/Bogota (jobs y cortes de mes en hora Colombia)
 RUN apk add --no-cache tzdata
