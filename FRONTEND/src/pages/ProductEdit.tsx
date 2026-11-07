@@ -443,7 +443,7 @@ const ProductEdit: React.FC = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Categoría <span className="text-gray-400 font-normal">(opcional)</span>
+                    Categoría <span className="text-gray-500 font-normal">(opcional)</span>
                   </label>
                   <select
                     value={formData.categoryId ?? ''}
@@ -500,7 +500,7 @@ const ProductEdit: React.FC = () => {
                     placeholder="0"
                   />
                 </div>
-                <p className="mt-2 text-xs text-gray-400">
+                <p className="mt-2 text-xs text-gray-500">
                   Modifica directamente el stock solo para correcciones manuales. Para compras usa Órdenes de Compra.
                 </p>
               </div>

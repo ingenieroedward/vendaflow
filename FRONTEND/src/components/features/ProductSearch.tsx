@@ -10,6 +10,10 @@ interface ProductSearchProps {
   className?: string;
   /** When provided and online, called instead of filtering the local `products` array */
   searchFn?: (query: string) => Promise<Product[]>;
+  /** Agregar-y-seguir: al elegir limpia el campo y conserva el foco (Nueva orden) */
+  clearOnSelect?: boolean;
+  /** Nombre accesible del campo */
+  ariaLabel?: string;
 }
 
 const ProductSearch: React.FC<ProductSearchProps> = ({
@@ -19,6 +23,8 @@ const ProductSearch: React.FC<ProductSearchProps> = ({
   placeholder = "Buscar producto...",
   className = "",
   searchFn,
+  clearOnSelect = false,
+  ariaLabel,
 }) => {
   const [query, setQuery] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
@@ -47,9 +53,22 @@ const ProductSearch: React.FC<ProductSearchProps> = ({
 
   const handleProductSelect = (product: Product) => {
     onProductSelect(product);
-    setQuery(product.name);
+    setQuery(clearOnSelect ? '' : product.name);
     setShowDropdown(false);
     setApiResults(null);
+    if (clearOnSelect) inputRef.current?.focus();
+  };
+
+  // Enter elige: código exacto (lector de código de barras) o el único/primer resultado
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault(); // nunca enviar el formulario que contiene el buscador
+    const q = query.trim().toLowerCase();
+    if (!q) return;
+    const pool = searchFn ? (apiResults ?? []) : filteredProducts;
+    const exact = [...pool, ...products].find(p => p.code.toLowerCase() === q);
+    const pick = exact ?? (pool.length > 0 ? pool[0] : undefined);
+    if (pick) handleProductSelect(pick);
   };
 
   const handleClear = () => {
@@ -134,7 +153,7 @@ const ProductSearch: React.FC<ProductSearchProps> = ({
       {/* Input Field */}
       <div className="relative">
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <Search className="h-5 w-5 text-gray-400" />
+          <Search className="h-5 w-5 text-gray-500" />
         </div>
         <input
           ref={inputRef}
@@ -142,6 +161,8 @@ const ProductSearch: React.FC<ProductSearchProps> = ({
           value={query}
           onChange={handleInputChange}
           onFocus={handleInputFocus}
+          onKeyDown={handleKeyDown}
+          aria-label={ariaLabel}
           className={`block w-full pl-10 pr-10 py-2 border rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-primary focus:border-primary sm:text-sm ${
             selectedProduct 
               ? 'border-green-300 bg-green-50' 
@@ -151,15 +172,16 @@ const ProductSearch: React.FC<ProductSearchProps> = ({
         />
         {isSearching ? (
           <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-            <Loader2 className="h-4 w-4 text-gray-400 animate-spin" />
+            <Loader2 className="h-4 w-4 text-gray-500 animate-spin" />
           </div>
         ) : (query || selectedProduct) ? (
           <button
             onClick={handleClear}
             className="absolute inset-y-0 right-0 pr-3 flex items-center"
             type="button"
+            aria-label="Limpiar búsqueda"
           >
-            <X className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+            <X className="h-5 w-5 text-gray-500 hover:text-gray-700" />
           </button>
         ) : null}
       </div>
@@ -189,7 +211,7 @@ const ProductSearch: React.FC<ProductSearchProps> = ({
                   type="button"
                 >
                   <div className="flex items-center">
-                    <Package className="h-4 w-4 text-gray-400 mr-3 flex-shrink-0" />
+                    <Package className="h-4 w-4 text-gray-500 mr-3 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-gray-900 truncate">{product.name}</div>
                       <div className="text-xs text-gray-500">Código: {product.code}</div>

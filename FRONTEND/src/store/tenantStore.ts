@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { Tenant } from '../types/auth';
 import { STORAGE_KEYS } from '../utils/constants';
+import { deriveThemeColors, toChannels } from '../utils/themeColors';
 
 interface TenantState {
   tenant: Tenant | null;
@@ -11,15 +12,16 @@ interface TenantState {
 }
 
 function applyTheme(primaryColor: string) {
-  // Store as RGB channels so Tailwind's opacity modifier syntax works:
-  // rgb(var(--vf-primary) / 0.1) → correctly transparent tint
-  const hex = primaryColor.replace('#', '');
-  const r = parseInt(hex.slice(0, 2), 16);
-  const g = parseInt(hex.slice(2, 4), 16);
-  const b = parseInt(hex.slice(4, 6), 16);
-  if (!isNaN(r) && !isNaN(g) && !isNaN(b)) {
-    document.documentElement.style.setProperty('--vf-primary', `${r} ${g} ${b}`);
-  }
+  // Canales RGB (sin #) para que funcione el modificador de opacidad de
+  // Tailwind: rgb(var(--vf-primary) / 0.1). Además se derivan las variantes
+  // con contraste AA (ver utils/themeColors.ts).
+  const c = deriveThemeColors(primaryColor);
+  if (!c) return;
+  const root = document.documentElement.style;
+  root.setProperty('--vf-primary', toChannels(c.base));
+  root.setProperty('--vf-primary-ink', toChannels(c.ink));
+  root.setProperty('--vf-primary-fill', toChannels(c.fill));
+  root.setProperty('--vf-on-primary', toChannels(c.onFill));
 }
 
 export const useTenantStore = create<TenantState>((set) => ({

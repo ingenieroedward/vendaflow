@@ -228,14 +228,14 @@ const Users: React.FC = () => {
     <div className="min-h-screen bg-gray-50 max-w-7xl mx-auto">
       {/* Header */}
       <div className="px-3 sm:px-6 lg:px-8 pt-4 sm:pt-8">
-        <div className="text-center mb-6 sm:mb-8">
-          <h1 className="text-xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2 px-2">Usuarios</h1>
-          <p className="text-sm sm:text-lg text-gray-600 px-2">Administra los usuarios y sus roles.</p>
+        <div className="mb-4">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Usuarios</h1>
+          <p className="text-sm text-gray-600">Administra los usuarios y sus roles.</p>
         </div>
       </div>
       <div className="px-3 sm:px-6 lg:px-8 flex flex-col sm:flex-row sm:items-center gap-2 sm:justify-between mb-4">
         <div className="relative w-full sm:max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 z-10" />
           <Input
             type="text"
             placeholder="Buscar usuarios..."
@@ -263,7 +263,7 @@ const Users: React.FC = () => {
             <div className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3 flex-1 min-w-0">
-                  <div className="w-12 h-12 bg-gradient-to-br from-primary/15 to-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
                     <User className="w-6 h-6 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -278,7 +278,7 @@ const Users: React.FC = () => {
                       )}
                     </div>
                     {user.name && (
-                      <p className="text-xs text-gray-400 truncate mb-1">@{user.username}</p>
+                      <p className="text-xs text-gray-500 truncate mb-1">@{user.username}</p>
                     )}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
@@ -300,7 +300,7 @@ const Users: React.FC = () => {
                         activeUserMenu === user.id ? null : user.id
                       )
                     }
-                    className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                    className="p-2 rounded-lg text-gray-500 hover:text-gray-600 hover:bg-gray-100 transition-colors"
                   >
                     <MoreVertical className="w-5 h-5" />
                   </button>
@@ -316,7 +316,7 @@ const Users: React.FC = () => {
                           onClick={() => handleEditUser(user.id)}
                           className="flex items-center space-x-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                         >
-                          <Edit className="w-4 h-4 text-gray-400" />
+                          <Edit className="w-4 h-4 text-gray-500" />
                           <span>Editar usuario</span>
                         </button>
                         {user.id !== currentUser?.id && (
@@ -348,7 +348,7 @@ const Users: React.FC = () => {
             <div className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3 flex-1 min-w-0">
-                  <div className="w-12 h-12 bg-gradient-to-br from-primary/15 to-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
                     <User className="w-6 h-6 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -363,7 +363,7 @@ const Users: React.FC = () => {
                       )}
                     </div>
                     {user.name && (
-                      <p className="text-xs text-gray-400 truncate mb-1">@{user.username}</p>
+                      <p className="text-xs text-gray-500 truncate mb-1">@{user.username}</p>
                     )}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
@@ -385,7 +385,7 @@ const Users: React.FC = () => {
                         activeUserMenu === user.id ? null : user.id
                       )
                     }
-                    className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                    className="p-2 rounded-lg text-gray-500 hover:text-gray-600 hover:bg-gray-100 transition-colors"
                   >
                     <MoreVertical className="w-5 h-5" />
                   </button>
@@ -401,7 +401,7 @@ const Users: React.FC = () => {
                           onClick={() => handleRestoreUser(user.id)}
                           className="flex items-center space-x-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                         >
-                          <RefreshCcw className="w-4 h-4 text-gray-400" />
+                          <RefreshCcw className="w-4 h-4 text-gray-500" />
                           <span>Restaurar</span>
                         </button>
                         {user.id !== currentUser?.id && (
@@ -424,7 +424,7 @@ const Users: React.FC = () => {
         {filteredUsers.length === 0 && (
           <div className="text-center py-16">
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <User className="w-8 h-8 text-gray-400" />
+              <User className="w-8 h-8 text-gray-500" />
             </div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">
               No hay usuarios

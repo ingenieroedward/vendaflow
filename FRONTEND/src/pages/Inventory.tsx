@@ -13,6 +13,7 @@ import LoadingSpinner from '../components/ui/LoadingSpinner';
 import Button from '../components/ui/Button';
 import { productService } from '../services/products';
 import InventoryMovements from '../components/features/InventoryMovements';
+import SegmentedTabs from '../components/ui/SegmentedTabs';
 
 type FilterType = 'all' | 'negative' | 'alerts' | 'out_of_stock';
 
@@ -151,25 +152,18 @@ const Inventory: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 pb-32">
       {/* Header */}
-      <div className="text-center mb-6 sm:mb-8">
-        <h1 className="text-xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2 px-2">Inventario</h1>
-        <p className="text-sm sm:text-lg text-gray-600 px-2">Controla el stock de tus productos.</p>
+      <div className="mb-4">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Inventario</h1>
+        <p className="text-sm text-gray-600">Controla el stock de tus productos.</p>
       </div>
       {/* Selector de vista: stock actual vs kardex de movimientos */}
-      <div className="flex justify-center mb-5">
-        <div className="inline-flex rounded-lg border border-gray-200 bg-gray-100 p-0.5">
-          {([['stock', 'Stock'], ['movements', 'Movimientos']] as const).map(([key, label]) => (
-            <button
-              key={key}
-              onClick={() => setView(key)}
-              className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                view === key ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+      <div className="mb-5">
+        <SegmentedTabs
+          ariaLabel="Vista de inventario"
+          value={view}
+          onChange={setView}
+          tabs={[{ key: 'stock', label: 'Stock' }, { key: 'movements', label: 'Movimientos' }]}
+        />
       </div>
 
       {view === 'movements' ? (
@@ -189,7 +183,7 @@ const Inventory: React.FC = () => {
               </button>
               <button
                 onClick={() => navigate('/purchase-orders/new')}
-                className="flex items-center gap-1 px-2.5 py-1.5 text-xs sm:text-sm bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium"
+                className="flex items-center gap-1 px-2.5 py-1.5 text-xs sm:text-sm bg-primary text-on-primary rounded-lg hover:bg-primary/90 transition-colors font-medium"
               >
                 <Plus size={13} /> <span>Nueva OC</span>
               </button>
@@ -314,7 +308,7 @@ const Inventory: React.FC = () => {
           onClick={() => setFilter(filter === 'negative' ? 'all' : 'negative')}
         >
           <div className="flex items-center gap-3">
-            <TrendingUp className={negativeStock.length > 0 ? 'text-red-600' : 'text-gray-400'} size={22} />
+            <TrendingUp className={negativeStock.length > 0 ? 'text-red-600' : 'text-gray-500'} size={22} />
             <div>
               <p className={`text-xl font-bold ${negativeStock.length > 0 ? 'text-red-700' : 'text-gray-900'}`}>{negativeStock.length}</p>
               <p className="text-xs text-gray-500">Stock negativo</p>
@@ -326,7 +320,7 @@ const Inventory: React.FC = () => {
           onClick={() => setFilter(filter === 'out_of_stock' ? 'all' : 'out_of_stock')}
         >
           <div className="flex items-center gap-3">
-            <AlertTriangle className={outOfStock > 0 ? 'text-red-500' : 'text-gray-400'} size={22} />
+            <AlertTriangle className={outOfStock > 0 ? 'text-red-500' : 'text-gray-500'} size={22} />
             <div>
               <p className={`text-xl font-bold ${outOfStock > 0 ? 'text-red-700' : 'text-gray-900'}`}>{outOfStock}</p>
               <p className="text-xs text-gray-500">Sin stock</p>
@@ -338,7 +332,7 @@ const Inventory: React.FC = () => {
           onClick={() => setFilter(filter === 'alerts' ? 'all' : 'alerts')}
         >
           <div className="flex items-center gap-3">
-            <TrendingDown className={lowStock > 0 ? 'text-yellow-500' : 'text-gray-400'} size={22} />
+            <TrendingDown className={lowStock > 0 ? 'text-yellow-500' : 'text-gray-500'} size={22} />
             <div>
               <p className={`text-xl font-bold ${lowStock > 0 ? 'text-yellow-700' : 'text-gray-900'}`}>{lowStock}</p>
               <p className="text-xs text-gray-500">Stock bajo</p>
@@ -350,7 +344,7 @@ const Inventory: React.FC = () => {
       {/* Search and filters */}
       <div className="flex gap-3 mb-4 flex-wrap">
         <div className="relative flex-1 min-w-48">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
           <input
             type="text"
             value={search}
@@ -366,7 +360,7 @@ const Inventory: React.FC = () => {
               onClick={() => setFilter(f.key)}
               className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${
                 filter === f.key
-                  ? f.danger ? 'bg-red-600 text-white border-red-600' : 'bg-primary text-white border-primary'
+                  ? f.danger ? 'bg-red-600 text-white border-red-600' : 'bg-primary text-on-primary border-primary'
                   : f.danger && negativeStock.length > 0
                     ? 'bg-white text-red-600 border-red-300 hover:bg-red-50'
                     : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
@@ -385,7 +379,7 @@ const Inventory: React.FC = () => {
           {/* Mobile: cards */}
           <div className="sm:hidden space-y-2">
             {paginated.length === 0 ? (
-              <p className="text-center text-gray-400 py-8">
+              <p className="text-center text-gray-500 py-8">
                 {search ? 'No se encontraron productos' : 'Sin productos que mostrar'}
               </p>
             ) : paginated.map(product => {
@@ -406,7 +400,7 @@ const Inventory: React.FC = () => {
                   <div className="flex items-start justify-between mb-1">
                     <div className="min-w-0 flex-1">
                       <p className="font-medium text-gray-800 text-sm leading-tight truncate">{product.name}</p>
-                      <p className="font-mono text-xs text-gray-400 mt-0.5">{product.code}</p>
+                      <p className="font-mono text-xs text-gray-500 mt-0.5">{product.code}</p>
                     </div>
                     <span className={`ml-2 flex-shrink-0 px-2 py-0.5 rounded-full text-xs font-medium ${badge.className}`}>
                       {badge.label}
@@ -426,13 +420,13 @@ const Inventory: React.FC = () => {
                           {Number(displayStock).toLocaleString('es-CO')}
                         </span>
                       )}
-                      <span className="text-xs text-gray-400">{product.unit}</span>
-                      <span className="text-xs text-gray-400">/ mín {Number(product.minStock).toLocaleString('es-CO')}</span>
+                      <span className="text-xs text-gray-500">{product.unit}</span>
+                      <span className="text-xs text-gray-500">/ mín {Number(product.minStock).toLocaleString('es-CO')}</span>
                     </div>
                     <span className="text-sm font-semibold text-gray-700">${Number(product.salePrice).toLocaleString('es-CO')}</span>
                   </div>
                   {product.category?.name && (
-                    <p className="text-xs text-gray-400 mt-1">{product.category.name}</p>
+                    <p className="text-xs text-gray-500 mt-1">{product.category.name}</p>
                   )}
                 </div>
               );
@@ -462,7 +456,7 @@ const Inventory: React.FC = () => {
               <tbody className="divide-y divide-gray-100">
                 {paginated.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
+                    <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
                       {search ? 'No se encontraron productos' : 'Sin productos que mostrar'}
                     </td>
                   </tr>
@@ -499,7 +493,7 @@ const Inventory: React.FC = () => {
                             <span className={`font-bold text-base ${displayStock < 0 ? 'text-red-600' : displayStock === 0 ? 'text-red-500' : 'text-gray-800'}`}>
                               {Number(displayStock).toLocaleString('es-CO')}
                             </span>
-                            <span className="text-xs text-gray-400 ml-1">{product.unit}</span>
+                            <span className="text-xs text-gray-500 ml-1">{product.unit}</span>
                           </>
                         )}
                       </td>
@@ -540,7 +534,7 @@ const Inventory: React.FC = () => {
                       key={p}
                       onClick={() => setPage(p)}
                       className={`w-8 h-8 text-sm rounded-lg border transition-colors ${
-                        p === page ? 'bg-primary text-white border-primary' : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                        p === page ? 'bg-primary text-on-primary border-primary' : 'border-gray-300 text-gray-600 hover:bg-gray-50'
                       }`}
                     >
                       {p}
@@ -572,7 +566,7 @@ const Inventory: React.FC = () => {
                   {modifiedCount} producto{modifiedCount !== 1 ? 's' : ''} modificado{modifiedCount !== 1 ? 's' : ''}
                 </p>
               ) : (
-                <p className="text-sm text-gray-400">Sin cambios — edita el stock en la tabla</p>
+                <p className="text-sm text-gray-500">Sin cambios — edita el stock en la tabla</p>
               )}
             </div>
             <button
@@ -584,7 +578,7 @@ const Inventory: React.FC = () => {
             <button
               onClick={saveAll}
               disabled={modifiedCount === 0 || saving}
-              className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-semibold bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-semibold bg-primary text-on-primary rounded-lg hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               {saving ? <LoadingSpinner size="sm" /> : <Save size={14} />}
               {saving ? 'Guardando...' : 'Guardar todo'}

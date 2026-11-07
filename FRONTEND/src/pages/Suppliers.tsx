@@ -90,14 +90,14 @@ const Suppliers: React.FC = () => {
     <div className="min-h-screen bg-gray-50 max-w-7xl mx-auto">
       {/* Header */}
       <div className="px-3 sm:px-6 lg:px-8 pt-4 sm:pt-8">
-        <div className="text-center mb-6 sm:mb-8">
-          <h1 className="text-xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2 px-2">Proveedores</h1>
-          <p className="text-sm sm:text-lg text-gray-600 px-2">Gestiona tus proveedores y sus contactos.</p>
+        <div className="mb-4">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Proveedores</h1>
+          <p className="text-sm text-gray-600">Gestiona tus proveedores y sus contactos.</p>
         </div>
       </div>
       <div className="px-3 sm:px-6 lg:px-8 flex flex-col sm:flex-row sm:items-center gap-2 sm:justify-between mb-4">
         <div className="relative w-full sm:max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 z-10" />
           <Input
             type="text"
             placeholder="Buscar proveedores..."
@@ -122,7 +122,7 @@ const Suppliers: React.FC = () => {
         ) : filtered.length === 0 ? (
           <div className="text-center py-16">
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Truck className="w-8 h-8 text-gray-400" />
+              <Truck className="w-8 h-8 text-gray-500" />
             </div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">No hay proveedores</h3>
             <p className="text-gray-500 mb-6">
@@ -150,7 +150,7 @@ const Suppliers: React.FC = () => {
                 <div className="relative">
                   <button
                     onClick={() => setActiveMenu(activeMenu === s.id ? null : s.id)}
-                    className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                    className="p-2 rounded-lg text-gray-500 hover:text-gray-600 hover:bg-gray-100 transition-colors"
                   >
                     <MoreVertical className="w-5 h-5" />
                   </button>
@@ -162,7 +162,7 @@ const Suppliers: React.FC = () => {
                           onClick={() => openEdit(s)}
                           className="flex items-center space-x-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                         >
-                          <Edit className="w-4 h-4 text-gray-400" />
+                          <Edit className="w-4 h-4 text-gray-500" />
                           <span>Editar</span>
                         </button>
                         <button
@@ -229,7 +229,7 @@ const Suppliers: React.FC = () => {
                 <button
                   onClick={handleSave}
                   disabled={saving || !form.name.trim()}
-                  className="flex-1 px-4 py-2.5 bg-primary text-white rounded-xl text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+                  className="flex-1 px-4 py-2.5 bg-primary text-on-primary rounded-xl text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
                 >
                   {saving ? 'Guardando...' : 'Guardar'}
                 </button>

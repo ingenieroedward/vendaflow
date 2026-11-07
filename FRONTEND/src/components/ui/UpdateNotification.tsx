@@ -45,7 +45,7 @@ export const UpdateNotification: React.FC = () => {
             <button
               onClick={handleUpdate}
               disabled={updating}
-              className="px-3 py-1.5 bg-primary hover:bg-primary/90 disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition-colors"
+              className="px-3 py-1.5 bg-primary hover:bg-primary/90 disabled:opacity-50 text-on-primary text-xs font-semibold rounded-lg transition-colors"
             >
               {updating ? 'Actualizando…' : 'Actualizar ahora'}
             </button>

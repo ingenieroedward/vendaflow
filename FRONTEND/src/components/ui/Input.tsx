@@ -37,11 +37,11 @@ const Input: React.FC<InputProps> = ({
       )}
       <div className="relative">
         {Icon && iconPosition === 'left' && (
-          <Icon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Icon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" />
         )}
         <input className={inputClasses} {...props} />
         {Icon && iconPosition === 'right' && (
-          <Icon className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Icon className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" />
         )}
       </div>
       {error && (

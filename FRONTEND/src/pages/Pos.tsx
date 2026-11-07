@@ -7,6 +7,7 @@ import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
 import { useProductStore } from '../store/productStore';
+import { useTenantStore } from '../store/tenantStore';
 import { useUIStore } from '../store/uiStore';
 import { posService, CashSession, PosPaymentLine, PosSaleResult } from '../services/pos';
 import { orderService } from '../services/orders';
@@ -76,13 +77,38 @@ const Pos: React.FC = () => {
   // siguiente escaneo no llega a ningún lado.
   useEffect(() => { if (!paymentModalOpen && !closeModalOpen) searchRef.current?.focus(); }, [paymentModalOpen, closeModalOpen]);
 
+  // Productos más vendidos en esta caja (contador local por negocio), para
+  // que la grilla no arranque vacía: se vende con un toque sin escribir
+  const { tenant } = useTenantStore();
+  const freqKey = `pos_freq_${tenant?.id ?? 'x'}`;
+  const readFreq = (): Record<string, number> => {
+    try { return JSON.parse(localStorage.getItem(freqKey) || '{}'); } catch { return {}; }
+  };
+  const [freq, setFreq] = useState<Record<string, number>>(readFreq);
+  const bumpFreq = (items: { productId: number; quantity: number }[]) => {
+    const next = { ...readFreq() };
+    for (const it of items) next[it.productId] = (next[it.productId] ?? 0) + 1;
+    try { localStorage.setItem(freqKey, JSON.stringify(next)); } catch { /* sin almacenamiento */ }
+    setFreq(next);
+  };
+
+  const quickPicks = useMemo(() => {
+    const sold = products
+      .filter(p => (freq[p.id] ?? 0) > 0)
+      .sort((a, b) => (freq[b.id] ?? 0) - (freq[a.id] ?? 0));
+    const rest = products
+      .filter(p => !(freq[p.id] > 0))
+      .sort((a, b) => a.name.localeCompare(b.name, 'es'));
+    return { items: [...sold, ...rest].slice(0, 12), hasSold: sold.length > 0 };
+  }, [products, freq]);
+
   const results = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return [];
+    if (!q) return quickPicks.items;
     return products
       .filter(p => p.name.toLowerCase().includes(q) || p.code.toLowerCase().includes(q))
       .slice(0, 30);
-  }, [search, products]);
+  }, [search, products, quickPicks]);
 
   // Un lector de código de barras es solo un teclado rápido que termina con
   // Enter. Si el texto coincide EXACTO con un código, agrega directo sin
@@ -147,6 +173,7 @@ const Pos: React.FC = () => {
         payments,
         cashReceived,
       );
+      bumpFreq(cart);
       setCart([]);
       setSaleResult(sale); // el modal pasa a mostrar la confirmación (con ticket opcional)
       getProducts(1, 2000, false); // refresca stock
@@ -261,7 +288,7 @@ const Pos: React.FC = () => {
             />
           </div>
           <button type="submit" disabled={openingBusy}
-            className="w-full py-2.5 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors">
+            className="w-full py-2.5 bg-primary text-on-primary text-sm font-semibold rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors">
             {openingBusy ? 'Abriendo…' : 'Abrir caja'}
           </button>
         </form>
@@ -303,10 +330,15 @@ const Pos: React.FC = () => {
               className="w-full pl-9 pr-3 py-3 border border-gray-300 rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
-          {search.trim() === '' ? (
-            <div className="text-center py-16 text-gray-400 text-sm">
-              <Package className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-              Escribe para buscar un producto
+          {search.trim() === '' && results.length > 0 && (
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-600">
+              {quickPicks.hasSold ? 'Más vendidos en esta caja' : 'Productos'}
+            </p>
+          )}
+          {search.trim() === '' && results.length === 0 ? (
+            <div className="text-center py-16 text-gray-600 text-sm">
+              <Package className="w-8 h-8 mx-auto mb-2 text-gray-500" aria-hidden="true" />
+              No hay productos para vender todavía
             </div>
           ) : results.length === 0 ? (
             <div className="text-center py-16 text-gray-600 text-sm">Sin resultados para "{search}"</div>
@@ -335,7 +367,7 @@ const Pos: React.FC = () => {
         {/* Carrito */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col h-fit sticky top-4">
           <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
-            <ShoppingCart className="w-4 h-4 text-gray-400" />
+            <ShoppingCart className="w-4 h-4 text-gray-500" />
             <h2 className="text-sm font-semibold text-gray-900">Carrito</h2>
             {cart.length > 0 && <span className="ml-auto text-xs text-gray-600">{cart.length} producto{cart.length !== 1 ? 's' : ''}</span>}
           </div>
@@ -379,7 +411,7 @@ const Pos: React.FC = () => {
             <button
               onClick={() => setPaymentModalOpen(true)}
               disabled={cart.length === 0}
-              className="w-full py-3 bg-primary text-white text-sm font-bold rounded-xl hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="w-full py-3 bg-primary text-on-primary text-sm font-bold rounded-xl hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               Cobrar
             </button>
@@ -417,7 +449,7 @@ const Pos: React.FC = () => {
           <form onSubmit={handleCloseSession} className="space-y-4 p-1">
             {session.salesByMethod.total > 0 && (
               <div className="bg-gray-50 rounded-lg p-3 space-y-1">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400 mb-1.5">Ventas del turno</p>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 mb-1.5">Ventas del turno</p>
                 {([
                   ['Efectivo', session.salesByMethod.cash],
                   ['Tarjeta', session.salesByMethod.card],
@@ -462,11 +494,11 @@ const Pos: React.FC = () => {
             <div className={`text-3xl font-extrabold ${Number(closeResult.difference) === 0 ? 'text-gray-900' : Number(closeResult.difference)! > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
               {Number(closeResult.difference) === 0 ? 'Cuadrado' : formatCurrency(Number(closeResult.difference))}
             </div>
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-gray-500">
               Esperado {formatCurrency(Number(closeResult.expectedCash))} · Contado {formatCurrency(Number(closeResult.countedCash))}
             </p>
             <button onClick={finishClosing}
-              className="w-full py-2.5 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-primary/90">
+              className="w-full py-2.5 bg-primary text-on-primary text-sm font-semibold rounded-lg hover:bg-primary/90">
               Listo
             </button>
           </div>

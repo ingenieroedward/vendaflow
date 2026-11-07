@@ -107,7 +107,7 @@ function SearchableSelect<T>({
     <div ref={containerRef} className={`relative ${className}`}>
       <div className="relative">
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <Search className="h-4 w-4 text-gray-400" />
+          <Search className="h-4 w-4 text-gray-500" />
         </div>
         <input
           ref={inputRef}
@@ -116,19 +116,19 @@ function SearchableSelect<T>({
           onChange={handleInputChange}
           onFocus={() => { if (query.length >= 2) setShowDropdown(true); }}
           placeholder={placeholder}
-          className={`block w-full pl-9 pr-8 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+          className={`block w-full pl-9 pr-8 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary ${
             selectedValue ? 'border-green-300 bg-green-50' : 'border-gray-300 bg-white'
           }`}
         />
         <div className="absolute inset-y-0 right-0 pr-2 flex items-center">
           {isSearching ? (
-            <Loader2 className="h-4 w-4 text-gray-400 animate-spin" />
+            <Loader2 className="h-4 w-4 text-gray-500 animate-spin" />
           ) : (query || selectedValue) ? (
             <button onClick={handleClear} type="button" className="p-0.5">
-              <X className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+              <X className="h-4 w-4 text-gray-500 hover:text-gray-600" />
             </button>
           ) : (
-            <ChevronDown className="h-4 w-4 text-gray-400 pointer-events-none" />
+            <ChevronDown className="h-4 w-4 text-gray-500 pointer-events-none" />
           )}
         </div>
       </div>

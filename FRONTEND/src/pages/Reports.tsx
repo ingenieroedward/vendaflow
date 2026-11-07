@@ -17,6 +17,7 @@ import {
   CheckCircle, Clock, FileText, PiggyBank, CreditCard,
 } from 'lucide-react';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
+import SegmentedTabs from '../components/ui/SegmentedTabs';
 
 type Period = 'daily' | 'monthly' | 'annual';
 type Tab = 'ventas' | 'inventario' | 'compras' | 'rentabilidad' | 'cartera';
@@ -508,9 +509,9 @@ const Reports: React.FC = () => {
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
 
         {/* Header */}
-        <div className="text-center mb-6 sm:mb-8">
-          <h1 className="text-xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2 px-2">Informes</h1>
-          <p className="text-sm sm:text-lg text-gray-600 px-2">
+        <div className="mb-4">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Informes</h1>
+          <p className="text-sm text-gray-600">
             {isOffline ? 'Datos locales (sin conexión)' : 'Ventas, cartera, compras e inventario de tu negocio.'}
           </p>
         </div>
@@ -535,22 +536,13 @@ const Reports: React.FC = () => {
         {/* Tabs — 5 no caben estirados (flex-1) en una pantalla angosta: "Rentabilidad" fuerza
             la fila a desbordar y arrastra a toda la página en horizontal. En mobile van en su
             propia franja con scroll horizontal contenido, ancho natural (sin estirar). */}
-        <div className="mb-6 -mx-3 sm:mx-0 px-3 sm:px-0 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-          <div className="flex gap-1 bg-white border border-gray-200 rounded-xl p-1 shadow-sm w-fit">
-            {tabs.map(t => (
-              <button
-                key={t.key}
-                onClick={() => setTab(t.key)}
-                className={`flex items-center justify-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-medium whitespace-nowrap transition-all ${
-                  tab === t.key ? 'bg-gray-900 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                <t.icon className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
-                <span>{t.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
+        <SegmentedTabs
+          ariaLabel="Secciones de informes"
+          className="mb-6"
+          value={tab}
+          onChange={setTab}
+          tabs={tabs.map(t => ({ key: t.key, label: t.label, icon: t.icon }))}
+        />
 
         {loading ? (
           <div className="flex justify-center py-24"><LoadingSpinner size="lg" /></div>
@@ -563,7 +555,7 @@ const Reports: React.FC = () => {
                   <div className="text-center py-20">
                     <CheckCircle className="w-12 h-12 text-green-300 mx-auto mb-3" />
                     <h3 className="text-base font-medium text-gray-900 mb-1">Sin cuentas por cobrar</h3>
-                    <p className="text-sm text-gray-400 max-w-sm mx-auto">
+                    <p className="text-sm text-gray-500 max-w-sm mx-auto">
                       No hay órdenes a crédito pendientes de pago. Las ventas a crédito aparecerán aquí hasta que se marquen pagadas.
                     </p>
                   </div>
@@ -576,7 +568,7 @@ const Reports: React.FC = () => {
                           <div className="w-7 h-7 bg-amber-50 rounded-lg flex items-center justify-center">
                             <CreditCard className="w-3.5 h-3.5 text-amber-500" />
                           </div>
-                          <p className="text-xs text-gray-400">Por cobrar</p>
+                          <p className="text-xs text-gray-500">Por cobrar</p>
                         </div>
                         <p className="text-lg sm:text-xl font-bold text-gray-900 truncate">{COP(receivables.totalDue)}</p>
                       </div>
@@ -585,7 +577,7 @@ const Reports: React.FC = () => {
                           <div className="w-7 h-7 bg-primary/10 rounded-lg flex items-center justify-center">
                             <FileText className="w-3.5 h-3.5 text-primary" />
                           </div>
-                          <p className="text-xs text-gray-400">Órdenes a crédito</p>
+                          <p className="text-xs text-gray-500">Órdenes a crédito</p>
                         </div>
                         <p className="text-lg sm:text-xl font-bold text-gray-900">{receivables.count}</p>
                       </div>
@@ -594,7 +586,7 @@ const Reports: React.FC = () => {
                           <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${receivables.overdueCount ? 'bg-red-50' : 'bg-gray-50'}`}>
                             <AlertTriangle className={`w-3.5 h-3.5 ${receivables.overdueCount ? 'text-red-500' : 'text-gray-300'}`} />
                           </div>
-                          <p className="text-xs text-gray-400">Vencidas</p>
+                          <p className="text-xs text-gray-500">Vencidas</p>
                         </div>
                         <p className={`text-lg sm:text-xl font-bold ${receivables.overdueCount ? 'text-red-600' : 'text-gray-900'}`}>{receivables.overdueCount}</p>
                       </div>
@@ -603,7 +595,7 @@ const Reports: React.FC = () => {
                     {/* Deuda por cliente */}
                     <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-5 mb-6">
                       <div className="flex items-center gap-2 mb-4">
-                        <Users className="w-4 h-4 text-gray-400" />
+                        <Users className="w-4 h-4 text-gray-500" />
                         <h3 className="text-sm font-semibold text-gray-900">Deuda por cliente</h3>
                       </div>
                       <div className="space-y-3">
@@ -611,7 +603,7 @@ const Reports: React.FC = () => {
                           <div key={c.name} className="flex items-center gap-3">
                             <div className="w-32 sm:w-44 flex-shrink-0 min-w-0">
                               <p className="text-xs font-medium text-gray-700 truncate">{c.name}</p>
-                              <p className="text-[11px] text-gray-400">
+                              <p className="text-[11px] text-gray-500">
                                 {c.count} orden{c.count !== 1 ? 'es' : ''}{c.overdue > 0 && <span className="text-red-500"> · {c.overdue} vencida{c.overdue !== 1 ? 's' : ''}</span>}
                               </p>
                             </div>
@@ -630,7 +622,7 @@ const Reports: React.FC = () => {
                     {/* Detalle de órdenes */}
                     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
                       <div className="flex items-center gap-2 px-4 sm:px-5 py-3 border-b border-gray-200">
-                        <Clock className="w-4 h-4 text-gray-400" />
+                        <Clock className="w-4 h-4 text-gray-500" />
                         <h3 className="text-sm font-semibold text-gray-900">Órdenes pendientes de cobro</h3>
                       </div>
                       <ul className="divide-y divide-gray-100">
@@ -642,7 +634,7 @@ const Reports: React.FC = () => {
                                 {o.customer && <span className="text-gray-500 font-normal"> · {o.customer.name}</span>}
                               </p>
                               {o.paymentDueDate && (
-                                <p className={`text-[11px] ${o.daysUntilDue !== null && o.daysUntilDue < 0 ? 'text-red-600 font-medium' : 'text-gray-400'}`}>
+                                <p className={`text-[11px] ${o.daysUntilDue !== null && o.daysUntilDue < 0 ? 'text-red-600 font-medium' : 'text-gray-500'}`}>
                                   {o.daysUntilDue === null ? '' :
                                     o.daysUntilDue < 0 ? `Venció hace ${-o.daysUntilDue} día${o.daysUntilDue === -1 ? '' : 's'}` :
                                     o.daysUntilDue === 0 ? 'Vence HOY' :
@@ -653,7 +645,7 @@ const Reports: React.FC = () => {
                             <div className="flex-shrink-0 ml-3 text-right">
                               <span className="text-sm font-semibold text-gray-800">{COP(o.balance)}</span>
                               {o.paidAmount > 0 && (
-                                <p className="text-[11px] text-gray-400">
+                                <p className="text-[11px] text-gray-500">
                                   de {COP(o.totalAmount)} · abonado {COP(o.paidAmount)}
                                 </p>
                               )}
@@ -681,7 +673,7 @@ const Reports: React.FC = () => {
                     <p className={`text-lg font-bold ${kpis.today.ventas > 0 ? 'text-gray-900' : 'text-gray-300'}`}>
                       {COPShort(kpis.today.ventas)}
                     </p>
-                    <p className="text-xs text-gray-400 mt-0.5">{kpis.today.ordenes} órden{kpis.today.ordenes !== 1 ? 'es' : ''}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{kpis.today.ordenes} órden{kpis.today.ordenes !== 1 ? 'es' : ''}</p>
                   </div>
                   <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
                     <div className="flex items-center gap-2 mb-2">
@@ -702,7 +694,7 @@ const Reports: React.FC = () => {
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-gray-400 mt-0.5">
+                    <p className="text-xs text-gray-500 mt-0.5">
                       {kpis.month.ordenes} órd · {kpis.month.clientes} cliente{kpis.month.clientes !== 1 ? 's' : ''}
                     </p>
                   </div>
@@ -716,7 +708,7 @@ const Reports: React.FC = () => {
                     <p className={`text-lg font-bold ${kpis.avgTicket > 0 ? 'text-gray-900' : 'text-gray-300'}`}>
                       {COPShort(kpis.avgTicket)}
                     </p>
-                    <p className="text-xs text-gray-400 mt-0.5">por orden</p>
+                    <p className="text-xs text-gray-500 mt-0.5">por orden</p>
                   </div>
                   <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
                     <div className="flex items-center gap-2 mb-2">
@@ -728,7 +720,7 @@ const Reports: React.FC = () => {
                     <p className={`text-lg font-bold ${kpis.all.ventas > 0 ? 'text-gray-900' : 'text-gray-300'}`}>
                       {COPShort(kpis.all.ventas)}
                     </p>
-                    <p className="text-xs text-gray-400 mt-0.5">{kpis.all.ordenes} órdenes</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{kpis.all.ordenes} órdenes</p>
                   </div>
                 </div>
 
@@ -749,7 +741,7 @@ const Reports: React.FC = () => {
                 {!hasData ? (
                   <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-12 text-center">
                     <Users className="w-12 h-12 text-gray-200 mx-auto mb-3" />
-                    <p className="text-gray-400 font-medium">Sin datos de ventas</p>
+                    <p className="text-gray-500 font-medium">Sin datos de ventas</p>
                     <p className="text-gray-300 text-sm mt-1">Crea órdenes para ver los informes</p>
                   </div>
                 ) : (
@@ -757,9 +749,9 @@ const Reports: React.FC = () => {
                     <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-4">
                       <div className="flex items-center justify-between mb-1">
                         <h2 className="text-sm font-semibold text-gray-700">Ventas</h2>
-                        <span className="text-xs text-gray-400">{periodLabel}</span>
+                        <span className="text-xs text-gray-500">{periodLabel}</span>
                       </div>
-                      <p className="text-xs text-gray-400 mb-4">
+                      <p className="text-xs text-gray-500 mb-4">
                         Total período: <span className="font-semibold text-gray-700">{COP(periodOrders.reduce((s, o) => s + o.totalAmount, 0))}</span>
                       </p>
                       <ResponsiveContainer width="100%" height={220}>
@@ -778,9 +770,9 @@ const Reports: React.FC = () => {
                     <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-4">
                       <div className="flex items-center justify-between mb-1">
                         <h2 className="text-sm font-semibold text-gray-700">Número de órdenes</h2>
-                        <span className="text-xs text-gray-400">{periodLabel}</span>
+                        <span className="text-xs text-gray-500">{periodLabel}</span>
                       </div>
-                      <p className="text-xs text-gray-400 mb-4">
+                      <p className="text-xs text-gray-500 mb-4">
                         Total período: <span className="font-semibold text-gray-700">{periodOrders.length} órden{periodOrders.length !== 1 ? 'es' : ''}</span>
                       </p>
                       <ResponsiveContainer width="100%" height={180}>
@@ -800,7 +792,7 @@ const Reports: React.FC = () => {
                       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                         <div className="flex items-center justify-between mb-4">
                           <h2 className="text-sm font-semibold text-gray-700">Top clientes</h2>
-                          <span className="text-xs text-gray-400">{periodLabel}</span>
+                          <span className="text-xs text-gray-500">{periodLabel}</span>
                         </div>
                         {topClients.length === 0 ? (
                           <p className="text-xs text-gray-300 text-center py-6">Sin datos en el período</p>
@@ -817,7 +809,7 @@ const Reports: React.FC = () => {
                                       <span className="text-xs font-medium text-gray-700 truncate">{c.name}</span>
                                     </div>
                                     <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                                      <span className="text-xs text-gray-400">{c.ordenes} órd</span>
+                                      <span className="text-xs text-gray-500">{c.ordenes} órd</span>
                                       <span className="text-xs font-semibold text-gray-800">{COPShort(c.ventas)}</span>
                                     </div>
                                   </div>
@@ -834,16 +826,16 @@ const Reports: React.FC = () => {
                       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                         <div className="flex items-center justify-between mb-4">
                           <h2 className="text-sm font-semibold text-gray-700">Estado de órdenes</h2>
-                          <span className="text-xs text-gray-400">{periodLabel}</span>
+                          <span className="text-xs text-gray-500">{periodLabel}</span>
                         </div>
                         {!statusDist ? (
                           <p className="text-xs text-gray-300 text-center py-6">Sin datos en el período</p>
                         ) : (
                           <div className="space-y-4">
                             <div className="grid grid-cols-3 gap-2 text-center">
-                              <div><p className="text-xl font-bold text-gray-900">{statusDist.total}</p><p className="text-xs text-gray-400">Total</p></div>
-                              <div><p className="text-xl font-bold text-green-600">{statusDist.completed}</p><p className="text-xs text-gray-400">Entregadas</p></div>
-                              <div><p className="text-xl font-bold text-amber-500">{statusDist.pending}</p><p className="text-xs text-gray-400">Pendientes</p></div>
+                              <div><p className="text-xl font-bold text-gray-900">{statusDist.total}</p><p className="text-xs text-gray-500">Total</p></div>
+                              <div><p className="text-xl font-bold text-green-600">{statusDist.completed}</p><p className="text-xs text-gray-500">Entregadas</p></div>
+                              <div><p className="text-xl font-bold text-amber-500">{statusDist.pending}</p><p className="text-xs text-gray-500">Pendientes</p></div>
                             </div>
                             <div className="space-y-2.5">
                               <div>
@@ -864,7 +856,7 @@ const Reports: React.FC = () => {
                               </div>
                             </div>
                             <div className="pt-2 border-t border-gray-50">
-                              <p className="text-xs text-gray-400 text-center">
+                              <p className="text-xs text-gray-500 text-center">
                                 Tasa de entrega: <span className={`font-semibold ${statusDist.pctCompleted >= 70 ? 'text-green-600' : statusDist.pctCompleted >= 40 ? 'text-amber-500' : 'text-red-500'}`}>{statusDist.pctCompleted}%</span>
                               </p>
                             </div>
@@ -885,13 +877,13 @@ const Reports: React.FC = () => {
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
                   <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
                     <div className="flex items-center gap-2 mb-2">
-                      <div className="w-7 h-7 bg-indigo-50 rounded-lg flex items-center justify-center">
-                        <Package className="w-4 h-4 text-indigo-500" />
+                      <div className="w-7 h-7 bg-primary/5 rounded-lg flex items-center justify-center">
+                        <Package className="w-4 h-4 text-primary" />
                       </div>
                       <span className="text-xs font-medium text-gray-500">Productos</span>
                     </div>
                     <p className="text-lg font-bold text-gray-900">{products.length}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">registrados</p>
+                    <p className="text-xs text-gray-500 mt-0.5">registrados</p>
                   </div>
                   <div className={`rounded-xl border shadow-sm p-4 ${invStats.negative.length > 0 ? 'bg-red-50 border-red-200' : 'bg-white border-gray-200'}`}>
                     <div className="flex items-center gap-2 mb-2">
@@ -901,7 +893,7 @@ const Reports: React.FC = () => {
                       <span className="text-xs font-medium text-gray-500">Negativos</span>
                     </div>
                     <p className={`text-lg font-bold ${invStats.negative.length > 0 ? 'text-red-700' : 'text-gray-900'}`}>{invStats.negative.length}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">requieren compra urgente</p>
+                    <p className="text-xs text-gray-500 mt-0.5">requieren compra urgente</p>
                   </div>
                   <div className={`rounded-xl border shadow-sm p-4 ${invStats.outOfStock.length > 0 ? 'bg-orange-50 border-orange-200' : 'bg-white border-gray-200'}`}>
                     <div className="flex items-center gap-2 mb-2">
@@ -911,7 +903,7 @@ const Reports: React.FC = () => {
                       <span className="text-xs font-medium text-gray-500">Sin stock</span>
                     </div>
                     <p className={`text-lg font-bold ${invStats.outOfStock.length > 0 ? 'text-orange-600' : 'text-gray-900'}`}>{invStats.outOfStock.length}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">en cero</p>
+                    <p className="text-xs text-gray-500 mt-0.5">en cero</p>
                   </div>
                   <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
                     <div className="flex items-center gap-2 mb-2">
@@ -921,7 +913,7 @@ const Reports: React.FC = () => {
                       <span className="text-xs font-medium text-gray-500">Valor stock</span>
                     </div>
                     <p className="text-lg font-bold text-gray-900">{COPShort(invStats.totalValue)}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">a precio de venta</p>
+                    <p className="text-xs text-gray-500 mt-0.5">a precio de venta</p>
                   </div>
                 </div>
 
@@ -938,19 +930,19 @@ const Reports: React.FC = () => {
                     </div>
                     <div className="grid grid-cols-3 gap-2">
                       <div>
-                        <p className="text-xs text-gray-400 mb-0.5">A precio de venta</p>
+                        <p className="text-xs text-gray-500 mb-0.5">A precio de venta</p>
                         <p className="text-sm font-bold text-gray-900">{COPShort(invStats.totalValue)}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-400 mb-0.5">A costo</p>
+                        <p className="text-xs text-gray-500 mb-0.5">A costo</p>
                         <p className="text-sm font-bold text-orange-600">{COPShort(invStats.totalCostValue)}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-400 mb-0.5">Utilidad potencial</p>
+                        <p className="text-xs text-gray-500 mb-0.5">Utilidad potencial</p>
                         <p className={`text-sm font-bold ${invStats.potentialProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                           {COPShort(invStats.potentialProfit)}
                         </p>
-                        <p className="text-xs text-gray-400">{invStats.potentialMargin.toFixed(0)}% margen</p>
+                        <p className="text-xs text-gray-500">{invStats.potentialMargin.toFixed(0)}% margen</p>
                       </div>
                     </div>
                   </div>
@@ -1000,15 +992,15 @@ const Reports: React.FC = () => {
                                   <span className="text-xs font-medium text-gray-700 truncate">{p.name}</span>
                                 </div>
                                 <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                                  <span className="text-xs text-gray-400">{Number(p.stock).toLocaleString('es-CO')} {p.unit}</span>
+                                  <span className="text-xs text-gray-500">{Number(p.stock).toLocaleString('es-CO')} {p.unit}</span>
                                   <span className="text-xs font-semibold text-gray-800">{COPShort(val)}</span>
                                 </div>
                               </div>
                               <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                                <div className="h-full rounded-full bg-indigo-500 transition-all" style={{ width: `${pct}%` }} />
+                                <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${pct}%` }} />
                               </div>
                               {invStats.hasCostData && (
-                                <p className="text-[11px] text-gray-400 mt-0.5 text-right">
+                                <p className="text-[11px] text-gray-500 mt-0.5 text-right">
                                   {cost !== undefined ? `costo: ${COPShort(p.stock * cost)}` : 'sin costo registrado'}
                                 </p>
                               )}
@@ -1076,7 +1068,7 @@ const Reports: React.FC = () => {
                       <span className="text-xs font-medium text-gray-500">Invertido (recibido)</span>
                     </div>
                     <p className="text-lg font-bold text-gray-900">{COPShort(poStats.totalInvested)}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{poStats.received.length} órd. recibidas</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{poStats.received.length} órd. recibidas</p>
                   </div>
                   <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
                     <div className="flex items-center gap-2 mb-2">
@@ -1086,7 +1078,7 @@ const Reports: React.FC = () => {
                       <span className="text-xs font-medium text-gray-500">Este mes</span>
                     </div>
                     <p className="text-lg font-bold text-gray-900">{COPShort(poStats.monthInvested)}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">en compras recibidas</p>
+                    <p className="text-xs text-gray-500 mt-0.5">en compras recibidas</p>
                   </div>
                   <div className={`rounded-xl border shadow-sm p-4 ${poStats.ordered.length > 0 ? 'bg-amber-50 border-amber-200' : 'bg-white border-gray-200'}`}>
                     <div className="flex items-center gap-2 mb-2">
@@ -1096,17 +1088,17 @@ const Reports: React.FC = () => {
                       <span className="text-xs font-medium text-gray-500">En tránsito</span>
                     </div>
                     <p className={`text-lg font-bold ${poStats.ordered.length > 0 ? 'text-amber-700' : 'text-gray-900'}`}>{poStats.ordered.length}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">órd. ordenadas</p>
+                    <p className="text-xs text-gray-500 mt-0.5">órd. ordenadas</p>
                   </div>
                   <div className={`rounded-xl border shadow-sm p-4 ${poStats.draft.length > 0 ? 'bg-gray-50 border-gray-200' : 'bg-white border-gray-200'}`}>
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-7 h-7 bg-gray-100 rounded-lg flex items-center justify-center">
-                        <FileText className="w-4 h-4 text-gray-400" />
+                        <FileText className="w-4 h-4 text-gray-500" />
                       </div>
                       <span className="text-xs font-medium text-gray-500">Borradores</span>
                     </div>
                     <p className="text-lg font-bold text-gray-900">{poStats.draft.length}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">sin confirmar</p>
+                    <p className="text-xs text-gray-500 mt-0.5">sin confirmar</p>
                   </div>
                 </div>
 
@@ -1114,7 +1106,7 @@ const Reports: React.FC = () => {
                   {/* Gráfica compras mensuales */}
                   <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                     <h2 className="text-sm font-semibold text-gray-700 mb-1">Compras últimos 6 meses</h2>
-                    <p className="text-xs text-gray-400 mb-4">Monto total por mes</p>
+                    <p className="text-xs text-gray-500 mb-4">Monto total por mes</p>
                     {purchaseOrders.length === 0 ? (
                       <p className="text-xs text-gray-300 text-center py-6">Sin órdenes de compra</p>
                     ) : (
@@ -1149,7 +1141,7 @@ const Reports: React.FC = () => {
                                   <span className="text-xs font-medium text-gray-700 truncate">{s.name}</span>
                                 </div>
                                 <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                                  <span className="text-xs text-gray-400">{s.count} órd</span>
+                                  <span className="text-xs text-gray-500">{s.count} órd</span>
                                   <span className="text-xs font-semibold text-gray-800">{COPShort(s.total)}</span>
                                 </div>
                               </div>
@@ -1181,7 +1173,7 @@ const Reports: React.FC = () => {
                           <p className={`text-2xl font-bold ${s.color}`}>{s.count}</p>
                           <p className="text-xs text-gray-500 mt-0.5">{s.label}</p>
                           {purchaseOrders.length > 0 && (
-                            <p className="text-xs text-gray-400 mt-1">
+                            <p className="text-xs text-gray-500 mt-1">
                               {Math.round((s.count / purchaseOrders.length) * 100)}%
                             </p>
                           )}
@@ -1199,7 +1191,7 @@ const Reports: React.FC = () => {
             {tab === 'rentabilidad' && (
               <>
                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:justify-between mb-4">
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-gray-500">
                     Utilidad = ventas − costo de lo vendido. Las compras de inventario no se restan.
                     {profit && profit.purchasesThisMonth > 0 && (
                       <span className="block sm:inline sm:ml-1">Compras recibidas este mes: <b className="text-gray-600">{COPShort(profit.purchasesThisMonth)}</b> (informativo)</span>
@@ -1245,7 +1237,7 @@ const Reports: React.FC = () => {
                       <span className="text-xs font-medium text-gray-500">Ingresos totales</span>
                     </div>
                     <p className="text-lg font-bold text-gray-900">{COPShort(rent.totalRevenue)}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{orders.length} órdenes</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{orders.length} órdenes</p>
                   </div>
 
                   <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
@@ -1256,7 +1248,7 @@ const Reports: React.FC = () => {
                       <span className="text-xs font-medium text-gray-500">Costo de lo vendido</span>
                     </div>
                     <p className="text-lg font-bold text-gray-900">{COPShort(rent.totalCost)}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">de las ventas (no incluye inventario comprado)</p>
+                    <p className="text-xs text-gray-500 mt-0.5">de las ventas (no incluye inventario comprado)</p>
                   </div>
 
                   <div className={`rounded-xl border shadow-sm p-4 ${rent.grossProfit >= 0 ? 'bg-emerald-50 border-emerald-100' : 'bg-red-50 border-red-100'}`}>
@@ -1269,7 +1261,7 @@ const Reports: React.FC = () => {
                     <p className={`text-lg font-bold ${rent.grossProfit >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>
                       {COPShort(rent.grossProfit)}
                     </p>
-                    <p className="text-xs text-gray-400 mt-0.5">Ingresos − Costos</p>
+                    <p className="text-xs text-gray-500 mt-0.5">Ingresos − Costos</p>
                   </div>
 
                   <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
@@ -1282,7 +1274,7 @@ const Reports: React.FC = () => {
                     <p className={`text-lg font-bold ${rent.grossMargin >= 30 ? 'text-emerald-700' : rent.grossMargin >= 10 ? 'text-amber-600' : 'text-red-600'}`}>
                       {rent.grossMargin.toFixed(1)}%
                     </p>
-                    <p className="text-xs text-gray-400 mt-0.5">
+                    <p className="text-xs text-gray-500 mt-0.5">
                       {rent.grossMargin >= 30 ? 'Saludable' : rent.grossMargin >= 10 ? 'Aceptable' : 'Bajo'}
                     </p>
                   </div>
@@ -1303,19 +1295,19 @@ const Reports: React.FC = () => {
                   </div>
                   <div className="grid grid-cols-3 gap-2">
                     <div>
-                      <p className="text-xs text-gray-400 mb-0.5">Ingresos</p>
+                      <p className="text-xs text-gray-500 mb-0.5">Ingresos</p>
                       <p className="text-sm font-bold text-gray-900">{COPShort(rent.monthRevenue)}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-400 mb-0.5">Costos</p>
+                      <p className="text-xs text-gray-500 mb-0.5">Costos</p>
                       <p className="text-sm font-bold text-orange-600">{COPShort(rent.monthCost)}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-400 mb-0.5">Utilidad</p>
+                      <p className="text-xs text-gray-500 mb-0.5">Utilidad</p>
                       <p className={`text-sm font-bold ${rent.monthProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                         {COPShort(rent.monthProfit)}
                       </p>
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-gray-500">
                         {rent.monthMargin.toFixed(0)}% margen
                       </p>
                     </div>
@@ -1366,7 +1358,7 @@ const Reports: React.FC = () => {
                     </LineChart>
                   </ResponsiveContainer>
                   {rent.bestMonth && rent.bestMonth.utilidad > 0 && (
-                    <p className="text-xs text-gray-400 mt-2 text-center">
+                    <p className="text-xs text-gray-500 mt-2 text-center">
                       Mejor mes: <span className="font-semibold text-emerald-600">{rent.bestMonth.label}</span> — {COP(rent.bestMonth.utilidad)}
                     </p>
                   )}

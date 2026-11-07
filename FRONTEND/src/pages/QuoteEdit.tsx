@@ -663,7 +663,7 @@ const QuoteEdit: React.FC = () => {
             <div className="border-t pt-6">
               <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-4 flex items-center">
                 <CalendarClock className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                Válida hasta <span className="text-gray-400 font-normal ml-1">(opcional)</span>
+                Válida hasta <span className="text-gray-500 font-normal ml-1">(opcional)</span>
               </h3>
               <input
                 type="date"

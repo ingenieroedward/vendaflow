@@ -508,11 +508,18 @@ vencido/agotado); nada de `text-gray-400` en texto (no pasa AA); touch ≥44px e
   `components/features/TaxRateField.tsx` (19/5/0). `utils/roles.ts` (`roleLabel`).
   **Decisión pendiente del usuario**: el POS sigue mandando `taxRate: 0` (cobra el precio de
   venta tal cual); aplicarle el IVA del producto cambiaría lo que se cobra en caja.
-- **Siguientes fases (pendiente)**: token `--vf-on-primary` por contraste (colores de tenant
-  claros), componente único de pestañas y modales (Orders/Reports/Inventory), Órdenes como tabla
-  con saldo/vencimiento + cartera, Nueva orden rediseñada (buscador siempre activo, +/− en línea,
-  resumen fijo), POS con más vendidos visibles y cobro en el panel, panel de producto sin overlay,
-  tipografía, y el resto de páginas (índigo fijo en compras/Reports/Login/SearchableSelect).
+- **v1.19.0 — fase 2 (hecho)**: `utils/themeColors.ts` deriva del color del tenant
+  `--vf-primary-ink` (texto), `--vf-primary-fill` (relleno) y `--vf-on-primary` (texto encima) con
+  contraste AA; `tailwind.config.js` mapea `text-primary`→ink, `bg-primary`→fill y agrega
+  `text-on-primary`. **Regla**: sobre `bg-primary` sólido usar `text-on-primary`, nunca
+  `text-white`. `components/ui/SegmentedTabs.tsx` es el único control de pestañas. Nueva orden y
+  Nueva cotización: agregar = elegir/Enter (`ProductSearch` con `clearOnSelect`), +/− por línea,
+  resumen lateral y barra fija en mobile. Órdenes: tabla en desktop con saldo (de
+  `getReceivables`). Panel de producto acoplado ≥1280px. POS: grilla inicial con más vendidos por
+  caja (`localStorage pos_freq_<tenantId>`).
+- **Pendiente**: tipografía nueva (IBM Plex) — no se cambió para no alterar todo el look de golpe;
+  edición de orden/cotización (OrderEdit/QuoteEdit) aún con el formulario viejo; POS sin IVA (ver
+  arriba).
 
 ## INVENTARIO Y KARDEX (ago 2026)
 

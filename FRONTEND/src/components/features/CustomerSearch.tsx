@@ -95,7 +95,7 @@ const CustomerSearch: React.FC<CustomerSearchProps> = ({
       {/* Input Field */}
       <div className="relative">
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <Search className="h-5 w-5 text-gray-400" />
+          <Search className="h-5 w-5 text-gray-500" />
         </div>
         <input
           ref={inputRef}
@@ -116,7 +116,7 @@ const CustomerSearch: React.FC<CustomerSearchProps> = ({
             className="absolute inset-y-0 right-0 pr-3 flex items-center"
             type="button"
           >
-            <X className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+            <X className="h-5 w-5 text-gray-500 hover:text-gray-600" />
           </button>
         )}
       </div>
@@ -144,7 +144,7 @@ const CustomerSearch: React.FC<CustomerSearchProps> = ({
                   type="button"
                 >
                   <div className="flex items-center">
-                    <User className="h-4 w-4 text-gray-400 mr-3 flex-shrink-0" />
+                    <User className="h-4 w-4 text-gray-500 mr-3 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="font-medium text-gray-900 truncate">{customer.name}</span>
@@ -177,19 +177,19 @@ const CustomerSearch: React.FC<CustomerSearchProps> = ({
             <p className="text-sm font-semibold text-gray-900 leading-tight">{selectedCustomer.name}</p>
             {selectedCustomer.contact && (
               <div className="flex items-center gap-1 mt-0.5">
-                <Phone className="h-3 w-3 text-gray-400 flex-shrink-0" />
+                <Phone className="h-3 w-3 text-gray-500 flex-shrink-0" />
                 <p className="text-xs text-gray-500 truncate">{selectedCustomer.contact}</p>
               </div>
             )}
             {selectedCustomer.address && (
               <div className="flex items-center gap-1 mt-0.5">
-                <MapPin className="h-3 w-3 text-gray-400 flex-shrink-0" />
+                <MapPin className="h-3 w-3 text-gray-500 flex-shrink-0" />
                 <p className="text-xs text-gray-500 truncate">{selectedCustomer.address}</p>
               </div>
             )}
             {selectedCustomer.note && (
               <div className="flex items-center gap-1 mt-0.5">
-                <StickyNote className="h-3 w-3 text-gray-400 flex-shrink-0" />
+                <StickyNote className="h-3 w-3 text-gray-500 flex-shrink-0" />
                 <p className="text-xs text-gray-500 truncate">{selectedCustomer.note}</p>
               </div>
             )}
@@ -197,7 +197,7 @@ const CustomerSearch: React.FC<CustomerSearchProps> = ({
           <button
             onClick={handleClear}
             type="button"
-            className="text-gray-400 hover:text-gray-600 flex-shrink-0 mt-0.5"
+            className="text-gray-500 hover:text-gray-600 flex-shrink-0 mt-0.5"
             title="Cambiar cliente"
           >
             <X className="h-4 w-4" />
