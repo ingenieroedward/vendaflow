@@ -1,3 +1,4 @@
+import { AuthService } from '@/modules/auth/auth.service';
 import { Response } from 'express';
 import { UserService } from './user.service';
 import { asyncHandler } from '@/core/middlewares/asyncHandler';
@@ -6,8 +7,10 @@ import { validateSchema, idParamSchema, IdParam } from '@/core/utils/validation'
 
 export class UserController {
   changeOwnPassword = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    await this.userService.changeOwnPassword(req.user!.id, req.body);
-    res.status(200).json({ status: 'success', message: 'Contraseña actualizada' });
+    const user = await this.userService.changeOwnPassword(req.user!.id, req.body);
+    // Las demás sesiones quedan cerradas; esta sigue con un token nuevo
+    const token = new AuthService().generateToken(user.id, user.username, user.role, user.tenantId, user.tokenVersion);
+    res.status(200).json({ status: 'success', message: 'Contraseña actualizada', data: { token } });
   });
 
   // Perfil propio — cualquier rol autenticado, no solo admin. El id sale del

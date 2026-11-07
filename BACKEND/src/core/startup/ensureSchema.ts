@@ -63,6 +63,12 @@ export async function ensureSchema(): Promise<void> {
     await qi.addColumn('users', 'name', { type: DataType.STRING(255), allowNull: true } as never);
     logger.info('[ensureSchema] Column users.name added');
   }
+  if (!('tokenVersion' in userCols)) {
+    // Revocación de sesiones (v1.16.9): tokens sin `tv` cuentan como 0 → nadie
+    // pierde la sesión al desplegar
+    await qi.addColumn('users', 'tokenVersion', { type: DataType.INTEGER, allowNull: false, defaultValue: 0 } as never);
+    logger.info('[ensureSchema] Column users.tokenVersion added');
+  }
   for (const [name, spec] of [
     ['contactName', { type: DataType.STRING(120), allowNull: true }],
     ['contactEmail', { type: DataType.STRING(255), allowNull: true }],

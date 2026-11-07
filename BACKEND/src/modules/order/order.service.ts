@@ -751,6 +751,14 @@ export class OrderService {
         (validatedData as Record<string, unknown>)['reminderDays'] = null;
       }
 
+      // Aislamiento entre tenants: crear ya validaba cliente/productos, editar no —
+      // un customerId/productId ajeno quedaba asociado y luego el detalle de la
+      // orden exponía datos de otro tenant (auditoría v1.16.9)
+      if (validatedData.customerId !== undefined && validatedData.customerId !== order.customerId) {
+        const customer = await Customer.findOne({ where: { id: validatedData.customerId, tenantId }, transaction });
+        if (!customer) throw new NotFoundError('Customer not found');
+      }
+
       // Update main order fields
       await order.update(validatedData as any, { transaction });
 
@@ -758,6 +766,16 @@ export class OrderService {
       if (validatedData.items) {
         // Get current items
         const existingItems = await OrderItem.findAll({ where: { orderId: id }, transaction });
+
+        // Validar productos de ítems nuevos o que cambian de producto. Los que no
+        // cambian se respetan aunque el producto esté archivado (historial).
+        for (const item of validatedData.items) {
+          if (typeof item.productId !== 'number') continue;
+          const unchanged = existingItems.some(e => e.id === item.id && e.productId === item.productId);
+          if (unchanged) continue;
+          const product = await Product.findOne({ where: { id: item.productId, tenantId }, transaction });
+          if (!product) throw await productNotFoundError(item.productId, tenantId, transaction);
+        }
         const existingItemIds = existingItems.map(item => item.id);
 
         // IDs from update

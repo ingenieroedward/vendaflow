@@ -1,4 +1,5 @@
 import { apiService } from './api';
+import { STORAGE_KEYS } from '../utils/constants';
 import { User, CreateUserRequest, UpdateUserRequest, UpdateOwnProfileRequest, UsersResponse } from '../types/auth';
 
 export class UsersService {
@@ -44,10 +45,13 @@ export class UsersService {
   }
 
   async changePassword(currentPassword: string, newPassword: string): Promise<void> {
-    await apiService.put('/users/me/password', {
+    const response = await apiService.put<{ data?: { token?: string } }>('/users/me/password', {
       currentPassword,
       newPassword,
     });
+    // Cambiar la clave cierra las demás sesiones (v1.16.9); esta sigue con el token nuevo
+    const token = response?.data?.token;
+    if (token) localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
   }
 
   async getProfile(): Promise<User> {

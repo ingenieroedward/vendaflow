@@ -25,4 +25,5 @@ export interface JwtPayload {
   username: string;
   role: 'buyer' | 'admin' | 'seller' | 'superadmin';
   tenantId: number;
+  tv?: number; // tokenVersion del usuario al emitir (ausente en tokens previos a v1.16.9 = 0)
 }

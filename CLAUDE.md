@@ -628,6 +628,24 @@ Ver plan completo en `PLAN-FEATURES-Y-POS.md` — este es el Punto 2 (base para 
 - DECISIÓN (jul 2026): se probó un dashboard de KPIs en el Home y se revirtió — el Home es la página de búsqueda de productos y el dashboard le estorbaba. NO volver a ponerlo ahí; si se quiere dashboard del tenant, hacerlo como página aparte
 - El backend `GET /orders/stats/home` (isSeller: pendientes, ventas del mes, últimas 5 órdenes) quedó desplegado y disponible para esa futura página. `productService.getStockAlerts()` y `getHomeStats()` siguen en los services del frontend
 
+### Seguridad — pendientes de la auditoría nov 2026 (v1.16.9 cerró los 2 hallazgos altos)
+Corregido en v1.16.9: fuga entre tenants al editar órdenes/compras y revocación de sesiones
+(`core/auth/sessionCache.ts`: toda query nueva que cambie rol/contraseña o elimine usuarios debe
+subir `tokenVersion` e invalidar la caché). Quedan, por prioridad:
+- [ ] **Dependencias** con avisos conocidos (`npm audit --omit=dev`): BACKEND 1 crítica/10 altas
+  (sequelize, mysql2, body-parser, nodemailer, path-to-regexp, proxy-addr), FRONTEND 4 críticas/6 altas
+  (@capacitor/android, dompurify, react-router, axios, form-data), ADMIN 2 altas (axios,
+  follow-redirects). `npm audit fix` por proyecto + tests
+- [ ] **Impersonar**: hoy entrega un JWT de admin de 24h en la URL (`/login?impersonate=`), queda en
+  historial/logs. Cambiar a código de un solo uso de pocos minutos canjeado por POST
+- [ ] **Contraseñas**: mínimo 6 caracteres y sin bloqueo por cuenta (solo 20 intentos/15min por IP)
+- [ ] `DELETE /users/:id?transferTo=` no valida que `transferTo` sea del mismo tenant
+- [ ] `receiptMime` del comprobante de pago sin lista blanca en el servidor (el panel lo muestra en
+  `<img>`, por eso hoy no es explotable)
+- [ ] Push: `subscribe` reasigna una suscripción existente a quien conozca su `endpoint`
+- [ ] Captcha de registro reutilizable durante sus 10 min de vigencia (mitigado por 10 req/h)
+- [ ] CORS acepta `http://` además de `https://` en `*.merco.edwsystem.com`
+
 ### Seguridad (hardening)
 - [x] Rate limiting general en todos los endpoints (3000/15min por IP)
 - [x] `ensureSuperadmin` actualiza contraseña si el usuario ya existe
