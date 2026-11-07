@@ -58,7 +58,7 @@ const InventoryMovements: React.FC = () => {
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-gray-200 text-left text-xs text-gray-500 uppercase tracking-wide">
+            <tr className="border-b border-gray-200 text-left text-xs font-medium text-gray-600">
               <th className="px-4 py-3 font-medium">Fecha</th>
               <th className="px-4 py-3 font-medium">Producto</th>
               <th className="px-4 py-3 font-medium">Tipo</th>
