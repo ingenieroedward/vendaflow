@@ -5,6 +5,10 @@
 :root {
   /* RGB channels (no #) — lets Tailwind's opacity modifier work: rgb(var(--vf-primary) / 0.1) */
   --vf-primary: 37 99 235; /* #2563eb */
+  /* Variantes con contraste AA, derivadas en utils/themeColors.ts */
+  --vf-primary-ink: 37 99 235;   /* texto de color sobre blanco */
+  --vf-primary-fill: 37 99 235;  /* relleno sólido (bg-primary) */
+  --vf-on-primary: 255 255 255;  /* texto encima del relleno */
 }
 
 @layer utilities {

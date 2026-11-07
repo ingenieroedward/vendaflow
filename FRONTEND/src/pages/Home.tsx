@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, RefreshCw, Package } from 'lucide-react';
 import { useProductStore } from '../store/productStore';
-import { useTenantStore } from '../store/tenantStore';
 import { useAuthStore } from '../store/authStore';
 import SearchBar from '../components/features/SearchBar';
 import ProductDetailsPanel from '../components/features/ProductDetailsPanel';
@@ -40,7 +39,6 @@ const StockCell: React.FC<{ stock?: number; minStock?: number; unit: string }> =
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
-  const { tenant } = useTenantStore();
   const { user } = useAuthStore();
   const {
     products, 
@@ -91,17 +89,14 @@ const Home: React.FC = () => {
   const showSearchResults = searchQuery.trim().length > 0;
 
   return (
-    <div className="bg-gray-50">
+    // Con el panel acoplado (≥1280px) la página se corre para no quedar debajo
+    <div className={`bg-gray-50 ${selected ? 'xl:pr-[28rem]' : ''}`}>
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
         {/* Header - Optimizado para mobile */}
         <div className="mb-6 sm:mb-8">
-          <div className="text-center mb-6 sm:mb-8">
-            <h1 className="hidden sm:block text-3xl font-bold text-gray-900 mb-2">
-              {tenant?.name ?? 'Merco'}
-            </h1>
-            <p className="text-sm sm:text-lg text-gray-600 px-2">
-              Busca y compara precios de productos.
-            </p>
+          <div className="mb-4">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Productos</h1>
+            <p className="text-sm text-gray-600">Busca y compara precios de productos.</p>
           </div>
 
           {/* Search Bar - Prioridad en mobile */}
@@ -162,13 +157,11 @@ const Home: React.FC = () => {
           ) : (
             <>
               {/* Results Header - Más compacto en mobile */}
-              {(products.length > 0 || showSearchResults) && (
+              {showSearchResults && (
                 <div className="flex justify-between items-center px-1">
-                  <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
-                    {showSearchResults ? 'Resultados' : 'Productos'}
-                    <span className="text-gray-500 font-normal ml-2 text-sm sm:text-base">
-                      ({showSearchResults ? products.length : pagination.total})
-                    </span>
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    Resultados
+                    <span className="text-gray-600 font-normal ml-2 text-sm">({products.length})</span>
                   </h2>
                 </div>
               )}
@@ -186,8 +179,8 @@ const Home: React.FC = () => {
                         <th className="px-4 py-2.5 font-medium text-right">Stock</th>
                         <th className="px-4 py-2.5 font-medium text-right">Precio venta</th>
                         <th className="px-4 py-2.5 font-medium text-right">Menor costo</th>
-                        <th className="px-4 py-2.5 font-medium text-right">Proveedores</th>
-                        <th className="px-4 py-2.5 font-medium text-right">Actualizado</th>
+                        <th className={`px-4 py-2.5 font-medium text-right ${selected ? 'hidden 2xl:table-cell' : ''}`}>Proveedores</th>
+                        <th className={`px-4 py-2.5 font-medium text-right ${selected ? 'hidden 2xl:table-cell' : ''}`}>Actualizado</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
@@ -216,8 +209,8 @@ const Home: React.FC = () => {
                             <td className="px-4 py-2.5 text-right whitespace-nowrap">
                               {cost !== null ? <span className="text-green-700">{formatCurrency(cost)}</span> : <span className="text-gray-500">—</span>}
                             </td>
-                            <td className="px-4 py-2.5 text-right text-gray-600">{product.prices?.length ?? 0}</td>
-                            <td className="px-4 py-2.5 text-right text-gray-600 whitespace-nowrap">{formatDate(product.updatedAt)}</td>
+                            <td className={`px-4 py-2.5 text-right text-gray-600 ${selected ? 'hidden 2xl:table-cell' : ''}`}>{product.prices?.length ?? 0}</td>
+                            <td className={`px-4 py-2.5 text-right text-gray-600 whitespace-nowrap ${selected ? 'hidden 2xl:table-cell' : ''}`}>{formatDate(product.updatedAt)}</td>
                           </tr>
                         );
                       })}

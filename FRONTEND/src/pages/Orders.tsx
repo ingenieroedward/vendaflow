@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Plus, Search, Eye, Edit, Trash2, Calendar, User,
+  Plus, Eye, Edit, Trash2, Calendar, User,
   WifiOff, RefreshCw, AlertCircle, CloudOff, CheckCircle2, Clock,
   RotateCcw, AlertTriangle, CreditCard, RotateCw, X
 } from "lucide-react";
@@ -10,6 +10,7 @@ import { useAuthStore } from "../store/authStore";
 import { useUIStore } from "../store/uiStore";
 import { orderService, getReceivables, Receivables } from "../services/orders";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
+import SegmentedTabs from "../components/ui/SegmentedTabs";
 import ErrorMessage from "../components/ui/ErrorMessage";
 import Button from "../components/ui/Button";
 import { format } from "date-fns";
@@ -57,6 +58,11 @@ const Orders: React.FC = () => {
 
   // Cartera: órdenes a crédito sin pagar
   const [receivables, setReceivables] = useState<Receivables | null>(null);
+  // Saldo por orden (total − abonos) para la columna "Saldo" de la tabla
+  const balanceById = React.useMemo(
+    () => new Map((receivables?.orders ?? []).map((o) => [o.id, Number(o.balance)])),
+    [receivables]
+  );
 
   // Búsqueda en servidor (cubre órdenes no cargadas en la página actual)
   const [serverResults, setServerResults] = useState<Order[] | null>(null);
@@ -273,13 +279,9 @@ const Orders: React.FC = () => {
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
         {/* Header */}
         <div className="mb-6 sm:mb-8">
-          <div className="text-center mb-6 sm:mb-8">
-            <h1 className="text-xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2 px-2">
-              Gestión de órdenes
-            </h1>
-            <p className="text-sm text-balance sm:text-lg text-gray-600 px-2">
-              Administra y visualiza todas las órdenes del sistema.
-            </p>
+          <div className="mb-4">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Órdenes</h1>
+            <p className="text-sm text-gray-600">Ventas, estado de entrega y cobro.</p>
           </div>
 
           <div className="flex justify-between items-center gap-2">
@@ -355,63 +357,20 @@ const Orders: React.FC = () => {
         )}
 
         {/* Tabs */}
-        <div className="flex border-b border-gray-200 mb-4 overflow-x-auto scrollbar-none">
-          <button
-            onClick={() => { setActiveTab('active'); setSearch(''); }}
-            className={`px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'active' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-          >
-            <span className="flex items-center gap-1.5">
-              Activas
-              {activeCount > 0 && (
-                <span className={`px-1.5 py-0.5 rounded-full text-xs ${activeTab === 'active' ? 'bg-primary/15 text-primary' : 'bg-gray-100 text-gray-600'}`}>
-                  {activeCount}
-                </span>
-              )}
-            </span>
-          </button>
-          <button
-            onClick={() => { setActiveTab('closed'); setSearch(''); }}
-            className={`px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'closed' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-          >
-            <span className="flex items-center gap-1.5">
-              Cerradas
-              {closedCount > 0 && (
-                <span className={`px-1.5 py-0.5 rounded-full text-xs ${activeTab === 'closed' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'}`}>
-                  {closedCount}
-                </span>
-              )}
-            </span>
-          </button>
-          <button
-            onClick={() => setActiveTab('local')}
-            className={`px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'local' ? 'border-orange-500 text-orange-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-          >
-            <span className="flex items-center gap-1.5">
-              <CloudOff className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-              <span className="hidden xs:inline">Pendientes</span>
-              <span className="xs:hidden">Offline</span>
-              {pendingSync > 0 && (
-                <span className={`px-1.5 py-0.5 rounded-full text-xs ${activeTab === 'local' ? 'bg-orange-100 text-orange-700' : 'bg-orange-50 text-orange-600'}`}>
-                  {pendingSync}
-                </span>
-              )}
-            </span>
-          </button>
-          {user?.role === 'admin' && (
-            <button
-              onClick={() => setActiveTab('trash')}
-              className={`px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'trash' ? 'border-red-500 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-            >
-              <span className="flex items-center gap-1.5">
-                <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                <span className="hidden sm:inline">Papelera</span>
-                {trashList.length > 0 && activeTab === 'trash' && (
-                  <span className="px-1.5 py-0.5 rounded-full text-xs bg-red-100 text-red-700">{trashList.length}</span>
-                )}
-              </span>
-            </button>
-          )}
-        </div>
+        <SegmentedTabs<TabType>
+          ariaLabel="Tipo de órdenes"
+          className="mb-4"
+          value={activeTab}
+          onChange={(k) => { setActiveTab(k); if (k === 'active' || k === 'closed') setSearch(''); }}
+          tabs={[
+            { key: 'active', label: 'Activas', count: activeCount },
+            { key: 'closed', label: 'Cerradas', count: closedCount },
+            { key: 'local', label: 'Sin enviar', icon: CloudOff, count: pendingSync, attention: true },
+            ...(user?.role === 'admin'
+              ? [{ key: 'trash' as const, label: 'Papelera', icon: Trash2, count: activeTab === 'trash' ? trashList.length : undefined }]
+              : []),
+          ]}
+        />
 
         {/* ── TRASH TAB ────────────────────────────────────────────────── */}
         {activeTab === 'trash' && (
@@ -419,7 +378,7 @@ const Orders: React.FC = () => {
             <div className="flex items-center gap-2 px-1">
               <Trash2 className="w-4 h-4 text-red-500" />
               <span className="text-sm font-medium text-red-700">Órdenes eliminadas</span>
-              <span className="text-xs text-gray-400">— Solo admins pueden restaurar o eliminar definitivamente</span>
+              <span className="text-xs text-gray-500">— Solo admins pueden restaurar o eliminar definitivamente</span>
             </div>
 
             {trashLoading ? (
@@ -427,7 +386,7 @@ const Orders: React.FC = () => {
             ) : trashList.length === 0 ? (
               <div className="text-center py-16">
                 <Trash2 className="w-12 h-12 text-gray-200 mx-auto mb-3" />
-                <p className="text-gray-400 text-sm">La papelera está vacía</p>
+                <p className="text-gray-500 text-sm">La papelera está vacía</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -437,19 +396,19 @@ const Orders: React.FC = () => {
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-gray-700 line-through">#{order.orderNumber}</p>
                         <p className="text-xs text-gray-500 truncate">{order.customer?.name ?? `Cliente #${order.customerId}`}</p>
-                        <p className="text-xs text-gray-400">{formatCurrency(order.totalAmount)}</p>
+                        <p className="text-xs text-gray-500">{formatCurrency(order.totalAmount)}</p>
                       </div>
                       <div className="flex gap-1 ml-2">
                         <button
                           onClick={() => handleRestore(order.id)}
-                          className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                          className="p-1.5 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                           title="Restaurar"
                         >
                           <RotateCcw className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => setHardDeleteConfirm(order.id)}
-                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                           title="Eliminar definitivamente"
                         >
                           <AlertTriangle className="w-4 h-4" />
@@ -518,7 +477,7 @@ const Orders: React.FC = () => {
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-gray-400 mt-0.5">{order.createdAt ? formatDate(order.createdAt) : '—'}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">{order.createdAt ? formatDate(order.createdAt) : '—'}</p>
                       </div>
                       <div className="flex items-center gap-1.5">
                         {getSyncStatusIcon({ order, customerName, attempts, errorMsg, lastAttemptAt })}
@@ -529,7 +488,7 @@ const Orders: React.FC = () => {
                     {/* Info */}
                     <div className="space-y-1.5 mb-3">
                       <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <User className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                        <User className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
                         <span className="truncate">{customerName ?? `Cliente #${order.customerId}`}</span>
                       </div>
                       <div className="flex items-center justify-between">
@@ -611,7 +570,109 @@ const Orders: React.FC = () => {
                 )}
 
                 {filteredOrders.length > 0 ? (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
+                  <>
+                  {/* Desktop: tabla densa con pago, vencimiento y saldo — lo que
+                      importa para cobrar (antes 3 columnas de tarjetas) */}
+                  <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50 text-left text-xs font-medium text-gray-600">
+                        <tr>
+                          <th scope="col" className="px-4 py-2.5 font-medium">Orden</th>
+                          <th scope="col" className="px-4 py-2.5 font-medium">Cliente</th>
+                          <th scope="col" className="px-4 py-2.5 font-medium">Fecha</th>
+                          <th scope="col" className="px-4 py-2.5 font-medium">Estado</th>
+                          <th scope="col" className="px-4 py-2.5 font-medium">Pago</th>
+                          <th scope="col" className="px-4 py-2.5 font-medium text-right">Total</th>
+                          <th scope="col" className="px-4 py-2.5 font-medium text-right">Saldo</th>
+                          <th scope="col" className="px-2 py-2.5"><span className="sr-only">Acciones</span></th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {filteredOrders.map((order) => {
+                          const isLocal = (order as { _isLocal?: boolean })._isLocal;
+                          const due = order.paymentDueDate ? new Date(`${order.paymentDueDate}T00:00:00`) : null;
+                          const overdue = order.paymentType === 'credit' && !order.paidAt && due !== null && due < new Date();
+                          const balance = balanceById.get(order.id);
+                          const canEdit = user?.role === "admin" || user?.role === "seller";
+                          return (
+                            <tr
+                              key={order.id}
+                              tabIndex={0}
+                              onClick={() => navigate(`/orders/${order.id}`)}
+                              onKeyDown={(e) => { if (e.key === 'Enter') navigate(`/orders/${order.id}`); }}
+                              className="cursor-pointer hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+                            >
+                              <td className="px-4 py-2.5 whitespace-nowrap">
+                                <span className="font-mono text-xs font-semibold text-gray-900">#{order.orderNumber}</span>
+                                {isLocal && (
+                                  <span className="ml-2 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium bg-amber-100 text-amber-900">
+                                    <WifiOff className="w-3 h-3" aria-hidden="true" /> Sin enviar
+                                  </span>
+                                )}
+                              </td>
+                              <td className="px-4 py-2.5">
+                                <p className="font-medium text-gray-900">{order.customer?.name || `ID: ${order.customerId}`}</p>
+                                <p className="text-xs text-gray-600">{order.user?.name || order.user?.username || ''}</p>
+                              </td>
+                              <td className="px-4 py-2.5 text-gray-700 whitespace-nowrap">{formatDate(order.createdAt)}</td>
+                              <td className="px-4 py-2.5 whitespace-nowrap">
+                                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
+                                  {getStatusText(order.status)}
+                                </span>
+                              </td>
+                              <td className="px-4 py-2.5 whitespace-nowrap text-xs">
+                                {order.paymentType !== 'credit' ? (
+                                  <span className="text-gray-700">Contado</span>
+                                ) : order.paidAt ? (
+                                  <span className="text-green-800">Crédito · pagado</span>
+                                ) : (
+                                  <span className={overdue ? 'font-semibold text-red-700' : 'text-amber-900'}>
+                                    {due ? `${overdue ? 'Venció' : 'Vence'} ${format(due, 'd MMM', { locale: es })}` : 'Crédito'}
+                                  </span>
+                                )}
+                              </td>
+                              <td className="px-4 py-2.5 text-right font-semibold text-gray-900 whitespace-nowrap tabular-nums">
+                                {formatCurrency(getPriceBreakdown(order).total)}
+                              </td>
+                              <td className="px-4 py-2.5 text-right whitespace-nowrap tabular-nums">
+                                {balance !== undefined && balance > 0
+                                  ? <span className={overdue ? 'font-semibold text-red-700' : 'text-gray-900'}>{formatCurrency(balance)}</span>
+                                  : <span className="text-gray-500">—</span>}
+                              </td>
+                              <td className="px-2 py-1.5 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
+                                {canEdit && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => navigate(`/orders/${order.id}/edit`)}
+                                      disabled={isLocal}
+                                      aria-label={`Editar orden ${order.orderNumber}`}
+                                      title={isLocal ? 'No disponible hasta sincronizar' : 'Editar'}
+                                      className="inline-flex w-9 h-9 items-center justify-center rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 disabled:opacity-40"
+                                    >
+                                      <Edit className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => { setOrderToDelete(order.id); setShowDeleteModal(true); }}
+                                      aria-label={`Eliminar orden ${order.orderNumber}`}
+                                      title="Eliminar"
+                                      className="inline-flex w-9 h-9 items-center justify-center rounded-lg text-gray-600 hover:bg-red-50 hover:text-red-700"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Mobile: tarjetas */}
+                  <div className="md:hidden grid grid-cols-1 gap-4">
                     {filteredOrders.map((order) => {
                       const priceBreakdown = getPriceBreakdown(order);
                       const isLocal = (order as any)._isLocal;
@@ -657,11 +718,11 @@ const Orders: React.FC = () => {
 
                           <div className="space-y-3 mb-4">
                             <div className="flex items-center space-x-2">
-                              <User className="w-4 h-4 text-gray-400" />
+                              <User className="w-4 h-4 text-gray-500" />
                               <span className="text-sm text-gray-600">Cliente: {order.customer?.name || `ID: ${order.customerId}`}</span>
                             </div>
                             <div className="flex items-center space-x-2">
-                              <User className="w-4 h-4 text-gray-400" />
+                              <User className="w-4 h-4 text-gray-500" />
                               <span className="text-sm text-gray-600">Creado por: {order.user?.username || `ID: ${order.userId}`}</span>
                             </div>
 
@@ -708,6 +769,7 @@ const Orders: React.FC = () => {
                       );
                     })}
                   </div>
+                  </>
                 ) : (
                   <div className="text-center py-12 sm:py-16 px-4">
                     <Calendar className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 mx-auto mb-4" />

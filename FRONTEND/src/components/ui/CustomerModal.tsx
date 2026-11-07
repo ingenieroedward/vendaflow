@@ -87,7 +87,7 @@ const CustomerModal: React.FC<CustomerModalProps> = ({
               {isEdit ? 'Editar cliente' : 'Registrar nuevo cliente'}
             </h2>
           </div>
-          <button onClick={handleClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+          <button onClick={handleClose} className="text-gray-500 hover:text-gray-600 transition-colors">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -98,7 +98,7 @@ const CustomerModal: React.FC<CustomerModalProps> = ({
           {/* Code */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Código <span className="text-gray-400 font-normal">(opcional, único)</span>
+              Código <span className="text-gray-500 font-normal">(opcional, único)</span>
             </label>
             <Input
               type="text"
@@ -127,7 +127,7 @@ const CustomerModal: React.FC<CustomerModalProps> = ({
           {/* NIT */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              NIT / Cédula <span className="text-gray-400 font-normal">(opcional)</span>
+              NIT / Cédula <span className="text-gray-500 font-normal">(opcional)</span>
             </label>
             <Input
               type="text"
@@ -166,7 +166,7 @@ const CustomerModal: React.FC<CustomerModalProps> = ({
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Nota
-              <span className={`ml-2 text-xs font-normal ${formData.note.length > 230 ? 'text-orange-500' : 'text-gray-400'}`}>
+              <span className={`ml-2 text-xs font-normal ${formData.note.length > 230 ? 'text-orange-500' : 'text-gray-500'}`}>
                 {formData.note.length}/255
               </span>
             </label>

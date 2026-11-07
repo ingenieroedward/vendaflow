@@ -51,7 +51,7 @@ const PriceTable: React.FC<PriceTableProps> = ({ prices }) => {
                 <tr key={price.id} className="hover:bg-gray-50 transition-colors duration-150">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
-                      <MapPin className="w-4 h-4 text-gray-400 mr-2" />
+                      <MapPin className="w-4 h-4 text-gray-500 mr-2" />
                       <div>
                         <div className="text-sm font-medium text-gray-900">
                           {price.supplier?.name}
@@ -117,7 +117,7 @@ const PriceTable: React.FC<PriceTableProps> = ({ prices }) => {
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center mb-1">
-                    <MapPin className="w-4 h-4 text-gray-400 mr-2 flex-shrink-0" />
+                    <MapPin className="w-4 h-4 text-gray-500 mr-2 flex-shrink-0" />
                     <div className="min-w-0 flex-1">
                       <div className="text-sm font-medium text-gray-900 truncate">
                         {price.supplier?.name}

@@ -106,7 +106,7 @@ const PosPaymentModal: React.FC<Props> = ({ isOpen, total, busy, result, printin
             </button>
             <button
               onClick={() => onDone?.()}
-              className="flex-1 px-4 py-2.5 text-sm font-semibold bg-primary text-white rounded-lg hover:bg-primary/90"
+              className="flex-1 px-4 py-2.5 text-sm font-semibold bg-primary text-on-primary rounded-lg hover:bg-primary/90"
             >
               Nueva venta
             </button>
@@ -114,7 +114,7 @@ const PosPaymentModal: React.FC<Props> = ({ isOpen, total, busy, result, printin
           {onDirectPrint && !Capacitor.isNativePlatform() && (
             <button
               onClick={onDirectPrint}
-              className="w-full text-xs text-gray-400 hover:text-gray-600 pt-1"
+              className="w-full text-xs text-gray-500 hover:text-gray-600 pt-1"
             >
               Imprimir directo en térmica (sin descargar PDF)
             </button>
@@ -229,7 +229,7 @@ const PosPaymentModal: React.FC<Props> = ({ isOpen, total, busy, result, printin
           <button
             onClick={handleConfirm}
             disabled={!canConfirm || busy}
-            className="flex-1 px-4 py-3 text-sm font-semibold bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex-1 px-4 py-3 text-sm font-semibold bg-primary text-on-primary rounded-lg hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {busy ? 'Cobrando…' : 'Confirmar cobro'}
           </button>

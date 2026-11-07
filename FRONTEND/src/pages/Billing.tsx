@@ -135,9 +135,9 @@ const Billing: React.FC = () => {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 sm:py-8">
-      <div className="text-center mb-6 sm:mb-8">
-        <h1 className="text-xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2 px-2">Facturación</h1>
-        <p className="text-sm sm:text-lg text-gray-600 px-2">Tu plan, límites y pagos a Merco.</p>
+      <div className="mb-4">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Facturación</h1>
+        <p className="text-sm text-gray-600">Tu plan, límites y pagos a Merco.</p>
       </div>
 
       {/* Aviso de datos incompletos — un tenant real llegó a producción con
@@ -177,7 +177,7 @@ const Billing: React.FC = () => {
       {tenantInfo && (
         <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
           <div className="flex items-center gap-2 pb-3 mb-3 border-b border-gray-100">
-            <Mail className="w-4 h-4 text-gray-400" />
+            <Mail className="w-4 h-4 text-gray-500" />
             <h2 className="text-sm font-semibold text-gray-700">Correo de facturación</h2>
           </div>
           <p className="text-xs text-gray-500 mb-3">
@@ -194,7 +194,7 @@ const Billing: React.FC = () => {
             <button
               type="submit"
               disabled={savingEmail}
-              className="px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 whitespace-nowrap"
+              className="px-4 py-2 bg-primary text-on-primary text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 whitespace-nowrap"
             >
               {savingEmail ? 'Guardando...' : 'Guardar correo'}
             </button>
@@ -206,7 +206,7 @@ const Billing: React.FC = () => {
       {tenantInfo && (
         <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
           <div className="flex items-center gap-2 pb-3 mb-3 border-b border-gray-100">
-            <CreditCard className="w-4 h-4 text-gray-400" />
+            <CreditCard className="w-4 h-4 text-gray-500" />
             <h2 className="text-sm font-semibold text-gray-700">Plan y límites</h2>
             <span className={`ml-auto px-2 py-0.5 rounded-full text-xs font-medium ${
               tenantInfo.plan === 'enterprise' ? 'bg-purple-100 text-purple-700' :
@@ -219,17 +219,17 @@ const Billing: React.FC = () => {
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div className="text-center p-2 bg-gray-50 rounded-lg">
-              <Users className="w-4 h-4 text-gray-400 mx-auto mb-1" />
+              <Users className="w-4 h-4 text-gray-500 mx-auto mb-1" />
               <p className="text-xs text-gray-500">Usuarios</p>
               <p className="text-sm font-bold text-gray-700">hasta {tenantInfo.maxUsers}</p>
             </div>
             <div className="text-center p-2 bg-gray-50 rounded-lg">
-              <Package className="w-4 h-4 text-gray-400 mx-auto mb-1" />
+              <Package className="w-4 h-4 text-gray-500 mx-auto mb-1" />
               <p className="text-xs text-gray-500">Productos</p>
               <p className="text-sm font-bold text-gray-700">hasta {tenantInfo.maxProducts?.toLocaleString('es-CO')}</p>
             </div>
             <div className="text-center p-2 bg-gray-50 rounded-lg">
-              <ShoppingCart className="w-4 h-4 text-gray-400 mx-auto mb-1" />
+              <ShoppingCart className="w-4 h-4 text-gray-500 mx-auto mb-1" />
               <p className="text-xs text-gray-500">Órd/mes</p>
               <p className="text-sm font-bold text-gray-700">hasta {tenantInfo.maxOrdersPerMonth?.toLocaleString('es-CO')}</p>
             </div>
@@ -248,12 +248,12 @@ const Billing: React.FC = () => {
                     ) : (
                       <Lock className="w-3.5 h-3.5 text-gray-300 flex-shrink-0" />
                     )}
-                    <span className={included ? 'text-gray-700' : 'text-gray-400'}>
+                    <span className={included ? 'text-gray-700' : 'text-gray-500'}>
                       {info.label}
-                      {info.soon && <span className="text-gray-400"> (próximamente)</span>}
+                      {info.soon && <span className="text-gray-500"> (próximamente)</span>}
                     </span>
                     {!included && (
-                      <span className="ml-auto text-gray-400">Disponible en el plan {info.minPlan}</span>
+                      <span className="ml-auto text-gray-500">Disponible en el plan {info.minPlan}</span>
                     )}
                   </div>
                 );
@@ -278,7 +278,7 @@ const Billing: React.FC = () => {
       {billing && (
         <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
           <div className="flex items-center gap-2">
-            <CreditCard className="w-4 h-4 text-gray-400" />
+            <CreditCard className="w-4 h-4 text-gray-500" />
             <h2 className="text-sm font-semibold text-gray-700">Pagar plan (Bre-B)</h2>
           </div>
 
@@ -292,7 +292,7 @@ const Billing: React.FC = () => {
               Transfiere por <b>Bre-B</b> a la llave <b className="font-mono">{billing.brebKey}</b> ({billing.brebHolder}) y reporta tu pago aquí con el comprobante.
             </div>
           ) : (
-            <p className="text-sm text-gray-400">Contáctanos para coordinar tu pago.</p>
+            <p className="text-sm text-gray-500">Contáctanos para coordinar tu pago.</p>
           )}
 
           <form onSubmit={submitPayment} className="space-y-3">
@@ -316,7 +316,7 @@ const Billing: React.FC = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Referencia <span className="text-gray-400">(opcional)</span></label>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Referencia <span className="text-gray-500">(opcional)</span></label>
                 <input value={payForm.reference} onChange={e => setPayForm(prev => ({ ...prev, reference: e.target.value }))} maxLength={120}
                   placeholder="Número de la transferencia"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
@@ -331,7 +331,7 @@ const Billing: React.FC = () => {
             {payMsg && <p className={`text-sm rounded-lg px-3 py-2 ${payMsg.startsWith('Pago reportado') ? 'text-green-700 bg-green-50 border border-green-200' : 'text-red-600 bg-red-50 border border-red-200'}`}>{payMsg}</p>}
             <div className="flex justify-end">
               <button type="submit" disabled={paySending}
-                className="px-4 py-2.5 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50">
+                className="px-4 py-2.5 bg-primary text-on-primary text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50">
                 {paySending ? 'Enviando...' : 'Reportar pago'}
               </button>
             </div>

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
   Plus,
+  Minus,
   Trash2,
   Save,
   Package,
@@ -55,17 +56,12 @@ const QuoteNew: React.FC = () => {
   const { addNotification } = useUIStore();
 
   const [quoteItems, setQuoteItems] = useState<QuoteLineItem[]>([]);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [quantity, setQuantity] = useState<number>(1);
-  const [unitPrice, setUnitPrice] = useState<number>(0);
-  const [taxRate, setTaxRate] = useState<number>(0);
   const [notes, setNotes] = useState<string>("");
   const [validUntil, setValidUntil] = useState<string>("");
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
     null
   );
   const [showCustomerModal, setShowCustomerModal] = useState(false);
-  const [includeProducts, setIncludeProducts] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -94,26 +90,27 @@ const QuoteNew: React.FC = () => {
     localStorage.setItem(DRAFT_KEY, JSON.stringify({ quoteItems, selectedCustomer, notes, validUntil }));
   }, [quoteItems, selectedCustomer, notes, validUntil]);
 
-  const handleAddItem = () => {
-    if (!selectedProduct || quantity <= 0 || unitPrice <= 0) {
-      return;
-    }
-
-    const newItem: QuoteLineItem = {
-      id: Date.now().toString(),
-      productId: selectedProduct.id,
-      quantity,
-      unitPrice,
-      taxRate,
-      product: selectedProduct,
-    };
-
-    setQuoteItems([...quoteItems, newItem]);
-    setSelectedProduct(null);
-    setQuantity(1);
-    setUnitPrice(0);
-    setTaxRate(0);
-    setIncludeProducts(false); // cerrar panel al agregar
+  // Elegir un producto lo agrega de una vez (cantidad 1, precio e IVA de la
+  // ficha); si ya está, suma una unidad
+  const handleProductSelect = (product: Product | null) => {
+    if (!product) return;
+    setQuoteItems((prev) => {
+      const existing = prev.find((i) => i.productId === product.id);
+      if (existing) {
+        return prev.map((i) => (i.id === existing.id ? { ...i, quantity: i.quantity + 1 } : i));
+      }
+      return [
+        ...prev,
+        {
+          id: `${Date.now()}-${product.id}`,
+          productId: product.id,
+          quantity: 1,
+          unitPrice: Number(product.salePrice) || 0,
+          taxRate: Number(product.taxRate ?? 0),
+          product,
+        },
+      ];
+    });
   };
 
   const handleRemoveItem = (id: string) => {
@@ -122,23 +119,13 @@ const QuoteNew: React.FC = () => {
       return;
     }
     setConfirmDeleteId(null);
-    setQuoteItems((prev) => {
-      const newItems = prev.filter((item) => item.id !== id);
-      if (newItems.length === 0) setIncludeProducts(false);
-      return newItems;
-    });
+    setQuoteItems((prev) => prev.filter((item) => item.id !== id));
   };
 
-  const handleProductSelect = (product: Product | null) => {
-    if (product) {
-      setSelectedProduct(product);
-      setUnitPrice(product.salePrice);
-      // IVA de la ficha del producto (antes arrancaba en 0 en cada línea)
-      setTaxRate(Number(product.taxRate ?? 0));
-    } else {
-      setSelectedProduct(null);
-      setUnitPrice(0);
-    }
+  const stepQuantity = (id: string, delta: number) => {
+    setQuoteItems((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, quantity: Math.max(1, item.quantity + delta) } : item))
+    );
   };
 
   const updateQuoteItem = (
@@ -264,11 +251,6 @@ const QuoteNew: React.FC = () => {
     setSelectedCustomer(null);
     setNotes('');
     setValidUntil('');
-    setSelectedProduct(null);
-    setQuantity(1);
-    setUnitPrice(0);
-    setTaxRate(0);
-    setIncludeProducts(false);
   };
 
   const hasDraft = quoteItems.length > 0 || !!selectedCustomer || !!notes;
@@ -277,304 +259,252 @@ const QuoteNew: React.FC = () => {
     navigate("/quotes");
   };
 
+  // Qué falta para poder crear la cotización (antes el botón solo se deshabilitaba)
+  const missing: string[] = [];
+  if (!selectedCustomer) missing.push("elige un cliente");
+  if (quoteItems.length === 0) missing.push("agrega al menos un producto");
+  if (quoteItems.some((i) => i.unitPrice <= 0 || i.quantity <= 0)) missing.push("revisa cantidades y precios");
+  const canSubmit = missing.length === 0 && !loading;
+  const total = calculateTotal();
+  const submitLabel = loading
+    ? "Creando…"
+    : quoteItems.length > 0
+      ? `Crear cotización por ${formatCurrency(total)}`
+      : "Crear cotización";
+
+  const inputBase =
+    "w-full px-3 py-2.5 border border-gray-300 rounded-lg text-base sm:text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary";
+
   return (
-    <div className="bg-gray-50">
-      <div className="px-3 py-4 max-w-2xl mx-auto">
-        {/* Header compacto */}
+    <div className="bg-gray-50 min-h-full">
+      <div className="px-3 sm:px-6 py-4 sm:py-6 max-w-6xl mx-auto pb-40 md:pb-8">
+        {/* Encabezado */}
         <div className="flex items-center gap-3 mb-4">
           <button
             type="button"
             onClick={handleBack}
-            className="p-2 -ml-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
+            aria-label="Volver a cotizaciones"
+            className="w-11 h-11 -ml-2 flex items-center justify-center rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            <FileText className="w-5 h-5 text-primary flex-shrink-0" />
-            <h1 className="text-lg font-semibold text-gray-900 truncate">Nueva cotización</h1>
-          </div>
+          <h1 className="text-xl font-bold text-gray-900 flex-1 min-w-0 truncate">Nueva cotización</h1>
           {hasDraft && (
             <button
               type="button"
               onClick={handleClearDraft}
-              className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded-lg transition-colors flex-shrink-0"
-              title="Limpiar borrador"
+              className="flex items-center gap-1.5 min-h-[44px] px-3 text-sm text-red-700 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0"
             >
-              <Eraser className="w-3.5 h-3.5" />
-              Limpiar
+              <Eraser className="w-4 h-4" aria-hidden="true" />
+              Limpiar borrador
             </button>
           )}
-          <span className="text-xs text-gray-400 flex-shrink-0">{user?.username}</span>
         </div>
 
         {/* Banner sin conexión */}
         {isOffline && (
-          <div className="mb-3 flex items-center gap-2 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-lg">
-            <WifiOff className="w-4 h-4 text-amber-500 flex-shrink-0" />
-            <p className="text-xs text-amber-700 flex-1">
-              Sin conexión — la cotización se guardará localmente y se sincronizará cuando haya internet.
+          <div className="mb-4 flex items-center gap-2 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-lg" role="status">
+            <WifiOff className="w-4 h-4 text-amber-700 flex-shrink-0" aria-hidden="true" />
+            <p className="text-sm text-amber-900 flex-1">
+              Sin conexión — la cotización se guarda en este equipo y se envía sola cuando vuelva internet.
             </p>
           </div>
         )}
 
-        {/* Error Message */}
         {error && (
-          <ErrorMessage
-            message={error}
-            onDismiss={clearError}
-            className="mb-4 lg:mb-6"
-          />
+          <ErrorMessage message={error} onDismiss={clearError} className="mb-4" />
         )}
 
-        {/* Form - Mobile Optimized */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Customer Information */}
-            <div>
+        <form id="quote-form" onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-4 lg:gap-6 items-start">
+          {/* ── Columna principal: cliente + productos ── */}
+          <div className="space-y-4 min-w-0">
+            <section className="bg-white rounded-xl border border-gray-200 p-4" aria-labelledby="sec-cliente">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-base font-medium text-gray-900 flex items-center">
-                  <User className="w-4 h-4 mr-2" />
+                <h2 id="sec-cliente" className="text-base font-semibold text-gray-900 flex items-center gap-2">
+                  <User className="w-4 h-4 text-gray-500" aria-hidden="true" />
                   Cliente
-                </h3>
+                </h2>
                 {!selectedCustomer && (
                   <button
                     type="button"
                     onClick={handleCreateCustomer}
-                    className="flex items-center gap-1 text-xs text-primary hover:text-primary font-medium"
+                    className="flex items-center gap-1 min-h-[40px] px-2 text-sm text-primary font-medium rounded-lg hover:bg-primary/5"
                   >
-                    <Plus className="w-3.5 h-3.5" />
+                    <Plus className="w-4 h-4" aria-hidden="true" />
                     Nuevo cliente
                   </button>
                 )}
               </div>
-
               {customersLoading ? (
                 <div className="flex items-center gap-2 py-3">
                   <LoadingSpinner size="sm" />
-                  <span className="text-sm text-gray-500">Cargando clientes...</span>
+                  <span className="text-sm text-gray-600">Cargando clientes…</span>
                 </div>
               ) : (
                 <CustomerSearch
                   onCustomerSelect={setSelectedCustomer}
                   selectedCustomer={selectedCustomer}
                   customers={customers}
-                  placeholder="Buscar cliente..."
+                  placeholder="Buscar cliente por nombre o NIT…"
                 />
               )}
-            </div>
+            </section>
 
-            {/* Products Section */}
-            <div className="border-t pt-3">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-base font-medium text-gray-900 flex items-center">
-                  <Package className="w-4 h-4 mr-2" />
+            <section className="bg-white rounded-xl border border-gray-200" aria-labelledby="sec-productos">
+              <div className="p-4 border-b border-gray-100">
+                <h2 id="sec-productos" className="text-base font-semibold text-gray-900 flex items-center gap-2 mb-3">
+                  <Package className="w-4 h-4 text-gray-500" aria-hidden="true" />
                   Productos
                   {quoteItems.length > 0 && (
-                    <span className="ml-2 text-xs bg-primary/15 text-primary px-2 py-0.5 rounded-full font-normal">
-                      {quoteItems.length}
-                    </span>
+                    <span className="text-sm font-normal text-gray-600">({quoteItems.length})</span>
                   )}
-                </h3>
-                {!includeProducts && (
-                  <button
-                    type="button"
-                    onClick={() => setIncludeProducts(true)}
-                    className="flex items-center gap-1 text-xs text-primary hover:text-primary font-medium"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    Agregar producto
-                  </button>
+                </h2>
+                {/* Buscador siempre listo: elegir o Enter agrega a la cotización */}
+                {productsLoading ? (
+                  <div className="flex items-center gap-2 py-2">
+                    <LoadingSpinner size="sm" />
+                    <span className="text-sm text-gray-600">Cargando productos…</span>
+                  </div>
+                ) : (
+                  <ProductSearch
+                    onProductSelect={handleProductSelect}
+                    selectedProduct={null}
+                    products={products}
+                    clearOnSelect
+                    ariaLabel="Buscar producto para agregar"
+                    placeholder="Busca o escanea un producto y presiona Enter"
+                    searchFn={!isOffline ? (q) => productService.searchProducts(q, false) : undefined}
+                  />
                 )}
               </div>
 
-              {/* Add product form */}
-              {includeProducts && (
-                <div className="mb-3 p-3 border border-primary/25 rounded-lg bg-primary/10">
-                  {productsLoading ? (
-                    <div className="flex items-center gap-2 py-2">
-                      <LoadingSpinner size="sm" />
-                      <span className="text-sm text-gray-500">Cargando productos...</span>
-                    </div>
-                  ) : (
-                    <ProductSearch
-                      onProductSelect={handleProductSelect}
-                      selectedProduct={selectedProduct}
-                      products={products}
-                      placeholder="Buscar producto..."
-                      searchFn={!isOffline ? (q) => productService.searchProducts(q, false) : undefined}
-                    />
-                  )}
-
-                  {selectedProduct && (
-                    <div className="mt-3 flex items-center gap-2">
-                      <div className="flex-1">
-                        <label className="block text-xs text-gray-500 mb-1">Cant.</label>
-                        <input
-                          type="number"
-                          value={quantity === 0 ? "" : String(quantity)}
-                          onChange={(e) => setQuantity(parseInt(e.target.value) || 0)}
-                          min="1"
-                          placeholder="1"
-                          className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                        />
-                      </div>
-                      <div className="flex-[2]">
-                        <label className="block text-xs text-gray-500 mb-1">Precio unit.</label>
-                        <input
-                          type="number"
-                          value={unitPrice === 0 ? "" : String(unitPrice)}
-                          onChange={(e) => setUnitPrice(parseFloat(e.target.value) || 0)}
-                          min="0"
-                          step="0.01"
-                          placeholder="0"
-                          className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <label className="block text-xs text-gray-500 mb-1">IVA %</label>
-                        <input
-                          type="number"
-                          value={taxRate}
-                          onChange={(e) => setTaxRate(parseFloat(e.target.value) || 0)}
-                          min="0"
-                          max="100"
-                          className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                        />
-                      </div>
-                      <div className="flex-none pt-5">
-                        <button
-                          type="button"
-                          onClick={handleAddItem}
-                          disabled={quantity <= 0 || unitPrice <= 0}
-                          aria-label="Agregar producto a la lista"
-                          className="h-11 px-4 bg-primary text-white rounded-lg text-sm font-medium disabled:opacity-40 hover:bg-primary/90 transition-colors"
-                        >
-                          <Plus className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Items list - compact rows */}
-              {quoteItems.length > 0 && (
-                <div className="border border-gray-200 rounded-lg overflow-hidden">
-                  {/* Header */}
-                  <div className="grid grid-cols-[1fr_auto] bg-gray-100 px-3 py-1.5 border-b border-gray-200">
-                    <span className="text-xs font-medium text-gray-600">Producto</span>
-                    <span className="text-xs font-medium text-gray-600 text-right">Total</span>
-                  </div>
-
-                  {/* Rows */}
-                  <div className="divide-y divide-gray-100">
-                    {quoteItems.map((item) => (
-                      <div key={item.id} className="px-3 py-2">
-                        {/* Row line 1: name + total + delete */}
-                        <div className="flex items-start justify-between gap-2">
+              {quoteItems.length === 0 ? (
+                <p className="px-4 py-10 text-center text-sm text-gray-600">
+                  Aún no hay productos. Búscalos arriba: cada uno se agrega con cantidad 1 y su precio e IVA de la ficha.
+                </p>
+              ) : (
+                <ul className="divide-y divide-gray-100">
+                  {quoteItems.map((item) => {
+                    const lineTotal = item.quantity * item.unitPrice * (1 + item.taxRate / 100);
+                    const stock = Number(item.product.stock ?? NaN);
+                    const lowStock = Number.isFinite(stock) && Number(item.product.minStock ?? 0) > 0 && item.quantity > stock;
+                    return (
+                      <li key={item.id} className="px-4 py-3">
+                        <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium text-gray-900 truncate leading-tight">
-                              {item.product.name}
-                            </p>
-                            <p className="text-xs text-gray-400">{item.product.code}</p>
+                            <p className="text-sm font-medium text-gray-900 leading-snug">{item.product.name}</p>
+                            <p className="text-xs text-gray-600 font-mono">{item.product.code}</p>
+                            {lowStock && (
+                              <p className="mt-0.5 text-xs font-medium text-amber-900">Solo hay {stock} en stock</p>
+                            )}
                           </div>
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            <span className="text-sm font-semibold text-primary whitespace-nowrap">
-                              {formatCurrency(item.quantity * item.unitPrice * (1 + item.taxRate / 100))}
-                            </span>
-                            {confirmDeleteId === item.id ? (
-                              <div className="flex items-center gap-1">
-                                <span className="text-xs text-red-500 whitespace-nowrap">¿Eliminar?</span>
-                                <button
-                                  type="button"
-                                  onClick={() => handleRemoveItem(item.id)}
-                                  className="px-1.5 py-0.5 bg-red-500 text-white rounded text-xs font-medium hover:bg-red-600 transition-colors"
-                                >
-                                  Sí
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setConfirmDeleteId(null)}
-                                  className="px-1.5 py-0.5 bg-gray-200 text-gray-700 rounded text-xs font-medium hover:bg-gray-300 transition-colors"
-                                >
-                                  No
-                                </button>
-                              </div>
-                            ) : (
+                          <span className="text-sm font-semibold text-gray-900 whitespace-nowrap tabular-nums pt-0.5">
+                            {formatCurrency(lineTotal)}
+                          </span>
+                          {confirmDeleteId === item.id ? (
+                            <div className="flex items-center gap-1 flex-shrink-0">
                               <button
                                 type="button"
                                 onClick={() => handleRemoveItem(item.id)}
-                                className="text-gray-300 hover:text-red-500 transition-colors"
+                                className="min-h-[36px] px-2.5 bg-red-600 text-white rounded-lg text-xs font-medium hover:bg-red-700"
                               >
-                                <Trash2 className="w-4 h-4" />
+                                Quitar
                               </button>
-                            )}
+                              <button
+                                type="button"
+                                onClick={() => setConfirmDeleteId(null)}
+                                className="min-h-[36px] px-2.5 bg-gray-100 text-gray-800 rounded-lg text-xs font-medium hover:bg-gray-200"
+                              >
+                                No
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveItem(item.id)}
+                              aria-label={`Quitar ${item.product.name}`}
+                              className="-mr-2 -mt-1.5 w-10 h-10 flex items-center justify-center rounded-lg text-gray-500 hover:text-red-700 hover:bg-red-50 flex-shrink-0"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Cantidad con +/− (44px) · precio · IVA */}
+                        <div className="mt-2 flex flex-wrap items-end gap-3">
+                          <div>
+                            <span className="block text-xs text-gray-600 mb-1" id={`qty-${item.id}`}>Cantidad</span>
+                            <div className="flex items-center" role="group" aria-labelledby={`qty-${item.id}`}>
+                              <button
+                                type="button"
+                                onClick={() => stepQuantity(item.id, -1)}
+                                aria-label={`Una unidad menos de ${item.product.name}`}
+                                className="w-11 h-11 flex items-center justify-center rounded-l-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
+                              >
+                                <Minus className="w-4 h-4" />
+                              </button>
+                              <input
+                                type="number"
+                                inputMode="decimal"
+                                aria-label={`Cantidad de ${item.product.name}`}
+                                value={item.quantity === 0 ? "" : item.quantity}
+                                onChange={(e) => updateQuoteItem(item.id, "quantity", parseFloat(e.target.value) || 0)}
+                                min="1"
+                                className="w-16 h-11 border-y border-gray-300 text-center text-base tabular-nums focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => stepQuantity(item.id, 1)}
+                                aria-label={`Una unidad más de ${item.product.name}`}
+                                className="w-11 h-11 flex items-center justify-center rounded-r-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
+                              >
+                                <Plus className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                          <div className="w-36">
+                            <label htmlFor={`price-${item.id}`} className="block text-xs text-gray-600 mb-1">Precio unitario</label>
+                            <input
+                              id={`price-${item.id}`}
+                              type="number"
+                              inputMode="decimal"
+                              value={item.unitPrice === 0 ? "" : item.unitPrice}
+                              onChange={(e) => updateQuoteItem(item.id, "unitPrice", parseFloat(e.target.value) || 0)}
+                              min="0"
+                              step="0.01"
+                              className="w-full h-11 px-3 border border-gray-300 rounded-lg text-base sm:text-sm text-right tabular-nums focus:outline-none focus:ring-2 focus:ring-primary"
+                            />
+                          </div>
+                          <div className="w-24">
+                            <label htmlFor={`tax-${item.id}`} className="block text-xs text-gray-600 mb-1">IVA %</label>
+                            <input
+                              id={`tax-${item.id}`}
+                              type="number"
+                              inputMode="decimal"
+                              value={item.taxRate}
+                              onChange={(e) => updateQuoteItem(item.id, "taxRate", parseFloat(e.target.value) || 0)}
+                              min="0"
+                              max="100"
+                              className="w-full h-11 px-3 border border-gray-300 rounded-lg text-base sm:text-sm text-center tabular-nums focus:outline-none focus:ring-2 focus:ring-primary"
+                            />
                           </div>
                         </div>
-
-                        {/* Row line 2: editable fields inline */}
-                        <div className="flex items-center gap-1.5 mt-1.5">
-                          <span className="text-xs text-gray-400 whitespace-nowrap">Cant:</span>
-                          <input
-                            type="number"
-                            value={item.quantity}
-                            onChange={(e) => updateQuoteItem(item.id, "quantity", parseInt(e.target.value) || 0)}
-                            min="1"
-                            className="w-14 px-1.5 py-0.5 border border-gray-200 rounded text-xs text-center focus:outline-none focus:ring-1 focus:ring-primary"
-                          />
-                          <span className="text-xs text-gray-300">×</span>
-                          <span className="text-xs text-gray-400 whitespace-nowrap">$</span>
-                          <input
-                            type="number"
-                            value={item.unitPrice}
-                            onChange={(e) => updateQuoteItem(item.id, "unitPrice", parseFloat(e.target.value) || 0)}
-                            min="0"
-                            step="0.01"
-                            className="w-24 px-1.5 py-0.5 border border-gray-200 rounded text-xs text-right focus:outline-none focus:ring-1 focus:ring-primary"
-                          />
-                          <span className="text-xs text-gray-400 whitespace-nowrap ml-1">IVA:</span>
-                          <input
-                            type="number"
-                            value={item.taxRate}
-                            onChange={(e) => updateQuoteItem(item.id, "taxRate", parseFloat(e.target.value) || 0)}
-                            min="0"
-                            max="100"
-                            className="w-12 px-1.5 py-0.5 border border-gray-200 rounded text-xs text-center focus:outline-none focus:ring-1 focus:ring-primary"
-                          />
-                          <span className="text-xs text-gray-400">%</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Summary footer */}
-                  <div className="bg-gray-50 border-t border-gray-200 px-3 py-2 space-y-1">
-                    <div className="flex justify-between text-xs text-gray-500">
-                      <span>Subtotal</span>
-                      <span>{formatCurrency(calculateSubtotal())}</span>
-                    </div>
-                    <div className="flex justify-between text-xs text-gray-500">
-                      <span>IVA</span>
-                      <span>{formatCurrency(calculateTotalTax())}</span>
-                    </div>
-                    <div className="flex justify-between text-sm font-bold text-gray-900 pt-1 border-t border-gray-200">
-                      <span>Total</span>
-                      <span className="text-primary">{formatCurrency(calculateTotal())}</span>
-                    </div>
-                  </div>
-                </div>
+                      </li>
+                    );
+                  })}
+                </ul>
               )}
-            </div>
+            </section>
+          </div>
 
-            {/* Validez */}
-            <div className="border-t pt-3">
-              <div className="flex items-center gap-1.5 mb-2">
-                <CalendarClock className="w-4 h-4 text-gray-400" />
-                <label className="text-sm font-medium text-gray-700">
-                  Válida hasta <span className="text-gray-400 font-normal">(opcional)</span>
-                </label>
-              </div>
-              <div className="flex gap-1.5 mb-2">
+          {/* ── Columna lateral: pago + notas + resumen (fija en desktop) ── */}
+          <aside className="space-y-4 lg:sticky lg:top-4">
+            <section className="bg-white rounded-xl border border-gray-200 p-4" aria-labelledby="sec-validez">
+              <h2 id="sec-validez" className="text-base font-semibold text-gray-900 flex items-center gap-2 mb-3">
+                <CalendarClock className="w-4 h-4 text-gray-500" aria-hidden="true" />
+                Válida hasta <span className="text-sm text-gray-600 font-normal">(opcional)</span>
+              </h2>
+              <div className="flex flex-wrap gap-1.5 mb-2">
                 {[7, 15, 30].map((d) => {
                   const target = new Date();
                   target.setDate(target.getDate() + d);
@@ -583,11 +513,12 @@ const QuoteNew: React.FC = () => {
                     <button
                       key={d}
                       type="button"
+                      aria-pressed={validUntil === targetStr}
                       onClick={() => setValidUntil(targetStr)}
-                      className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                      className={`min-h-[36px] px-3 rounded-full text-sm font-medium border transition-colors ${
                         validUntil === targetStr
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "border-gray-300 text-gray-600 hover:bg-gray-50"
+                          ? "border-primary bg-primary/10 text-gray-900"
+                          : "border-gray-300 text-gray-700 hover:bg-gray-50"
                       }`}
                     >
                       {d} días
@@ -595,46 +526,73 @@ const QuoteNew: React.FC = () => {
                   );
                 })}
               </div>
+              <label htmlFor="valid-until" className="sr-only">Fecha de validez</label>
               <input
+                id="valid-until"
                 type="date"
                 value={validUntil}
                 onChange={(e) => setValidUntil(e.target.value)}
                 min={new Date().toISOString().slice(0, 10)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+                className={inputBase}
               />
-            </div>
+            </section>
 
-            {/* Notes Section */}
-            <div className="border-t pt-3">
-              <div className="flex items-center gap-1.5 mb-2">
-                <FileText className="w-4 h-4 text-gray-400" />
-                <label className="text-sm font-medium text-gray-700">
-                  Notas <span className="text-gray-400 font-normal">(opcional)</span>
-                </label>
-              </div>
+            <section className="bg-white rounded-xl border border-gray-200 p-4">
+              <label htmlFor="quote-notes" className="text-base font-semibold text-gray-900 flex items-center gap-2 mb-2">
+                <FileText className="w-4 h-4 text-gray-500" aria-hidden="true" />
+                Notas <span className="text-sm text-gray-600 font-normal">(opcional)</span>
+              </label>
               <textarea
+                id="quote-notes"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={2}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary resize-none text-sm"
-                placeholder="Notas para esta cotización..."
+                className={`${inputBase} resize-none`}
+                placeholder="Notas para esta cotización…"
               />
-            </div>
+            </section>
 
-            {/* Botón crear */}
-            <div className="pt-2">
-              <Button
-                type="submit"
-                variant="primary"
-                icon={Save}
-                loading={loading}
-                disabled={loading || quoteItems.length === 0 || !selectedCustomer}
-                className="w-full"
-              >
-                {loading ? "Creando..." : "Crear cotización"}
-              </Button>
-            </div>
-          </form>
+            {/* Resumen + crear (en mobile el botón también va en la barra fija de abajo) */}
+            <section className="bg-white rounded-xl border border-gray-200 p-4" aria-label="Resumen de la cotización">
+              <dl className="space-y-1.5 text-sm">
+                <div className="flex justify-between text-gray-700">
+                  <dt>Subtotal</dt>
+                  <dd className="tabular-nums">{formatCurrency(calculateSubtotal())}</dd>
+                </div>
+                <div className="flex justify-between text-gray-700">
+                  <dt>IVA</dt>
+                  <dd className="tabular-nums">{formatCurrency(calculateTotalTax())}</dd>
+                </div>
+                <div className="flex justify-between pt-2 mt-1 border-t border-gray-200 text-base font-bold text-gray-900">
+                  <dt>Total</dt>
+                  <dd className="tabular-nums">{formatCurrency(total)}</dd>
+                </div>
+              </dl>
+              <div className="hidden md:block mt-4">
+                <Button type="submit" variant="primary" icon={Save} loading={loading} disabled={!canSubmit} className="w-full min-h-[44px]">
+                  {submitLabel}
+                </Button>
+                {missing.length > 0 && !loading && (
+                  <p className="mt-2 text-sm text-gray-700" role="status">
+                    Para crear la cotización: {missing.join(", ")}.
+                  </p>
+                )}
+              </div>
+            </section>
+          </aside>
+        </form>
+
+        {/* Barra fija en mobile, al alcance del pulgar (encima de la barra de navegación) */}
+        <div
+          className="md:hidden fixed inset-x-0 z-30 bg-white border-t border-gray-200 px-3 pt-2 pb-2 shadow-[0_-4px_12px_rgba(0,0,0,0.06)]"
+          style={{ bottom: "calc(4rem + env(safe-area-inset-bottom))" }}
+        >
+          {missing.length > 0 && !loading && (
+            <p className="mb-1.5 text-xs text-gray-700" role="status">Falta: {missing.join(", ")}.</p>
+          )}
+          <Button type="submit" form="quote-form" variant="primary" icon={Save} loading={loading} disabled={!canSubmit} className="w-full min-h-[48px]">
+            {submitLabel}
+          </Button>
         </div>
 
         {/* Customer Modal */}

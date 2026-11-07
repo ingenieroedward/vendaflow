@@ -72,8 +72,8 @@ const Profile: React.FC = () => {
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 sm:py-8">
       <div className="text-center mb-6 sm:mb-8">
-        <div className="w-14 h-14 mx-auto mb-3 bg-gradient-to-br from-primary/70 to-primary rounded-full flex items-center justify-center shadow-sm">
-          <UserIcon className="w-6 h-6 text-white" />
+        <div className="w-14 h-14 mx-auto mb-3 bg-primary rounded-full flex items-center justify-center shadow-sm">
+          <UserIcon className="w-6 h-6 text-on-primary" />
         </div>
         <h1 className="text-xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2 px-2">Mi perfil</h1>
         <p className="text-sm sm:text-lg text-gray-600 px-2">Tus datos de acceso a Merco.</p>
@@ -82,7 +82,7 @@ const Profile: React.FC = () => {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
           <div className="flex items-center gap-2 pb-1">
-            <UserIcon className="w-4 h-4 text-gray-400" />
+            <UserIcon className="w-4 h-4 text-gray-500" />
             <h2 className="text-sm font-semibold text-gray-700">Datos personales</h2>
           </div>
 
@@ -101,16 +101,16 @@ const Profile: React.FC = () => {
               name="username" value={form.username} onChange={handle} required minLength={3}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
             />
-            <p className="mt-1 text-[11px] text-gray-400">Es lo que usas para iniciar sesión.</p>
+            <p className="mt-1 text-[11px] text-gray-500">Es lo que usas para iniciar sesión.</p>
           </div>
 
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">Rol</label>
             <div className="flex items-center gap-1.5 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-600">
-              <Shield className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+              <Shield className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
               {user ? (ROLE_LABELS[user.role] ?? user.role) : '—'}
             </div>
-            <p className="mt-1 text-[11px] text-gray-400">Solo un administrador puede cambiar tu rol.</p>
+            <p className="mt-1 text-[11px] text-gray-500">Solo un administrador puede cambiar tu rol.</p>
           </div>
         </div>
 
@@ -120,7 +120,7 @@ const Profile: React.FC = () => {
 
         <div className="bg-white rounded-xl border border-gray-200 p-5 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <KeyRound className="w-4 h-4 text-gray-400" />
+            <KeyRound className="w-4 h-4 text-gray-500" />
             <span className="text-sm text-gray-700">Contraseña</span>
           </div>
           <button
@@ -136,10 +136,10 @@ const Profile: React.FC = () => {
           <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-2">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                {pushSubscribed ? <Bell className="w-4 h-4 text-primary" /> : <BellOff className="w-4 h-4 text-gray-400" />}
+                {pushSubscribed ? <Bell className="w-4 h-4 text-primary" /> : <BellOff className="w-4 h-4 text-gray-500" />}
                 <div>
                   <p className="text-sm text-gray-700">Notificaciones</p>
-                  <p className="text-[11px] text-gray-400">Avisos de pagos, órdenes y cartera por vencer.</p>
+                  <p className="text-[11px] text-gray-500">Avisos de pagos, órdenes y cartera por vencer.</p>
                 </div>
               </div>
               <button
@@ -149,7 +149,7 @@ const Profile: React.FC = () => {
                 className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors disabled:opacity-50 ${
                   pushSubscribed
                     ? 'text-gray-600 border-gray-300 hover:bg-gray-50'
-                    : 'text-white bg-primary border-primary hover:bg-primary/90'
+                    : 'text-on-primary bg-primary border-primary hover:bg-primary/90'
                 }`}
               >
                 {pushLoading ? 'Un momento…' : pushSubscribed ? 'Desactivar' : 'Activar'}
@@ -172,7 +172,7 @@ const Profile: React.FC = () => {
         <div className="flex justify-end pt-1">
           <button
             type="submit" disabled={saving}
-            className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-5 py-2.5 bg-primary text-on-primary text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
           >
             <Save className="w-4 h-4" />
             {saving ? 'Guardando...' : 'Guardar cambios'}

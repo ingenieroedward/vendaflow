@@ -157,7 +157,7 @@ const Sidebar = () => {
         <div className="border-t border-gray-100 px-3 py-4">
           <div className="flex items-center space-x-3 px-2 py-2 mb-2">
             <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center shadow-sm flex-shrink-0">
-              <User className="w-4 h-4 text-white" />
+              <User className="w-4 h-4 text-on-primary" />
             </div>
             <div className="min-w-0">
               <p className="text-sm font-semibold text-gray-900 truncate">{user.name || user.username}</p>
