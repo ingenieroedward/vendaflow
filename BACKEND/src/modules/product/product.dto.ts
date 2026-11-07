@@ -9,6 +9,7 @@ export const createProductSchema = z.object({
   stock: z.number().default(0),
   minStock: z.number().min(0).default(0),
   taxRate: z.number().min(0, 'El IVA no puede ser negativo').max(100, 'IVA inválido').default(0),
+  priceIncludesTax: z.boolean().default(true),
   categoryId: z.number().nullable().optional(),
 });
 
@@ -23,6 +24,7 @@ export const updateProductSchema = z.object({
   stock: z.number().optional(),
   minStock: z.number().min(0).optional(),
   taxRate: z.number().min(0, 'El IVA no puede ser negativo').max(100, 'IVA inválido').optional(),
+  priceIncludesTax: z.boolean().optional(),
   categoryId: z.number().nullable().optional(),
 });
 
@@ -53,6 +55,7 @@ export interface ProductResponseDto {
   stock: number;
   minStock: number;
   taxRate: number;
+  priceIncludesTax: boolean;
   categoryId: number | null;
   category?: {
     id: number;

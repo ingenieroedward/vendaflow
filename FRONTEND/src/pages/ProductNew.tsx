@@ -15,6 +15,7 @@ interface ProductFormData {
   categoryId?: number | null;
   salePrice: number;
   taxRate: number;
+  priceIncludesTax: boolean;
 }
 
 interface SupplierFormData {
@@ -48,6 +49,7 @@ const ProductNew: React.FC = () => {
     unit: 'unidad',
     salePrice: 0,
     taxRate: 19,
+    priceIncludesTax: true,
   });
   const [errors, setErrors] = useState<ProductFormErrors>({});
   
@@ -384,6 +386,8 @@ const ProductNew: React.FC = () => {
                 <TaxRateField
                   value={formData.taxRate}
                   onChange={(taxRate) => setFormData(prev => ({ ...prev, taxRate }))}
+                  included={formData.priceIncludesTax}
+                  onIncludedChange={(priceIncludesTax) => setFormData(prev => ({ ...prev, priceIncludesTax }))}
                 />
               </div>
             </div>

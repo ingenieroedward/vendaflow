@@ -11,10 +11,13 @@ const RATES = [
 interface TaxRateFieldProps {
   value: number;
   onChange: (value: number) => void;
+  /** El precio de venta ya trae el IVA adentro */
+  included: boolean;
+  onIncludedChange: (included: boolean) => void;
   id?: string;
 }
 
-export const TaxRateField: React.FC<TaxRateFieldProps> = ({ value, onChange, id = 'taxRate' }) => {
+export const TaxRateField: React.FC<TaxRateFieldProps> = ({ value, onChange, included, onIncludedChange, id = 'taxRate' }) => {
   const options = RATES.some(r => r.value === value)
     ? RATES
     : [...RATES, { value, label: `${value}%` }];
@@ -33,8 +36,23 @@ export const TaxRateField: React.FC<TaxRateFieldProps> = ({ value, onChange, id 
           <option key={o.value} value={o.value}>{o.label}</option>
         ))}
       </select>
+      {value > 0 && (
+        <label className="mt-2 flex items-start gap-2 text-sm text-gray-800 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={included}
+            onChange={(e) => onIncludedChange(e.target.checked)}
+            className="mt-0.5 h-4 w-4 rounded border-gray-400 text-primary focus:ring-primary"
+          />
+          <span>El precio de venta ya incluye el IVA</span>
+        </label>
+      )}
       <p className="mt-1 text-xs text-gray-600">
-        Se suma al precio de venta en órdenes y cotizaciones. El vendedor puede cambiarlo en cada línea.
+        {value === 0
+          ? 'Sin IVA: se cobra el precio de venta tal cual.'
+          : included
+            ? 'Se cobra el precio de venta tal cual y el IVA se desglosa por dentro.'
+            : 'El IVA se suma encima del precio de venta en órdenes, cotizaciones y POS.'}
       </p>
     </div>
   );
