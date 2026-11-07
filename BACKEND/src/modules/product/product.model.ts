@@ -24,6 +24,7 @@ export interface ProductAttributes {
   stock: number;
   minStock: number;
   taxRate: number;
+  priceIncludesTax: boolean;
   categoryId: number | null;
   createdAt: Date;
   updatedAt: Date;
@@ -111,6 +112,11 @@ export class Product extends Model<ProductAttributes, ProductCreationAttributes>
     validate: { min: 0, max: 100 },
   })
   taxRate!: number;
+
+  // true: el precio de venta ya trae el IVA adentro (se cobra tal cual y el
+  // IVA se desglosa); false: el IVA se suma encima del precio
+  @Column({ type: DataType.BOOLEAN, allowNull: false, defaultValue: true })
+  priceIncludesTax!: boolean;
 
   @ForeignKey(() => Category)
   @Column({

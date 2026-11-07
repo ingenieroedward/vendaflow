@@ -69,7 +69,7 @@ const ProductDetailsPanel: React.FC<ProductDetailsPanelProps> = ({ product, onCl
               <span className="text-gray-300 mx-1.5">•</span>
               {product.unit}
               <span className="text-gray-300 mx-1.5">•</span>
-              IVA {Number(product.taxRate ?? 0)}%
+              IVA {Number(product.taxRate ?? 0)}%{Number(product.taxRate ?? 0) > 0 && (product.priceIncludesTax === false ? ' (se suma)' : ' incluido')}
             </p>
           </div>
           <button

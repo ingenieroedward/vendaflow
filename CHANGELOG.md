@@ -7,6 +7,23 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ## [Unreleased]
 
+## [1.19.1] — 2026-11-07 — IVA incluido en el precio, por producto
+
+### Added
+
+- **"El precio de venta ya incluye el IVA"** en la ficha del producto (`products.priceIncludesTax`,
+  `ensureSchema`; los productos existentes quedan en sí).
+  - Órdenes y cotizaciones: si el precio incluye IVA se cobra el precio tal cual y el IVA se
+    desglosa por dentro (base = precio / (1 + IVA)); si no lo incluye, se suma encima.
+  - POS: con IVA incluido cobra igual que siempre; si no lo incluye, suma el IVA (el carrito usa
+    la misma fórmula que el backend para que el cobro cuadre).
+
+### Fixed
+
+- Desde v1.18.0 órdenes y cotizaciones sumaban el IVA del producto encima de precios que ya lo
+  incluían (un producto de $ 32.000 al 19 % salía a $ 38.080).
+- Editar orden y editar cotización no tomaban el IVA del producto: una línea vieja lo volvía a 0.
+
 ## [1.19.0] — 2026-11-07 — Rediseño UX/UI, fase 2
 
 ### Added

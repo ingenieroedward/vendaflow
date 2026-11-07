@@ -152,6 +152,17 @@ export async function ensureSchema(): Promise<void> {
     `);
     logger.info('[ensureSchema] Column products.taxRate added (backfilled from last sale)');
   }
+  // v1.19.1: por producto, si el precio de venta ya incluye el IVA. Los
+  // existentes quedan en true (el cliente confirmó que sus precios lo incluyen):
+  // así órdenes/cotizaciones no suman IVA encima de un precio que ya lo trae.
+  if (!('priceIncludesTax' in productCols)) {
+    await qi.addColumn('products', 'priceIncludesTax', {
+      type: DataType.BOOLEAN,
+      allowNull: false,
+      defaultValue: true,
+    } as never);
+    logger.info('[ensureSchema] Column products.priceIncludesTax added');
+  }
 
   if (missing.length === 0) {
     logger.info('[ensureSchema] Schema up to date');

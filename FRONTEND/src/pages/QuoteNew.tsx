@@ -28,6 +28,7 @@ import { removeMissingProduct } from '../utils/missingProduct';
 import CustomerModal from "../components/ui/CustomerModal";
 import { CreateQuoteRequest } from "../types/quote";
 import { Product } from "../types";
+import { lineFromProduct } from "../utils/tax";
 import { Customer } from "../types/customer";
 import { productService } from "../services/products";
 
@@ -105,8 +106,8 @@ const QuoteNew: React.FC = () => {
           id: `${Date.now()}-${product.id}`,
           productId: product.id,
           quantity: 1,
-          unitPrice: Number(product.salePrice) || 0,
-          taxRate: Number(product.taxRate ?? 0),
+          // Precio e IVA de la ficha (desglosado si el precio ya incluye IVA)
+          ...lineFromProduct(product),
           product,
         },
       ];
@@ -463,7 +464,7 @@ const QuoteNew: React.FC = () => {
                             </div>
                           </div>
                           <div className="w-36">
-                            <label htmlFor={`price-${item.id}`} className="block text-xs text-gray-600 mb-1">Precio unitario</label>
+                            <label htmlFor={`price-${item.id}`} className="block text-xs text-gray-600 mb-1">Precio sin IVA</label>
                             <input
                               id={`price-${item.id}`}
                               type="number"
