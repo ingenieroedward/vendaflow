@@ -7,6 +7,33 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ## [Unreleased]
 
+## [1.22.0] — 2026-11-07 — Rediseño de pantallas internas, entrega B
+
+### Changed
+
+- **Nueva orden de compra** con el patrón de Nueva orden:
+  - el buscador agrega con Enter o escáner, con cantidad 1 y el último costo conocido;
+  - cantidad con +/−;
+  - resumen lateral y barra fija en el celular;
+  - el botón dice el total y qué falta.
+- **Detalle de compra**:
+  - productos en tabla;
+  - a la derecha, el total y las acciones (pedida, recibida, con confirmación en línea), el
+    proveedor y las notas.
+- **Lista de compras**: fila clicable, montos con formato y botón "Nueva compra".
+- **Inventario**:
+  - indicadores que filtran la tabla al tocarlos (usables con teclado);
+  - filtros en forma de chip;
+  - botones con nombre ("Editar stock", "Nueva compra").
+- **Informes**: selector de período segmentado, íconos neutros y "Descargar Excel" como botón
+  secundario.
+- Encabezados de tabla sin mayúsculas en Inventario, Compras, Informes y Movimientos.
+
+### Fixed
+
+- Recibir una compra marcada "no suma inventario" pedía confirmar con "Esto sumará el stock".
+- El indicador "Stock negativo" usaba el ícono de tendencia al alza.
+
 ## [1.21.0] — 2026-11-07 — Rediseño de pantallas internas, entrega A
 
 ### Changed

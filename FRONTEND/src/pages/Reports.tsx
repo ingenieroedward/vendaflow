@@ -665,8 +665,8 @@ const Reports: React.FC = () => {
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
                   <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
                     <div className="flex items-center gap-2 mb-2">
-                      <div className="w-7 h-7 bg-emerald-50 rounded-lg flex items-center justify-center">
-                        <TrendingUp className="w-4 h-4 text-emerald-500" />
+                      <div className="w-7 h-7 bg-gray-100 rounded-lg flex items-center justify-center">
+                        <TrendingUp className="w-4 h-4 text-gray-600" />
                       </div>
                       <span className="text-xs font-medium text-gray-500">Hoy</span>
                     </div>
@@ -700,8 +700,8 @@ const Reports: React.FC = () => {
                   </div>
                   <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
                     <div className="flex items-center gap-2 mb-2">
-                      <div className="w-7 h-7 bg-violet-50 rounded-lg flex items-center justify-center">
-                        <DollarSign className="w-4 h-4 text-violet-500" />
+                      <div className="w-7 h-7 bg-gray-100 rounded-lg flex items-center justify-center">
+                        <DollarSign className="w-4 h-4 text-gray-600" />
                       </div>
                       <span className="text-xs font-medium text-gray-500">Ticket promedio</span>
                     </div>
@@ -712,8 +712,8 @@ const Reports: React.FC = () => {
                   </div>
                   <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
                     <div className="flex items-center gap-2 mb-2">
-                      <div className="w-7 h-7 bg-orange-50 rounded-lg flex items-center justify-center">
-                        <Package className="w-4 h-4 text-orange-500" />
+                      <div className="w-7 h-7 bg-gray-100 rounded-lg flex items-center justify-center">
+                        <Package className="w-4 h-4 text-gray-600" />
                       </div>
                       <span className="text-xs font-medium text-gray-500">Total histórico</span>
                     </div>
@@ -724,13 +724,14 @@ const Reports: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="flex gap-1 mb-5 bg-white border border-gray-200 rounded-xl p-1 shadow-sm w-full sm:w-fit">
+                <div className="flex gap-1 mb-5 bg-gray-100 rounded-xl p-1 w-full sm:w-fit" role="group" aria-label="Período">
                   {periods.map(p => (
                     <button
                       key={p.key}
+                      aria-pressed={period === p.key}
                       onClick={() => setPeriod(p.key)}
-                      className={`flex-1 sm:flex-none px-2.5 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
-                        period === p.key ? 'bg-gray-900 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                      className={`flex-1 sm:flex-none px-3 sm:px-4 min-h-[36px] rounded-lg text-sm font-medium transition-colors ${
+                        period === p.key ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-700 hover:text-gray-900 hover:bg-white/60'
                       }`}
                     >
                       {p.label}
@@ -907,8 +908,8 @@ const Reports: React.FC = () => {
                   </div>
                   <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
                     <div className="flex items-center gap-2 mb-2">
-                      <div className="w-7 h-7 bg-green-50 rounded-lg flex items-center justify-center">
-                        <DollarSign className="w-4 h-4 text-green-500" />
+                      <div className="w-7 h-7 bg-gray-100 rounded-lg flex items-center justify-center">
+                        <DollarSign className="w-4 h-4 text-gray-600" />
                       </div>
                       <span className="text-xs font-medium text-gray-500">Valor stock</span>
                     </div>
@@ -1021,7 +1022,7 @@ const Reports: React.FC = () => {
                     </h2>
                     <div className="overflow-x-auto">
                       <table className="min-w-full text-sm">
-                        <thead className="text-xs uppercase text-gray-500 border-b">
+                        <thead className="text-left text-xs font-medium text-gray-600 border-b">
                           <tr>
                             <th className="py-2 text-left">Código</th>
                             <th className="py-2 text-left">Producto</th>
@@ -1072,8 +1073,8 @@ const Reports: React.FC = () => {
                   </div>
                   <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
                     <div className="flex items-center gap-2 mb-2">
-                      <div className="w-7 h-7 bg-emerald-50 rounded-lg flex items-center justify-center">
-                        <TrendingUp className="w-4 h-4 text-emerald-500" />
+                      <div className="w-7 h-7 bg-gray-100 rounded-lg flex items-center justify-center">
+                        <TrendingUp className="w-4 h-4 text-gray-600" />
                       </div>
                       <span className="text-xs font-medium text-gray-500">Este mes</span>
                     </div>
@@ -1201,11 +1202,12 @@ const Reports: React.FC = () => {
                     <input
                       type="month" value={reportMonth} onChange={e => setReportMonth(e.target.value)}
                       max={new Date().toISOString().slice(0, 7)}
-                      className="px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-600 bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+                      aria-label="Mes del reporte"
+                      className="min-h-[40px] px-3 border border-gray-300 rounded-lg text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-primary"
                     />
                     <button
                       onClick={() => downloadMonthlyReport(reportMonth)}
-                      className="px-3 py-1.5 text-xs font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-700 transition-colors whitespace-nowrap"
+                      className="min-h-[40px] px-3 text-sm font-medium text-gray-800 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors whitespace-nowrap"
                     >
                       Descargar Excel del mes
                     </button>
@@ -1231,8 +1233,8 @@ const Reports: React.FC = () => {
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
                   <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
                     <div className="flex items-center gap-2 mb-2">
-                      <div className="w-7 h-7 bg-emerald-50 rounded-lg flex items-center justify-center">
-                        <TrendingUp className="w-4 h-4 text-emerald-500" />
+                      <div className="w-7 h-7 bg-gray-100 rounded-lg flex items-center justify-center">
+                        <TrendingUp className="w-4 h-4 text-gray-600" />
                       </div>
                       <span className="text-xs font-medium text-gray-500">Ingresos totales</span>
                     </div>
@@ -1242,8 +1244,8 @@ const Reports: React.FC = () => {
 
                   <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
                     <div className="flex items-center gap-2 mb-2">
-                      <div className="w-7 h-7 bg-orange-50 rounded-lg flex items-center justify-center">
-                        <ShoppingCart className="w-4 h-4 text-orange-500" />
+                      <div className="w-7 h-7 bg-gray-100 rounded-lg flex items-center justify-center">
+                        <ShoppingCart className="w-4 h-4 text-gray-600" />
                       </div>
                       <span className="text-xs font-medium text-gray-500">Costo de lo vendido</span>
                     </div>
@@ -1266,8 +1268,8 @@ const Reports: React.FC = () => {
 
                   <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
                     <div className="flex items-center gap-2 mb-2">
-                      <div className="w-7 h-7 bg-violet-50 rounded-lg flex items-center justify-center">
-                        <DollarSign className="w-4 h-4 text-violet-500" />
+                      <div className="w-7 h-7 bg-gray-100 rounded-lg flex items-center justify-center">
+                        <DollarSign className="w-4 h-4 text-gray-600" />
                       </div>
                       <span className="text-xs font-medium text-gray-500">Margen bruto</span>
                     </div>

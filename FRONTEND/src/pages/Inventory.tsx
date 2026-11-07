@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  AlertTriangle, Package, TrendingDown, Plus, Search,
-  ChevronLeft, ChevronRight, TrendingUp, ShoppingCart,
+  AlertTriangle, Plus, Search,
+  ChevronLeft, ChevronRight,
   ChevronDown, Edit3, X, Save, Zap, ArrowUpToLine,
 } from 'lucide-react';
 import { useProductStore } from '../store/productStore';
@@ -10,7 +10,6 @@ import { usePurchaseOrderStore } from '../store/purchaseOrderStore';
 import { useUIStore } from '../store/uiStore';
 import { Product } from '../types';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
-import Button from '../components/ui/Button';
 import { productService } from '../services/products';
 import InventoryMovements from '../components/features/InventoryMovements';
 import SegmentedTabs from '../components/ui/SegmentedTabs';
@@ -171,29 +170,29 @@ const Inventory: React.FC = () => {
       ) : (
         <>
       <div className="flex items-center justify-between mb-6">
-        <p className="text-sm text-gray-500">{products.length} producto(s)</p>
+        <p className="text-sm text-gray-600">{products.length} {products.length === 1 ? 'producto' : 'productos'}</p>
         <div className="flex items-center gap-1.5">
           {!editMode ? (
             <>
               <button
                 onClick={() => setEditMode(true)}
-                className="flex items-center gap-1 px-2.5 py-1.5 text-xs sm:text-sm border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors"
+                className="flex items-center gap-1.5 min-h-[40px] px-3 text-sm border border-gray-300 rounded-lg text-gray-800 hover:bg-gray-50 transition-colors"
               >
-                <Edit3 size={13} /> <span className="hidden xs:inline">Editar</span><span className="xs:hidden"> stock</span>
+                <Edit3 className="w-4 h-4" aria-hidden="true" /> Editar stock
               </button>
               <button
                 onClick={() => navigate('/purchase-orders/new')}
-                className="flex items-center gap-1 px-2.5 py-1.5 text-xs sm:text-sm bg-primary text-on-primary rounded-lg hover:bg-primary/90 transition-colors font-medium"
+                className="flex items-center gap-1.5 min-h-[40px] px-3 text-sm bg-primary text-on-primary rounded-lg hover:bg-primary/90 transition-colors font-medium"
               >
-                <Plus size={13} /> <span>Nueva OC</span>
+                <Plus className="w-4 h-4" aria-hidden="true" /> Nueva compra
               </button>
             </>
           ) : (
             <button
               onClick={cancelEdit}
-              className="flex items-center gap-1 px-2.5 py-1.5 text-xs sm:text-sm border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-1.5 min-h-[40px] px-3 text-sm border border-gray-300 rounded-lg text-gray-800 hover:bg-gray-50 transition-colors"
             >
-              <X size={13} /> <span className="hidden xs:inline">Cancelar</span><span className="xs:hidden">✕</span>
+              <X className="w-4 h-4" aria-hidden="true" /> Cancelar edición
             </button>
           )}
         </div>
@@ -212,7 +211,7 @@ const Inventory: React.FC = () => {
               {negativeStock.length > 0 && (
                 <button
                   onClick={() => applyBulkAction('zero_negative')}
-                  className="flex items-center gap-1 px-2 py-1 bg-red-100 border border-red-300 text-red-700 text-xs rounded-lg hover:bg-red-200 transition-colors"
+                  className="flex items-center gap-1 min-h-[36px] px-3 bg-red-100 border border-red-300 text-red-800 text-sm rounded-lg hover:bg-red-200 transition-colors"
                 >
                   <Zap size={10} />
                   <span className="hidden sm:inline">Negativos → 0</span>
@@ -222,7 +221,7 @@ const Inventory: React.FC = () => {
               )}
               <button
                 onClick={() => applyBulkAction('to_minimum')}
-                className="flex items-center gap-1 px-2 py-1 bg-yellow-100 border border-yellow-300 text-yellow-700 text-xs rounded-lg hover:bg-yellow-200 transition-colors"
+                className="flex items-center gap-1 min-h-[36px] px-3 bg-amber-50 border border-amber-300 text-amber-900 text-sm rounded-lg hover:bg-amber-100 transition-colors"
               >
                 <ArrowUpToLine size={10} />
                 <span className="hidden sm:inline">Al mínimo</span>
@@ -230,7 +229,7 @@ const Inventory: React.FC = () => {
               </button>
               <button
                 onClick={() => applyBulkAction('all_zero')}
-                className="flex items-center gap-1 px-2 py-1 bg-gray-100 border border-gray-300 text-gray-600 text-xs rounded-lg hover:bg-gray-200 transition-colors"
+                className="flex items-center gap-1 min-h-[36px] px-3 bg-gray-100 border border-gray-300 text-gray-800 text-sm rounded-lg hover:bg-gray-200 transition-colors"
               >
                 Todo→0
               </button>
@@ -250,21 +249,20 @@ const Inventory: React.FC = () => {
             <button
               onClick={clearAllNegatives}
               disabled={clearingNegatives}
-              className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1 bg-red-600 text-white text-xs rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors font-medium"
+              className="flex-shrink-0 flex items-center gap-1 min-h-[36px] px-3 bg-red-700 text-white text-sm rounded-lg hover:bg-red-800 disabled:opacity-50 transition-colors font-medium"
             >
               {clearingNegatives ? <LoadingSpinner size="sm" /> : <Zap size={11} />}
               <span>Limpiar a 0</span>
             </button>
             <button
               onClick={() => { setFilter('negative'); setSearch(''); }}
-              className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1 border border-red-300 text-red-700 bg-white text-xs rounded-lg hover:bg-red-50 transition-colors"
+              className="flex-shrink-0 flex items-center gap-1 min-h-[36px] px-3 border border-red-300 text-red-800 bg-white text-sm rounded-lg hover:bg-red-50 transition-colors"
             >
-              <ShoppingCart size={11} />
-              <span className="hidden xs:inline">Ver</span>
+              Ver
             </button>
             <button
               onClick={() => setAlertExpanded(v => !v)}
-              className="flex-shrink-0 w-7 h-7 flex items-center justify-center text-red-400 hover:text-red-600 transition-colors"
+              className="flex-shrink-0 w-9 h-9 flex items-center justify-center text-red-700 hover:bg-red-100 rounded-lg transition-colors"
               aria-label={alertExpanded ? 'Colapsar' : 'Expandir'}
             >
               <ChevronDown size={14} className={`transition-transform ${alertExpanded ? 'rotate-180' : ''}`} />
@@ -292,78 +290,60 @@ const Inventory: React.FC = () => {
         </div>
       )}
 
-      {/* Summary cards */}
+      {/* Indicadores: cada uno filtra la tabla (mismo patrón que la cartera de Órdenes) */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <div className="flex items-center gap-3">
-            <Package className="text-primary" size={22} />
-            <div>
-              <p className="text-xl font-bold text-gray-900">{products.length}</p>
-              <p className="text-xs text-gray-500">Totales</p>
-            </div>
-          </div>
-        </div>
-        <div
-          className={`rounded-xl border p-4 cursor-pointer transition-colors ${negativeStock.length > 0 ? 'bg-red-100 border-red-300 hover:bg-red-200' : 'bg-white border-gray-200'}`}
-          onClick={() => setFilter(filter === 'negative' ? 'all' : 'negative')}
-        >
-          <div className="flex items-center gap-3">
-            <TrendingUp className={negativeStock.length > 0 ? 'text-red-600' : 'text-gray-500'} size={22} />
-            <div>
-              <p className={`text-xl font-bold ${negativeStock.length > 0 ? 'text-red-700' : 'text-gray-900'}`}>{negativeStock.length}</p>
-              <p className="text-xs text-gray-500">Stock negativo</p>
-            </div>
-          </div>
-        </div>
-        <div
-          className={`rounded-xl border p-4 cursor-pointer transition-colors ${outOfStock > 0 ? 'bg-red-50 border-red-200 hover:bg-red-100' : 'bg-white border-gray-200'}`}
-          onClick={() => setFilter(filter === 'out_of_stock' ? 'all' : 'out_of_stock')}
-        >
-          <div className="flex items-center gap-3">
-            <AlertTriangle className={outOfStock > 0 ? 'text-red-500' : 'text-gray-500'} size={22} />
-            <div>
-              <p className={`text-xl font-bold ${outOfStock > 0 ? 'text-red-700' : 'text-gray-900'}`}>{outOfStock}</p>
-              <p className="text-xs text-gray-500">Sin stock</p>
-            </div>
-          </div>
-        </div>
-        <div
-          className={`rounded-xl border p-4 cursor-pointer transition-colors ${lowStock > 0 ? 'bg-yellow-50 border-yellow-200 hover:bg-yellow-100' : 'bg-white border-gray-200'}`}
-          onClick={() => setFilter(filter === 'alerts' ? 'all' : 'alerts')}
-        >
-          <div className="flex items-center gap-3">
-            <TrendingDown className={lowStock > 0 ? 'text-yellow-500' : 'text-gray-500'} size={22} />
-            <div>
-              <p className={`text-xl font-bold ${lowStock > 0 ? 'text-yellow-700' : 'text-gray-900'}`}>{lowStock}</p>
-              <p className="text-xs text-gray-500">Stock bajo</p>
-            </div>
-          </div>
-        </div>
+        {([
+          { key: 'all', label: 'Productos', value: products.length, tone: 'neutral' },
+          { key: 'negative', label: 'Stock negativo', value: negativeStock.length, tone: 'danger' },
+          { key: 'out_of_stock', label: 'Sin stock', value: outOfStock, tone: 'danger' },
+          { key: 'alerts', label: 'Stock bajo', value: lowStock, tone: 'warn' },
+        ] as const).map(k => {
+          const active = filter === k.key;
+          const hot = k.value > 0 && k.tone !== 'neutral';
+          const numCls = !hot ? 'text-gray-900' : k.tone === 'danger' ? 'text-red-700' : 'text-amber-900';
+          return (
+            <button
+              key={k.key}
+              type="button"
+              aria-pressed={active}
+              onClick={() => setFilter(active && k.key !== 'all' ? 'all' : k.key)}
+              className={`text-left rounded-xl border p-3 sm:p-4 transition-colors bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+                active ? 'border-primary ring-1 ring-primary' : 'border-gray-200 hover:border-gray-400'
+              }`}
+            >
+              <p className="text-xs font-medium text-gray-600">{k.label}</p>
+              <p className={`text-2xl font-bold tabular-nums ${numCls}`}>{k.value}</p>
+            </button>
+          );
+        })}
       </div>
 
-      {/* Search and filters */}
-      <div className="flex gap-3 mb-4 flex-wrap">
+      {/* Búsqueda y filtros */}
+      <div className="flex gap-3 mb-4 flex-wrap items-center">
         <div className="relative flex-1 min-w-48">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" aria-hidden="true" />
           <input
-            type="text"
+            type="search"
+            aria-label="Buscar producto en inventario"
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Buscar producto..."
-            className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            className="w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
         <div className="flex gap-2 flex-wrap">
           {FILTERS.map(f => (
             <button
               key={f.key}
+              type="button"
+              aria-pressed={filter === f.key}
               onClick={() => setFilter(f.key)}
-              className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${
+              className={`min-h-[36px] px-3 text-sm font-medium rounded-full border transition-colors ${
                 filter === f.key
-                  ? f.danger ? 'bg-red-600 text-white border-red-600' : 'bg-primary text-on-primary border-primary'
+                  ? f.danger ? 'bg-red-50 text-red-800 border-red-600' : 'bg-primary/10 text-gray-900 border-primary'
                   : f.danger && negativeStock.length > 0
-                    ? 'bg-white text-red-600 border-red-300 hover:bg-red-50'
-                    : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                    ? 'bg-white text-red-700 border-red-300 hover:bg-red-50'
+                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
               }`}
             >
               {f.label}{f.key === 'negative' && negativeStock.length > 0 ? ` (${negativeStock.length})` : ''}
@@ -436,7 +416,7 @@ const Inventory: React.FC = () => {
           {/* Desktop: tabla */}
           <div className="hidden sm:block overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
             <table className="min-w-full bg-white text-sm">
-              <thead className="bg-gray-50 text-gray-600 uppercase text-xs">
+              <thead className="bg-gray-50 text-left text-xs font-medium text-gray-600">
                 <tr>
                   <th className="px-4 py-3 text-left">Código</th>
                   <th className="px-4 py-3 text-left">Producto</th>
