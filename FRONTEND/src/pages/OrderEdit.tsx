@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, Save, Package, User, ShoppingCart, FileText } from 'lucide-react';
+import { ArrowLeft, Plus, Minus, Trash2, Save, Package, User, FileText, WifiOff } from 'lucide-react';
 import { useOrderStore } from '../store/orderStore';
 import { useProductStore } from '../store/productStore';
 import { useCustomerStore } from '../store/customerStore';
@@ -9,7 +9,6 @@ import { useUIStore } from '../store/uiStore';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import ErrorMessage from '../components/ui/ErrorMessage';
 import Button from '../components/ui/Button';
-import Input from '../components/ui/Input';
 import CustomerSearch from '../components/features/CustomerSearch';
 import ProductSearch from '../components/features/ProductSearch';
 import CustomerModal from '../components/ui/CustomerModal';
@@ -52,21 +51,16 @@ const OrderEdit: React.FC = () => {
   const { addNotification } = useUIStore();
   
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [quantity, setQuantity] = useState<number>(1);
-  const [unitPrice, setUnitPrice] = useState<number>(0);
-  const [taxRate, setTaxRate] = useState<number>(0);
   const [notes, setNotes] = useState<string>('');
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [showCustomerModal, setShowCustomerModal] = useState(false);
-  const [includeProducts, setIncludeProducts] = useState(false);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
   // Reset state when id changes (prevents stale data from previous order)
   useEffect(() => {
     setIsDataLoaded(false);
     setOrderItems([]);
-    setIncludeProducts(false);
     setSelectedCustomer(null);
     setNotes('');
   }, [id]);
@@ -131,60 +125,36 @@ const OrderEdit: React.FC = () => {
       
       setOrderItems(items);
       
-      // Show products section if there are items
-      if (items.length > 0) {
-        setIncludeProducts(true);
-      }
-      
       setIsDataLoaded(true);
     }
   }, [currentOrder, isDataLoaded, products, customers, id]);
 
-  const handleAddItem = () => {
-    if (!selectedProduct || quantity <= 0 || unitPrice <= 0) {
-      return;
-    }
-
-    const newItem: OrderItem = {
-      id: Date.now(),
-      productId: selectedProduct.id,
-      quantity,
-      unitPrice,
-      taxRate,
-      product: selectedProduct,
-      _isNew: true,
-    };
-
-    setOrderItems([...orderItems, newItem]);
-    setSelectedProduct(null);
-    setQuantity(1);
-    setUnitPrice(0);
-    setTaxRate(0);
-  };
-
-  const handleRemoveItem = (id: number) => {
-    setOrderItems(prev => {
-      const newItems = prev.filter(item => item.id !== id);
-      // If no more items, hide the products section
-      if (newItems.length === 0) {
-        setIncludeProducts(false);
+  // Elegir un producto lo agrega de una vez con precio e IVA de la ficha
+  // (desglosado si el precio ya incluye IVA); si ya está, suma una unidad
+  const handleProductSelect = (product: Product | null) => {
+    if (!product) return;
+    setOrderItems((prev) => {
+      const existing = prev.find((i) => i.productId === product.id);
+      if (existing) {
+        return prev.map((i) => (i.id === existing.id ? { ...i, quantity: i.quantity + 1 } : i));
       }
-      return newItems;
+      return [...prev, { id: Date.now(), productId: product.id, quantity: 1, ...lineFromProduct(product), product, _isNew: true }];
     });
   };
 
-  const handleProductSelect = (product: Product | null) => {
-    if (product) {
-      setSelectedProduct(product);
-      // Precio e IVA de la ficha (desglosado si el precio ya incluye IVA)
-      const line = lineFromProduct(product);
-      setUnitPrice(line.unitPrice);
-      setTaxRate(line.taxRate);
-    } else {
-      setSelectedProduct(null);
-      setUnitPrice(0);
-      setTaxRate(0);
+  const handleRemoveItem = (id: number) => {
+    if (confirmDeleteId !== id) {
+      setConfirmDeleteId(id);
+      return;
     }
+    setConfirmDeleteId(null);
+    setOrderItems((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const stepQuantity = (id: number, delta: number) => {
+    setOrderItems((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, quantity: Math.max(1, item.quantity + delta) } : item))
+    );
   };
 
   const updateOrderItem = (id: number, field: keyof OrderItem, value: number) => {
@@ -324,364 +294,272 @@ const OrderEdit: React.FC = () => {
     );
   }
 
-  return (
-    <div className="bg-gray-50">
-      <div className="max-w-2xl mx-auto px-3 py-4">
-        {/* Mobile Header - Compact */}
-        <div className="mb-4 sm:mb-6 lg:mb-8">
-          <Button
-            variant="ghost"
-            icon={ArrowLeft}
-            onClick={handleBack}
-            className="mb-3 sm:mb-4 -ml-2"
-            size="sm"
-          >
-            Volver
-          </Button>
+  // Qué falta para poder guardar (antes el botón solo se deshabilitaba)
+  const missing: string[] = [];
+  if (!selectedCustomer) missing.push("elige un cliente");
+  if (orderItems.length === 0) missing.push("agrega al menos un producto");
+  if (orderItems.some((i) => i.unitPrice <= 0 || i.quantity <= 0)) missing.push("revisa cantidades y precios");
+  const canSubmit = missing.length === 0 && !loading;
+  const total = calculateTotal();
 
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
-            <div className="flex items-center space-x-3 sm:space-x-4">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary/15 rounded-lg flex items-center justify-center flex-shrink-0">
-                <ShoppingCart className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
-                  Editar orden #{currentOrder.orderNumber}
-                </h1>
-                <p className="text-sm sm:text-base text-gray-600 mt-1">
-                  Modifica los detalles de la orden
-                </p>
-              </div>
-              <div className="text-xs lg:text-sm text-gray-500 text-right">
-                <span className="hidden sm:inline">{user?.username} • </span>
-                {user?.role}
-              </div>
-            </div>
+  const inputBase =
+    "w-full px-3 py-2.5 border border-gray-300 rounded-lg text-base sm:text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary";
+
+  return (
+    <div className="bg-gray-50 min-h-full">
+      <div className="px-3 sm:px-6 py-4 sm:py-6 max-w-6xl mx-auto pb-40 md:pb-8">
+        {/* Encabezado */}
+        <div className="flex items-center gap-3 mb-4">
+          <button
+            type="button"
+            onClick={handleBack}
+            aria-label="Volver"
+            className="w-11 h-11 -ml-2 flex items-center justify-center rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl font-bold text-gray-900 truncate">Editar orden #{currentOrder.orderNumber}</h1>
+            <p className="text-sm text-gray-600">Cambia productos, cantidades, precios o el cliente.</p>
           </div>
         </div>
 
-        {/* Error Message */}
-        {error && (
-          <ErrorMessage
-            message={error}
-            onDismiss={clearError}
-            className="mb-4 lg:mb-6"
-          />
+        {isOffline && (
+          <div className="mb-4 flex items-center gap-2 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-lg" role="status">
+            <WifiOff className="w-4 h-4 text-amber-700 flex-shrink-0" aria-hidden="true" />
+            <p className="text-sm text-amber-900 flex-1">Sin conexión — los cambios se guardan cuando vuelva internet.</p>
+          </div>
         )}
 
-        {/* Form - Mobile Optimized */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Customer Information */}
-            <div>
-              <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-4 flex items-center">
-                <User className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                Información del cliente
-              </h3>
-              
+        {error && <ErrorMessage message={error} onDismiss={clearError} className="mb-4" />}
+
+        <form id="edit-form" onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-4 lg:gap-6 items-start">
+          <div className="space-y-4 min-w-0">
+            <section className="bg-white rounded-xl border border-gray-200 p-4" aria-labelledby="sec-cliente">
+              <div className="flex items-center justify-between mb-3">
+                <h2 id="sec-cliente" className="text-base font-semibold text-gray-900 flex items-center gap-2">
+                  <User className="w-4 h-4 text-gray-500" aria-hidden="true" />
+                  Cliente
+                </h2>
+                <button
+                  type="button"
+                  onClick={handleCreateCustomer}
+                  className="flex items-center gap-1 min-h-[40px] px-2 text-sm text-primary font-medium rounded-lg hover:bg-primary/5"
+                >
+                  <Plus className="w-4 h-4" aria-hidden="true" />
+                  Nuevo cliente
+                </button>
+              </div>
               {customersLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <LoadingSpinner size="md" />
-                  <span className="ml-2 text-sm text-gray-500">Cargando clientes...</span>
+                <div className="flex items-center gap-2 py-3">
+                  <LoadingSpinner size="sm" />
+                  <span className="text-sm text-gray-600">Cargando clientes…</span>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  <div>
-                    <CustomerSearch
-                      onCustomerSelect={setSelectedCustomer}
-                      selectedCustomer={selectedCustomer}
-                      customers={customers}
-                      placeholder="Buscar cliente..."
-                    />
-                  </div>
-                  
-                  <div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      icon={Plus}
-                      onClick={handleCreateCustomer}
-                      className="w-full sm:w-auto"
-                      size="sm"
-                    >
-                      Crear nuevo cliente
-                    </Button>
-                  </div>
-                </div>
+                <CustomerSearch
+                  onCustomerSelect={setSelectedCustomer}
+                  selectedCustomer={selectedCustomer}
+                  customers={customers}
+                  placeholder="Buscar cliente por nombre o NIT…"
+                />
               )}
-            </div>
+            </section>
 
-            {/* Products Section - Mobile Optimized */}
-            <div className="border-t pt-6">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 mb-4">
-                <h3 className="text-base sm:text-lg font-medium text-gray-900 flex items-center">
-                  <Package className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                  Productos de la orden
-                </h3>
-                <Button
-                  type="button"
-                  variant="outline"
-                  icon={Plus}
-                  onClick={() => {
-                    setIncludeProducts(true);
-                  }}
-                  size="sm"
-                  className="w-full sm:w-auto"
-                >
-                  Agregar producto
-                </Button>
+            <section className="bg-white rounded-xl border border-gray-200" aria-labelledby="sec-productos">
+              <div className="p-4 border-b border-gray-100">
+                <h2 id="sec-productos" className="text-base font-semibold text-gray-900 flex items-center gap-2 mb-3">
+                  <Package className="w-4 h-4 text-gray-500" aria-hidden="true" />
+                  Productos
+                  {orderItems.length > 0 && <span className="text-sm font-normal text-gray-600">({orderItems.length})</span>}
+                </h2>
+                {productsLoading ? (
+                  <div className="flex items-center gap-2 py-2">
+                    <LoadingSpinner size="sm" />
+                    <span className="text-sm text-gray-600">Cargando productos…</span>
+                  </div>
+                ) : (
+                  <ProductSearch
+                    onProductSelect={handleProductSelect}
+                    selectedProduct={null}
+                    products={products}
+                    clearOnSelect
+                    ariaLabel="Buscar producto para agregar"
+                    placeholder="Busca o escanea un producto y presiona Enter"
+                    searchFn={!isOffline ? (q) => productService.searchProducts(q, false) : undefined}
+                  />
+                )}
               </div>
 
-              {includeProducts && (
-                <div className="space-y-4">
-                  {/* Product Selection */}
-                  <div className="p-3 sm:p-4 border border-gray-200 rounded-lg bg-gray-50">
-                    <h4 className="text-sm font-medium text-gray-900 mb-3">
-                      Seleccionar producto
-                    </h4>
-                    
-                    <div className="space-y-4">
-                      {productsLoading ? (
-                        <div className="flex items-center justify-center py-8">
-                          <LoadingSpinner size="md" />
-                          <span className="ml-2 text-sm text-gray-500">Cargando productos...</span>
-                        </div>
-                      ) : (
-                        <ProductSearch
-                          onProductSelect={handleProductSelect}
-                          selectedProduct={selectedProduct}
-                          products={products}
-                          placeholder="Buscar producto..."
-                          searchFn={!isOffline ? (q) => productService.searchProducts(q, false) : undefined}
-                        />
-                      )}
-                      
-                      {selectedProduct && (
-                        <div className="space-y-4 sm:space-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:gap-4">
-                          <div>
-                            <Input
-                              label="Cantidad"
-                              type="number"
-                              value={quantity}
-                              onChange={(e) => setQuantity(parseInt(e.target.value) || 0)}
-                              min="1"
-                              required
-                            />
+              {orderItems.length === 0 ? (
+                <p className="px-4 py-10 text-center text-sm text-gray-600">
+                  No quedan productos. Búscalos arriba para agregarlos.
+                </p>
+              ) : (
+                <ul className="divide-y divide-gray-100">
+                  {orderItems.map((item) => {
+                    const lineTotal = item.quantity * item.unitPrice * (1 + item.taxRate / 100);
+                    return (
+                      <li key={item.id} className="px-4 py-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-gray-900 leading-snug">{item.product.name}</p>
+                            <p className="text-xs text-gray-600 font-mono">{item.product.code}</p>
                           </div>
-                          
-                          <div>
-                            <Input
-                              label="Precio unitario"
-                              type="number"
-                              value={unitPrice === 0 ? '' : String(unitPrice)}
-                              onChange={(e) => setUnitPrice(parseFloat(e.target.value) || 0)}
-                              min="0"
-                              step="0.01"
-                              required
-                            />
-                          </div>
-
-                          <div>
-                            <Input
-                              label="IVA (%)"
-                              type="number"
-                              value={taxRate}
-                              onChange={(e) => setTaxRate(parseFloat(e.target.value) || 0)}
-                              min="0"
-                              max="100"
-                              step="0.01"
-                              required
-                            />
-                          </div>
-                          
-                          <div className="flex items-end">
-                            <Button
+                          <span className="text-sm font-semibold text-gray-900 whitespace-nowrap tabular-nums pt-0.5">
+                            {formatCurrency(lineTotal)}
+                          </span>
+                          {confirmDeleteId === item.id ? (
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveItem(item.id)}
+                                className="min-h-[36px] px-2.5 bg-red-600 text-white rounded-lg text-xs font-medium hover:bg-red-700"
+                              >
+                                Quitar
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setConfirmDeleteId(null)}
+                                className="min-h-[36px] px-2.5 bg-gray-100 text-gray-800 rounded-lg text-xs font-medium hover:bg-gray-200"
+                              >
+                                No
+                              </button>
+                            </div>
+                          ) : (
+                            <button
                               type="button"
-                              variant="primary"
-                              icon={Plus}
-                              onClick={handleAddItem}
-                              disabled={quantity <= 0 || unitPrice <= 0}
-                              className="w-full"
-                              size="sm"
-                            >
-                              Agregar
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Order Items List */}
-                  {orderItems.length > 0 && (
-                    <div className="space-y-4">
-                      {orderItems.map((item, index) => (
-                        <div key={item.id} className="p-3 sm:p-4 border border-gray-200 rounded-lg bg-gray-50">
-                          <div className="flex items-center justify-between mb-3">
-                            <h4 className="text-sm font-medium text-gray-900">
-                              Producto #{index + 1}
-                            </h4>
-                            <Button
-                              type="button"
-                              variant="ghost"
                               onClick={() => handleRemoveItem(item.id)}
-                              size="sm"
-                              className="text-red-600 hover:text-red-700 -mr-2"
+                              aria-label={`Quitar ${item.product.name}`}
+                              className="-mr-2 -mt-1.5 w-10 h-10 flex items-center justify-center rounded-lg text-gray-500 hover:text-red-700 hover:bg-red-50 flex-shrink-0"
                             >
                               <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                          
-                          <div className="mb-3">
-                            <p className="font-medium text-sm">{item.product.name}</p>
-                            <p className="text-xs text-gray-500">Código: {item.product.code}</p>
-                          </div>
-
-                          {/* Mobile: Stack quantity, price, tax vertically */}
-                          <div className="space-y-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Cantidad
-                              </label>
+                            </button>
+                          )}
+                        </div>
+                        <div className="mt-2 flex flex-wrap items-end gap-3">
+                          <div>
+                            <span className="block text-xs text-gray-600 mb-1" id={`qty-${item.id}`}>Cantidad</span>
+                            <div className="flex items-center" role="group" aria-labelledby={`qty-${item.id}`}>
+                              <button
+                                type="button"
+                                onClick={() => stepQuantity(item.id, -1)}
+                                aria-label={`Una unidad menos de ${item.product.name}`}
+                                className="w-11 h-11 flex items-center justify-center rounded-l-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
+                              >
+                                <Minus className="w-4 h-4" />
+                              </button>
                               <input
                                 type="number"
-                                value={item.quantity}
-                                onChange={(e) => {
-                                  const value = parseInt(e.target.value) || 0;
-                                  updateOrderItem(item.id, 'quantity', value);
-                                }}
+                                inputMode="decimal"
+                                aria-label={`Cantidad de ${item.product.name}`}
+                                value={item.quantity === 0 ? "" : item.quantity}
+                                onChange={(e) => updateOrderItem(item.id, "quantity", parseFloat(e.target.value) || 0)}
                                 min="1"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-sm"
+                                className="w-16 h-11 border-y border-gray-300 text-center text-base tabular-nums focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary"
                               />
-                            </div>
-
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Precio unitario
-                              </label>
-                              <input
-                                type="number"
-                                value={item.unitPrice}
-                                onChange={(e) => {
-                                  const value = parseFloat(e.target.value) || 0;
-                                  updateOrderItem(item.id, 'unitPrice', value);
-                                }}
-                                min="0"
-                                step="0.01"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-sm"
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-2">
-                                IVA (%)
-                              </label>
-                              <input
-                                type="number"
-                                value={item.taxRate}
-                                onChange={(e) => {
-                                  const value = parseFloat(e.target.value) || 0;
-                                  updateOrderItem(item.id, 'taxRate', value);
-                                }}
-                                min="0"
-                                max="100"
-                                step="0.01"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-sm"
-                              />
+                              <button
+                                type="button"
+                                onClick={() => stepQuantity(item.id, 1)}
+                                aria-label={`Una unidad más de ${item.product.name}`}
+                                className="w-11 h-11 flex items-center justify-center rounded-r-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
+                              >
+                                <Plus className="w-4 h-4" />
+                              </button>
                             </div>
                           </div>
-
-                          <div className="mt-3 pt-3 border-t border-gray-200">
-                            <div className="flex justify-between items-center text-sm">
-                              <span>Subtotal:</span>
-                              <span>{formatCurrency(item.quantity * item.unitPrice)}</span>
-                            </div>
-                            <div className="flex justify-between items-center text-sm">
-                              <span>IVA:</span>
-                              <span>{formatCurrency((item.quantity * item.unitPrice) * (item.taxRate / 100))}</span>
-                            </div>
-                            <div className="flex justify-between items-center text-sm font-semibold">
-                              <span>Total:</span>
-                              <span className="text-primary">
-                                {formatCurrency((item.quantity * item.unitPrice) * (1 + item.taxRate / 100))}
-                              </span>
-                            </div>
+                          <div className="w-36">
+                            <label htmlFor={`price-${item.id}`} className="block text-xs text-gray-600 mb-1">Precio sin IVA</label>
+                            <input
+                              id={`price-${item.id}`}
+                              type="number"
+                              inputMode="decimal"
+                              value={item.unitPrice === 0 ? "" : item.unitPrice}
+                              onChange={(e) => updateOrderItem(item.id, "unitPrice", parseFloat(e.target.value) || 0)}
+                              min="0"
+                              step="0.01"
+                              className="w-full h-11 px-3 border border-gray-300 rounded-lg text-base sm:text-sm text-right tabular-nums focus:outline-none focus:ring-2 focus:ring-primary"
+                            />
+                          </div>
+                          <div className="w-24">
+                            <label htmlFor={`tax-${item.id}`} className="block text-xs text-gray-600 mb-1">IVA %</label>
+                            <input
+                              id={`tax-${item.id}`}
+                              type="number"
+                              inputMode="decimal"
+                              value={item.taxRate}
+                              onChange={(e) => updateOrderItem(item.id, "taxRate", parseFloat(e.target.value) || 0)}
+                              min="0"
+                              max="100"
+                              className="w-full h-11 px-3 border border-gray-300 rounded-lg text-base sm:text-sm text-center tabular-nums focus:outline-none focus:ring-2 focus:ring-primary"
+                            />
                           </div>
                         </div>
-                      ))}
-
-                      {/* Order Summary */}
-                      <div className="p-4 bg-primary/10 border border-primary/25 rounded-lg">
-                        <h4 className="text-sm font-medium text-primary mb-3">
-                          Resumen de la orden
-                        </h4>
-                        <div className="space-y-2">
-                          <div className="flex justify-between items-center text-sm">
-                            <span>Subtotal:</span>
-                            <span>{formatCurrency(calculateSubtotal())}</span>
-                          </div>
-                          <div className="flex justify-between items-center text-sm">
-                            <span>IVA total:</span>
-                            <span>{formatCurrency(calculateTotalTax())}</span>
-                          </div>
-                          <div className="flex justify-between items-center border-t pt-2">
-                            <span className="text-base font-semibold">Total:</span>
-                            <span className="text-lg font-bold text-primary">
-                              {formatCurrency(calculateTotal())}
-                            </span>
-                          </div>
-                          <p className="text-xs text-primary mt-2">
-                            {orderItems.length} producto{orderItems.length !== 1 ? 's' : ''} en la orden
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                      </li>
+                    );
+                  })}
+                </ul>
               )}
-            </div>
+            </section>
+          </div>
 
-            {/* Notes Section */}
-            <div className="border-t pt-6">
-              <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-4 flex items-center">
-                <FileText className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                Notas adicionales (Opcional)
-              </h3>
+          <aside className="space-y-4 lg:sticky lg:top-4">
+            <section className="bg-white rounded-xl border border-gray-200 p-4">
+              <label htmlFor="edit-notes" className="text-base font-semibold text-gray-900 flex items-center gap-2 mb-2">
+                <FileText className="w-4 h-4 text-gray-500" aria-hidden="true" />
+                Notas <span className="text-sm text-gray-600 font-normal">(opcional)</span>
+              </label>
               <textarea
+                id="edit-notes"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary resize-none text-sm"
-                placeholder="Agrega notas adicionales para esta orden..."
+                rows={2}
+                className={`${inputBase} resize-none`}
+                placeholder="Notas…"
               />
-            </div>
+            </section>
 
-            {/* Mobile: Stack buttons vertically, make them full width */}
-            <div className="flex gap-4 flex-col sm:flex-row sm:justify-end space-y-3 sm:space-y-0 sm:space-x-3 pt-6 border-t">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleBack}
-                disabled={loading}
-                className="w-full sm:w-auto order-2 sm:order-1"
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                variant="primary"
-                icon={Save}
-                loading={loading}
-                disabled={loading || orderItems.length === 0 || !selectedCustomer}
-                className="w-full sm:w-auto order-1 sm:order-2"
-              >
-                {loading ? 'Guardando...' : 'Guardar cambios'}
-              </Button>
-            </div>
-          </form>
+            <section className="bg-white rounded-xl border border-gray-200 p-4" aria-label="Resumen">
+              <dl className="space-y-1.5 text-sm">
+                <div className="flex justify-between text-gray-700">
+                  <dt>Subtotal</dt>
+                  <dd className="tabular-nums">{formatCurrency(calculateSubtotal())}</dd>
+                </div>
+                <div className="flex justify-between text-gray-700">
+                  <dt>IVA</dt>
+                  <dd className="tabular-nums">{formatCurrency(calculateTotalTax())}</dd>
+                </div>
+                <div className="flex justify-between pt-2 mt-1 border-t border-gray-200 text-base font-bold text-gray-900">
+                  <dt>Total</dt>
+                  <dd className="tabular-nums">{formatCurrency(total)}</dd>
+                </div>
+              </dl>
+              <div className="hidden md:flex flex-col gap-2 mt-4">
+                <Button type="submit" variant="primary" icon={Save} loading={loading} disabled={!canSubmit} className="w-full min-h-[44px]">
+                  {loading ? "Guardando…" : "Guardar cambios"}
+                </Button>
+                <Button type="button" variant="outline" onClick={handleBack} className="w-full min-h-[44px]">
+                  Cancelar
+                </Button>
+                {missing.length > 0 && !loading && (
+                  <p className="text-sm text-gray-700" role="status">Para guardar: {missing.join(", ")}.</p>
+                )}
+              </div>
+            </section>
+          </aside>
+        </form>
+
+        <div
+          className="md:hidden fixed inset-x-0 z-30 bg-white border-t border-gray-200 px-3 pt-2 pb-2 shadow-[0_-4px_12px_rgba(0,0,0,0.06)]"
+          style={{ bottom: "calc(4rem + env(safe-area-inset-bottom))" }}
+        >
+          {missing.length > 0 && !loading && (
+            <p className="mb-1.5 text-xs text-gray-700" role="status">Falta: {missing.join(", ")}.</p>
+          )}
+          <Button type="submit" form="edit-form" variant="primary" icon={Save} loading={loading} disabled={!canSubmit} className="w-full min-h-[48px]">
+            {loading ? "Guardando…" : `Guardar cambios · ${formatCurrency(total)}`}
+          </Button>
         </div>
 
-        {/* Customer Modal */}
         {showCustomerModal && (
           <CustomerModal
             onClose={() => setShowCustomerModal(false)}

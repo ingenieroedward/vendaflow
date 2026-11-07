@@ -521,8 +521,15 @@ vencido/agotado); nada de `text-gray-400` en texto (no pasa AA); touch ≥44px e
   resumen lateral y barra fija en mobile. Órdenes: tabla en desktop con saldo (de
   `getReceivables`). Panel de producto acoplado ≥1280px. POS: grilla inicial con más vendidos por
   caja (`localStorage pos_freq_<tenantId>`).
-- **Pendiente**: tipografía nueva (IBM Plex) — no se cambió para no alterar todo el look de golpe;
-  edición de orden/cotización (OrderEdit/QuoteEdit) aún con el formulario viejo.
+- **v1.20.0 — fase 3 (hecho, cierra el prototipo)**: OrderEdit/QuoteEdit con el diseño nuevo;
+  Sidebar con atajos Vender/Orden y estado de sync (`pendingSync` de order+quote stores); Productos
+  con margen, filtro "Stock bajo" (alertas filtradas a `minStock > 0`) y filas compactas en mobile;
+  panel con últimos movimientos (`GET /stock-movements/product/:id`, vendedor/admin), "Ajustar
+  stock" (`PATCH /products/:id/stock` con la diferencia, comprador/admin) y "Agregar a una orden"
+  (pasa el producto por `location.state.addProduct`); Órdenes con franja de cartera + filtro de pago;
+  `hooks/useCustomerHistory.ts` (saldo, última compra y frecuentes del cliente desde IndexedDB);
+  POS con cliente opcional (`posService.sale(..., customerId)`); IBM Plex vía `@fontsource`
+  (subconjunto latino, empaquetado — no depende de Google Fonts ni de red).
 
 ## INVENTARIO Y KARDEX (ago 2026)
 

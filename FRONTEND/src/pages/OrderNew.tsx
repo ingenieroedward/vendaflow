@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useRef } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   ArrowLeft,
   Plus,
@@ -30,6 +30,7 @@ import CustomerModal from "../components/ui/CustomerModal";
 import { CreateOrderRequest } from "../types/order";
 import { Product } from "../types";
 import { lineFromProduct } from "../utils/tax";
+import { useCustomerHistory } from "../hooks/useCustomerHistory";
 import { Customer } from "../types/customer";
 import { productService } from "../services/products";
 
@@ -46,6 +47,7 @@ const DRAFT_KEY = 'orderNewDraft';
 
 const OrderNew: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { isOffline } = useNetworkStatus();
   const { user } = useAuthStore();
   const { createOrder, loading, error, clearError } = useOrderStore();
@@ -67,6 +69,10 @@ const OrderNew: React.FC = () => {
   );
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const history = useCustomerHistory(selectedCustomer?.id);
+  const frequentProducts = history.topProductIds
+    .map((id) => products.find((p) => p.id === id))
+    .filter((p): p is Product => !!p);
 
   useEffect(() => {
     getProducts(1, 2000, false);
@@ -116,6 +122,19 @@ const OrderNew: React.FC = () => {
       ];
     });
   };
+
+  // "Agregar a una orden" desde el panel de Productos: llega el producto por
+  // el estado de navegación; se agrega una vez y se limpia el estado para que
+  // recargar la página no lo vuelva a sumar
+  const addedFromNav = useRef(false);
+  useEffect(() => {
+    const st = location.state as { addProduct?: Product } | null;
+    if (st?.addProduct && !addedFromNav.current) {
+      addedFromNav.current = true; // un solo agregado aunque el efecto corra dos veces
+      handleProductSelect(st.addProduct);
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleRemoveItem = (id: string) => {
     if (confirmDeleteId !== id) {
@@ -356,6 +375,24 @@ const OrderNew: React.FC = () => {
                   placeholder="Buscar cliente por nombre o NIT…"
                 />
               )}
+              {selectedCustomer && (
+                <dl className="mt-3 grid grid-cols-2 gap-2 text-sm">
+                  <div className={`rounded-lg px-3 py-2 ${Number(selectedCustomer.creditBalance ?? 0) > 0 ? 'bg-amber-50' : 'bg-gray-50'}`}>
+                    <dt className="text-xs text-gray-600">Saldo por cobrar</dt>
+                    <dd className={`font-semibold tabular-nums ${Number(selectedCustomer.creditBalance ?? 0) > 0 ? 'text-amber-900' : 'text-gray-900'}`}>
+                      {formatCurrency(Number(selectedCustomer.creditBalance ?? 0))}
+                    </dd>
+                  </div>
+                  <div className="rounded-lg bg-gray-50 px-3 py-2">
+                    <dt className="text-xs text-gray-600">Última compra</dt>
+                    <dd className="font-semibold text-gray-900">
+                      {history.lastOrderAt
+                        ? new Date(history.lastOrderAt).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })
+                        : 'Sin compras'}
+                    </dd>
+                  </div>
+                </dl>
+              )}
             </section>
 
             <section className="bg-white rounded-xl border border-gray-200" aria-labelledby="sec-productos">
@@ -383,6 +420,24 @@ const OrderNew: React.FC = () => {
                     placeholder="Busca o escanea un producto y presiona Enter"
                     searchFn={!isOffline ? (q) => productService.searchProducts(q, false) : undefined}
                   />
+                )}
+                {frequentProducts.length > 0 && (
+                  <div className="mt-3">
+                    <p className="text-xs font-medium text-gray-600 mb-1.5">Lo que más compra este cliente</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {frequentProducts.map((p) => (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => handleProductSelect(p)}
+                          className="inline-flex items-center gap-1 min-h-[36px] px-3 rounded-full border border-gray-300 text-sm text-gray-800 hover:bg-gray-50 hover:border-primary"
+                        >
+                          <Plus className="w-3.5 h-3.5" aria-hidden="true" />
+                          {p.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
 
