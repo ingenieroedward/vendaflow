@@ -184,6 +184,13 @@ export class PurchaseOrderService {
       throw new BadRequestError(`Cannot modify a purchase order with status "${po.status}"`);
     }
 
+    // Aislamiento entre tenants: crear ya validaba el proveedor, editar no — un
+    // supplierId ajeno exponía ese proveedor en el detalle (auditoría v1.16.9)
+    if (validatedData.supplierId !== undefined && validatedData.supplierId !== po.supplierId) {
+      const supplier = await Supplier.findOne({ where: { id: validatedData.supplierId, tenantId } });
+      if (!supplier) throw new NotFoundError('Supplier not found');
+    }
+
     const newStatus = validatedData.status ?? po.status;
 
     await sequelize.transaction(async (t: Transaction) => {

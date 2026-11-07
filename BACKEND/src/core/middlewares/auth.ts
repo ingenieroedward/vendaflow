@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { AuthService } from '@/modules/auth/auth.service';
 import { UnauthorizedError, ForbiddenError } from '../errors/AppError';
 import type { FeatureKey } from '@/config/features';
+import { getSessionUser, isSessionValid } from '@/core/auth/sessionCache';
 
 const authService = new AuthService();
 
@@ -18,6 +19,11 @@ export const isAuth = async (
 
     const token = authHeader.substring(7);
     const payload = authService.verifyToken(token);
+
+    // El token también debe coincidir con el estado actual del usuario
+    if (!isSessionValid(payload, await getSessionUser(payload.userId))) {
+      throw new UnauthorizedError('Sesión expirada o revocada');
+    }
 
     req.user = {
       id: payload.userId,

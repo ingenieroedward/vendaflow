@@ -1,3 +1,4 @@
+import { invalidateSession } from '@/core/auth/sessionCache';
 import { User, UserAttributes } from "./user.model";
 import {
   CreateUserDto,
@@ -80,13 +81,17 @@ export class UserService {
   }
 
   // Cambio de contraseña propia: cualquier rol, exige la contraseña actual
-  async changeOwnPassword(userId: number, data: ChangePasswordDto): Promise<void> {
+  // Cierra las demás sesiones (sube tokenVersion) y devuelve el usuario para que el
+  // controller emita un token nuevo — quien cambió la clave sigue trabajando.
+  async changeOwnPassword(userId: number, data: ChangePasswordDto): Promise<User> {
     const validatedData = validateSchema(changePasswordSchema, data);
     const user = await User.findByPk(userId);
     if (!user) throw new NotFoundError('User not found');
     const valid = await user.comparePassword(validatedData.currentPassword);
     if (!valid) throw new UnauthorizedError('La contraseña actual es incorrecta');
-    await user.update({ password: validatedData.newPassword }); // @BeforeUpdate la hashea
+    await user.update({ password: validatedData.newPassword, tokenVersion: (user.tokenVersion ?? 0) + 1 }); // @BeforeUpdate la hashea
+    invalidateSession(user.id);
+    return user;
   }
 
   // Perfil propio: cualquier rol, solo nombre/usuario (ver updateOwnProfileSchema)
@@ -121,7 +126,13 @@ export class UserService {
       }
     }
 
-    await user.update(validatedData as any);
+    // Cambiar rol o contraseña (reset del admin) cierra las sesiones abiertas del usuario
+    const revoke = (validatedData.role !== undefined && validatedData.role !== user.role) || !!validatedData.password;
+    await user.update({
+      ...(validatedData as any),
+      ...(revoke && { tokenVersion: (user.tokenVersion ?? 0) + 1 }),
+    });
+    if (revoke) invalidateSession(user.id);
     return this.mapToResponseDto(user);
   }
 
@@ -174,9 +185,14 @@ export class UserService {
           { where: { userId: id }, paranoid: false }
         );
       }
+      invalidateSession(user.id);
       return await user.destroy({ force: true });
     }
 
+    // Subir tokenVersion antes del soft delete: si luego se restaura, sus tokens
+    // viejos no reviven
+    await user.update({ tokenVersion: (user.tokenVersion ?? 0) + 1 });
+    invalidateSession(user.id);
     return await user.destroy();
   }
 
@@ -185,7 +201,8 @@ export class UserService {
     if (!user) {
       throw new NotFoundError("User not found")
     }
-    return await user.restore();
+    await user.restore();
+    invalidateSession(user.id);
   }
 
   private mapToResponseDto(user: User): UserResponseDto {
