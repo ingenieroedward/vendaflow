@@ -1,8 +1,14 @@
 /** @type {import('tailwindcss').Config} */
+import defaultTheme from 'tailwindcss/defaultTheme';
+
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['"IBM Plex Sans"', ...defaultTheme.fontFamily.sans],
+        mono: ['"IBM Plex Mono"', ...defaultTheme.fontFamily.mono],
+      },
       colors: {
         primary: 'rgb(var(--vf-primary) / <alpha-value>)',
         'on-primary': 'rgb(var(--vf-on-primary) / <alpha-value>)',

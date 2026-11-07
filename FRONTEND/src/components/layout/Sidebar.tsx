@@ -1,9 +1,12 @@
-import { Package, ClipboardList, Users, LogOut, User, Shield, Truck, Tag, DollarSign, UserCheck, BarChart2, Warehouse, ShoppingCart, Settings, AlertTriangle, Store, FileText, CreditCard } from 'lucide-react';
+import { Plus, Package, ClipboardList, Users, LogOut, User, Shield, Truck, Tag, DollarSign, UserCheck, BarChart2, Warehouse, ShoppingCart, Settings, AlertTriangle, Store, FileText, CreditCard } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { useTenantStore } from '../../store/tenantStore';
 import { useTenantRenewalStatus } from '../../hooks/useTenantRenewalStatus';
 import { roleLabel } from '../../utils/roles';
+import { useNetworkStatus } from '../../hooks/useNetworkStatus';
+import { useOrderStore } from '../../store/orderStore';
+import { useQuoteStore } from '../../store/quoteStore';
 
 interface NavItem {
   label: string;
@@ -50,6 +53,13 @@ const Sidebar = () => {
     navigate('/login');
   };
 
+  const { isOffline } = useNetworkStatus();
+  const pendingOrders = useOrderStore((st) => st.pendingSync);
+  const pendingQuotes = useQuoteStore((st) => st.pendingSync);
+  const pending = (pendingOrders ?? 0) + (pendingQuotes ?? 0);
+  const canSell = user?.role === 'seller' || user?.role === 'admin';
+  const hasPos = !!tenant?.features?.includes('pos');
+
   const visibleItems = NAV_ITEMS.filter(
     (item) => user?.role && item.roles.includes(user.role) && (!item.feature || tenant?.features?.includes(item.feature))
   );
@@ -68,8 +78,45 @@ const Sidebar = () => {
             ? <img src={tenant.logoUrl} alt={tenant.name} className="w-6 h-6 object-contain" />
             : <Package className="w-6 h-6 text-primary" />}
         </div>
-        <span className="text-xl font-bold text-gray-900 tracking-tight">{tenant?.name ?? 'Merco'}</span>
+        <div className="min-w-0">
+          <span className="block text-lg font-bold text-gray-900 tracking-tight truncate">{tenant?.name ?? 'Merco'}</span>
+          {/* Estado de sincronización siempre visible (offline-first) */}
+          <Link
+            to="/orders"
+            className={`flex items-center gap-1.5 text-xs ${isOffline || pending > 0 ? 'text-amber-900' : 'text-gray-600'} hover:underline`}
+          >
+            <span
+              className={`w-2 h-2 rounded-full ${isOffline ? 'bg-gray-500' : pending > 0 ? 'bg-amber-500' : 'bg-green-600'}`}
+              aria-hidden="true"
+            />
+            {isOffline
+              ? 'Sin conexión'
+              : pending > 0
+                ? `${pending} sin enviar`
+                : 'Sincronizado'}
+          </Link>
+        </div>
       </div>
+
+      {/* Atajos a lo que más se hace: vender y crear orden */}
+      {canSell && (
+        <div className="grid grid-cols-2 gap-2 px-3 pt-3">
+          {hasPos ? (
+            <Link
+              to="/pos"
+              className="flex items-center justify-center gap-1.5 min-h-[40px] rounded-lg bg-primary text-on-primary text-sm font-semibold hover:bg-primary/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary"
+            >
+              <Store className="w-4 h-4" aria-hidden="true" /> Vender
+            </Link>
+          ) : null}
+          <Link
+            to="/orders/new"
+            className={`flex items-center justify-center gap-1.5 min-h-[40px] rounded-lg border border-gray-300 text-sm font-semibold text-gray-800 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${hasPos ? '' : 'col-span-2'}`}
+          >
+            <Plus className="w-4 h-4" aria-hidden="true" /> Orden
+          </Link>
+        </div>
+      )}
 
       {/* Nav links */}
       {/* min-h-0 + overflow: en pantallas bajas (768px) con avisos de plan,

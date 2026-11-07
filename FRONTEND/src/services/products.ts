@@ -9,7 +9,8 @@ import {
   CreateSupplierRequest,
   CreateCategoryRequest,
   PaginatedResponse,
-  ApiResponse 
+  ApiResponse,
+  StockMovement 
 } from '../types';
 
 export class ProductService {
@@ -62,6 +63,18 @@ export class ProductService {
     const params = { page, limit };
     const endpoint = includePrices ? '/products/prices' : '/products';
     return apiService.get<PaginatedResponse<Product>>(endpoint, params);
+  }
+
+  /** Últimos movimientos de inventario de un producto (vendedor/admin) */
+  async getProductMovements(productId: number, limit = 5): Promise<StockMovement[]> {
+    const res = await apiService.get<{ data: StockMovement[] }>(`/stock-movements/product/${productId}`, { page: 1, limit });
+    return res.data ?? [];
+  }
+
+  /** Ajuste manual de stock: `quantity` es la diferencia (+/−); deja movimiento en el kardex */
+  async adjustStock(productId: number, quantity: number, notes?: string): Promise<Product> {
+    const res = await apiService.patch<ApiResponse<Product>>(`/products/${productId}/stock`, { quantity, notes });
+    return res.data;
   }
 
   async getProductById(id: number): Promise<Product> {
