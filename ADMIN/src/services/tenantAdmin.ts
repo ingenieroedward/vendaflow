@@ -183,7 +183,7 @@ export const tenantAdminService = {
   update: (id: number, data: UpdateTenantPayload) => apiService.put<TenantSummary>(`/tenants/${id}`, data),
   suspend: (id: number) => apiService.put<TenantSummary>(`/tenants/${id}/suspend`, {}),
   activate: (id: number) => apiService.put<TenantSummary>(`/tenants/${id}/activate`, {}),
-  impersonate: async (id: number) => (await apiService.post<Wrapped<{ token: string; slug: string; username: string }>>(`/tenants/${id}/impersonate`, {})).data,
+  impersonate: async (id: number) => (await apiService.post<Wrapped<{ code: string; slug: string; username: string }>>(`/tenants/${id}/impersonate`, {})).data,
   getDetail: async (id: number) => (await apiService.get<Wrapped<TenantDetail>>(`/tenants/${id}/detail`)).data,
   broadcast: async (payload: { tenantId?: number; onlyAdmins?: boolean; title: string; body: string }) =>
     (await apiService.post<Wrapped<{ recipients: number }>>('/tenants/broadcast', payload)).data,

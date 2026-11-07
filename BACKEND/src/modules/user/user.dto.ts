@@ -4,13 +4,13 @@ import { z } from 'zod';
 export const createUserSchema = z.object({
   name: z.string().max(255).optional(),
   username: z.string().min(3, 'Username must be at least 3 characters').max(255),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  password: z.string().min(8, 'La contraseña debe tener al menos 8 caracteres'),
   role: z.enum(['buyer', 'admin', 'seller']).default('buyer'),
 });
 
 export const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, 'La contraseña actual es requerida'),
-  newPassword: z.string().min(6, 'La nueva contraseña debe tener al menos 6 caracteres'),
+  newPassword: z.string().min(8, 'La nueva contraseña debe tener al menos 8 caracteres'),
 });
 export type ChangePasswordDto = z.infer<typeof changePasswordSchema>;
 
@@ -18,7 +18,7 @@ export const updateUserSchema = z.object({
   name: z.string().max(255).optional(),
   username: z.string().min(3, 'Username must be at least 3 characters').max(255).optional(),
   role: z.enum(['buyer', 'admin', 'seller']).optional(),
-  password: z.string().min(6, 'Password must be at least 6 characters').optional(),
+  password: z.string().min(8, 'La contraseña debe tener al menos 8 caracteres').optional(),
 });
 
 // Perfil propio: a propósito NO incluye role ni password (el cambio de

@@ -10,7 +10,6 @@ import { Customer } from '../customer/customer.model';
 import { PurchaseOrder } from '../purchase-order/purchase-order.model';
 import { PurchaseOrderItem } from '../purchase-order/purchase-order-item/purchase-order-item.model';
 import { StockMovement } from '../stock-movement/stock-movement.model';
-import { AuthService } from '../auth/auth.service';
 import { pushService } from '../push/push.service';
 import { getJobStatuses } from '@/core/jobs/jobStatus';
 import { APP_VERSION } from '@/config/version';
@@ -695,8 +694,11 @@ export class TenantService {
       order: [['createdAt', 'ASC']],
     });
     if (!admin) throw new NotFoundError('El tenant no tiene usuario admin');
-    const token = new AuthService().generateToken(admin.id, admin.username, admin.role, admin.tenantId, admin.tokenVersion ?? 0);
-    return { token, slug: tenant.slug, username: admin.username };
+    // Código opaco de un solo uso (2 min), no un JWT: viaja en la URL hacia el
+    // subdominio del tenant y se canjea por POST /api/auth/impersonate
+    const { issueImpersonationCode } = await import('@/core/auth/impersonationCodes');
+    const code = issueImpersonationCode(admin.id, admin.tenantId);
+    return { code, slug: tenant.slug, username: admin.username };
   }
 
   // Detalle operativo del tenant para el panel superadmin

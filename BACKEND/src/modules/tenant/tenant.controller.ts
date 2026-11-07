@@ -54,7 +54,7 @@ const createTenantSchema = z.object({
   name: z.string().min(2).max(255),
   plan: z.enum(['trial', 'basic', 'pro', 'enterprise']).optional(),
   adminUsername: z.string().min(3).max(100),
-  adminPassword: z.string().min(6),
+  adminPassword: z.string().min(8, 'La contraseña del admin debe tener al menos 8 caracteres'),
   primaryColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
 });
 
@@ -207,6 +207,7 @@ export class TenantController {
   approveRequest = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const { slug, adminUsername, adminPassword, plan, primaryColor } = req.body ?? {};
     if (!slug || !adminUsername || !adminPassword) throw new ValidationError('slug, adminUsername y adminPassword son requeridos');
+    if (String(adminPassword).length < 8) throw new ValidationError('La contraseña del admin debe tener al menos 8 caracteres');
     const result = await tenantService.approveRequest(Number(req.params['id']!), { slug, adminUsername, adminPassword, plan, primaryColor });
     audit(req, 'request_approve', null, slug);
     res.json({ status: 'success', data: result });

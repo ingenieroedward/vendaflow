@@ -101,8 +101,8 @@ const UserEdit: React.FC = () => {
     if (isPasswordChange) {
       if (!formData.password) {
         newErrors.password = 'La contraseña es requerida';
-      } else if (formData.password.length < 6) {
-        newErrors.password = 'La contraseña debe tener al menos 6 caracteres';
+      } else if (formData.password.length < 8) {
+        newErrors.password = 'La contraseña debe tener al menos 8 caracteres';
       }
 
       if (!formData.confirmPassword) {

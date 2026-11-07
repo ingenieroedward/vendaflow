@@ -29,7 +29,7 @@ const ChangePasswordModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (next.length < 6) { setError('La nueva contraseña debe tener al menos 6 caracteres'); return; }
+    if (next.length < 8) { setError('La nueva contraseña debe tener al menos 8 caracteres'); return; }
     if (next !== confirm) { setError('Las contraseñas nuevas no coinciden'); return; }
     setSaving(true);
     try {
@@ -73,7 +73,7 @@ const ChangePasswordModal: React.FC<Props> = ({ isOpen, onClose }) => {
             onChange={e => setNext(e.target.value)}
             className={inputCls}
             autoComplete="new-password"
-            minLength={6}
+            minLength={8}
             required
           />
         </div>
@@ -85,7 +85,7 @@ const ChangePasswordModal: React.FC<Props> = ({ isOpen, onClose }) => {
             onChange={e => setConfirm(e.target.value)}
             className={inputCls}
             autoComplete="new-password"
-            minLength={6}
+            minLength={8}
             required
           />
         </div>

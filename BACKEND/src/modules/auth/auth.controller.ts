@@ -76,6 +76,12 @@ export class AuthController {
     res.status(200).json({ status: 'success', data: result });
   });
 
+  // POST /api/auth/impersonate — canje del código de un solo uso del panel superadmin
+  exchangeImpersonation = asyncHandler(async (req: Request, res: Response) => {
+    const result = await this.authService.exchangeImpersonationCode(req.body?.code, req.body?.tenantSlug);
+    res.status(200).json({ status: 'success', data: result });
+  });
+
   // GET /api/auth/me
   getCurrentUser = asyncHandler(async (req: Request, res: Response) => {
     const user = await this.authService.getCurrentUser(req.user!.id, req.user!.tenantId);
