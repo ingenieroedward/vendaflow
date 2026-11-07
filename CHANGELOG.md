@@ -7,6 +7,28 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ## [Unreleased]
 
+## [1.17.0] — 2026-11-07 — Seguridad: resto de la auditoría
+
+### Security
+
+- **Impersonar sin JWT en la URL**: el panel ahora abre `/login?impersonate=<código>` con un código
+  de un solo uso que vence en 2 minutos; la app lo borra de la URL y lo canjea por
+  `POST /auth/impersonate` (el slug del subdominio debe coincidir). La sesión dura 2h, no 24h.
+- **Bloqueo por cuenta**: 10 intentos fallidos en 15 min bloquean ese usuario 15 min (429), además
+  del límite por IP que ya existía.
+- **Contraseñas de mínimo 8 caracteres** al crear o cambiar (las existentes siguen entrando).
+- `transferTo` al borrar un usuario debe ser un admin del mismo tenant.
+- Comprobante de pago: solo imágenes (JPG, PNG, WEBP, GIF, HEIC).
+- Push: no se puede tomar la suscripción de otro usuario conociendo su `endpoint`.
+- Captcha de registro de un solo uso.
+- CORS: el comodín de subdominios solo acepta `https://`.
+- Dependencias: `npm audit fix` en los 3 proyectos, nodemailer 10, imagen base Node 22.
+
+### Fixed
+
+- Borrar definitivamente un usuario que había vendido algo fallaba con 500 (la FK de
+  `stock_movements`); ahora se reasigna todo su historial al admin indicado.
+
 ## [1.16.9] — 2026-11-07 — Seguridad: aislamiento entre tenants y revocación de sesiones
 
 ### Security

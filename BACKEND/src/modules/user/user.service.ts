@@ -6,7 +6,7 @@ import {
   UserResponseDto,
   UsersListResponseDto,
 } from "./user.dto";
-import { NotFoundError, ConflictError, UnauthorizedError } from "@/core/errors/AppError";
+import { NotFoundError, ConflictError, UnauthorizedError, ValidationError } from "@/core/errors/AppError";
 import {
   validateSchema,
   validatePartialSchema,
@@ -16,6 +16,11 @@ import {
 import { createUserSchema, updateUserSchema, changePasswordSchema, ChangePasswordDto, updateOwnProfileSchema, UpdateOwnProfileDto } from "./user.dto";
 import { Order } from "../order/order.model";
 import { Price } from "../price/price.model";
+import { StockMovement } from "../stock-movement/stock-movement.model";
+import { Quote } from "../quote/quote.model";
+import { PurchaseOrder } from "../purchase-order/purchase-order.model";
+import { CashSession } from "../pos/cash-session.model";
+import { PushSubscription } from "../push/push-subscription.model";
 
 async function assertUserQuota(tenantId: number) {
   const { Tenant } = await import('@/modules/tenant/tenant.model');
@@ -149,6 +154,12 @@ export class UserService {
    * @param transferToAdminId  ID del admin que absorbe los precios y órdenes del usuario eliminado.
    */
   async deleteUser(id: number, tenantId: number, transferToAdminId?: number): Promise<void> {
+    // transferTo debe ser un admin del mismo tenant (antes podía ser cualquier
+    // usuario, incluso de otro tenant — auditoría nov 2026)
+    if (transferToAdminId !== undefined) {
+      const target = await User.findOne({ where: { id: transferToAdminId, tenantId, role: 'admin' } });
+      if (!target) throw new ValidationError('El usuario que recibe las órdenes y precios debe ser un admin de esta empresa');
+    }
     const user = await User.findOne({
       where: { id, tenantId },
       paranoid: false,
@@ -185,6 +196,28 @@ export class UserService {
           { where: { userId: id }, paranoid: false }
         );
       }
+      // El resto del historial que referencia al usuario (kardex, cotizaciones,
+      // compras, turnos de caja) también se reasigna: antes solo se movían
+      // órdenes y precios y la FK de stock_movements tumbaba el borrado con 500
+      // para cualquier usuario que hubiera vendido algo.
+      const where = { userId: id };
+      const history = [StockMovement, Quote, PurchaseOrder, CashSession] as const;
+      const counts = await Promise.all([
+        StockMovement.count({ where }),
+        Quote.count({ where, paranoid: false }),
+        PurchaseOrder.count({ where, paranoid: false }),
+        CashSession.count({ where }),
+      ]);
+      if (counts.some((c) => c > 0)) {
+        if (!transferToAdminId) {
+          throw new ConflictError("El usuario tiene historial de inventario, cotizaciones, compras o caja");
+        }
+        for (const M of history) {
+          await (M as any).update({ userId: transferToAdminId }, { where, paranoid: false });
+        }
+      }
+      // Las suscripciones push son del dispositivo del usuario: se borran, no se reasignan
+      await PushSubscription.destroy({ where, force: true });
       invalidateSession(user.id);
       return await user.destroy({ force: true });
     }

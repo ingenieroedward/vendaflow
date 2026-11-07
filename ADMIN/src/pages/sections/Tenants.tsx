@@ -73,7 +73,7 @@ const Tenants: React.FC<{
     const win = window.open('', '_blank');
     try {
       const r = await tenantAdminService.impersonate(t.id);
-      const url = `${tenantAppUrl(r.slug)}/login?impersonate=${encodeURIComponent(r.token)}`;
+      const url = `${tenantAppUrl(r.slug)}/login?impersonate=${encodeURIComponent(r.code)}`;
       if (win) win.location.href = url;
       else window.location.href = url;
     } catch (e: unknown) {

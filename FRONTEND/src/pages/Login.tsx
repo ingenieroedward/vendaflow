@@ -28,21 +28,31 @@ const Login: React.FC = () => {
     }
   }, [isAuthenticated, navigate, user]);
 
-  // Impersonación desde el panel superadmin: /login?impersonate=<token>
+  // Impersonación desde el panel superadmin: /login?impersonate=<código>.
+  // El código es de un solo uso y vence en 2 min (v1.17.0); se quita de la URL
+  // antes de canjearlo para que no quede en el historial del navegador.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const token = params.get('impersonate');
-    if (!token) return;
+    const code = params.get('impersonate');
+    if (!code) return;
+    params.delete('impersonate');
+    const rest = params.toString();
+    window.history.replaceState(null, '', window.location.pathname + (rest ? `?${rest}` : ''));
     (async () => {
       const { STORAGE_KEYS } = await import('../utils/constants');
       try {
-        localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
         const { apiService } = await import('../services/api');
-        const me = await apiService.get<{ status: string; data: { id: number; username: string; role: string; tenantId: number } }>('/auth/me');
-        localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(me.data));
+        const { detectTenantSlug } = await import('../services/tenant');
+        const r = await apiService.post<{ data: { token: string; user: unknown; tenant: unknown } }>(
+          '/auth/impersonate',
+          { code, tenantSlug: detectTenantSlug() },
+        );
+        localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, r.data.token);
+        localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(r.data.user));
+        if (r.data.tenant) localStorage.setItem(STORAGE_KEYS.TENANT_DATA, JSON.stringify(r.data.tenant));
         window.location.replace('/'); // recarga limpia con la sesión ya persistida
-      } catch {
-        localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+      } catch (err: unknown) {
+        setErrors({ username: (err as { message?: string })?.message ?? 'El acceso de soporte venció. Genera uno nuevo desde el panel.' });
       }
     })();
   }, []);

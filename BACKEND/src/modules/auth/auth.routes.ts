@@ -8,6 +8,9 @@ const authController = new AuthController();
 // Public routes (register is now via /api/onboarding/register)
 router.post('/login', authController.login);
 
+// Canje del código de impersonación (público; rate limit de /api/auth)
+router.post('/impersonate', authController.exchangeImpersonation);
+
 // Protected routes
 router.get('/me', isAuth, authController.getCurrentUser);
 
