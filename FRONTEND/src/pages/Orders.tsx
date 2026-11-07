@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Plus, Search, Eye, Edit, Trash2, Calendar, User,
   WifiOff, RefreshCw, AlertCircle, CloudOff, CheckCircle2, Clock,
-  RotateCcw, AlertTriangle, CreditCard
+  RotateCcw, AlertTriangle, CreditCard, RotateCw, X
 } from "lucide-react";
 import { useOrderStore } from "../store/orderStore";
 import { useAuthStore } from "../store/authStore";
@@ -237,9 +237,11 @@ const Orders: React.FC = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "pending":    return "bg-yellow-100 text-yellow-800";
-      case "processing": return "bg-primary/15 text-primary";
+      // Estado con color semántico fijo: con el color del tenant (ej. rosa del
+      // demo) "En proceso" se confundía con un error/cancelada
+      case "processing": return "bg-sky-100 text-sky-900";
       case "completed":  return "bg-green-100 text-green-800";
-      case "cancelled":  return "bg-red-100 text-red-800";
+      case "cancelled":  return "bg-gray-200 text-gray-700";
       default:           return "bg-gray-100 text-gray-800";
     }
   };
@@ -282,7 +284,7 @@ const Orders: React.FC = () => {
 
           <div className="flex justify-between items-center gap-2">
             <div className="flex gap-2">
-              <Button variant="outline" icon={Search} onClick={handleRefresh} size="sm" className="text-xs sm:text-sm">
+              <Button variant="outline" icon={RotateCw} onClick={handleRefresh} size="sm" className="text-xs sm:text-sm">
                 Actualizar
               </Button>
               {navigator.onLine && (pendingSync > 0 || localOrders.length > 0 || orders.some(o => (o as any)._isLocal)) && (
@@ -313,10 +315,11 @@ const Orders: React.FC = () => {
           <div className={`mb-4 rounded-xl border p-4 relative ${receivables.overdueCount > 0 ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'}`}>
             <button
               onClick={() => { setReceivablesDismissed(true); sessionStorage.setItem('receivablesBannerDismissed', '1'); }}
-              className="absolute top-2.5 right-2.5 p-1 text-gray-400 hover:text-gray-600 rounded"
+              className="absolute top-1 right-1 w-10 h-10 flex items-center justify-center text-gray-500 hover:text-gray-700 rounded-lg"
               title="Ocultar (reaparece en la próxima sesión)"
+              aria-label="Ocultar aviso de cartera"
             >
-              <span className="text-sm leading-none">✕</span>
+              <X className="w-4 h-4" />
             </button>
             <div className="flex items-start gap-2.5">
               <CreditCard className={`w-4 h-4 mt-0.5 flex-shrink-0 ${receivables.overdueCount > 0 ? 'text-red-600' : 'text-amber-600'}`} />
@@ -596,7 +599,8 @@ const Orders: React.FC = () => {
                     </h2>
                     <div className="flex items-center w-full sm:w-auto gap-2">
                       <input
-                        type="text"
+                        type="search"
+                        aria-label="Buscar órdenes"
                         placeholder="Buscar por cliente, usuario, orden o fecha"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}

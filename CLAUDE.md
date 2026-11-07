@@ -493,6 +493,27 @@ Ver plan completo en `PLAN-FEATURES-Y-POS.md` — este es el Punto 2 (base para 
 
 **Color primario hardcodeado en azul, corregido (v1.14.8)**: un tenant con `primaryColor` propio (ej. demo, rosa `#eb244b`) tenía el sidebar/botones bien temados pero precios, códigos de producto, badges y decenas de elementos más seguían en azul Tailwind hardcodeado (`text-blue-600`, `bg-blue-50`, etc.) en vez de usar el token `primary` (`rgb(var(--vf-primary))`, ver `index.css`) — mezcla inconsistente reportada por el usuario. Reemplazo mecánico de ~39 archivos tenant-facing (`bg/text/border/ring/from/to-blue-NNN` → sus equivalentes `primary`/`primary/NN` de opacidad) vía script, **excluyendo a propósito** `Superadmin.tsx`/`admin.tsx` (panel superadmin, tema oscuro fijo `#0f172a`, no es por-tenant) y `Landing.tsx`/`Registro.tsx` (marca pública de Merco, azul `#0057ff` real del logo nuevo, no debe seguir el color de ningún tenant). Colores semánticos (verde=éxito, rojo=error, ámbar=advertencia) no se tocaron, solo el azul que hacía de "primario" por defecto.
 
+## REDISEÑO UX/UI (nov 2026)
+
+Prototipo aprobado por el usuario (lienzo de diseño "Merco — Rediseño UX/UI", 6 pantallas:
+Productos, Órdenes, Nueva orden, POS en desktop + Productos y Nueva orden en celular). Principios:
+el color del tenant solo marca acción principal/selección/foco; estados con colores semánticos
+fijos (pendiente ámbar, en proceso azul cielo, completada verde, cancelada gris, rojo solo para
+vencido/agotado); nada de `text-gray-400` en texto (no pasa AA); touch ≥44px en móvil/POS;
+`aria-label` en todo botón de ícono; menú agrupado Vender / Catálogo / Negocio.
+
+- **v1.18.0 — fase 1 (hecho)**: arreglos rápidos + **IVA por producto** (`products.taxRate`,
+  DECIMAL(5,2), `ensureSchema` rellena con el IVA de la última venta de cada producto). OrderNew/
+  QuoteNew/OrderEdit/QuoteEdit prellenan el IVA desde el producto (el vendedor puede cambiarlo).
+  `components/features/TaxRateField.tsx` (19/5/0). `utils/roles.ts` (`roleLabel`).
+  **Decisión pendiente del usuario**: el POS sigue mandando `taxRate: 0` (cobra el precio de
+  venta tal cual); aplicarle el IVA del producto cambiaría lo que se cobra en caja.
+- **Siguientes fases (pendiente)**: token `--vf-on-primary` por contraste (colores de tenant
+  claros), componente único de pestañas y modales (Orders/Reports/Inventory), Órdenes como tabla
+  con saldo/vencimiento + cartera, Nueva orden rediseñada (buscador siempre activo, +/− en línea,
+  resumen fijo), POS con más vendidos visibles y cobro en el panel, panel de producto sin overlay,
+  tipografía, y el resto de páginas (índigo fijo en compras/Reports/Login/SearchableSelect).
+
 ## INVENTARIO Y KARDEX (ago 2026)
 
 - **DECIMAL como número**: `dialectOptions: { decimalNumbers: true }` en `database/index.ts` — sin esto MySQL devuelve DECIMAL como string y las sumas concatenan texto (bug real: recibir compra dejaba stock "-1620"). `createMovement` además valida/coacciona `quantity`

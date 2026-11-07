@@ -129,6 +129,30 @@ export async function ensureSchema(): Promise<void> {
     logger.info('[ensureSchema] Column purchase_orders.affectsStock added');
   }
 
+  // IVA por producto (v1.18.0): la orden toma el IVA de la ficha en vez de
+  // arrancar en 0 en cada línea. Al crear la columna se rellena con el último
+  // IVA con que se vendió cada producto (lo que el vendedor ya venía usando);
+  // los nunca vendidos quedan en 0, igual que antes.
+  const productCols = await qi.describeTable('products');
+  if (!('taxRate' in productCols)) {
+    await qi.addColumn('products', 'taxRate', {
+      type: DataType.DECIMAL(5, 2),
+      allowNull: false,
+      defaultValue: 0,
+    } as never);
+    await sequelize.query(`
+      UPDATE products p
+      JOIN (
+        SELECT oi.productId, oi.taxRate
+        FROM order_items oi
+        JOIN (SELECT productId, MAX(id) AS lastId FROM order_items GROUP BY productId) last
+          ON last.lastId = oi.id
+      ) t ON t.productId = p.id
+      SET p.taxRate = t.taxRate
+    `);
+    logger.info('[ensureSchema] Column products.taxRate added (backfilled from last sale)');
+  }
+
   if (missing.length === 0) {
     logger.info('[ensureSchema] Schema up to date');
   }

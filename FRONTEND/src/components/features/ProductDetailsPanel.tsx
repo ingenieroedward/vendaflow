@@ -50,10 +50,12 @@ const ProductDetailsPanel: React.FC<ProductDetailsPanelProps> = ({ product, onCl
             <h2 id="product-panel-title" className="text-base sm:text-lg font-semibold text-gray-900 leading-snug break-words">
               {product.name}
             </h2>
-            <p className="text-sm text-gray-500 mt-0.5">
+            <p className="text-sm text-gray-600 mt-0.5">
               <span className="font-mono text-primary">{product.code}</span>
               <span className="text-gray-300 mx-1.5">•</span>
               {product.unit}
+              <span className="text-gray-300 mx-1.5">•</span>
+              IVA {Number(product.taxRate ?? 0)}%
             </p>
           </div>
           <button

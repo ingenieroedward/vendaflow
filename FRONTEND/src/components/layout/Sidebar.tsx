@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { useTenantStore } from '../../store/tenantStore';
 import { useTenantRenewalStatus } from '../../hooks/useTenantRenewalStatus';
+import { roleLabel } from '../../utils/roles';
 
 interface NavItem {
   label: string;
@@ -12,21 +13,26 @@ interface NavItem {
   feature?: string; // si se define, solo se muestra si el tenant tiene esa feature del plan
 }
 
-const NAV_ITEMS: NavItem[] = [
-  { label: 'Productos', to: '/', icon: Package, roles: ['buyer', 'seller', 'admin'] },
-  { label: 'Precios', to: '/prices', icon: DollarSign, roles: ['buyer', 'admin'] },
-  { label: 'Proveedores', to: '/suppliers', icon: Truck, roles: ['buyer', 'admin'] },
-  { label: 'Categorías', to: '/categories', icon: Tag, roles: ['buyer', 'admin'] },
-  { label: 'Clientes', to: '/customers', icon: UserCheck, roles: ['seller', 'admin'] },
-  { label: 'Órdenes', to: '/orders', icon: ClipboardList, roles: ['seller', 'admin'] },
-  { label: 'Cotizaciones', to: '/quotes', icon: FileText, roles: ['seller', 'admin'], feature: 'quotes' },
-  { label: 'Punto de venta', to: '/pos', icon: Store, roles: ['seller', 'admin'], feature: 'pos' },
-  { label: 'Inventario', to: '/inventory', icon: Warehouse, roles: ['seller', 'admin'] },
-  { label: 'Órdenes Compra', to: '/purchase-orders', icon: ShoppingCart, roles: ['seller', 'admin'] },
-  { label: 'Informes', to: '/reports', icon: BarChart2, roles: ['seller', 'admin'] },
-  { label: 'Usuarios', to: '/users', icon: Users, roles: ['admin'] },
-  { label: 'Facturación', to: '/billing', icon: CreditCard, roles: ['admin'] },
-  { label: 'Configuración', to: '/settings', icon: Settings, roles: ['admin'] },
+// Agrupado por tarea (antes 14 enlaces planos): lo de vender primero, para
+// que el vendedor no busque el POS entre Proveedores y Categorías
+type NavGroup = 'Vender' | 'Catálogo' | 'Negocio';
+const NAV_GROUPS: NavGroup[] = ['Vender', 'Catálogo', 'Negocio'];
+
+const NAV_ITEMS: (NavItem & { group: NavGroup })[] = [
+  { label: 'Punto de venta', to: '/pos', icon: Store, roles: ['seller', 'admin'], feature: 'pos', group: 'Vender' },
+  { label: 'Órdenes', to: '/orders', icon: ClipboardList, roles: ['seller', 'admin'], group: 'Vender' },
+  { label: 'Cotizaciones', to: '/quotes', icon: FileText, roles: ['seller', 'admin'], feature: 'quotes', group: 'Vender' },
+  { label: 'Clientes', to: '/customers', icon: UserCheck, roles: ['seller', 'admin'], group: 'Vender' },
+  { label: 'Productos', to: '/', icon: Package, roles: ['buyer', 'seller', 'admin'], group: 'Catálogo' },
+  { label: 'Inventario', to: '/inventory', icon: Warehouse, roles: ['seller', 'admin'], group: 'Catálogo' },
+  { label: 'Precios', to: '/prices', icon: DollarSign, roles: ['buyer', 'admin'], group: 'Catálogo' },
+  { label: 'Proveedores', to: '/suppliers', icon: Truck, roles: ['buyer', 'admin'], group: 'Catálogo' },
+  { label: 'Categorías', to: '/categories', icon: Tag, roles: ['buyer', 'admin'], group: 'Catálogo' },
+  { label: 'Órdenes de compra', to: '/purchase-orders', icon: ShoppingCart, roles: ['seller', 'admin'], group: 'Catálogo' },
+  { label: 'Informes', to: '/reports', icon: BarChart2, roles: ['seller', 'admin'], group: 'Negocio' },
+  { label: 'Usuarios', to: '/users', icon: Users, roles: ['admin'], group: 'Negocio' },
+  { label: 'Facturación', to: '/billing', icon: CreditCard, roles: ['admin'], group: 'Negocio' },
+  { label: 'Configuración', to: '/settings', icon: Settings, roles: ['admin'], group: 'Negocio' },
 ];
 
 const Sidebar = () => {
@@ -66,28 +72,38 @@ const Sidebar = () => {
       </div>
 
       {/* Nav links */}
-      <nav className="flex-1 px-3 py-4 space-y-1" aria-label="Navegación principal">
-        {visibleItems.map((item) => {
-          const active = isActive(item.to);
+      {/* min-h-0 + overflow: en pantallas bajas (768px) con avisos de plan,
+          antes la sección de usuario quedaba cortada */}
+      <nav className="flex-1 min-h-0 overflow-y-auto px-3 py-3" aria-label="Navegación principal">
+        {NAV_GROUPS.map((group) => {
+          const items = visibleItems.filter((i) => i.group === group);
+          if (items.length === 0) return null;
           return (
-            <Link
-              key={item.to}
-              to={item.to}
-              className={`flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors duration-150 ${
-                active
-                  ? 'bg-primary/10 text-primary font-semibold'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-              }`}
-              aria-current={active ? 'page' : undefined}
-            >
-              <item.icon
-                className={`w-5 h-5 flex-shrink-0 ${active ? 'text-primary' : 'text-gray-400'}`}
-              />
-              <span>{item.label}</span>
-              {active && (
-                <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" aria-hidden="true" />
-              )}
-            </Link>
+            <div key={group} className="mb-3 last:mb-0">
+              <p className="px-3 pb-1 pt-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500">{group}</p>
+              <div className="space-y-0.5">
+                {items.map((item) => {
+                  const active = isActive(item.to);
+                  return (
+                    <Link
+                      key={item.to}
+                      to={item.to}
+                      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+                        active
+                          ? 'bg-primary/10 text-gray-900 font-semibold'
+                          : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
+                      }`}
+                      aria-current={active ? 'page' : undefined}
+                    >
+                      <item.icon
+                        className={`w-5 h-5 flex-shrink-0 ${active ? 'text-primary' : 'text-gray-500'}`}
+                      />
+                      <span>{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
           );
         })}
       </nav>
@@ -140,20 +156,20 @@ const Sidebar = () => {
       {user && (
         <div className="border-t border-gray-100 px-3 py-4">
           <div className="flex items-center space-x-3 px-2 py-2 mb-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-primary/70 to-primary rounded-full flex items-center justify-center shadow-sm flex-shrink-0">
+            <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center shadow-sm flex-shrink-0">
               <User className="w-4 h-4 text-white" />
             </div>
             <div className="min-w-0">
               <p className="text-sm font-semibold text-gray-900 truncate">{user.name || user.username}</p>
-              <p className="text-xs text-gray-400 capitalize flex items-center space-x-1">
+              <p className="text-xs text-gray-600 flex items-center space-x-1">
                 <Shield className="w-3 h-3 flex-shrink-0" />
-                <span>{user.role}</span>
+                <span>{roleLabel(user.role)}</span>
               </p>
             </div>
           </div>
           <Link
             to="/profile"
-            className="flex items-center space-x-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors duration-150"
+            className="flex items-center space-x-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors duration-150"
           >
             <User className="w-5 h-5 flex-shrink-0" />
             <span>Mi perfil</span>

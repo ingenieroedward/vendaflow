@@ -189,7 +189,7 @@ const Inventory: React.FC = () => {
               </button>
               <button
                 onClick={() => navigate('/purchase-orders/new')}
-                className="flex items-center gap-1 px-2.5 py-1.5 text-xs sm:text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+                className="flex items-center gap-1 px-2.5 py-1.5 text-xs sm:text-sm bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium"
               >
                 <Plus size={13} /> <span>Nueva OC</span>
               </button>
@@ -207,11 +207,11 @@ const Inventory: React.FC = () => {
 
       {/* Banner modo edición — compacto en mobile */}
       {editMode && (
-        <div className="mb-4 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2.5 sm:px-4 sm:py-3">
+        <div className="mb-4 rounded-xl border border-primary/30 bg-primary/5 px-3 py-2.5 sm:px-4 sm:py-3">
           {/* Fila 1: título + acciones masivas */}
           <div className="flex items-center gap-2 flex-wrap">
-            <Edit3 size={13} className="text-indigo-600 flex-shrink-0" />
-            <span className="text-xs sm:text-sm font-medium text-indigo-800 flex-1 whitespace-nowrap">
+            <Edit3 size={13} className="text-primary flex-shrink-0" />
+            <span className="text-xs sm:text-sm font-medium text-gray-900 flex-1 whitespace-nowrap">
               Modo edición
             </span>
             <div className="flex items-center gap-1.5 flex-wrap">
@@ -302,7 +302,7 @@ const Inventory: React.FC = () => {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         <div className="bg-white rounded-xl border border-gray-200 p-4">
           <div className="flex items-center gap-3">
-            <Package className="text-indigo-500" size={22} />
+            <Package className="text-primary" size={22} />
             <div>
               <p className="text-xl font-bold text-gray-900">{products.length}</p>
               <p className="text-xs text-gray-500">Totales</p>
@@ -356,7 +356,7 @@ const Inventory: React.FC = () => {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Buscar producto..."
-            className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
         <div className="flex gap-2 flex-wrap">
@@ -366,7 +366,7 @@ const Inventory: React.FC = () => {
               onClick={() => setFilter(f.key)}
               className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${
                 filter === f.key
-                  ? f.danger ? 'bg-red-600 text-white border-red-600' : 'bg-indigo-600 text-white border-indigo-600'
+                  ? f.danger ? 'bg-red-600 text-white border-red-600' : 'bg-primary text-white border-primary'
                   : f.danger && negativeStock.length > 0
                     ? 'bg-white text-red-600 border-red-300 hover:bg-red-50'
                     : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
@@ -396,7 +396,7 @@ const Inventory: React.FC = () => {
                 <div
                   key={product.id}
                   className={`rounded-xl border p-3 transition-colors ${
-                    isEdited ? 'bg-indigo-50 border-indigo-300' :
+                    isEdited ? 'bg-primary/5 border-primary/40' :
                     displayStock < 0 ? 'bg-red-50 border-red-200' :
                     displayStock === 0 ? 'bg-red-50/60 border-red-100' :
                     displayStock <= product.minStock ? 'bg-yellow-50/60 border-yellow-100' :
@@ -419,7 +419,7 @@ const Inventory: React.FC = () => {
                           type="number"
                           value={displayStock}
                           onChange={e => setEdit(product.id, parseFloat(e.target.value) || 0)}
-                          className="w-24 px-2 py-1 border-2 border-indigo-400 rounded-lg text-base font-bold text-center focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          className="w-24 px-2 py-1 border-2 border-primary/60 rounded-lg text-base font-bold text-center focus:outline-none focus:ring-2 focus:ring-primary"
                         />
                       ) : (
                         <span className={`text-xl font-bold ${displayStock < 0 ? 'text-red-600' : displayStock === 0 ? 'text-red-500' : 'text-gray-900'}`}>
@@ -449,7 +449,7 @@ const Inventory: React.FC = () => {
                   <th className="px-4 py-3 text-left">Categoría</th>
                   <th className="px-4 py-3 text-center">
                     {editMode ? (
-                      <span className="text-indigo-600 flex items-center justify-center gap-1">
+                      <span className="text-primary flex items-center justify-center gap-1">
                         <Edit3 size={11} /> Stock actual
                       </span>
                     ) : 'Stock actual'}
@@ -474,7 +474,7 @@ const Inventory: React.FC = () => {
                     <tr
                       key={product.id}
                       className={`transition-colors ${
-                        isEdited ? 'bg-indigo-50' :
+                        isEdited ? 'bg-primary/5' :
                         displayStock < 0 ? 'bg-red-50 hover:bg-red-100' :
                         displayStock === 0 ? 'bg-red-50/40 hover:bg-red-50' :
                         displayStock <= product.minStock ? 'bg-yellow-50/40 hover:bg-yellow-50' :
@@ -490,8 +490,8 @@ const Inventory: React.FC = () => {
                             type="number"
                             value={displayStock}
                             onChange={e => setEdit(product.id, parseFloat(e.target.value) || 0)}
-                            className={`w-24 px-2 py-1 border-2 rounded-lg text-sm font-bold text-center focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                              isEdited ? 'border-indigo-400 bg-white' : 'border-gray-300 bg-white'
+                            className={`w-24 px-2 py-1 border-2 rounded-lg text-sm font-bold text-center focus:outline-none focus:ring-2 focus:ring-primary ${
+                              isEdited ? 'border-primary/60 bg-white' : 'border-gray-300 bg-white'
                             }`}
                           />
                         ) : (
@@ -540,7 +540,7 @@ const Inventory: React.FC = () => {
                       key={p}
                       onClick={() => setPage(p)}
                       className={`w-8 h-8 text-sm rounded-lg border transition-colors ${
-                        p === page ? 'bg-indigo-600 text-white border-indigo-600' : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                        p === page ? 'bg-primary text-white border-primary' : 'border-gray-300 text-gray-600 hover:bg-gray-50'
                       }`}
                     >
                       {p}
@@ -564,11 +564,11 @@ const Inventory: React.FC = () => {
       {editMode && (
         <div className={`fixed bottom-16 md:bottom-0 inset-x-0 z-50 flex justify-center px-4 pb-4 pt-2 pointer-events-none`}>
           <div className={`pointer-events-auto w-full max-w-lg bg-white border shadow-2xl rounded-2xl px-4 py-3 flex items-center gap-3 transition-all ${
-            modifiedCount > 0 ? 'border-indigo-300' : 'border-gray-200'
+            modifiedCount > 0 ? 'border-primary/40' : 'border-gray-200'
           }`}>
             <div className="flex-1 min-w-0">
               {modifiedCount > 0 ? (
-                <p className="text-sm font-semibold text-indigo-700">
+                <p className="text-sm font-semibold text-gray-900">
                   {modifiedCount} producto{modifiedCount !== 1 ? 's' : ''} modificado{modifiedCount !== 1 ? 's' : ''}
                 </p>
               ) : (
@@ -584,7 +584,7 @@ const Inventory: React.FC = () => {
             <button
               onClick={saveAll}
               disabled={modifiedCount === 0 || saving}
-              className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-semibold bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               {saving ? <LoadingSpinner size="sm" /> : <Save size={14} />}
               {saving ? 'Guardando...' : 'Guardar todo'}

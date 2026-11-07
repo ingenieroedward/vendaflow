@@ -4,6 +4,7 @@ import { ArrowLeft, Package, Save, Plus, DollarSign, Building, X } from 'lucide-
 import { useUIStore } from '../store/uiStore';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
+import TaxRateField from '../components/features/TaxRateField';
 import { productService } from '../services/products';
 import { Supplier, CreateSupplierRequest, CreatePriceRequest, Category } from '../types/product';
 
@@ -13,6 +14,7 @@ interface ProductFormData {
   unit: string;
   categoryId?: number | null;
   salePrice: number;
+  taxRate: number;
 }
 
 interface SupplierFormData {
@@ -45,6 +47,7 @@ const ProductNew: React.FC = () => {
     code: '',
     unit: 'unidad',
     salePrice: 0,
+    taxRate: 19,
   });
   const [errors, setErrors] = useState<ProductFormErrors>({});
   
@@ -376,6 +379,11 @@ const ProductNew: React.FC = () => {
                   error={errors.salePrice}
                   placeholder="Ej: 100.00"
                   required
+                />
+
+                <TaxRateField
+                  value={formData.taxRate}
+                  onChange={(taxRate) => setFormData(prev => ({ ...prev, taxRate }))}
                 />
               </div>
             </div>

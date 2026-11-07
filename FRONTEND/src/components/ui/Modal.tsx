@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useId, useRef } from 'react';
 import { X } from 'lucide-react';
 
 interface ModalProps {
@@ -25,6 +25,18 @@ const Modal: React.FC<ModalProps> = ({
   size = 'md',
   showCloseButton = true,
 }) => {
+  const titleId = useId();
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  // Foco: entra al diálogo al abrir y vuelve a donde estaba al cerrar
+  // (antes el lector de pantalla y el teclado quedaban detrás del modal)
+  useEffect(() => {
+    if (!isOpen) return;
+    const previous = document.activeElement as HTMLElement | null;
+    dialogRef.current?.focus();
+    return () => { previous?.focus?.(); };
+  }, [isOpen]);
+
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     if (isOpen) {
@@ -45,7 +57,12 @@ const Modal: React.FC<ModalProps> = ({
       onClick={onClose}
     >
       <div
-        className={`animate-slide-up w-full ${sizeClasses[size]} bg-white rounded-t-2xl sm:rounded-2xl shadow-xl max-h-[90vh] overflow-y-auto`}
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={title ? titleId : undefined}
+        tabIndex={-1}
+        className={`animate-slide-up focus:outline-none w-full ${sizeClasses[size]} bg-white rounded-t-2xl sm:rounded-2xl shadow-xl max-h-[90vh] overflow-y-auto`}
         onClick={e => e.stopPropagation()}
       >
         {/* Handle bar — mobile only */}
@@ -56,9 +73,9 @@ const Modal: React.FC<ModalProps> = ({
         {/* Header */}
         {(title || showCloseButton) && (
           <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-            {title && <h3 className="text-base font-semibold text-gray-900">{title}</h3>}
+            {title && <h3 id={titleId} className="text-base font-semibold text-gray-900">{title}</h3>}
             {showCloseButton && (
-              <button onClick={onClose} className="ml-auto p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
+              <button onClick={onClose} aria-label="Cerrar" className="ml-auto -mr-2 w-11 h-11 flex items-center justify-center rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors">
                 <X className="w-5 h-5" />
               </button>
             )}
