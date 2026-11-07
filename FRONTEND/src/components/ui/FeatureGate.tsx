@@ -30,7 +30,7 @@ const FeatureGate: React.FC<FeatureGateProps> = ({ feature, planLabel = 'Pro', c
       </p>
       <Link
         to="/billing"
-        className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-primary/90 transition-colors"
+        className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-on-primary text-sm font-semibold rounded-lg hover:bg-primary/90 transition-colors"
       >
         Ver mi plan
       </Link>

@@ -412,14 +412,14 @@ const QuoteDetail: React.FC = () => {
                   onClick={() => { setShowPdfMenu(false); handlePrint(); }}
                   className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
                 >
-                  <Download className="w-3.5 h-3.5 text-gray-400" />
+                  <Download className="w-3.5 h-3.5 text-gray-500" />
                   Ticket 80mm
                 </button>
                 <button
                   onClick={() => handlePrintCarta()}
                   className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
                 >
-                  <Download className="w-3.5 h-3.5 text-gray-400" />
+                  <Download className="w-3.5 h-3.5 text-gray-500" />
                   Hoja carta
                 </button>
                 {!Capacitor.isNativePlatform() && (
@@ -427,7 +427,7 @@ const QuoteDetail: React.FC = () => {
                     onClick={() => handleDirectPrint()}
                     className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 border-t border-gray-100"
                   >
-                    <Printer className="w-3.5 h-3.5 text-gray-400" />
+                    <Printer className="w-3.5 h-3.5 text-gray-500" />
                     Imprimir (térmica)
                   </button>
                 )}
@@ -477,16 +477,16 @@ const QuoteDetail: React.FC = () => {
         {/* Info row compacto */}
         <div className="bg-white rounded-xl border border-gray-200 p-3 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
           <div className="flex items-center gap-1.5 text-gray-600">
-            <Calendar className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+            <Calendar className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
             <span>{formatDate(currentQuote.createdAt)}</span>
           </div>
           <div className="flex items-center gap-1.5 text-gray-600">
-            <User className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+            <User className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
             <span>{currentQuote.user?.username ?? `Usuario #${currentQuote.userId}`}</span>
           </div>
           {currentQuote.validUntil && (
             <div className="flex items-center gap-1.5 text-gray-600 col-span-2">
-              <CalendarClock className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+              <CalendarClock className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
               <span>Válida hasta {format(new Date(currentQuote.validUntil), "d 'de' MMMM 'de' yyyy", { locale: es })}</span>
             </div>
           )}
@@ -498,25 +498,25 @@ const QuoteDetail: React.FC = () => {
 
         {/* Cliente compacto */}
         <div className="bg-white rounded-xl border border-gray-200 p-3">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Cliente</p>
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Cliente</p>
           <p className="font-semibold text-sm text-gray-900">
             {currentQuote.customer?.name ?? `Cliente #${currentQuote.customerId}`}
           </p>
           {currentQuote.customer?.nit && (
             <div className="flex items-center gap-1.5 mt-1 text-xs text-gray-600">
-              <span className="text-gray-400 font-medium">NIT/CC:</span>
+              <span className="text-gray-500 font-medium">NIT/CC:</span>
               <span>{currentQuote.customer.nit}</span>
             </div>
           )}
           {currentQuote.customer?.contact && (
             <div className="flex items-center gap-1.5 mt-1 text-xs text-gray-600">
-              <Phone className="w-3 h-3 text-gray-400" />
+              <Phone className="w-3 h-3 text-gray-500" />
               <span>{currentQuote.customer.contact}</span>
             </div>
           )}
           {currentQuote.customer?.address && (
             <div className="flex items-center gap-1.5 mt-0.5 text-xs text-gray-600">
-              <MapPin className="w-3 h-3 text-gray-400" />
+              <MapPin className="w-3 h-3 text-gray-500" />
               <span>{currentQuote.customer.address}</span>
             </div>
           )}
@@ -534,7 +534,7 @@ const QuoteDetail: React.FC = () => {
         <div className="bg-white rounded-xl border border-gray-200 p-3">
           <div className="flex items-center gap-1.5 mb-2">
             <Package className="w-3.5 h-3.5 text-green-600" />
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Productos</p>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Productos</p>
           </div>
 
           {/* Lista de items - filas compactas en móvil */}
@@ -548,7 +548,7 @@ const QuoteDetail: React.FC = () => {
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900 truncate">{item.product?.name}</p>
-                      <p className="text-xs text-gray-400">{item.product?.code} · {item.quantity} × {formatCurrency(item.unitPrice)}{item.taxRate ? ` + IVA ${item.taxRate}%` : ''}</p>
+                      <p className="text-xs text-gray-500">{item.product?.code} · {item.quantity} × {formatCurrency(item.unitPrice)}{item.taxRate ? ` + IVA ${item.taxRate}%` : ''}</p>
                     </div>
                     <p className="text-sm font-semibold text-green-600 flex-shrink-0">{formatCurrency(itemTotal)}</p>
                   </div>

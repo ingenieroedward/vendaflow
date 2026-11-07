@@ -50,7 +50,7 @@ const ChangePasswordModal: React.FC<Props> = ({ isOpen, onClose }) => {
     <Modal isOpen={isOpen} onClose={close} title="Cambiar contraseña">
       <form onSubmit={submit} className="space-y-4 p-1">
         <div className="flex items-center gap-2 text-xs text-gray-500 bg-gray-50 rounded-lg p-3">
-          <KeyRound className="w-4 h-4 text-gray-400 flex-shrink-0" />
+          <KeyRound className="w-4 h-4 text-gray-500 flex-shrink-0" />
           <span>Por seguridad, confirma tu contraseña actual antes de elegir la nueva.</span>
         </div>
 
@@ -114,7 +114,7 @@ const ChangePasswordModal: React.FC<Props> = ({ isOpen, onClose }) => {
           <button
             type="submit"
             disabled={saving}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors"
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold bg-primary text-on-primary rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors"
           >
             {saving ? <LoadingSpinner size="sm" /> : <KeyRound className="w-4 h-4" />}
             {saving ? 'Guardando…' : 'Cambiar contraseña'}

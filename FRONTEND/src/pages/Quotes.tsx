@@ -254,11 +254,11 @@ const Quotes: React.FC = () => {
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
         {/* Header */}
         <div className="mb-6 sm:mb-8">
-          <div className="text-center mb-6 sm:mb-8">
-            <h1 className="text-xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2 px-2">
+          <div className="mb-4">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
               Cotizaciones
             </h1>
-            <p className="text-sm text-balance sm:text-lg text-gray-600 px-2">
+            <p className="text-sm text-gray-600">
               Propuestas comerciales — no afectan el inventario hasta convertirse en orden.
             </p>
           </div>
@@ -356,7 +356,7 @@ const Quotes: React.FC = () => {
             <div className="flex items-center gap-2 px-1">
               <Trash2 className="w-4 h-4 text-red-500" />
               <span className="text-sm font-medium text-red-700">Cotizaciones eliminadas</span>
-              <span className="text-xs text-gray-400">— Solo admins pueden restaurar o eliminar definitivamente</span>
+              <span className="text-xs text-gray-500">— Solo admins pueden restaurar o eliminar definitivamente</span>
             </div>
 
             {trashLoading ? (
@@ -364,7 +364,7 @@ const Quotes: React.FC = () => {
             ) : trashList.length === 0 ? (
               <div className="text-center py-16">
                 <Trash2 className="w-12 h-12 text-gray-200 mx-auto mb-3" />
-                <p className="text-gray-400 text-sm">La papelera está vacía</p>
+                <p className="text-gray-500 text-sm">La papelera está vacía</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -374,19 +374,19 @@ const Quotes: React.FC = () => {
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-gray-700 line-through">#{quote.quoteNumber}</p>
                         <p className="text-xs text-gray-500 truncate">{quote.customer?.name ?? `Cliente #${quote.customerId}`}</p>
-                        <p className="text-xs text-gray-400">{formatCurrency(quote.totalAmount)}</p>
+                        <p className="text-xs text-gray-500">{formatCurrency(quote.totalAmount)}</p>
                       </div>
                       <div className="flex gap-1 ml-2">
                         <button
                           onClick={() => handleRestore(quote.id)}
-                          className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                          className="p-1.5 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                           title="Restaurar"
                         >
                           <RotateCcw className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => setHardDeleteConfirm(quote.id)}
-                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                           title="Eliminar definitivamente"
                         >
                           <AlertTriangle className="w-4 h-4" />
@@ -452,7 +452,7 @@ const Quotes: React.FC = () => {
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-gray-400 mt-0.5">{quote.createdAt ? formatDate(quote.createdAt) : '—'}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">{quote.createdAt ? formatDate(quote.createdAt) : '—'}</p>
                       </div>
                       <div className="flex items-center gap-1.5">
                         {getSyncStatusIcon({ quote, customerName, attempts, errorMsg, lastAttemptAt })}
@@ -462,7 +462,7 @@ const Quotes: React.FC = () => {
 
                     <div className="space-y-1.5 mb-3">
                       <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <User className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                        <User className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
                         <span className="truncate">{customerName ?? `Cliente #${quote.customerId}`}</span>
                       </div>
                       <div className="flex items-center justify-between">
@@ -567,11 +567,11 @@ const Quotes: React.FC = () => {
 
                           <div className="space-y-3 mb-4">
                             <div className="flex items-center space-x-2">
-                              <User className="w-4 h-4 text-gray-400" />
+                              <User className="w-4 h-4 text-gray-500" />
                               <span className="text-sm text-gray-600">Cliente: {quote.customer?.name || `ID: ${quote.customerId}`}</span>
                             </div>
                             <div className="flex items-center space-x-2">
-                              <User className="w-4 h-4 text-gray-400" />
+                              <User className="w-4 h-4 text-gray-500" />
                               <span className="text-sm text-gray-600">Creada por: {quote.user?.username || `ID: ${quote.userId}`}</span>
                             </div>
 

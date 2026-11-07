@@ -117,7 +117,7 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/10 to-indigo-100 flex flex-col">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Main Content */}
       <div className="flex-1 flex items-center justify-center py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-sm sm:max-w-md w-full space-y-6 sm:space-y-8">
@@ -128,7 +128,7 @@ const Login: React.FC = () => {
                 <img src={tenant.logoUrl} alt={tenant.name} className="w-12 h-12 sm:w-16 sm:h-16 object-contain rounded-xl" />
               ) : (
                 <div className="w-12 h-12 sm:w-16 sm:h-16 bg-primary rounded-full flex items-center justify-center">
-                  <Package className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
+                  <Package className="w-6 h-6 sm:w-8 sm:h-8 text-on-primary" />
                 </div>
               )}
             </div>
@@ -176,7 +176,7 @@ const Login: React.FC = () => {
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                  className="absolute right-1 top-7 sm:top-8 w-10 h-10 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                  className="absolute right-1 top-7 sm:top-8 w-10 h-10 flex items-center justify-center text-gray-500 hover:text-gray-600 transition-colors duration-200"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -191,7 +191,7 @@ const Login: React.FC = () => {
                 {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
               </Button>
             </form>
-            <p className="text-center text-xs text-gray-400 mt-4">
+            <p className="text-center text-xs text-gray-500 mt-4">
               ¿No tienes cuenta?{' '}
               <a href="/registro" className="text-primary hover:underline font-medium">Solicita tu prueba gratis</a>
             </p>
@@ -202,7 +202,7 @@ const Login: React.FC = () => {
       <div className=" px-4 sm:px-6 lg:px-8">
         <div className="max-w-sm sm:max-w-md mx-auto text-center space-y-2">
          
-          <div className="block  flex-col sm:flex-row items-center justify-center space-y-1 sm:space-y-0 sm:space-x-4 text-xs text-gray-400">
+          <div className="block  flex-col sm:flex-row items-center justify-center space-y-1 sm:space-y-0 sm:space-x-4 text-xs text-gray-500">
             <span>© {new Date().getFullYear()} {tenant?.name ?? 'Merco'}. Todos los derechos reservados.</span>
             <br />
             <span>

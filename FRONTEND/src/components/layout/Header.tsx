@@ -108,7 +108,7 @@ const Header = () => {
                   aria-haspopup="true"
                   className="relative w-9 h-9 bg-primary rounded-full flex items-center justify-center shadow-sm"
                 >
-                  <User className="w-4 h-4 text-white" />
+                  <User className="w-4 h-4 text-on-primary" />
                   {/* green = online & synced, orange = has pending */}
                   <span
                     className={`absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white ${
@@ -127,7 +127,7 @@ const Header = () => {
                       <div className="px-4 py-3 border-b border-gray-100">
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 bg-primary rounded-full flex items-center justify-center shadow-sm shrink-0">
-                            <User className="w-4 h-4 text-white" />
+                            <User className="w-4 h-4 text-on-primary" />
                           </div>
                           <div>
                             <p className="text-sm font-semibold text-gray-900">{user.name || user.username}</p>

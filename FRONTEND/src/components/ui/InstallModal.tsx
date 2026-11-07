@@ -92,7 +92,7 @@ const InstallModal: React.FC<InstallModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+            className="p-2 rounded-xl text-gray-500 hover:text-gray-600 hover:bg-gray-100 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -261,7 +261,7 @@ const AndroidInstructions: React.FC<AndroidInstructionsProps> = ({
       <button
         onClick={onInstall}
         disabled={installing}
-        className="w-full flex items-center justify-center gap-2 bg-primary text-white py-3.5 rounded-xl font-semibold text-sm shadow-sm active:scale-95 transition-transform disabled:opacity-60"
+        className="w-full flex items-center justify-center gap-2 bg-primary text-on-primary py-3.5 rounded-xl font-semibold text-sm shadow-sm active:scale-95 transition-transform disabled:opacity-60"
       >
         {installing ? (
           <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
@@ -411,7 +411,7 @@ const ManualTab: React.FC = () => {
               {s.icon}
             </div>
             <span className="text-sm font-medium text-gray-900 flex-1">{s.title}</span>
-            <ChevronRight className="w-4 h-4 text-gray-400 group-open:rotate-90 transition-transform" />
+            <ChevronRight className="w-4 h-4 text-gray-500 group-open:rotate-90 transition-transform" />
           </summary>
           <div className="px-4 pb-4 pt-1">
             <ol className="space-y-2">
@@ -442,7 +442,7 @@ const Step: React.FC<{ n: number; icon: React.ReactNode; color: string; children
     </div>
     <div className="flex-1 pt-1">
       <div className="flex items-center gap-2 mb-0.5">
-        <span className="text-xs font-bold text-gray-400">Paso {n}</span>
+        <span className="text-xs font-bold text-gray-500">Paso {n}</span>
       </div>
       {children}
     </div>

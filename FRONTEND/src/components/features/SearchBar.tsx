@@ -63,7 +63,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
   return (
     <div className="relative w-full max-w-2xl mx-auto">
       <div className="relative">
-        <Search className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
+        <Search className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
         <input
           type="text"
           value={localQuery}
@@ -77,7 +77,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
         {localQuery && (
           <button
             onClick={handleClear}
-            className="absolute right-3 sm:right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition-colors"
+            className="absolute right-3 sm:right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition-colors"
           >
             <X className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
@@ -109,13 +109,13 @@ const SearchBar: React.FC<SearchBarProps> = ({
                         <span className="text-xs sm:text-sm font-medium text-primary">
                           {product.code}
                         </span>
-                        <span className="text-xs sm:text-sm text-gray-400">•</span>
+                        <span className="text-xs sm:text-sm text-gray-500">•</span>
                         <span className="text-xs sm:text-sm text-gray-500">
                           {product.unit}
                         </span>
                         {product.category && (
                           <>
-                            <span className="text-xs sm:text-sm text-gray-400">•</span>
+                            <span className="text-xs sm:text-sm text-gray-500">•</span>
                             <span className="text-xs sm:text-sm text-gray-500 truncate">
                               {product.category.name}
                             </span>
@@ -138,7 +138,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
             <div className="px-4 py-8 sm:py-6 text-center text-gray-500">
               <Search className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 text-gray-300" />
               <p className="text-sm sm:text-base">No se encontraron productos</p>
-              <p className="text-xs sm:text-sm text-gray-400 mt-1">
+              <p className="text-xs sm:text-sm text-gray-500 mt-1">
                 Intenta con otros términos
               </p>
             </div>

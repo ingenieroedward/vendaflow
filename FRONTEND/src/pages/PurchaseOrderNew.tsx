@@ -124,14 +124,14 @@ const PurchaseOrderNew: React.FC = () => {
               <select
                 value={supplierId}
                 onChange={e => setSupplierId(e.target.value ? Number(e.target.value) : '')}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 pr-8 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 pr-8 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 <option value="">Seleccionar proveedor...</option>
                 {supplierOptions.map(s => (
                   <option key={s.id} value={s.id}>{s.name}</option>
                 ))}
               </select>
-              <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
             </div>
           </div>
           <div>
@@ -141,7 +141,7 @@ const PurchaseOrderNew: React.FC = () => {
               value={notes}
               onChange={e => setNotes(e.target.value)}
               placeholder="Observaciones de la orden..."
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
           <label className="flex items-start gap-2.5 cursor-pointer select-none">
@@ -149,11 +149,11 @@ const PurchaseOrderNew: React.FC = () => {
               type="checkbox"
               checked={affectsStock}
               onChange={e => setAffectsStock(e.target.checked)}
-              className="mt-0.5 w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              className="mt-0.5 w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
             />
             <span className="text-sm text-gray-700">
               Sumar al inventario al recibir
-              <span className="block text-xs text-gray-400 mt-0.5">
+              <span className="block text-xs text-gray-500 mt-0.5">
                 Desmárcalo si el stock ya fue cargado (ej. carga inicial) y solo registras la compra por costos.
               </span>
             </span>
@@ -187,7 +187,7 @@ const PurchaseOrderNew: React.FC = () => {
               step={0.01}
               value={quantity === 0 ? '' : quantity}
               onChange={e => setQuantity(parseFloat(e.target.value) || 0)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
           <div>
@@ -198,7 +198,7 @@ const PurchaseOrderNew: React.FC = () => {
               step={0.01}
               value={unitCost === 0 ? '' : unitCost}
               onChange={e => setUnitCost(parseFloat(e.target.value) || 0)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
         </div>
@@ -233,7 +233,7 @@ const PurchaseOrderNew: React.FC = () => {
                   <tr key={item.id}>
                     <td className="py-2">
                       <div className="font-medium text-gray-800">{item.product.name}</div>
-                      <div className="text-xs text-gray-400">{item.product.code} · {item.product.unit}</div>
+                      <div className="text-xs text-gray-500">{item.product.code} · {item.product.unit}</div>
                     </td>
                     <td className="py-2 text-center">
                       <input
@@ -272,7 +272,7 @@ const PurchaseOrderNew: React.FC = () => {
               <tfoot className="border-t-2 border-gray-200">
                 <tr>
                   <td colSpan={3} className="py-2 text-right font-semibold text-gray-700">Total orden:</td>
-                  <td className="py-2 text-right font-bold text-lg text-indigo-700">
+                  <td className="py-2 text-right font-bold text-lg text-primary">
                     ${totalAmount.toLocaleString('es-CO')}
                   </td>
                   <td></td>

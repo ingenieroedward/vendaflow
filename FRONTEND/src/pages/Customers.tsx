@@ -119,8 +119,8 @@ const Customers: React.FC = () => {
 
         {/* Header */}
         <div className="mb-6">
-          <div className="text-center mb-6">
-            <h1 className="text-xl sm:text-3xl font-bold text-gray-900 mb-1">Clientes</h1>
+          <div className="mb-4">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Clientes</h1>
             <p className="text-sm text-gray-600">Gestiona la base de clientes del sistema.</p>
           </div>
 
@@ -159,7 +159,7 @@ const Customers: React.FC = () => {
             <div className="flex items-center gap-2 mb-4 px-1">
               <Trash2 className="w-4 h-4 text-red-500" />
               <span className="text-sm font-medium text-red-700">Clientes eliminados</span>
-              <span className="text-xs text-gray-400">— Solo admins pueden restaurar o eliminar definitivamente</span>
+              <span className="text-xs text-gray-500">— Solo admins pueden restaurar o eliminar definitivamente</span>
             </div>
 
             {trashLoading ? (
@@ -167,7 +167,7 @@ const Customers: React.FC = () => {
             ) : trashList.length === 0 ? (
               <div className="text-center py-16">
                 <Trash2 className="w-12 h-12 text-gray-200 mx-auto mb-3" />
-                <p className="text-gray-400 text-sm">La papelera está vacía</p>
+                <p className="text-gray-500 text-sm">La papelera está vacía</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -176,20 +176,20 @@ const Customers: React.FC = () => {
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1 min-w-0">
                         <h3 className="text-sm font-semibold text-gray-700 truncate line-through">{customer.name}</h3>
-                        {customer.nit && <p className="text-xs text-gray-400">NIT: {customer.nit}</p>}
-                        {customer.contact && <p className="text-xs text-gray-400">{customer.contact}</p>}
+                        {customer.nit && <p className="text-xs text-gray-500">NIT: {customer.nit}</p>}
+                        {customer.contact && <p className="text-xs text-gray-500">{customer.contact}</p>}
                       </div>
                       <div className="flex gap-1 ml-2">
                         <button
                           onClick={() => handleRestore(customer.id)}
-                          className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                          className="p-1.5 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                           title="Restaurar"
                         >
                           <RotateCcw className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => setHardDeleteConfirm(customer.id)}
-                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                           title="Eliminar definitivamente"
                         >
                           <AlertTriangle className="w-4 h-4" />
@@ -206,7 +206,7 @@ const Customers: React.FC = () => {
         <>
         {/* Search */}
         <div className="relative mb-5">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
           <input
             type="text"
             placeholder="Buscar por código, nombre, NIT o contacto..."
@@ -260,7 +260,7 @@ const Customers: React.FC = () => {
                     <h3 className="text-sm font-semibold text-gray-900 truncate">{customer.name}</h3>
                     {customer.nit && (
                       <div className="flex items-center gap-1 mt-0.5">
-                        <Hash className="w-3 h-3 text-gray-400 flex-shrink-0" />
+                        <Hash className="w-3 h-3 text-gray-500 flex-shrink-0" />
                         <span className="text-xs text-gray-500">{customer.nit}</span>
                       </div>
                     )}
@@ -275,7 +275,7 @@ const Customers: React.FC = () => {
                     {canManage && (
                       <button
                         onClick={() => { setEditCustomer(customer); setShowModal(true); }}
-                        className="p-1.5 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                        className="p-1.5 text-gray-500 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
                         title="Editar"
                       >
                         <Edit className="w-4 h-4" />
@@ -284,7 +284,7 @@ const Customers: React.FC = () => {
                     {canDelete && (
                       <button
                         onClick={() => setDeleteConfirm(customer.id)}
-                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                         title="Eliminar"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -297,23 +297,23 @@ const Customers: React.FC = () => {
                 <div className="space-y-1">
                   {customer.contact && (
                     <div className="flex items-center gap-2 text-xs text-gray-500">
-                      <Phone className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                      <Phone className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
                       <span className="truncate">{customer.contact}</span>
                     </div>
                   )}
                   {customer.address && (
                     <div className="flex items-center gap-2 text-xs text-gray-500">
-                      <MapPin className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                      <MapPin className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
                       <span className="truncate">{customer.address}</span>
                     </div>
                   )}
                   {customer.note && (
-                    <p className="text-xs text-gray-400 italic truncate pt-0.5">{customer.note}</p>
+                    <p className="text-xs text-gray-500 italic truncate pt-0.5">{customer.note}</p>
                   )}
                 </div>
 
                 <div className="mt-3 pt-2 border-t border-gray-100">
-                  <span className="text-xs text-gray-400">Creado: {formatDate(customer.createdAt)}</span>
+                  <span className="text-xs text-gray-500">Creado: {formatDate(customer.createdAt)}</span>
                 </div>
               </div>
             ))}

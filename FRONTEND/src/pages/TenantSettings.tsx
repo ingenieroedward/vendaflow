@@ -89,16 +89,16 @@ const TenantSettings: React.FC = () => {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 sm:py-8">
-      <div className="text-center mb-6 sm:mb-8">
-        <h1 className="text-xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2 px-2">Configuración</h1>
-        <p className="text-sm sm:text-lg text-gray-600 px-2">Identidad y personalización de tu empresa.</p>
+      <div className="mb-4">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Configuración</h1>
+        <p className="text-sm text-gray-600">Identidad y personalización de tu empresa.</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Identidad */}
         <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
           <div className="flex items-center gap-2 pb-1">
-            <Building2 className="w-4 h-4 text-gray-400" />
+            <Building2 className="w-4 h-4 text-gray-500" />
             <h2 className="text-sm font-semibold text-gray-700">Identidad</h2>
           </div>
 
@@ -115,7 +115,7 @@ const TenantSettings: React.FC = () => {
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">
               URL del logo
-              <span className="font-normal text-gray-400 ml-1">(opcional)</span>
+              <span className="font-normal text-gray-500 ml-1">(opcional)</span>
             </label>
             {hasCustomBranding ? (
               <>
@@ -132,14 +132,14 @@ const TenantSettings: React.FC = () => {
                       className="w-8 h-8 object-contain flex-shrink-0"
                       onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
                     />
-                    <span className="text-xs text-gray-400">Vista previa del logo</span>
+                    <span className="text-xs text-gray-500">Vista previa del logo</span>
                   </div>
                 )}
-                <p className="mt-1.5 text-[11px] text-gray-400">Aparece al instalar la app, en el login, el menú y los recibos impresos.</p>
+                <p className="mt-1.5 text-[11px] text-gray-500">Aparece al instalar la app, en el login, el menú y los recibos impresos.</p>
               </>
             ) : (
               <div className="flex items-start gap-2 px-3 py-2.5 bg-gray-50 border border-dashed border-gray-300 rounded-lg text-xs text-gray-500">
-                <Lock className="w-3.5 h-3.5 text-gray-400 flex-shrink-0 mt-0.5" />
+                <Lock className="w-3.5 h-3.5 text-gray-500 flex-shrink-0 mt-0.5" />
                 <span>Disponible en el plan Pro — tu logo en la app, en el login y en los recibos impresos, en vez del de Merco.</span>
               </div>
             )}
@@ -147,7 +147,7 @@ const TenantSettings: React.FC = () => {
 
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">
-              NIT <span className="font-normal text-gray-400 ml-1">(opcional)</span>
+              NIT <span className="font-normal text-gray-500 ml-1">(opcional)</span>
             </label>
             <input
               name="nit" value={form.nit} onChange={handle}
@@ -158,7 +158,7 @@ const TenantSettings: React.FC = () => {
 
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">
-              Dirección <span className="font-normal text-gray-400 ml-1">(opcional)</span>
+              Dirección <span className="font-normal text-gray-500 ml-1">(opcional)</span>
             </label>
             <input
               name="address" value={form.address} onChange={handle}
@@ -169,7 +169,7 @@ const TenantSettings: React.FC = () => {
 
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">
-              Ciudad <span className="font-normal text-gray-400 ml-1">(opcional)</span>
+              Ciudad <span className="font-normal text-gray-500 ml-1">(opcional)</span>
             </label>
             <input
               name="city" value={form.city} onChange={handle}
@@ -177,13 +177,13 @@ const TenantSettings: React.FC = () => {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
             />
           </div>
-          <p className="text-[11px] text-gray-400 -mt-2">NIT, dirección y ciudad aparecen en tus PDF de venta (ticket y hoja carta).</p>
+          <p className="text-[11px] text-gray-500 -mt-2">NIT, dirección y ciudad aparecen en tus PDF de venta (ticket y hoja carta).</p>
         </div>
 
         {/* Branding */}
         <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
           <div className="flex items-center gap-2 pb-1">
-            <Palette className="w-4 h-4 text-gray-400" />
+            <Palette className="w-4 h-4 text-gray-500" />
             <h2 className="text-sm font-semibold text-gray-700">Branding</h2>
           </div>
 
@@ -220,7 +220,7 @@ const TenantSettings: React.FC = () => {
                 className="w-4 h-4 rounded-full border-2 border-white shadow-sm"
                 style={{ backgroundColor: form.primaryColor }}
               />
-              <span className="text-xs text-gray-400">Vista previa</span>
+              <span className="text-xs text-gray-500">Vista previa</span>
             </div>
           </div>
         </div>
@@ -228,7 +228,7 @@ const TenantSettings: React.FC = () => {
         <div className="flex justify-end pt-1">
           <button
             type="submit" disabled={saving}
-            className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-5 py-2.5 bg-primary text-on-primary text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
           >
             <Save className="w-4 h-4" />
             {saving ? 'Guardando...' : 'Guardar cambios'}

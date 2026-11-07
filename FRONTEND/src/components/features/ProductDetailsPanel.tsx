@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, Edit, ExternalLink, Package, MapPin } from 'lucide-react';
 import { Product } from '../../types';
@@ -19,6 +19,15 @@ const formatDate = (dateString: string) =>
 // fila de la lista, sin salir de la búsqueda. En mobile ocupa toda la pantalla.
 const ProductDetailsPanel: React.FC<ProductDetailsPanelProps> = ({ product, onClose }) => {
   const navigate = useNavigate();
+  // ≥1280px: panel acoplado a la derecha (la lista se corre, no se tapa);
+  // en pantallas menores sigue siendo un diálogo encima de la lista
+  const [docked, setDocked] = useState(() => typeof window !== 'undefined' && window.matchMedia('(min-width: 1280px)').matches);
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1280px)');
+    const on = () => setDocked(mq.matches);
+    mq.addEventListener('change', on);
+    return () => mq.removeEventListener('change', on);
+  }, []);
 
   useEffect(() => {
     if (!product) return;
@@ -37,10 +46,15 @@ const ProductDetailsPanel: React.FC<ProductDetailsPanelProps> = ({ product, onCl
     : null;
 
   return (
-    <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-labelledby="product-panel-title">
-      <div className="absolute inset-0 bg-gray-900/30" onClick={onClose} aria-hidden="true" />
+    <div
+      className={docked ? 'fixed inset-y-0 right-0 z-30 w-[28rem]' : 'fixed inset-0 z-50'}
+      role={docked ? 'complementary' : 'dialog'}
+      aria-modal={docked ? undefined : true}
+      aria-labelledby="product-panel-title"
+    >
+      {!docked && <div className="absolute inset-0 bg-gray-900/30" onClick={onClose} aria-hidden="true" />}
 
-      <aside className="absolute inset-y-0 right-0 w-full sm:w-[28rem] bg-white shadow-xl flex flex-col animate-slide-in-right">
+      <aside className={`absolute inset-y-0 right-0 w-full sm:w-[28rem] bg-white flex flex-col ${docked ? 'border-l border-gray-200' : 'shadow-xl animate-slide-in-right'}`}>
         {/* Header */}
         <div className="flex items-start gap-3 p-4 sm:p-5 border-b border-gray-100">
           <div className="w-10 h-10 bg-primary/15 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -60,7 +74,7 @@ const ProductDetailsPanel: React.FC<ProductDetailsPanelProps> = ({ product, onCl
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 -mr-1 text-gray-400 hover:text-gray-700 rounded-full hover:bg-gray-100"
+            className="p-1.5 -mr-1 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100"
             aria-label="Cerrar"
           >
             <X className="w-5 h-5" />
@@ -104,7 +118,7 @@ const ProductDetailsPanel: React.FC<ProductDetailsPanelProps> = ({ product, onCl
                 {prices.map((p, i) => (
                   <li key={p.id} className="flex items-center justify-between gap-3 rounded-md bg-gray-50 px-3 py-2 text-sm">
                     <span className="flex items-center gap-2 min-w-0 text-gray-700">
-                      <MapPin className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                      <MapPin className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
                       <span className="truncate">{p.supplier?.name ?? 'Proveedor'}</span>
                       {i === 0 && prices.length > 1 && (
                         <span className="flex-shrink-0 text-[10px] font-semibold uppercase text-green-700 bg-green-100 rounded px-1.5 py-0.5">Mejor</span>
@@ -119,7 +133,7 @@ const ProductDetailsPanel: React.FC<ProductDetailsPanelProps> = ({ product, onCl
             )}
           </div>
 
-          <p className="text-xs text-gray-400">Actualizado el {formatDate(product.updatedAt)}</p>
+          <p className="text-xs text-gray-500">Actualizado el {formatDate(product.updatedAt)}</p>
         </div>
 
         {/* Actions */}

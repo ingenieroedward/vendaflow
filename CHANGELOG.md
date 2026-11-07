@@ -7,6 +7,35 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ## [Unreleased]
 
+## [1.19.0] — 2026-11-07 — Rediseño UX/UI, fase 2
+
+### Added
+
+- **Color del negocio con contraste garantizado** (`utils/themeColors.ts`): del color elegido se
+  derivan un tono para texto (`text-primary`), uno para rellenos (`bg-primary`) y el color del
+  texto encima (`text-on-primary`, blanco u oscuro). Un rosa se oscurece levemente y un amarillo
+  lleva texto oscuro en sus botones.
+- `SegmentedTabs`: un solo control de pestañas para Órdenes, Informes e Inventario.
+- Órdenes en escritorio como tabla con forma de pago, vencimiento y **saldo** (neto de abonos);
+  la pestaña de órdenes locales se llama "Sin enviar".
+- POS: la grilla muestra productos sin escribir, con los más vendidos en esa caja primero.
+
+### Changed
+
+- **Nueva orden y Nueva cotización rediseñadas**: el buscador siempre está listo y Enter (o un
+  lector de código de barras) agrega el producto con cantidad 1, precio e IVA de la ficha; si ya
+  está, suma una unidad. Cantidad con +/− de 44 px, aviso de stock, resumen fijo a la derecha en
+  escritorio y barra fija abajo en el celular. El botón dice el total ("Crear orden por $ X") y qué
+  falta si no se puede crear.
+- Panel de producto acoplado a la derecha en pantallas anchas (≥1280 px): ya no tapa la lista.
+- Encabezados de página alineados a la izquierda y compactos en todas las secciones.
+- Compras, Informes, Login y el selector buscable usan el color del negocio (antes índigo fijo);
+  se quitaron los degradados.
+
+### Accessibility
+
+- Textos grises claros subidos a contraste AA en toda la app.
+
 ## [1.18.0] — 2026-11-07 — IVA por producto y arreglos rápidos de UX
 
 ### Added

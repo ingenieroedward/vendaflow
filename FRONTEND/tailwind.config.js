@@ -5,6 +5,15 @@ export default {
     extend: {
       colors: {
         primary: 'rgb(var(--vf-primary) / <alpha-value>)',
+        'on-primary': 'rgb(var(--vf-on-primary) / <alpha-value>)',
+      },
+      // text-primary y bg-primary usan variantes con contraste AA del color
+      // del tenant (utils/themeColors.ts); bordes/anillos usan la marca tal cual
+      textColor: {
+        primary: 'rgb(var(--vf-primary-ink) / <alpha-value>)',
+      },
+      backgroundColor: {
+        primary: 'rgb(var(--vf-primary-fill) / <alpha-value>)',
       },
       keyframes: {
         'loading-bar': {

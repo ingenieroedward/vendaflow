@@ -188,14 +188,14 @@ const Prices: React.FC = () => {
     <div className="min-h-screen bg-gray-50 max-w-7xl mx-auto">
       {/* Header */}
       <div className="px-3 sm:px-6 lg:px-8 pt-4 sm:pt-8">
-        <div className="text-center mb-6 sm:mb-8">
-          <h1 className="text-xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2 px-2">Precios</h1>
-          <p className="text-sm sm:text-lg text-gray-600 px-2">Compara y gestiona los precios por proveedor.</p>
+        <div className="mb-4">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Precios</h1>
+          <p className="text-sm text-gray-600">Compara y gestiona los precios por proveedor.</p>
         </div>
       </div>
       <div className="px-3 sm:px-6 lg:px-8 flex flex-col sm:flex-row sm:items-center gap-2 sm:justify-between mb-4">
         <div className="relative w-full sm:max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 z-10" />
           <Input
             type="text"
             placeholder="Buscar producto..."
@@ -225,7 +225,7 @@ const Prices: React.FC = () => {
         ) : filtered.length === 0 ? (
           <div className="text-center py-16">
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <DollarSign className="w-8 h-8 text-gray-400" />
+              <DollarSign className="w-8 h-8 text-gray-500" />
             </div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">No hay productos</h3>
             <p className="text-gray-500">
@@ -263,8 +263,8 @@ const Prices: React.FC = () => {
                     </div>
                   </div>
                   {isOpen
-                    ? <ChevronUp className="w-5 h-5 text-gray-400 flex-shrink-0" />
-                    : <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                    ? <ChevronUp className="w-5 h-5 text-gray-500 flex-shrink-0" />
+                    : <ChevronDown className="w-5 h-5 text-gray-500 flex-shrink-0" />
                   }
                 </button>
 
@@ -274,7 +274,7 @@ const Prices: React.FC = () => {
                     {prices.map(price => (
                       <div key={price.id} className="flex items-center justify-between px-4 py-3 border-b border-gray-50 last:border-b-0">
                         <div className="flex items-center space-x-2 flex-1 min-w-0">
-                          <Truck className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                          <Truck className="w-4 h-4 text-gray-500 flex-shrink-0" />
                           <div className="min-w-0">
                             <p className="text-sm text-gray-700 font-medium truncate">
                               {price.supplier?.name ?? `Proveedor #${price.supplierId}`}
@@ -285,13 +285,13 @@ const Prices: React.FC = () => {
                         <div className="flex items-center space-x-1 flex-shrink-0">
                           <button
                             onClick={() => openEdit(price, product)}
-                            className="p-2 rounded-lg text-gray-400 hover:text-primary hover:bg-primary/10 transition-colors"
+                            className="p-2 rounded-lg text-gray-500 hover:text-primary hover:bg-primary/10 transition-colors"
                           >
                             <Edit className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => setConfirmDelete({ price, productName: product.name })}
-                            className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                            className="p-2 rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50 transition-colors"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -356,7 +356,7 @@ const Prices: React.FC = () => {
               </div>
               <div className="flex gap-3 mt-6">
                 <button onClick={() => { if (!saving) setModal(null); }} className="flex-1 px-4 py-2.5 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors" disabled={saving}>Cancelar</button>
-                <button onClick={handleSave} disabled={saving || !priceInput || parseFloat(priceInput) <= 0} className="flex-1 px-4 py-2.5 bg-primary text-white rounded-xl text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50">{saving ? 'Guardando...' : 'Guardar'}</button>
+                <button onClick={handleSave} disabled={saving || !priceInput || parseFloat(priceInput) <= 0} className="flex-1 px-4 py-2.5 bg-primary text-on-primary rounded-xl text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50">{saving ? 'Guardando...' : 'Guardar'}</button>
               </div>
             </div>
           </div>

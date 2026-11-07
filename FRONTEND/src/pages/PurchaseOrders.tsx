@@ -40,15 +40,15 @@ const PurchaseOrders: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
-      <div className="text-center mb-6 sm:mb-8">
-        <h1 className="text-xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2 px-2">Órdenes de compra</h1>
-        <p className="text-sm sm:text-lg text-gray-600 px-2">Gestiona las compras a tus proveedores.</p>
+      <div className="mb-4">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Órdenes de compra</h1>
+        <p className="text-sm text-gray-600">Gestiona las compras a tus proveedores.</p>
       </div>
       <div className="flex items-center justify-between mb-6">
         <p className="text-sm text-gray-500">{pagination.total} orden(es)</p>
         <button
           onClick={() => navigate('/purchase-orders/new')}
-          className="flex items-center gap-1 px-2.5 py-1.5 text-xs sm:text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+          className="flex items-center gap-1 px-2.5 py-1.5 text-xs sm:text-sm bg-primary text-on-primary rounded-lg hover:bg-primary/90 transition-colors font-medium"
         >
           <Plus size={13} />
           <span className="hidden sm:inline">Nueva Orden de Compra</span>
@@ -82,7 +82,7 @@ const PurchaseOrders: React.FC = () => {
                 <div key={po.id} className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
                   <div className="flex items-start justify-between mb-2">
                     <div>
-                      <span className="font-mono font-semibold text-indigo-700 text-sm">{po.poNumber}</span>
+                      <span className="font-mono font-semibold text-primary text-sm">{po.poNumber}</span>
                       <p className="text-xs text-gray-500 mt-0.5">{format(new Date(po.createdAt), 'dd MMM yyyy', { locale: es })}</p>
                     </div>
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${status.className}`}>
@@ -95,7 +95,7 @@ const PurchaseOrders: React.FC = () => {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => navigate(`/purchase-orders/${po.id}`)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-700 text-xs font-medium"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/5 text-primary text-xs font-medium"
                       >
                         <Eye size={13} /> Ver
                       </button>
@@ -136,7 +136,7 @@ const PurchaseOrders: React.FC = () => {
                   const status = STATUS_LABELS[po.status] ?? { label: po.status, className: 'bg-gray-100 text-gray-700' };
                   return (
                     <tr key={po.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-4 py-3 font-mono font-semibold text-indigo-700">{po.poNumber}</td>
+                      <td className="px-4 py-3 font-mono font-semibold text-primary">{po.poNumber}</td>
                       <td className="px-4 py-3">{po.supplier?.name ?? `Proveedor #${po.supplierId}`}</td>
                       <td className="px-4 py-3">
                         <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${status.className}`}>
@@ -147,7 +147,7 @@ const PurchaseOrders: React.FC = () => {
                       <td className="px-4 py-3 text-gray-500">{format(new Date(po.createdAt), 'dd MMM yyyy', { locale: es })}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-center gap-2">
-                          <button onClick={() => navigate(`/purchase-orders/${po.id}`)} className="p-1.5 rounded hover:bg-indigo-50 text-indigo-600" title="Ver detalle">
+                          <button onClick={() => navigate(`/purchase-orders/${po.id}`)} className="p-1.5 rounded hover:bg-primary/5 text-primary" title="Ver detalle">
                             <Eye size={15} />
                           </button>
                           {isAdmin && po.status !== 'received' && (

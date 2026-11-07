@@ -115,10 +115,10 @@ const PurchaseOrderDetail: React.FC = () => {
         </div>
 
         {/* Total */}
-        <div className="bg-indigo-50 rounded-xl border border-indigo-100 p-4">
-          <p className="text-xs text-indigo-500 uppercase font-medium mb-1">Total</p>
-          <p className="text-2xl font-bold text-indigo-700">${po.totalAmount.toLocaleString('es-CO')}</p>
-          <p className="text-sm text-indigo-400">{po.items.length} producto(s)</p>
+        <div className="bg-primary/5 rounded-xl border border-primary/20 p-4">
+          <p className="text-xs text-primary uppercase font-medium mb-1">Total</p>
+          <p className="text-2xl font-bold text-primary">${po.totalAmount.toLocaleString('es-CO')}</p>
+          <p className="text-sm text-primary">{po.items.length} producto(s)</p>
         </div>
 
         {/* Notas */}
@@ -149,7 +149,7 @@ const PurchaseOrderDetail: React.FC = () => {
                 <tr key={item.id ?? item.productId}>
                   <td className="py-2.5">
                     <div className="font-medium text-gray-800">{item.product?.name ?? `Producto #${item.productId}`}</div>
-                    <div className="text-xs text-gray-400">{item.product?.code} · {item.product?.unit}</div>
+                    <div className="text-xs text-gray-500">{item.product?.code} · {item.product?.unit}</div>
                   </td>
                   <td className="py-2.5 text-center">{item.quantity}</td>
                   <td className="py-2.5 text-right">${item.unitCost.toLocaleString('es-CO')}</td>
@@ -167,7 +167,7 @@ const PurchaseOrderDetail: React.FC = () => {
             <tfoot className="border-t-2 border-gray-200">
               <tr>
                 <td colSpan={po.status === 'received' ? 3 : 3} className="py-2 text-right font-semibold text-gray-700">Total:</td>
-                <td className="py-2 text-right font-bold text-indigo-700">${po.totalAmount.toLocaleString('es-CO')}</td>
+                <td className="py-2 text-right font-bold text-primary">${po.totalAmount.toLocaleString('es-CO')}</td>
                 {po.status === 'received' && <td></td>}
               </tr>
             </tfoot>
