@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  ArrowLeft,
   Edit,
   Trash2,
   User,
@@ -366,50 +365,51 @@ const OrderDetail: React.FC = () => {
   const isLocalOrder = (currentOrder as any)._isLocal;
   const canEdit = user?.role === "admin" || user?.role === "seller";
 
-  return (
-    <div className="bg-gray-50 min-h-screen">
-      <div className="max-w-2xl mx-auto px-3 py-3 space-y-3">
+  const isCredit = currentOrder.paymentType === "credit";
+  const dueDate = currentOrder.paymentDueDate ? new Date(`${currentOrder.paymentDueDate}T00:00:00`) : null;
+  const overdue = isCredit && !currentOrder.paidAt && dueDate !== null && dueDate < new Date();
+  const canCollect = user?.role === "admin" || user?.role === "seller";
 
-        {/* Offline banner */}
+  return (
+    <div className="bg-gray-50 min-h-full">
+      <div className="max-w-6xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4">
+
         {isLocalOrder && (
-          <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg">
-            <WifiOff className="w-4 h-4 text-amber-500 flex-shrink-0" />
-            <p className="text-xs text-amber-700">
-              Guardada localmente · se sincronizará con internet
-            </p>
+          <div className="flex items-center gap-2 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-lg" role="status">
+            <WifiOff className="w-4 h-4 text-amber-700 flex-shrink-0" aria-hidden="true" />
+            <p className="text-sm text-amber-900">Guardada en este equipo · se envía sola cuando haya internet</p>
           </div>
         )}
 
-        <Breadcrumbs
-          items={[{ label: 'Órdenes', to: '/orders' }, { label: `#${currentOrder.orderNumber}` }]}
-          className="mb-2"
-        />
+        <Breadcrumbs items={[{ label: 'Órdenes', to: '/orders' }, { label: `#${currentOrder.orderNumber}` }]} />
 
-        {/* Header bar */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => navigate("/orders")}
-            className="p-1.5 rounded-md hover:bg-gray-200 text-gray-600 flex-shrink-0"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <h1 className="flex-1 font-bold text-gray-900 text-base">
-            #{currentOrder.orderNumber}
-          </h1>
-
+        {/* Encabezado: número, fecha/vendedor, estado y acciones con nombre */}
+        <div className="flex flex-wrap items-start gap-3">
+          <div className="flex-1 min-w-[12rem]">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 font-mono">#{currentOrder.orderNumber}</h1>
+            <p className="text-sm text-gray-600 flex items-center gap-1.5 flex-wrap">
+              <Calendar className="w-4 h-4" aria-hidden="true" /> {formatDate(currentOrder.createdAt)}
+              <span aria-hidden="true">·</span>
+              <User className="w-4 h-4" aria-hidden="true" /> {currentOrder.user?.username ?? `Usuario #${currentOrder.userId}`}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
           {/* Status dropdown */}
           <div className="relative">
             {canEdit ? (
               <button
                 onClick={() => setShowStatusDropdown(!showStatusDropdown)}
                 disabled={updatingStatus}
-                className={`px-2.5 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${getStatusColor(currentOrder.status)} ${updatingStatus ? 'opacity-50' : 'hover:opacity-80'}`}
+                aria-haspopup="menu"
+                aria-expanded={showStatusDropdown}
+                aria-label={`Estado: ${getStatusText(currentOrder.status)}. Cambiar`}
+                className={`min-h-[36px] px-3 rounded-full text-sm font-medium flex items-center gap-1 ${getStatusColor(currentOrder.status)} ${updatingStatus ? 'opacity-50' : 'hover:opacity-80'}`}
               >
                 {updatingStatus ? <LoadingSpinner size="sm" /> : <span>{getStatusText(currentOrder.status)}</span>}
                 <ChevronDown className="w-3 h-3" />
               </button>
             ) : (
-              <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(currentOrder.status)}`}>
+              <span className={`inline-flex min-h-[36px] items-center px-3 rounded-full text-sm font-medium ${getStatusColor(currentOrder.status)}`}>
                 {getStatusText(currentOrder.status)}
               </span>
             )}
@@ -435,13 +435,15 @@ const OrderDetail: React.FC = () => {
             <button
               onClick={() => setShowPdfMenu(v => !v)}
               disabled={generatingPdf}
-              className="p-1.5 rounded-md hover:bg-gray-200 text-gray-600 disabled:opacity-50"
-              title="Descargar PDF"
+              className="flex items-center gap-1.5 min-h-[40px] px-3 rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-800 hover:bg-gray-50 disabled:opacity-50"
+              aria-haspopup="menu"
+              aria-expanded={showPdfMenu}
             >
               {generatingPdf
                 ? <Loader2 className="w-4 h-4 animate-spin" />
-                : <Download className="w-4 h-4" />
+                : <Printer className="w-4 h-4" aria-hidden="true" />
               }
+              Imprimir / PDF
             </button>
             {showPdfMenu && (
               <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-20 min-w-[160px] py-1">
@@ -471,125 +473,127 @@ const OrderDetail: React.FC = () => {
               </div>
             )}
           </div>
-          {canEdit && (
-            <button
-              onClick={() => navigate(`/orders/${currentOrder.id}/edit`)}
-              className="p-1.5 rounded-md hover:bg-gray-200 text-gray-600"
-              title="Editar"
-            >
-              <Edit className="w-4 h-4" />
-            </button>
-          )}
-          {user?.role === "admin" && (
-            <button
-              onClick={() => setShowDeleteModal(true)}
-              className="p-1.5 rounded-md hover:bg-red-100 text-red-500"
-              title="Eliminar"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          )}
-        </div>
-
-        {/* Info row compacto */}
-        <div className="bg-white rounded-xl border border-gray-200 p-3 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-          <div className="flex items-center gap-1.5 text-gray-600">
-            <Calendar className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
-            <span>{formatDate(currentOrder.createdAt)}</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-gray-600">
-            <User className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
-            <span>{currentOrder.user?.username ?? `Usuario #${currentOrder.userId}`}</span>
-          </div>
-          <div className="col-span-2 pt-1.5 border-t border-gray-100 flex items-center justify-between">
-            <span className="text-gray-500">Total de la orden</span>
-            <span className="font-bold text-base text-primary">{formatCurrency(totals.total)}</span>
+            {canEdit && (
+              <Button variant="outline" icon={Edit} onClick={() => navigate(`/orders/${currentOrder.id}/edit`)} className="min-h-[40px]">
+                Editar
+              </Button>
+            )}
+            {user?.role === "admin" && (
+              <button
+                onClick={() => setShowDeleteModal(true)}
+                aria-label="Eliminar orden"
+                title="Eliminar"
+                className="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-300 bg-white text-red-700 hover:bg-red-50"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Cliente compacto */}
-        <div className="bg-white rounded-xl border border-gray-200 p-3">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Cliente</p>
-          <p className="font-semibold text-sm text-gray-900">
-            {currentOrder.customer?.name ?? `Cliente #${currentOrder.customerId}`}
-          </p>
-          {currentOrder.customer?.nit && (
-            <div className="flex items-center gap-1.5 mt-1 text-xs text-gray-600">
-              <span className="text-gray-500 font-medium">NIT/CC:</span>
-              <span>{currentOrder.customer.nit}</span>
-            </div>
-          )}
-          {currentOrder.customer?.contact && (
-            <div className="flex items-center gap-1.5 mt-1 text-xs text-gray-600">
-              <Phone className="w-3 h-3 text-gray-500" />
-              <span>{currentOrder.customer.contact}</span>
-            </div>
-          )}
-          {currentOrder.customer?.address && (
-            <div className="flex items-center gap-1.5 mt-0.5 text-xs text-gray-600">
-              <MapPin className="w-3 h-3 text-gray-500" />
-              <span>{currentOrder.customer.address}</span>
-            </div>
-          )}
-          {currentOrder.customer?.note && (
-            <p className="mt-1 text-xs text-gray-500 italic">{currentOrder.customer.note}</p>
-          )}
-        </div>
-
-        {/* Pago */}
-        <div className="bg-white rounded-xl border border-gray-200 p-3">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 min-w-0">
-              {currentOrder.paymentType === "credit" ? (
-                <CreditCard className={`w-4 h-4 flex-shrink-0 ${currentOrder.paidAt ? "text-green-600" : "text-amber-600"}`} />
-              ) : (
-                <Banknote className="w-4 h-4 text-green-600 flex-shrink-0" />
-              )}
-              <div className="min-w-0">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Pago</p>
-                {currentOrder.paymentType === "credit" ? (
-                  <p className="text-sm text-gray-800">
-                    Crédito
-                    {currentOrder.paymentDueDate && (
-                      <> · vence el {format(new Date(`${currentOrder.paymentDueDate}T00:00:00`), "d 'de' MMMM", { locale: es })}</>
-                    )}
-                    {currentOrder.paidAt ? (
-                      <span className="ml-1.5 px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700">
-                        Pagada {format(new Date(currentOrder.paidAt), "d MMM", { locale: es })}
-                      </span>
-                    ) : currentOrder.paymentDueDate && new Date(`${currentOrder.paymentDueDate}T00:00:00`) < new Date() ? (
-                      <span className="ml-1.5 px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">Vencida</span>
-                    ) : (
-                      <span className="ml-1.5 px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-700">Por cobrar</span>
-                    )}
-                  </p>
-                ) : (
-                  <p className="text-sm text-gray-800">Contado</p>
-                )}
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-4 items-start">
+          {/* ── Productos ── */}
+          <div className="space-y-4 min-w-0">
+            <section className="bg-white rounded-xl border border-gray-200" aria-labelledby="od-items">
+              <h2 id="od-items" className="px-4 pt-4 pb-2 text-base font-semibold text-gray-900 flex items-center gap-2">
+                <Package className="w-4 h-4 text-gray-500" aria-hidden="true" /> Productos
+                <span className="text-sm font-normal text-gray-600">({(currentOrder.items || []).length})</span>
+              </h2>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 text-left text-xs font-medium text-gray-600">
+                    <tr>
+                      <th scope="col" className="px-4 py-2">Producto</th>
+                      <th scope="col" className="px-4 py-2 text-right">Cant.</th>
+                      <th scope="col" className="px-4 py-2 text-right hidden sm:table-cell">Precio</th>
+                      <th scope="col" className="px-4 py-2 text-right hidden sm:table-cell">IVA</th>
+                      <th scope="col" className="px-4 py-2 text-right">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {(currentOrder.items || []).map((item, index) => {
+                      const itemSubtotal = Number(item.unitPrice) * Number(item.quantity);
+                      const itemTotal = itemSubtotal * (1 + (Number(item.taxRate) || 0) / 100);
+                      return (
+                        <tr key={index}>
+                          <td className="px-4 py-2.5">
+                            <p className="font-medium text-gray-900">{item.product?.name}</p>
+                            <p className="text-xs text-gray-600 font-mono">{item.product?.code}</p>
+                          </td>
+                          <td className="px-4 py-2.5 text-right tabular-nums whitespace-nowrap">{Number(item.quantity)}</td>
+                          <td className="px-4 py-2.5 text-right tabular-nums whitespace-nowrap hidden sm:table-cell">{formatCurrency(item.unitPrice)}</td>
+                          <td className="px-4 py-2.5 text-right tabular-nums whitespace-nowrap hidden sm:table-cell text-gray-700">{Number(item.taxRate) ? `${Number(item.taxRate)}%` : '—'}</td>
+                          <td className="px-4 py-2.5 text-right tabular-nums whitespace-nowrap font-semibold text-gray-900">{formatCurrency(itemTotal)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
-            </div>
-            {currentOrder.paymentType === "credit" && (user?.role === "admin" || user?.role === "seller") && (
-              currentOrder.paidAt ? (
-                <button
-                  onClick={() => handleMarkPaid(false)}
-                  disabled={markingPaid}
-                  className="text-xs text-gray-500 hover:text-gray-600 underline flex-shrink-0 disabled:opacity-50"
-                >
-                  Revertir
-                </button>
-              ) : (
-                <button
-                  onClick={() => handleMarkPaid(true)}
-                  disabled={markingPaid}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 transition-colors flex-shrink-0 disabled:opacity-50"
-                >
-                  {markingPaid ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-                  Marcar pagada
-                </button>
-              )
+              <dl className="px-4 py-3 border-t border-gray-100 space-y-1 text-sm">
+                <div className="flex justify-between text-gray-700"><dt>Subtotal</dt><dd className="tabular-nums">{formatCurrency(totals.subtotal)}</dd></div>
+                {totals.totalTax > 0 && (
+                  <div className="flex justify-between text-gray-700"><dt>IVA</dt><dd className="tabular-nums">{formatCurrency(totals.totalTax)}</dd></div>
+                )}
+                <div className="flex justify-between pt-1.5 border-t border-gray-100 text-base font-bold text-gray-900"><dt>Total</dt><dd className="tabular-nums">{formatCurrency(totals.total)}</dd></div>
+              </dl>
+            </section>
+
+            {currentOrder.notes && (
+              <section className="bg-white rounded-xl border border-gray-200 p-4">
+                <h2 className="text-sm font-semibold text-gray-900 mb-1">Notas</h2>
+                <p className="text-sm text-gray-800 whitespace-pre-line">{currentOrder.notes}</p>
+              </section>
             )}
           </div>
 
+          {/* ── Lateral: cobro y cliente ── */}
+          <aside className="space-y-4 lg:sticky lg:top-4">
+            <section className="bg-white rounded-xl border border-gray-200 p-4" aria-labelledby="od-pago">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <h2 id="od-pago" className="text-xs font-medium text-gray-600">Total de la orden</h2>
+                  <p className="text-2xl font-bold text-gray-900 tabular-nums">{formatCurrency(totals.total)}</p>
+                </div>
+                {isCredit ? (
+                  currentOrder.paidAt ? (
+                    <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">Pagada</span>
+                  ) : overdue ? (
+                    <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">Vencida</span>
+                  ) : (
+                    <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-900">Por cobrar</span>
+                  )
+                ) : (
+                  <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">Contado</span>
+                )}
+              </div>
+              <p className="mt-1 text-sm text-gray-700 flex items-center gap-1.5 flex-wrap">
+                {isCredit ? <CreditCard className="w-4 h-4 text-gray-500" aria-hidden="true" /> : <Banknote className="w-4 h-4 text-gray-500" aria-hidden="true" />}
+                {isCredit ? 'Crédito' : 'Contado'}
+                {isCredit && dueDate && <> · {overdue ? 'venció' : 'vence'} el {format(dueDate, "d 'de' MMMM", { locale: es })}</>}
+                {isCredit && currentOrder.paidAt && <> · pagada el {format(new Date(currentOrder.paidAt), "d MMM", { locale: es })}</>}
+              </p>
+
+              {isCredit && canCollect && (
+                currentOrder.paidAt ? (
+                  <button
+                    onClick={() => handleMarkPaid(false)}
+                    disabled={markingPaid}
+                    className="mt-3 min-h-[40px] px-3 rounded-lg text-sm text-gray-700 underline hover:text-gray-900 disabled:opacity-50"
+                  >
+                    Marcar como no pagada
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleMarkPaid(true)}
+                    disabled={markingPaid}
+                    className="mt-3 w-full flex items-center justify-center gap-1.5 min-h-[44px] px-3 bg-green-700 text-white text-sm font-semibold rounded-lg hover:bg-green-800 disabled:opacity-50"
+                  >
+                    {markingPaid ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                    Marcar pagada
+                  </button>
+                )
+              )}
           {/* Abonos parciales */}
           {currentOrder.paymentType === "credit" && !currentOrder.paidAt && abonos && (
             <div className="mt-3 pt-3 border-t border-gray-100">
@@ -609,11 +613,12 @@ const OrderDetail: React.FC = () => {
                   <input
                     type="number" min="1" value={abonoMonto} onChange={e => setAbonoMonto(e.target.value)}
                     placeholder="Monto del abono"
-                    className="flex-1 px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                    aria-label="Monto del abono"
+                    className="flex-1 min-w-0 h-11 px-3 border border-gray-300 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-green-600"
                   />
                   <button
                     onClick={handleAddAbono} disabled={abonoSaving || !abonoMonto}
-                    className="px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 disabled:opacity-50"
+                    className="h-11 px-4 bg-green-700 text-white text-sm font-semibold rounded-lg hover:bg-green-800 disabled:opacity-50"
                   >
                     {abonoSaving ? '...' : 'Abonar'}
                   </button>
@@ -622,7 +627,7 @@ const OrderDetail: React.FC = () => {
               {abonos.payments.length > 0 && (
                 <ul className="mt-2 space-y-0.5">
                   {abonos.payments.map(a => (
-                    <li key={a.id} className="flex justify-between text-[11px] text-gray-500">
+                    <li key={a.id} className="flex justify-between text-xs text-gray-600">
                       <span>{format(new Date(a.createdAt), "d MMM yyyy", { locale: es })}{a.notes ? ` · ${a.notes}` : ''}</span>
                       <span className="text-gray-600">{new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(Number(a.amount))}</span>
                     </li>
@@ -631,60 +636,25 @@ const OrderDetail: React.FC = () => {
               )}
             </div>
           )}
-        </div>
+            </section>
 
-        {/* Notas compactas */}
-        {currentOrder.notes && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-            <p className="text-xs font-semibold text-yellow-700 mb-1">Notas</p>
-            <p className="text-xs text-gray-700 whitespace-pre-line">{currentOrder.notes}</p>
-          </div>
-        )}
-
-        {/* Productos */}
-        <div className="bg-white rounded-xl border border-gray-200 p-3">
-          <div className="flex items-center gap-1.5 mb-2">
-            <Package className="w-3.5 h-3.5 text-green-600" />
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Productos</p>
-          </div>
-
-          {/* Lista de items - filas compactas en móvil */}
-          <div className="space-y-0 divide-y divide-gray-100">
-            {(currentOrder.items || []).map((item, index) => {
-              const itemSubtotal = Number(item.unitPrice) * Number(item.quantity);
-              const itemTax = itemSubtotal * ((Number(item.taxRate) || 0) / 100);
-              const itemTotal = itemSubtotal + itemTax;
-              return (
-                <div key={index} className="py-2">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">{item.product?.name}</p>
-                      <p className="text-xs text-gray-500">{item.product?.code} · {item.quantity} × {formatCurrency(item.unitPrice)}{item.taxRate ? ` + IVA ${item.taxRate}%` : ''}</p>
-                    </div>
-                    <p className="text-sm font-semibold text-green-600 flex-shrink-0">{formatCurrency(itemTotal)}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Totales */}
-          <div className="mt-2 pt-2 border-t border-gray-100 space-y-1">
-            <div className="flex justify-between text-xs text-gray-500">
-              <span>Subtotal</span>
-              <span>{formatCurrency(totals.subtotal)}</span>
-            </div>
-            {totals.totalTax > 0 && (
-              <div className="flex justify-between text-xs text-gray-500">
-                <span>IVA</span>
-                <span>{formatCurrency(totals.totalTax)}</span>
-              </div>
-            )}
-            <div className="flex justify-between font-bold text-sm text-gray-900 pt-1 border-t border-gray-100">
-              <span>Total</span>
-              <span className="text-primary">{formatCurrency(totals.total)}</span>
-            </div>
-          </div>
+            <section className="bg-white rounded-xl border border-gray-200 p-4" aria-labelledby="od-cliente">
+              <h2 id="od-cliente" className="text-xs font-medium text-gray-600 mb-1">Cliente</h2>
+              <p className="font-semibold text-gray-900">{currentOrder.customer?.name ?? `Cliente #${currentOrder.customerId}`}</p>
+              <dl className="mt-1 space-y-1 text-sm text-gray-700">
+                {currentOrder.customer?.nit && (
+                  <div className="flex gap-1.5"><dt className="text-gray-600">NIT/CC:</dt><dd>{currentOrder.customer.nit}</dd></div>
+                )}
+                {currentOrder.customer?.contact && (
+                  <div className="flex items-center gap-1.5"><dt className="sr-only">Teléfono</dt><Phone className="w-4 h-4 text-gray-500" aria-hidden="true" /><dd>{currentOrder.customer.contact}</dd></div>
+                )}
+                {currentOrder.customer?.address && (
+                  <div className="flex items-center gap-1.5"><dt className="sr-only">Dirección</dt><MapPin className="w-4 h-4 text-gray-500" aria-hidden="true" /><dd>{currentOrder.customer.address}</dd></div>
+                )}
+              </dl>
+              {currentOrder.customer?.note && <p className="mt-1 text-sm text-gray-600 italic">{currentOrder.customer.note}</p>}
+            </section>
+          </aside>
         </div>
 
         {/* Portal a #print-root (hermano de #root en index.html — no anidado

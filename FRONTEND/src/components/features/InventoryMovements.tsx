@@ -58,7 +58,7 @@ const InventoryMovements: React.FC = () => {
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-gray-200 text-left text-xs text-gray-500 uppercase tracking-wide">
+            <tr className="border-b border-gray-200 text-left text-xs font-medium text-gray-600">
               <th className="px-4 py-3 font-medium">Fecha</th>
               <th className="px-4 py-3 font-medium">Producto</th>
               <th className="px-4 py-3 font-medium">Tipo</th>
@@ -76,7 +76,7 @@ const InventoryMovements: React.FC = () => {
                   <td className="px-4 py-2.5 text-gray-500 whitespace-nowrap text-xs">{fmtDate(m.createdAt)}</td>
                   <td className="px-4 py-2.5">
                     <p className="font-medium text-gray-900 leading-tight">{m.product?.name ?? `#${m.productId}`}</p>
-                    {m.product?.code && <p className="text-[11px] text-gray-500">{m.product.code}</p>}
+                    {m.product?.code && <p className="text-xs text-gray-500">{m.product.code}</p>}
                   </td>
                   <td className="px-4 py-2.5">
                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${meta.badge}`}>

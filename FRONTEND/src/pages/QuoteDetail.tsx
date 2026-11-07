@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  ArrowLeft,
   Edit,
   Trash2,
   User,
@@ -330,49 +329,45 @@ const QuoteDetail: React.FC = () => {
   const canConvert = (user?.role === "admin" || user?.role === "seller") && currentQuote.status !== 'converted' && !isLocalQuote;
 
   return (
-    <div className="bg-gray-50 min-h-screen">
-      <div className="max-w-2xl mx-auto px-3 py-3 space-y-3">
+    <div className="bg-gray-50 min-h-full">
+      <div className="max-w-6xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4">
 
-        {/* Offline banner */}
         {isLocalQuote && (
-          <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg">
-            <WifiOff className="w-4 h-4 text-amber-500 flex-shrink-0" />
-            <p className="text-xs text-amber-700">
-              Guardada localmente · se sincronizará con internet
-            </p>
+          <div className="flex items-center gap-2 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-lg" role="status">
+            <WifiOff className="w-4 h-4 text-amber-700 flex-shrink-0" aria-hidden="true" />
+            <p className="text-sm text-amber-900">Guardada en este equipo · se envía sola cuando haya internet</p>
           </div>
         )}
 
-        <Breadcrumbs
-          items={[{ label: 'Cotizaciones', to: '/quotes' }, { label: `#${currentQuote.quoteNumber}` }]}
-          className="mb-2"
-        />
+        <Breadcrumbs items={[{ label: 'Cotizaciones', to: '/quotes' }, { label: `#${currentQuote.quoteNumber}` }]} />
 
-        {/* Header bar */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => navigate("/quotes")}
-            className="p-1.5 rounded-md hover:bg-gray-200 text-gray-600 flex-shrink-0"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <h1 className="flex-1 font-bold text-gray-900 text-base">
-            #{currentQuote.quoteNumber}
-          </h1>
-
+        {/* Encabezado: número, fecha/vendedor, estado y acciones con nombre */}
+        <div className="flex flex-wrap items-start gap-3">
+          <div className="flex-1 min-w-[12rem]">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 font-mono">#{currentQuote.quoteNumber}</h1>
+            <p className="text-sm text-gray-600 flex items-center gap-1.5 flex-wrap">
+              <Calendar className="w-4 h-4" aria-hidden="true" /> {formatDate(currentQuote.createdAt)}
+              <span aria-hidden="true">·</span>
+              <User className="w-4 h-4" aria-hidden="true" /> {currentQuote.user?.username ?? `Usuario #${currentQuote.userId}`}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
           {/* Status dropdown */}
           <div className="relative">
             {canEdit ? (
               <button
                 onClick={() => setShowStatusDropdown(!showStatusDropdown)}
                 disabled={updatingStatus}
-                className={`px-2.5 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${getStatusColor(currentQuote.status)} ${updatingStatus ? 'opacity-50' : 'hover:opacity-80'}`}
+                aria-haspopup="menu"
+                aria-expanded={showStatusDropdown}
+                aria-label={`Estado: ${getStatusText(currentQuote.status)}. Cambiar`}
+                className={`min-h-[36px] px-3 rounded-full text-sm font-medium flex items-center gap-1 ${getStatusColor(currentQuote.status)} ${updatingStatus ? 'opacity-50' : 'hover:opacity-80'}`}
               >
                 {updatingStatus ? <LoadingSpinner size="sm" /> : <span>{getStatusText(currentQuote.status)}</span>}
                 <ChevronDown className="w-3 h-3" />
               </button>
             ) : (
-              <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(currentQuote.status)}`}>
+              <span className={`inline-flex min-h-[36px] items-center px-3 rounded-full text-sm font-medium ${getStatusColor(currentQuote.status)}`}>
                 {getStatusText(currentQuote.status)}
               </span>
             )}
@@ -398,13 +393,15 @@ const QuoteDetail: React.FC = () => {
             <button
               onClick={() => setShowPdfMenu(v => !v)}
               disabled={generatingPdf}
-              className="p-1.5 rounded-md hover:bg-gray-200 text-gray-600 disabled:opacity-50"
-              title="Descargar PDF"
+              className="flex items-center gap-1.5 min-h-[40px] px-3 rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-800 hover:bg-gray-50 disabled:opacity-50"
+              aria-haspopup="menu"
+              aria-expanded={showPdfMenu}
             >
               {generatingPdf
                 ? <Loader2 className="w-4 h-4 animate-spin" />
-                : <Download className="w-4 h-4" />
+                : <Printer className="w-4 h-4" aria-hidden="true" />
               }
+              Imprimir / PDF
             </button>
             {showPdfMenu && (
               <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-20 min-w-[160px] py-1">
@@ -434,146 +431,128 @@ const QuoteDetail: React.FC = () => {
               </div>
             )}
           </div>
-          {canEdit && (
-            <button
-              onClick={() => navigate(`/quotes/${currentQuote.id}/edit`)}
-              className="p-1.5 rounded-md hover:bg-gray-200 text-gray-600"
-              title="Editar"
-            >
-              <Edit className="w-4 h-4" />
-            </button>
-          )}
-          {user?.role === "admin" && currentQuote.status !== 'converted' && (
-            <button
-              onClick={() => setShowDeleteModal(true)}
-              className="p-1.5 rounded-md hover:bg-red-100 text-red-500"
-              title="Eliminar"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          )}
-        </div>
-
-        {/* Convertir a orden */}
-        {canConvert && (
-          <button
-            onClick={() => setShowConvertModal(true)}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 text-white text-sm font-semibold rounded-xl hover:bg-emerald-700 transition-colors"
-          >
-            <ArrowRightCircle className="w-4 h-4" />
-            Convertir a orden
-          </button>
-        )}
-        {currentQuote.status === 'converted' && currentQuote.convertedOrderId && (
-          <button
-            onClick={() => navigate(`/orders/${currentQuote.convertedOrderId}`)}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-sm font-semibold rounded-xl hover:bg-emerald-100 transition-colors"
-          >
-            <ArrowRightCircle className="w-4 h-4" />
-            Ver orden generada
-          </button>
-        )}
-
-        {/* Info row compacto */}
-        <div className="bg-white rounded-xl border border-gray-200 p-3 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-          <div className="flex items-center gap-1.5 text-gray-600">
-            <Calendar className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
-            <span>{formatDate(currentQuote.createdAt)}</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-gray-600">
-            <User className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
-            <span>{currentQuote.user?.username ?? `Usuario #${currentQuote.userId}`}</span>
-          </div>
-          {currentQuote.validUntil && (
-            <div className="flex items-center gap-1.5 text-gray-600 col-span-2">
-              <CalendarClock className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
-              <span>Válida hasta {format(new Date(currentQuote.validUntil), "d 'de' MMMM 'de' yyyy", { locale: es })}</span>
-            </div>
-          )}
-          <div className="col-span-2 pt-1.5 border-t border-gray-100 flex items-center justify-between">
-            <span className="text-gray-500">Total cotizado</span>
-            <span className="font-bold text-base text-primary">{formatCurrency(totals.total)}</span>
-          </div>
-        </div>
-
-        {/* Cliente compacto */}
-        <div className="bg-white rounded-xl border border-gray-200 p-3">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Cliente</p>
-          <p className="font-semibold text-sm text-gray-900">
-            {currentQuote.customer?.name ?? `Cliente #${currentQuote.customerId}`}
-          </p>
-          {currentQuote.customer?.nit && (
-            <div className="flex items-center gap-1.5 mt-1 text-xs text-gray-600">
-              <span className="text-gray-500 font-medium">NIT/CC:</span>
-              <span>{currentQuote.customer.nit}</span>
-            </div>
-          )}
-          {currentQuote.customer?.contact && (
-            <div className="flex items-center gap-1.5 mt-1 text-xs text-gray-600">
-              <Phone className="w-3 h-3 text-gray-500" />
-              <span>{currentQuote.customer.contact}</span>
-            </div>
-          )}
-          {currentQuote.customer?.address && (
-            <div className="flex items-center gap-1.5 mt-0.5 text-xs text-gray-600">
-              <MapPin className="w-3 h-3 text-gray-500" />
-              <span>{currentQuote.customer.address}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Notas compactas */}
-        {currentQuote.notes && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-            <p className="text-xs font-semibold text-yellow-700 mb-1">Notas</p>
-            <p className="text-xs text-gray-700 whitespace-pre-line">{currentQuote.notes}</p>
-          </div>
-        )}
-
-        {/* Productos */}
-        <div className="bg-white rounded-xl border border-gray-200 p-3">
-          <div className="flex items-center gap-1.5 mb-2">
-            <Package className="w-3.5 h-3.5 text-green-600" />
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Productos</p>
-          </div>
-
-          {/* Lista de items - filas compactas en móvil */}
-          <div className="space-y-0 divide-y divide-gray-100">
-            {(currentQuote.items || []).map((item, index) => {
-              const itemSubtotal = Number(item.unitPrice) * Number(item.quantity);
-              const itemTax = itemSubtotal * ((Number(item.taxRate) || 0) / 100);
-              const itemTotal = itemSubtotal + itemTax;
-              return (
-                <div key={index} className="py-2">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">{item.product?.name}</p>
-                      <p className="text-xs text-gray-500">{item.product?.code} · {item.quantity} × {formatCurrency(item.unitPrice)}{item.taxRate ? ` + IVA ${item.taxRate}%` : ''}</p>
-                    </div>
-                    <p className="text-sm font-semibold text-green-600 flex-shrink-0">{formatCurrency(itemTotal)}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Totales */}
-          <div className="mt-2 pt-2 border-t border-gray-100 space-y-1">
-            <div className="flex justify-between text-xs text-gray-500">
-              <span>Subtotal</span>
-              <span>{formatCurrency(totals.subtotal)}</span>
-            </div>
-            {totals.totalTax > 0 && (
-              <div className="flex justify-between text-xs text-gray-500">
-                <span>IVA</span>
-                <span>{formatCurrency(totals.totalTax)}</span>
-              </div>
+            {canEdit && (
+              <Button variant="outline" icon={Edit} onClick={() => navigate(`/quotes/${currentQuote.id}/edit`)} className="min-h-[40px]">
+                Editar
+              </Button>
             )}
-            <div className="flex justify-between font-bold text-sm text-gray-900 pt-1 border-t border-gray-100">
-              <span>Total</span>
-              <span className="text-primary">{formatCurrency(totals.total)}</span>
-            </div>
+            {user?.role === "admin" && currentQuote.status !== 'converted' && (
+              <button
+                onClick={() => setShowDeleteModal(true)}
+                aria-label="Eliminar cotización"
+                title="Eliminar"
+                className="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-300 bg-white text-red-700 hover:bg-red-50"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
           </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-4 items-start">
+          {/* ── Productos ── */}
+          <div className="space-y-4 min-w-0">
+            <section className="bg-white rounded-xl border border-gray-200" aria-labelledby="od-items">
+              <h2 id="od-items" className="px-4 pt-4 pb-2 text-base font-semibold text-gray-900 flex items-center gap-2">
+                <Package className="w-4 h-4 text-gray-500" aria-hidden="true" /> Productos
+                <span className="text-sm font-normal text-gray-600">({(currentQuote.items || []).length})</span>
+              </h2>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 text-left text-xs font-medium text-gray-600">
+                    <tr>
+                      <th scope="col" className="px-4 py-2">Producto</th>
+                      <th scope="col" className="px-4 py-2 text-right">Cant.</th>
+                      <th scope="col" className="px-4 py-2 text-right hidden sm:table-cell">Precio</th>
+                      <th scope="col" className="px-4 py-2 text-right hidden sm:table-cell">IVA</th>
+                      <th scope="col" className="px-4 py-2 text-right">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {(currentQuote.items || []).map((item, index) => {
+                      const itemSubtotal = Number(item.unitPrice) * Number(item.quantity);
+                      const itemTotal = itemSubtotal * (1 + (Number(item.taxRate) || 0) / 100);
+                      return (
+                        <tr key={index}>
+                          <td className="px-4 py-2.5">
+                            <p className="font-medium text-gray-900">{item.product?.name}</p>
+                            <p className="text-xs text-gray-600 font-mono">{item.product?.code}</p>
+                          </td>
+                          <td className="px-4 py-2.5 text-right tabular-nums whitespace-nowrap">{Number(item.quantity)}</td>
+                          <td className="px-4 py-2.5 text-right tabular-nums whitespace-nowrap hidden sm:table-cell">{formatCurrency(item.unitPrice)}</td>
+                          <td className="px-4 py-2.5 text-right tabular-nums whitespace-nowrap hidden sm:table-cell text-gray-700">{Number(item.taxRate) ? `${Number(item.taxRate)}%` : '—'}</td>
+                          <td className="px-4 py-2.5 text-right tabular-nums whitespace-nowrap font-semibold text-gray-900">{formatCurrency(itemTotal)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <dl className="px-4 py-3 border-t border-gray-100 space-y-1 text-sm">
+                <div className="flex justify-between text-gray-700"><dt>Subtotal</dt><dd className="tabular-nums">{formatCurrency(totals.subtotal)}</dd></div>
+                {totals.totalTax > 0 && (
+                  <div className="flex justify-between text-gray-700"><dt>IVA</dt><dd className="tabular-nums">{formatCurrency(totals.totalTax)}</dd></div>
+                )}
+                <div className="flex justify-between pt-1.5 border-t border-gray-100 text-base font-bold text-gray-900"><dt>Total</dt><dd className="tabular-nums">{formatCurrency(totals.total)}</dd></div>
+              </dl>
+            </section>
+
+            {currentQuote.notes && (
+              <section className="bg-white rounded-xl border border-gray-200 p-4">
+                <h2 className="text-sm font-semibold text-gray-900 mb-1">Notas</h2>
+                <p className="text-sm text-gray-800 whitespace-pre-line">{currentQuote.notes}</p>
+              </section>
+            )}
+          </div>
+
+          {/* ── Lateral: cobro y cliente ── */}
+          <aside className="space-y-4 lg:sticky lg:top-4">
+            <section className="bg-white rounded-xl border border-gray-200 p-4" aria-labelledby="od-pago">
+              <h2 id="od-pago" className="text-xs font-medium text-gray-600">Total cotizado</h2>
+              <p className="text-2xl font-bold text-gray-900 tabular-nums">{formatCurrency(totals.total)}</p>
+              {currentQuote.validUntil && (
+                <p className="mt-1 text-sm text-gray-700 flex items-center gap-1.5">
+                  <CalendarClock className="w-4 h-4 text-gray-500" aria-hidden="true" />
+                  Válida hasta el {format(new Date(currentQuote.validUntil), "d 'de' MMMM 'de' yyyy", { locale: es })}
+                </p>
+              )}
+              {canConvert && (
+                <button
+                  onClick={() => setShowConvertModal(true)}
+                  className="mt-3 w-full flex items-center justify-center gap-2 min-h-[44px] px-4 bg-primary text-on-primary text-sm font-semibold rounded-lg hover:bg-primary/90"
+                >
+                  <ArrowRightCircle className="w-4 h-4" aria-hidden="true" />
+                  Convertir a orden
+                </button>
+              )}
+              {currentQuote.status === 'converted' && currentQuote.convertedOrderId && (
+                <button
+                  onClick={() => navigate(`/orders/${currentQuote.convertedOrderId}`)}
+                  className="mt-3 w-full flex items-center justify-center gap-2 min-h-[44px] px-4 border border-gray-300 text-gray-800 text-sm font-semibold rounded-lg hover:bg-gray-50"
+                >
+                  <ArrowRightCircle className="w-4 h-4" aria-hidden="true" />
+                  Ver orden generada
+                </button>
+              )}
+              <p className="mt-2 text-xs text-gray-600">Una cotización no descuenta inventario hasta convertirse en orden.</p>
+            </section>
+
+            <section className="bg-white rounded-xl border border-gray-200 p-4" aria-labelledby="od-cliente">
+              <h2 id="od-cliente" className="text-xs font-medium text-gray-600 mb-1">Cliente</h2>
+              <p className="font-semibold text-gray-900">{currentQuote.customer?.name ?? `Cliente #${currentQuote.customerId}`}</p>
+              <dl className="mt-1 space-y-1 text-sm text-gray-700">
+                {currentQuote.customer?.nit && (
+                  <div className="flex gap-1.5"><dt className="text-gray-600">NIT/CC:</dt><dd>{currentQuote.customer.nit}</dd></div>
+                )}
+                {currentQuote.customer?.contact && (
+                  <div className="flex items-center gap-1.5"><dt className="sr-only">Teléfono</dt><Phone className="w-4 h-4 text-gray-500" aria-hidden="true" /><dd>{currentQuote.customer.contact}</dd></div>
+                )}
+                {currentQuote.customer?.address && (
+                  <div className="flex items-center gap-1.5"><dt className="sr-only">Dirección</dt><MapPin className="w-4 h-4 text-gray-500" aria-hidden="true" /><dd>{currentQuote.customer.address}</dd></div>
+                )}
+              </dl>
+            </section>
+          </aside>
         </div>
 
         {/* Portal a #print-root — ver mismo mecanismo en OrderDetail.tsx */}

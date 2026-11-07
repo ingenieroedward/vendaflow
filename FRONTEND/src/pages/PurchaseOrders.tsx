@@ -17,6 +17,9 @@ const STATUS_LABELS: Record<string, { label: string; className: string }> = {
   cancelled: { label: 'Cancelado',className: 'bg-red-100 text-red-700' },
 };
 
+const money = (n: number) =>
+  new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(Number(n));
+
 const PurchaseOrders: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
@@ -45,14 +48,13 @@ const PurchaseOrders: React.FC = () => {
         <p className="text-sm text-gray-600">Gestiona las compras a tus proveedores.</p>
       </div>
       <div className="flex items-center justify-between mb-6">
-        <p className="text-sm text-gray-500">{pagination.total} orden(es)</p>
+        <p className="text-sm text-gray-600">{pagination.total} {pagination.total === 1 ? 'compra' : 'compras'}</p>
         <button
           onClick={() => navigate('/purchase-orders/new')}
-          className="flex items-center gap-1 px-2.5 py-1.5 text-xs sm:text-sm bg-primary text-on-primary rounded-lg hover:bg-primary/90 transition-colors font-medium"
+          className="flex items-center gap-1.5 min-h-[40px] px-3 text-sm bg-primary text-on-primary rounded-lg hover:bg-primary/90 transition-colors font-medium"
         >
-          <Plus size={13} />
-          <span className="hidden sm:inline">Nueva Orden de Compra</span>
-          <span className="sm:hidden">Nueva OC</span>
+          <Plus className="w-4 h-4" aria-hidden="true" />
+          Nueva compra
         </button>
       </div>
 
@@ -82,7 +84,7 @@ const PurchaseOrders: React.FC = () => {
                 <div key={po.id} className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
                   <div className="flex items-start justify-between mb-2">
                     <div>
-                      <span className="font-mono font-semibold text-primary text-sm">{po.poNumber}</span>
+                      <span className="font-mono font-semibold text-gray-900 text-sm">{po.poNumber}</span>
                       <p className="text-xs text-gray-500 mt-0.5">{format(new Date(po.createdAt), 'dd MMM yyyy', { locale: es })}</p>
                     </div>
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${status.className}`}>
@@ -91,13 +93,13 @@ const PurchaseOrders: React.FC = () => {
                   </div>
                   <p className="text-sm text-gray-700 mb-3">{po.supplier?.name ?? `Proveedor #${po.supplierId}`}</p>
                   <div className="flex items-center justify-between">
-                    <span className="text-base font-bold text-gray-900">${po.totalAmount.toLocaleString('es-CO')}</span>
+                    <span className="text-base font-bold text-gray-900 tabular-nums">{money(po.totalAmount)}</span>
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => navigate(`/purchase-orders/${po.id}`)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/5 text-primary text-xs font-medium"
+                        className="flex items-center gap-1.5 min-h-[40px] px-3 rounded-lg border border-gray-300 text-gray-800 text-sm font-medium"
                       >
-                        <Eye size={13} /> Ver
+                        <Eye className="w-4 h-4" aria-hidden="true" /> Ver
                       </button>
                       {isAdmin && po.status !== 'received' && (
                         deleteConfirm === po.id ? (
@@ -106,8 +108,9 @@ const PurchaseOrders: React.FC = () => {
                             <button onClick={() => setDeleteConfirm(null)} className="px-2 py-1.5 bg-gray-200 text-xs rounded-lg">No</button>
                           </div>
                         ) : (
-                          <button onClick={() => setDeleteConfirm(po.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-red-500">
-                            <Trash2 size={15} />
+                          <button onClick={() => setDeleteConfirm(po.id)} aria-label={`Eliminar compra ${po.poNumber}`}
+                            className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-red-50 text-red-700">
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         )
                       )}
@@ -121,35 +124,38 @@ const PurchaseOrders: React.FC = () => {
           {/* Desktop: tabla */}
           <div className="hidden sm:block overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
             <table className="min-w-full bg-white text-sm">
-              <thead className="bg-gray-50 text-gray-600 uppercase text-xs">
+              <thead className="bg-gray-50 text-left text-xs font-medium text-gray-600">
                 <tr>
                   <th className="px-4 py-3 text-left">N° Orden</th>
                   <th className="px-4 py-3 text-left">Proveedor</th>
                   <th className="px-4 py-3 text-left">Estado</th>
                   <th className="px-4 py-3 text-right">Total</th>
                   <th className="px-4 py-3 text-left">Fecha</th>
-                  <th className="px-4 py-3 text-center">Acciones</th>
+                  <th className="px-4 py-3"><span className="sr-only">Acciones</span></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {purchaseOrders.map(po => {
                   const status = STATUS_LABELS[po.status] ?? { label: po.status, className: 'bg-gray-100 text-gray-700' };
                   return (
-                    <tr key={po.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-4 py-3 font-mono font-semibold text-primary">{po.poNumber}</td>
+                    <tr
+                      key={po.id}
+                      tabIndex={0}
+                      onClick={() => navigate(`/purchase-orders/${po.id}`)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') navigate(`/purchase-orders/${po.id}`); }}
+                      className="cursor-pointer hover:bg-gray-50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+                    >
+                      <td className="px-4 py-3 font-mono text-xs font-semibold text-gray-900">{po.poNumber}</td>
                       <td className="px-4 py-3">{po.supplier?.name ?? `Proveedor #${po.supplierId}`}</td>
                       <td className="px-4 py-3">
                         <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${status.className}`}>
                           {status.label}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-right font-medium">${po.totalAmount.toLocaleString('es-CO')}</td>
-                      <td className="px-4 py-3 text-gray-500">{format(new Date(po.createdAt), 'dd MMM yyyy', { locale: es })}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center justify-center gap-2">
-                          <button onClick={() => navigate(`/purchase-orders/${po.id}`)} className="p-1.5 rounded hover:bg-primary/5 text-primary" title="Ver detalle">
-                            <Eye size={15} />
-                          </button>
+                      <td className="px-4 py-3 text-right font-semibold tabular-nums text-gray-900">{money(po.totalAmount)}</td>
+                      <td className="px-4 py-3 text-gray-700">{format(new Date(po.createdAt), 'dd MMM yyyy', { locale: es })}</td>
+                      <td className="px-2 py-1.5" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-end gap-1">
                           {isAdmin && po.status !== 'received' && (
                             deleteConfirm === po.id ? (
                               <div className="flex items-center gap-1">
@@ -157,8 +163,9 @@ const PurchaseOrders: React.FC = () => {
                                 <button onClick={() => setDeleteConfirm(null)} className="px-2 py-0.5 bg-gray-200 text-xs rounded">No</button>
                               </div>
                             ) : (
-                              <button onClick={() => setDeleteConfirm(po.id)} className="p-1.5 rounded hover:bg-red-50 text-red-500" title="Eliminar">
-                                <Trash2 size={15} />
+                              <button onClick={() => setDeleteConfirm(po.id)} aria-label={`Eliminar compra ${po.poNumber}`} title="Eliminar"
+                                className="w-9 h-9 flex items-center justify-center rounded-lg text-gray-600 hover:bg-red-50 hover:text-red-700">
+                                <Trash2 className="w-4 h-4" />
                               </button>
                             )
                           )}

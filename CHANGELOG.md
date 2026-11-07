@@ -7,6 +7,62 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ## [Unreleased]
 
+## [1.23.0] — 2026-11-07 — Rediseño de pantallas internas, entrega C (cierre)
+
+### Changed
+
+- **Proveedores, Categorías y Usuarios**: tablas densas con acciones visibles (Editar, Eliminar,
+  Restaurar) en vez de tarjetas con un menú ⋮ escondido; filas compactas en el celular.
+- Roles con colores distinguibles: Administrador en gris, Vendedor en azul cielo y Comprador en
+  ámbar. Antes "Admin" era rojo, que en la app significa error.
+- **Ficha de producto**: Editar como acción principal, eliminar discreto, "Agregar precio" solo en
+  su sección y sin el botón "Volver" duplicado.
+- **Mi perfil**: encabezado alineado como el resto y botones de 40 px.
+- **Configuración**: "Branding" ahora se llama "Color de la marca".
+- Contraste: textos de 10–11 px y tonos naranja o ámbar claros subidos a AA en toda la app.
+
+## [1.22.0] — 2026-11-07 — Rediseño de pantallas internas, entrega B
+
+### Changed
+
+- **Nueva orden de compra** con el patrón de Nueva orden:
+  - el buscador agrega con Enter o escáner, con cantidad 1 y el último costo conocido;
+  - cantidad con +/−;
+  - resumen lateral y barra fija en el celular;
+  - el botón dice el total y qué falta.
+- **Detalle de compra**:
+  - productos en tabla;
+  - a la derecha, el total y las acciones (pedida, recibida, con confirmación en línea), el
+    proveedor y las notas.
+- **Lista de compras**: fila clicable, montos con formato y botón "Nueva compra".
+- **Inventario**:
+  - indicadores que filtran la tabla al tocarlos (usables con teclado);
+  - filtros en forma de chip;
+  - botones con nombre ("Editar stock", "Nueva compra").
+- **Informes**: selector de período segmentado, íconos neutros y "Descargar Excel" como botón
+  secundario.
+- Encabezados de tabla sin mayúsculas en Inventario, Compras, Informes y Movimientos.
+
+### Fixed
+
+- Recibir una compra marcada "no suma inventario" pedía confirmar con "Esto sumará el stock".
+- El indicador "Stock negativo" usaba el ícono de tendencia al alza.
+
+## [1.21.0] — 2026-11-07 — Rediseño de pantallas internas, entrega A
+
+### Changed
+
+- **Detalle de orden y de cotización**:
+  - acciones con nombre en el encabezado (estado, Imprimir/PDF, Editar);
+  - productos en tabla;
+  - a la derecha, el total con el estado de pago, "Marcar pagada", los abonos (o "Convertir a
+    orden" en cotizaciones) y los datos del cliente.
+- **Clientes**:
+  - tabla con NIT, contacto y saldo, en vez de tarjetas, y filas compactas en el celular;
+  - filtro "Con saldo";
+  - panel lateral con saldo por cobrar, datos de contacto, últimas órdenes y "Nueva orden", que
+    abre Nueva orden con el cliente ya elegido.
+
 ## [1.20.0] — 2026-11-07 — Rediseño UX/UI, fase 3 (cierre del prototipo)
 
 ### Added

@@ -211,7 +211,7 @@ const Prices: React.FC = () => {
 
       {/* Offline banner */}
       {isOffline && (
-        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-center gap-2 text-amber-700 text-sm">
+        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-center gap-2 text-amber-900 text-sm">
           <WifiOff className="w-4 h-4 flex-shrink-0" />
           <span>Sin conexión — mostrando datos guardados localmente</span>
         </div>
@@ -244,20 +244,20 @@ const Prices: React.FC = () => {
                   className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50 transition-colors"
                 >
                   <div className="flex items-center space-x-3 flex-1 min-w-0">
-                    <div className="w-10 h-10 bg-green-50 rounded-full flex items-center justify-center flex-shrink-0">
-                      <DollarSign className="w-5 h-5 text-green-600" />
+                    <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      <DollarSign className="w-5 h-5 text-gray-600" aria-hidden="true" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-base font-medium text-gray-900 truncate">{product.name}</p>
                       <p className="text-xs text-gray-500">
                         {product.code}
                         {prices.length > 0 && (
-                          <span className="ml-2 text-green-600 font-medium">
+                          <span className="ml-2 text-green-800 font-medium">
                             {prices.length} precio{prices.length !== 1 ? 's' : ''}
                           </span>
                         )}
                         {prices.length === 0 && (
-                          <span className="ml-2 text-orange-500">Sin precios</span>
+                          <span className="ml-2 text-amber-900">Sin precios</span>
                         )}
                       </p>
                     </div>

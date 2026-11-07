@@ -154,10 +154,10 @@ const Billing: React.FC = () => {
         return (
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4">
             <div className="flex items-start gap-2.5">
-              <AlertTriangle className="w-4 h-4 mt-0.5 text-amber-500 flex-shrink-0" />
+              <AlertTriangle className="w-4 h-4 mt-0.5 text-amber-800 flex-shrink-0" />
               <div className="text-sm">
                 <p className="font-medium text-amber-800">Completa tus datos de facturación</p>
-                <p className="mt-0.5 text-amber-700">
+                <p className="mt-0.5 text-amber-900">
                   Te falta: {missing.join(', ')}. Así tus recibos salen completos y te avisamos por correo cuando tu plan esté por vencer.
                 </p>
                 {missingIdentity && (
@@ -267,7 +267,7 @@ const Billing: React.FC = () => {
             </p>
           )}
           {tenantInfo.trialEndsAt && tenantInfo.plan === 'trial' && (
-            <p className="text-xs text-amber-600 mt-3 text-center">
+            <p className="text-xs text-amber-900 mt-3 text-center">
               Trial vence el {new Date(tenantInfo.trialEndsAt).toLocaleDateString('es-CO')}
             </p>
           )}
@@ -326,7 +326,7 @@ const Billing: React.FC = () => {
               <label className="block text-xs font-medium text-gray-700 mb-1">Comprobante (imagen, máx 2MB)</label>
               <input type="file" accept="image/*" onChange={handleReceiptFile}
                 className="block w-full text-xs text-gray-500 file:mr-3 file:px-3 file:py-2 file:rounded-lg file:border-0 file:bg-primary/10 file:text-primary file:text-xs file:font-medium hover:file:bg-primary/15" />
-              {payForm.receiptBase64 && <p className="mt-1 text-xs text-green-600">✓ Comprobante adjunto</p>}
+              {payForm.receiptBase64 && <p className="mt-1 text-xs text-green-700">✓ Comprobante adjunto</p>}
             </div>
             {payMsg && <p className={`text-sm rounded-lg px-3 py-2 ${payMsg.startsWith('Pago reportado') ? 'text-green-700 bg-green-50 border border-green-200' : 'text-red-600 bg-red-50 border border-red-200'}`}>{payMsg}</p>}
             <div className="flex justify-end">
@@ -345,12 +345,12 @@ const Billing: React.FC = () => {
                   <li key={pg.id} className="flex items-center justify-between px-3 py-2 text-xs">
                     <span className="text-gray-700">
                       {new Date(pg.createdAt).toLocaleDateString('es-CO')} · plan {pg.plan} · {fmtCop(Number(pg.amount))}
-                      {pg.receiptNumber && <span className="text-green-600 font-medium"> · {pg.receiptNumber}</span>}
+                      {pg.receiptNumber && <span className="text-green-700 font-medium"> · {pg.receiptNumber}</span>}
                       {pg.receiptUrl && (
                         <a href={pg.receiptUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium"> · Ver recibo</a>
                       )}
                     </span>
-                    <span className={`px-2 py-0.5 rounded-full font-medium ${pg.status === 'approved' ? 'bg-green-100 text-green-700' : pg.status === 'rejected' ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-700'}`}>
+                    <span className={`px-2 py-0.5 rounded-full font-medium ${pg.status === 'approved' ? 'bg-green-100 text-green-700' : pg.status === 'rejected' ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-900'}`}>
                       {pg.status === 'approved' ? 'Confirmado' : pg.status === 'rejected' ? 'Rechazado' : 'En revisión'}
                     </span>
                   </li>

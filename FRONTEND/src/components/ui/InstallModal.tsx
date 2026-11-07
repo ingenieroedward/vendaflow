@@ -227,7 +227,7 @@ const IOSInstructions: React.FC = () => (
     </div>
 
     <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex gap-2">
-      <Apple className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+      <Apple className="w-4 h-4 text-amber-800 shrink-0 mt-0.5" />
       <p className="text-xs text-amber-700">
         Solo funciona desde <strong>Safari</strong>. Si estás usando Chrome u otro navegador en iOS, ábrelo en Safari primero.
       </p>
@@ -367,7 +367,7 @@ const ManualTab: React.FC = () => {
       ],
     },
     {
-      icon: <ShoppingCart className="w-4 h-4 text-orange-600" />,
+      icon: <ShoppingCart className="w-4 h-4 text-amber-900" />,
       color: 'bg-orange-100',
       title: 'Órdenes de venta',
       steps: [

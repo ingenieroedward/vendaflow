@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Package, Tag, Calendar, Edit, TrendingUp, Trash2 } from 'lucide-react';
+import { Package, Tag, Calendar, Edit, TrendingUp, Trash2 } from 'lucide-react';
 import Breadcrumbs from '../components/ui/Breadcrumbs';
 import { useProductStore } from '../store/productStore';
 import { useUIStore } from '../store/uiStore';
@@ -331,18 +331,8 @@ const ProductDetail: React.FC = () => {
             items={[{ label: 'Productos', to: '/' }, { label: product?.name ?? 'Detalle' }]}
             className="mb-2"
           />
-          <Button
-            variant="ghost"
-            icon={ArrowLeft}
-            onClick={handleBack}
-            className="mb-3 sm:mb-4 -ml-2"
-            size="sm"
-          >
-            Volver
-          </Button>
-
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
-            <div className="flex md:items-center  justify-between">
+            <div className="flex md:items-center gap-3 justify-between">
               <div className="flex items-start space-x-3 sm:space-x-4 mb-4 lg:mb-0">
                 <div className="w-12 h-12 sm:w-16 sm:h-16 bg-primary/15 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
                   <Package className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
@@ -352,8 +342,8 @@ const ProductDetail: React.FC = () => {
                     {product.name}
                   </h1>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className="text-xs sm:text-sm text-gray-500">Precio de venta:</span>
-                    <span className="text-base sm:text-lg font-semibold text-primary">
+                    <span className="text-xs sm:text-sm text-gray-600">Precio de venta:</span>
+                    <span className="text-base sm:text-lg font-semibold text-gray-900 tabular-nums">
                       {typeof product.salePrice === 'number' && !isNaN(product.salePrice)
                         ? formatCurrency(product.salePrice)
                         : '-'}
@@ -361,7 +351,7 @@ const ProductDetail: React.FC = () => {
                   </div>
                   <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-500">
                     <div className="flex items-center">
-                      <span className="font-medium text-primary">{product.code}</span>
+                      <span className="font-mono font-medium text-gray-800">{product.code}</span>
                     </div>
                     <div className="flex items-center">
                       <Tag className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
@@ -381,45 +371,23 @@ const ProductDetail: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex  flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
-                <Button
-                  variant="outline"
-                  icon={Edit}
-                  onClick={handleEdit}
-                  size="sm"
-                  className="w-full sm:w-auto hidden md:flex"
-                >
+              {/* Acciones: Editar como principal; eliminar discreto (antes rojo
+                  sólido al mismo nivel) y "Agregar precio" solo en su sección */}
+              <div className="flex items-start gap-2 flex-shrink-0">
+                <Button variant="outline" icon={Edit} onClick={handleEdit} className="min-h-[40px]">
                   Editar
                 </Button>
-                <Button
-                  variant="outline"
-                  icon={Edit}
-                  onClick={handleEdit}
-                  size="sm"
-                  className="sm:w-auto md:hidden"
-                >
-                  <span className="sr-only">Editar</span>
-                </Button>
                 {user?.role === 'admin' && (
-                  <Button
-                    variant="danger"
-                    icon={Trash2}
+                  <button
+                    type="button"
                     onClick={() => setShowDeleteConfirm(true)}
-                    size="sm"
-                    className="w-full sm:w-auto"
+                    aria-label="Eliminar producto"
+                    title="Eliminar"
+                    className="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-300 bg-white text-red-700 hover:bg-red-50"
                   >
-                    <span className="hidden md:inline">Eliminar</span>
-                  </Button>
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 )}
-                <Button
-                  variant="primary"
-                  icon={TrendingUp}
-                  onClick={handleAddPrice}
-                  size="sm"
-                  className="w-full sm:w-auto hidden md:flex"
-                >
-                  Agregar precio
-                </Button>
               </div>
             </div>
           </div>

@@ -502,7 +502,7 @@ const Pos: React.FC = () => {
           <form onSubmit={handleCloseSession} className="space-y-4 p-1">
             {session.salesByMethod.total > 0 && (
               <div className="bg-gray-50 rounded-lg p-3 space-y-1">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 mb-1.5">Ventas del turno</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1.5">Ventas del turno</p>
                 {([
                   ['Efectivo', session.salesByMethod.cash],
                   ['Tarjeta', session.salesByMethod.card],

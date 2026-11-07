@@ -135,7 +135,7 @@ const TenantSettings: React.FC = () => {
                     <span className="text-xs text-gray-500">Vista previa del logo</span>
                   </div>
                 )}
-                <p className="mt-1.5 text-[11px] text-gray-500">Aparece al instalar la app, en el login, el menú y los recibos impresos.</p>
+                <p className="mt-1.5 text-xs text-gray-500">Aparece al instalar la app, en el login, el menú y los recibos impresos.</p>
               </>
             ) : (
               <div className="flex items-start gap-2 px-3 py-2.5 bg-gray-50 border border-dashed border-gray-300 rounded-lg text-xs text-gray-500">
@@ -177,14 +177,14 @@ const TenantSettings: React.FC = () => {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
             />
           </div>
-          <p className="text-[11px] text-gray-500 -mt-2">NIT, dirección y ciudad aparecen en tus PDF de venta (ticket y hoja carta).</p>
+          <p className="text-xs text-gray-500 -mt-2">NIT, dirección y ciudad aparecen en tus PDF de venta (ticket y hoja carta).</p>
         </div>
 
         {/* Branding */}
         <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
           <div className="flex items-center gap-2 pb-1">
             <Palette className="w-4 h-4 text-gray-500" />
-            <h2 className="text-sm font-semibold text-gray-700">Branding</h2>
+            <h2 className="text-sm font-semibold text-gray-700">Color de la marca</h2>
           </div>
 
           <div>

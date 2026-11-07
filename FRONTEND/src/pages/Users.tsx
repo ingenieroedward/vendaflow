@@ -7,10 +7,6 @@ import {
   Trash2,
   User,
   Shield,
-  Calendar,
-  ArrowLeft,
-  MoreVertical,
-  X,
   User2,
   RefreshCcw,
   AlertTriangle,
@@ -49,7 +45,6 @@ const Users: React.FC = () => {
   const { addNotification } = useUIStore();
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeUserMenu, setActiveUserMenu] = useState<number | null>(null);
   const [pendingPermDelete, setPendingPermDelete] = useState<{ id: number; username: string } | null>(null);
 
   useEffect(() => {
@@ -112,12 +107,10 @@ const Users: React.FC = () => {
     } finally {
       handleRefresh()
     }
-    setActiveUserMenu(null);
   }
 
   const handleEditUser = (userId: number) => {
     navigate(`/users/${userId}/edit`);
-    setActiveUserMenu(null);
   };
 
   const handleDeleteUser = async (userId: number) => {
@@ -142,12 +135,10 @@ const Users: React.FC = () => {
     } finally {
       handleRefresh();
     }
-    setActiveUserMenu(null);
   };
 
   const handlePermDeleteClick = (userId: number, username: string) => {
     setPendingPermDelete({ id: userId, username });
-    setActiveUserMenu(null);
   };
 
   const handlePermDeleteConfirm = async () => {
@@ -170,23 +161,23 @@ const Users: React.FC = () => {
   const getRoleBadge = (role: string) => {
     if (role === "admin") {
       return (
-        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-200 text-gray-900">
           <Shield className="w-3 h-3 mr-1" />
-          Admin
+          Administrador
         </span>
       );
     }
 
     if (role === "seller") {
       return (
-        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary/15 text-primary">
+        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-sky-100 text-sky-900">
           <User2 className="w-3 h-3 mr-1" />
           Vendedor
         </span>
       );
     }
     return (
-      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary/15 text-primary">
+      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-900">
         <User className="w-3 h-3 mr-1" />
         Comprador
       </span>
@@ -254,173 +245,94 @@ const Users: React.FC = () => {
 
 
       {/* Users List */}
-      <div className="px-3 sm:px-6 lg:px-8 py-2 space-y-2">
-        {filteredUsers.map((user) => (
-          <div
-            key={user.id}
-            className="bg-white rounded-xl shadow-sm border border-gray-200"
-          >
-            <div className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3 flex-1 min-w-0">
-                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                    <User className="w-6 h-6 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center space-x-2 mb-1">
-                      <h3 className="text-base font-medium text-gray-900 truncate">
+      <div className="px-3 sm:px-6 lg:px-8 py-2">
+        {/* Tabla con acciones visibles (antes tarjetas con menú ⋮ escondido) */}
+        {filteredUsers.length > 0 && (
+          <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 text-left text-xs font-medium text-gray-600">
+                <tr>
+                  <th scope="col" className="px-4 py-2.5">Usuario</th>
+                  <th scope="col" className="px-4 py-2.5">Rol</th>
+                  <th scope="col" className="px-4 py-2.5 hidden sm:table-cell">Creado</th>
+                  <th scope="col" className="px-2 py-2.5"><span className="sr-only">Acciones</span></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {filteredUsers.map((user) => (
+                  <tr key={user.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-2.5">
+                      <p className="font-medium text-gray-900">
                         {user.name || user.username}
-                      </h3>
-                      {user.id === currentUser?.id && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          Tú
-                        </span>
-                      )}
-                    </div>
-                    {user.name && (
-                      <p className="text-xs text-gray-500 truncate mb-1">@{user.username}</p>
-                    )}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        {getRoleBadge(user.role)}
-                      </div>
-                      <div className="flex items-center text-xs text-gray-500">
-                        <Calendar className="w-3 h-3 mr-1" />
-                        <span>{formatDateShort(user.createdAt)}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Actions Menu */}
-                <div className="relative">
-                  <button
-                    onClick={() =>
-                      setActiveUserMenu(
-                        activeUserMenu === user.id ? null : user.id
-                      )
-                    }
-                    className="p-2 rounded-lg text-gray-500 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-                  >
-                    <MoreVertical className="w-5 h-5" />
-                  </button>
-
-                  {activeUserMenu === user.id && (
-                    <>
-                      <div
-                        className="fixed inset-0 z-40"
-                        onClick={() => setActiveUserMenu(null)}
-                      />
-                      <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-1 z-50">
-                        <button
-                          onClick={() => handleEditUser(user.id)}
-                          className="flex items-center space-x-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                        >
-                          <Edit className="w-4 h-4 text-gray-500" />
-                          <span>Editar usuario</span>
-                        </button>
-                        {user.id !== currentUser?.id && (
-                          <button
-                            onClick={() => handleDeleteUser(user.id)}
-                            className="flex items-center space-x-3 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                            <span>Eliminar usuario</span>
-                          </button>
+                        {user.id === currentUser?.id && (
+                          <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Tú</span>
                         )}
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
+                      </p>
+                      {user.name && <p className="text-xs text-gray-600">@{user.username}</p>}
+                    </td>
+                    <td className="px-4 py-2.5 whitespace-nowrap">{getRoleBadge(user.role)}</td>
+                    <td className="px-4 py-2.5 text-gray-700 whitespace-nowrap hidden sm:table-cell">{formatDateShort(user.createdAt)}</td>
+                    <td className="px-2 py-1.5 whitespace-nowrap text-right">
+                      <button type="button" onClick={() => handleEditUser(user.id)} aria-label={`Editar ${user.username}`} title="Editar"
+                        className="inline-flex w-10 h-10 items-center justify-center rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900">
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      {user.id !== currentUser?.id && (
+                        <button type="button" onClick={() => handleDeleteUser(user.id)} aria-label={`Eliminar ${user.username}`} title="Eliminar"
+                          className="inline-flex w-10 h-10 items-center justify-center rounded-lg text-gray-600 hover:bg-red-50 hover:text-red-700">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        ))}
-        {usersDeleted.length > 0 && (
-        <h3 className="py-2 px-2 font-bold">Usuarios eliminados</h3>
-
         )}
-        {usersDeleted.map((user) => (
-          <div
-            key={user.id}
-            className="bg-white rounded-xl shadow-sm border border-gray-200"
-          >
-            <div className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3 flex-1 min-w-0">
-                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                    <User className="w-6 h-6 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center space-x-2 mb-1">
-                      <h3 className="text-base font-medium text-gray-900 truncate">
-                        {user.name || user.username}
-                      </h3>
-                      {user.id === currentUser?.id && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          Tú
-                        </span>
-                      )}
-                    </div>
-                    {user.name && (
-                      <p className="text-xs text-gray-500 truncate mb-1">@{user.username}</p>
-                    )}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        {getRoleBadge(user.role)}
-                      </div>
-                      <div className="flex items-center text-xs text-gray-500">
-                        <Trash2 className="w-3 h-3 mr-1" />
-                        <span>{formatDateShort(user.deletedAt)}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
 
-                {/* Actions Menu */}
-                <div className="relative">
-                  <button
-                    onClick={() =>
-                      setActiveUserMenu(
-                        activeUserMenu === user.id ? null : user.id
-                      )
-                    }
-                    className="p-2 rounded-lg text-gray-500 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-                  >
-                    <MoreVertical className="w-5 h-5" />
-                  </button>
-
-                  {activeUserMenu === user.id && (
-                    <>
-                      <div
-                        className="fixed inset-0 z-40"
-                        onClick={() => setActiveUserMenu(null)}
-                      />
-                      <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-1 z-50">
-                        <button
-                          onClick={() => handleRestoreUser(user.id)}
-                          className="flex items-center space-x-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                        >
-                          <RefreshCcw className="w-4 h-4 text-gray-500" />
-                          <span>Restaurar</span>
+        {usersDeleted.length > 0 && (
+          <section className="mt-6" aria-labelledby="users-deleted">
+            <h2 id="users-deleted" className="px-1 pb-2 text-sm font-semibold text-gray-900">Usuarios eliminados</h2>
+            <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 text-left text-xs font-medium text-gray-600">
+                  <tr>
+                    <th scope="col" className="px-4 py-2.5">Usuario</th>
+                    <th scope="col" className="px-4 py-2.5">Rol</th>
+                    <th scope="col" className="px-4 py-2.5 hidden sm:table-cell">Eliminado</th>
+                    <th scope="col" className="px-2 py-2.5"><span className="sr-only">Acciones</span></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {usersDeleted.map((user) => (
+                    <tr key={user.id}>
+                      <td className="px-4 py-2.5">
+                        <p className="font-medium text-gray-700 line-through">{user.name || user.username}</p>
+                        {user.name && <p className="text-xs text-gray-600">@{user.username}</p>}
+                      </td>
+                      <td className="px-4 py-2.5 whitespace-nowrap">{getRoleBadge(user.role)}</td>
+                      <td className="px-4 py-2.5 text-gray-700 whitespace-nowrap hidden sm:table-cell">{formatDateShort(user.deletedAt)}</td>
+                      <td className="px-2 py-1.5 whitespace-nowrap text-right">
+                        <button type="button" onClick={() => handleRestoreUser(user.id)}
+                          className="inline-flex items-center gap-1.5 min-h-[40px] px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100">
+                          <RefreshCcw className="w-4 h-4" aria-hidden="true" /> Restaurar
                         </button>
                         {user.id !== currentUser?.id && (
-                          <button
-                            onClick={() => handlePermDeleteClick(user.id, user.username)}
-                            className="flex items-center space-x-3 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                          >
+                          <button type="button" onClick={() => handlePermDeleteClick(user.id, user.username)}
+                            aria-label={`Eliminar permanentemente a ${user.username}`} title="Eliminar permanente"
+                            className="inline-flex w-10 h-10 items-center justify-center rounded-lg text-gray-600 hover:bg-red-50 hover:text-red-700">
                             <Trash2 className="w-4 h-4" />
-                            <span>Eliminar permanente</span>
                           </button>
                         )}
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          </div>
-        ))}
+          </section>
+        )}
         {filteredUsers.length === 0 && (
           <div className="text-center py-16">
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
