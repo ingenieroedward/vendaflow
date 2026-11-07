@@ -7,6 +7,36 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ## [Unreleased]
 
+## [1.20.0] — 2026-11-07 — Rediseño UX/UI, fase 3 (cierre del prototipo)
+
+### Added
+
+- Menú lateral con atajos **Vender** y **Orden** y el estado de sincronización siempre visible
+  ("Sincronizado", "N sin enviar" o "Sin conexión").
+- Productos:
+  - columna de **margen**;
+  - filtro **Stock bajo** (solo productos con stock mínimo configurado);
+  - en el celular, filas compactas en vez de tarjetas grandes.
+- Panel de producto:
+  - **últimos movimientos** del kardex;
+  - **Ajustar stock** con el conteo real y un motivo (queda como ajuste en el kardex);
+  - **Agregar a una orden**, que abre Nueva orden con el producto ya agregado.
+- Órdenes:
+  - franja de cartera (por cobrar, **vencidas** —que filtra la lista—, y vencen en 7 días), en vez
+    del aviso que se podía ocultar;
+  - filtro por forma de pago.
+- Nueva orden y Nueva cotización:
+  - saldo por cobrar y última compra del cliente;
+  - "Lo que más compra este cliente" para agregar con un toque (a partir de las órdenes guardadas
+    en el equipo, funciona sin conexión).
+- POS: **asignar cliente** a la venta (sin cliente sigue siendo "Consumidor final").
+- Tipografía IBM Plex Sans / Mono empaquetada con la app (funciona sin conexión).
+
+### Changed
+
+- Editar orden y Editar cotización con el mismo diseño de Nueva orden: buscador siempre listo,
+  +/− por línea, resumen lateral y barra fija en el celular.
+
 ## [1.19.1] — 2026-11-07 — IVA incluido en el precio, por producto
 
 ### Added

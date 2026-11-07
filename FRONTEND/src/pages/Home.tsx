@@ -121,10 +121,10 @@ const Home: React.FC = () => {
           </div>
 
           {/* Actions - Stack vertical en mobile */}
-          <div className="items-center flex justify-between gap-2 sm:gap-3">
+          <div className="items-center flex flex-wrap justify-between gap-2 sm:gap-3">
               {/* Antes: 3 tarjetas de indicadores calculadas solo sobre la página
                   visible (25) pero divididas por el total — cifras falsas. */}
-              <p className="text-sm text-gray-600 tabular-nums" aria-live="polite">
+              <p className="text-sm text-gray-600 tabular-nums whitespace-nowrap" aria-live="polite">
                 {lowStockOnly && !showSearchResults
                   ? `${listProducts.length} con stock bajo`
                   : `${pagination.total} ${pagination.total === 1 ? 'producto' : 'productos'}`}
@@ -133,7 +133,7 @@ const Home: React.FC = () => {
                 type="button"
                 aria-pressed={lowStockOnly}
                 onClick={() => { setLowStockOnly(v => !v); setLowStock(null); }}
-                className={`mr-auto min-h-[36px] px-3 rounded-full border text-sm font-medium transition-colors ${
+                className={`mr-auto min-h-[36px] px-3 rounded-full border text-sm font-medium whitespace-nowrap transition-colors ${
                   lowStockOnly ? 'border-amber-500 bg-amber-50 text-amber-900' : 'border-gray-300 text-gray-700 hover:bg-gray-50'
                 }`}
               >

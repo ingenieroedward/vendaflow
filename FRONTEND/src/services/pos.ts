@@ -55,6 +55,7 @@ export const posService = {
     (await apiService.post<Wrapped<CashSession>>('/pos/sessions', { openingAmount, notes })).data,
   closeSession: async (id: number, countedCash: number, notes?: string) =>
     (await apiService.patch<Wrapped<CashSession>>(`/pos/sessions/${id}/close`, { countedCash, notes })).data,
-  sale: async (items: PosSaleItem[], payments: PosPaymentLine[], cashReceived?: number, notes?: string) =>
-    (await apiService.post<Wrapped<PosSaleResult>>('/pos/sale', { items, payments, cashReceived, notes })).data,
+  // Sin customerId el backend usa "Consumidor final"
+  sale: async (items: PosSaleItem[], payments: PosPaymentLine[], cashReceived?: number, notes?: string, customerId?: number) =>
+    (await apiService.post<Wrapped<PosSaleResult>>('/pos/sale', { items, payments, cashReceived, notes, customerId })).data,
 };

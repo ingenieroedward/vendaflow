@@ -9,6 +9,9 @@ import { Share } from '@capacitor/share';
 import { useProductStore } from '../store/productStore';
 import { useTenantStore } from '../store/tenantStore';
 import { lineTotal } from '../utils/tax';
+import { useCustomerStore } from '../store/customerStore';
+import CustomerSearch from '../components/features/CustomerSearch';
+import { Customer } from '../types/customer';
 import { useUIStore } from '../store/uiStore';
 import { posService, CashSession, PosPaymentLine, PosSaleResult } from '../services/pos';
 import { orderService } from '../services/orders';
@@ -79,7 +82,11 @@ const Pos: React.FC = () => {
   // Recuperar el foco cuando se cierran los modales — un lector de código de
   // barras "escribe" en el input que tenga el foco; si se pierde, el
   // siguiente escaneo no llega a ningún lado.
-  useEffect(() => { if (!paymentModalOpen && !closeModalOpen) searchRef.current?.focus(); }, [paymentModalOpen, closeModalOpen]);
+  // Cliente de la venta (opcional): sin cliente queda "Consumidor final"
+  const { customers, getCustomers } = useCustomerStore();
+  const [saleCustomer, setSaleCustomer] = useState<Customer | null>(null);
+  const [customerPickerOpen, setCustomerPickerOpen] = useState(false);
+  useEffect(() => { if (!paymentModalOpen && !closeModalOpen && !customerPickerOpen) searchRef.current?.focus(); }, [paymentModalOpen, closeModalOpen, customerPickerOpen]);
 
   // Productos más vendidos en esta caja (contador local por negocio), para
   // que la grilla no arranque vacía: se vende con un toque sin escribir
@@ -179,9 +186,12 @@ const Pos: React.FC = () => {
         cart.map(l => ({ productId: l.productId, quantity: l.quantity, unitPrice: l.unitPrice, taxRate: l.taxRate })),
         payments,
         cashReceived,
+        undefined,
+        saleCustomer?.id,
       );
       bumpFreq(cart);
       setCart([]);
+      setSaleCustomer(null);
       setSaleResult(sale); // el modal pasa a mostrar la confirmación (con ticket opcional)
       getProducts(1, 2000, false); // refresca stock
       refreshSession(); // refresca el desglose por método del turno
@@ -374,9 +384,21 @@ const Pos: React.FC = () => {
         {/* Carrito */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col h-fit sticky top-4">
           <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
-            <ShoppingCart className="w-4 h-4 text-gray-500" />
-            <h2 className="text-sm font-semibold text-gray-900">Carrito</h2>
-            {cart.length > 0 && <span className="ml-auto text-xs text-gray-600">{cart.length} producto{cart.length !== 1 ? 's' : ''}</span>}
+            <ShoppingCart className="w-4 h-4 text-gray-500" aria-hidden="true" />
+            <div className="min-w-0 flex-1">
+              <h2 className="text-sm font-semibold text-gray-900">
+                Venta actual
+                {cart.length > 0 && <span className="font-normal text-gray-600"> · {cart.length} producto{cart.length !== 1 ? 's' : ''}</span>}
+              </h2>
+              <p className="text-xs text-gray-600 truncate">{saleCustomer?.name ?? 'Consumidor final'}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => { setCustomerPickerOpen(true); if (customers.length === 0) getCustomers(1, 2000); }}
+              className="flex-shrink-0 min-h-[36px] px-2.5 rounded-lg text-xs font-medium text-primary hover:bg-primary/5"
+            >
+              {saleCustomer ? 'Cambiar cliente' : 'Asignar cliente'}
+            </button>
           </div>
           {cart.length === 0 ? (
             <p className="text-sm text-gray-600 text-center py-10 px-4">Agrega productos buscándolos a la izquierda</p>
@@ -428,6 +450,27 @@ const Pos: React.FC = () => {
           </div>
         </div>
       </div>
+
+      <Modal isOpen={customerPickerOpen} onClose={() => setCustomerPickerOpen(false)} title="Cliente de la venta" size="md">
+        <div className="space-y-3 min-h-[16rem]">
+          <CustomerSearch
+            customers={customers}
+            selectedCustomer={saleCustomer}
+            onCustomerSelect={(c) => { setSaleCustomer(c); if (c) setCustomerPickerOpen(false); }}
+            placeholder="Buscar cliente por nombre o NIT…"
+          />
+          <p className="text-sm text-gray-600">Si no eliges ninguno, la venta queda a nombre de "Consumidor final".</p>
+          {saleCustomer && (
+            <button
+              type="button"
+              onClick={() => { setSaleCustomer(null); setCustomerPickerOpen(false); }}
+              className="min-h-[40px] px-3 rounded-lg border border-gray-300 text-sm font-medium text-gray-800 hover:bg-gray-50"
+            >
+              Volver a Consumidor final
+            </button>
+          )}
+        </div>
+      </Modal>
 
       <PosPaymentModal
         isOpen={paymentModalOpen}
