@@ -369,42 +369,29 @@ const ProductEdit: React.FC = () => {
   return (
     <div className="bg-gray-50">
       <div className="px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-3xl mx-auto">
-        {/* Mobile Header - Compact */}
-        <div className="mb-4 sm:mb-6 lg:mb-8">
-          <Button
-            variant="ghost"
-            icon={ArrowLeft}
+        {/* Encabezado compacto (mismo patrón que Nueva orden) */}
+        <div className="flex items-center gap-3 mb-4">
+          <button
+            type="button"
             onClick={handleBack}
-            className="mb-3 sm:mb-4 -ml-2"
-            size="sm"
+            aria-label="Volver"
+            className="w-11 h-11 -ml-2 flex items-center justify-center rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
           >
-            Volver
-          </Button>
-
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
-            <div className="flex items-center space-x-3 sm:space-x-4">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary/15 rounded-lg flex items-center justify-center flex-shrink-0">
-                <Package className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
-                  Editar producto
-                </h1>
-                <p className="text-sm sm:text-base text-gray-600 mt-1">
-                  Modifica la información del producto y sus precios
-                </p>
-              </div>
-            </div>
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <div className="min-w-0">
+            <h1 className="text-xl font-bold text-gray-900">Editar producto</h1>
+            <p className="text-sm text-gray-600">Modifica la información del producto y sus precios</p>
           </div>
         </div>
 
         {/* Form - Mobile Optimized */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+        <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Product Information */}
             <div>
-              <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-4 flex items-center">
-                <Package className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+              <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <Package className="w-4 h-4 text-gray-500" aria-hidden="true" />
                 Información del producto
               </h3>
               {/* Mobile: Stack inputs vertically */}
@@ -483,8 +470,8 @@ const ProductEdit: React.FC = () => {
             {/* Stock — solo admin */}
             {isAdmin && (
               <div className="border-t pt-6">
-                <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-4 flex items-center">
-                  <Warehouse className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <Warehouse className="w-4 h-4 text-gray-500" aria-hidden="true" />
                   Inventario
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -515,7 +502,7 @@ const ProductEdit: React.FC = () => {
             <div className="border-t pt-6">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 mb-4">
                 <h3 className="text-base sm:text-lg font-medium text-gray-900 flex items-center">
-                  <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                  <DollarSign className="w-4 h-4 text-gray-500" aria-hidden="true" />
                   Precios del producto
                 </h3>
                 <Button
