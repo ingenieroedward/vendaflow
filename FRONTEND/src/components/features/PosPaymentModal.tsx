@@ -176,7 +176,7 @@ const PosPaymentModal: React.FC<Props> = ({ isOpen, total, busy, result, printin
         )}
 
         {Math.abs(remaining) >= 0.01 && (
-          <p className={`text-sm font-semibold text-center ${remaining > 0 ? 'text-amber-600' : 'text-red-600'}`}>
+          <p className={`text-sm font-semibold text-center ${remaining > 0 ? 'text-amber-800' : 'text-red-600'}`}>
             {remaining > 0 ? `Falta ${formatCurrency(remaining)}` : `Sobran ${formatCurrency(-remaining)} — ajusta los montos`}
           </p>
         )}

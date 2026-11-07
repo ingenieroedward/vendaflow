@@ -166,7 +166,7 @@ const CustomerModal: React.FC<CustomerModalProps> = ({
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Nota
-              <span className={`ml-2 text-xs font-normal ${formData.note.length > 230 ? 'text-orange-500' : 'text-gray-500'}`}>
+              <span className={`ml-2 text-xs font-normal ${formData.note.length > 230 ? 'text-amber-900' : 'text-gray-500'}`}>
                 {formData.note.length}/255
               </span>
             </label>

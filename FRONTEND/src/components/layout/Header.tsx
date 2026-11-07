@@ -79,7 +79,7 @@ const Header = () => {
             {totalPending > 0 && status !== 'syncing' && (
               <span
                 title={`${totalPending} elemento${totalPending > 1 ? 's' : ''} pendiente${totalPending > 1 ? 's' : ''} de sincronizar`}
-                className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700 text-[10px] font-bold leading-none"
+                className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700 text-xs font-bold leading-none"
               >
                 <CloudOff className="w-2.5 h-2.5" />
                 {totalPending > 99 ? '99+' : totalPending}
@@ -142,7 +142,7 @@ const Header = () => {
                       {/* Pending sync info */}
                       {totalPending > 0 && (
                         <div className="px-4 py-2 border-b border-gray-100">
-                          <p className="text-xs text-orange-600 flex items-center gap-1.5">
+                          <p className="text-xs text-amber-900 flex items-center gap-1.5">
                             <CloudOff className="w-3.5 h-3.5 shrink-0" />
                             <span>
                               {totalPending} elemento{totalPending > 1 ? 's' : ''} sin sincronizar

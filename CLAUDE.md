@@ -531,6 +531,17 @@ vencido/agotado); nada de `text-gray-400` en texto (no pasa AA); touch ≥44px e
   POS con cliente opcional (`posService.sale(..., customerId)`); IBM Plex vía `@fontsource`
   (subconjunto latino, empaquetado — no depende de Google Fonts ni de red).
 
+- **v1.21–1.23 — pantallas internas (hecho)**: el mismo lenguaje aplicado al resto:
+  - detalle de orden/cotización/compra con acciones nombradas y lateral de pago/acciones;
+  - Clientes en tabla con `components/features/CustomerDetailsPanel.tsx` (patrón del panel de
+    producto, "Nueva orden" con `location.state.customer`);
+  - Nueva orden de compra con el patrón de Nueva orden (último costo de `GET /products/costs`);
+  - Inventario con indicadores que filtran;
+  - Proveedores/Categorías/Usuarios en tablas con acciones visibles.
+  - **Regla**: nada de menús ⋮ para acciones primarias, nada de `text-[10/11px]`, encabezados de
+    tabla sin mayúsculas (`text-xs font-medium text-gray-600`), estados y roles con colores
+    semánticos fijos (nunca el color del tenant).
+
 ## INVENTARIO Y KARDEX (ago 2026)
 
 - **DECIMAL como número**: `dialectOptions: { decimalNumbers: true }` en `database/index.ts` — sin esto MySQL devuelve DECIMAL como string y las sumas concatenan texto (bug real: recibir compra dejaba stock "-1620"). `createMovement` además valida/coacciona `quantity`

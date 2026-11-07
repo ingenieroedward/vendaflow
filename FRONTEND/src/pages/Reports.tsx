@@ -566,7 +566,7 @@ const Reports: React.FC = () => {
                       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
                         <div className="flex items-center gap-2 mb-2">
                           <div className="w-7 h-7 bg-amber-50 rounded-lg flex items-center justify-center">
-                            <CreditCard className="w-3.5 h-3.5 text-amber-500" />
+                            <CreditCard className="w-3.5 h-3.5 text-amber-800" />
                           </div>
                           <p className="text-xs text-gray-500">Por cobrar</p>
                         </div>
@@ -603,7 +603,7 @@ const Reports: React.FC = () => {
                           <div key={c.name} className="flex items-center gap-3">
                             <div className="w-32 sm:w-44 flex-shrink-0 min-w-0">
                               <p className="text-xs font-medium text-gray-700 truncate">{c.name}</p>
-                              <p className="text-[11px] text-gray-500">
+                              <p className="text-xs text-gray-500">
                                 {c.count} orden{c.count !== 1 ? 'es' : ''}{c.overdue > 0 && <span className="text-red-500"> · {c.overdue} vencida{c.overdue !== 1 ? 's' : ''}</span>}
                               </p>
                             </div>
@@ -634,7 +634,7 @@ const Reports: React.FC = () => {
                                 {o.customer && <span className="text-gray-500 font-normal"> · {o.customer.name}</span>}
                               </p>
                               {o.paymentDueDate && (
-                                <p className={`text-[11px] ${o.daysUntilDue !== null && o.daysUntilDue < 0 ? 'text-red-600 font-medium' : 'text-gray-500'}`}>
+                                <p className={`text-xs ${o.daysUntilDue !== null && o.daysUntilDue < 0 ? 'text-red-600 font-medium' : 'text-gray-500'}`}>
                                   {o.daysUntilDue === null ? '' :
                                     o.daysUntilDue < 0 ? `Venció hace ${-o.daysUntilDue} día${o.daysUntilDue === -1 ? '' : 's'}` :
                                     o.daysUntilDue === 0 ? 'Vence HOY' :
@@ -645,7 +645,7 @@ const Reports: React.FC = () => {
                             <div className="flex-shrink-0 ml-3 text-right">
                               <span className="text-sm font-semibold text-gray-800">{COP(o.balance)}</span>
                               {o.paidAmount > 0 && (
-                                <p className="text-[11px] text-gray-500">
+                                <p className="text-xs text-gray-500">
                                   de {COP(o.totalAmount)} · abonado {COP(o.paidAmount)}
                                 </p>
                               )}
@@ -836,7 +836,7 @@ const Reports: React.FC = () => {
                             <div className="grid grid-cols-3 gap-2 text-center">
                               <div><p className="text-xl font-bold text-gray-900">{statusDist.total}</p><p className="text-xs text-gray-500">Total</p></div>
                               <div><p className="text-xl font-bold text-green-600">{statusDist.completed}</p><p className="text-xs text-gray-500">Entregadas</p></div>
-                              <div><p className="text-xl font-bold text-amber-500">{statusDist.pending}</p><p className="text-xs text-gray-500">Pendientes</p></div>
+                              <div><p className="text-xl font-bold text-amber-800">{statusDist.pending}</p><p className="text-xs text-gray-500">Pendientes</p></div>
                             </div>
                             <div className="space-y-2.5">
                               <div>
@@ -849,7 +849,7 @@ const Reports: React.FC = () => {
                               </div>
                               <div>
                                 <div className="flex justify-between text-xs text-gray-500 mb-1">
-                                  <span>Pendientes</span><span className="font-medium text-amber-500">{statusDist.pctPending}%</span>
+                                  <span>Pendientes</span><span className="font-medium text-amber-800">{statusDist.pctPending}%</span>
                                 </div>
                                 <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                                   <div className="h-full bg-amber-400 rounded-full transition-all" style={{ width: `${statusDist.pctPending}%` }} />
@@ -858,7 +858,7 @@ const Reports: React.FC = () => {
                             </div>
                             <div className="pt-2 border-t border-gray-50">
                               <p className="text-xs text-gray-500 text-center">
-                                Tasa de entrega: <span className={`font-semibold ${statusDist.pctCompleted >= 70 ? 'text-green-600' : statusDist.pctCompleted >= 40 ? 'text-amber-500' : 'text-red-500'}`}>{statusDist.pctCompleted}%</span>
+                                Tasa de entrega: <span className={`font-semibold ${statusDist.pctCompleted >= 70 ? 'text-green-600' : statusDist.pctCompleted >= 40 ? 'text-amber-800' : 'text-red-500'}`}>{statusDist.pctCompleted}%</span>
                               </p>
                             </div>
                           </div>
@@ -899,11 +899,11 @@ const Reports: React.FC = () => {
                   <div className={`rounded-xl border shadow-sm p-4 ${invStats.outOfStock.length > 0 ? 'bg-orange-50 border-orange-200' : 'bg-white border-gray-200'}`}>
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-7 h-7 bg-orange-100 rounded-lg flex items-center justify-center">
-                        <AlertTriangle className="w-4 h-4 text-orange-500" />
+                        <AlertTriangle className="w-4 h-4 text-amber-900" />
                       </div>
                       <span className="text-xs font-medium text-gray-500">Sin stock</span>
                     </div>
-                    <p className={`text-lg font-bold ${invStats.outOfStock.length > 0 ? 'text-orange-600' : 'text-gray-900'}`}>{invStats.outOfStock.length}</p>
+                    <p className={`text-lg font-bold ${invStats.outOfStock.length > 0 ? 'text-amber-900' : 'text-gray-900'}`}>{invStats.outOfStock.length}</p>
                     <p className="text-xs text-gray-500 mt-0.5">en cero</p>
                   </div>
                   <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
@@ -924,7 +924,7 @@ const Reports: React.FC = () => {
                     <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
                       <h3 className="text-sm font-semibold text-gray-700">Valor del inventario</h3>
                       {invStats.productsWithoutCost > 0 && (
-                        <span className="text-[11px] text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
+                        <span className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
                           {invStats.productsWithoutCost} producto{invStats.productsWithoutCost !== 1 ? 's' : ''} sin costo registrado
                         </span>
                       )}
@@ -936,7 +936,7 @@ const Reports: React.FC = () => {
                       </div>
                       <div>
                         <p className="text-xs text-gray-500 mb-0.5">A costo</p>
-                        <p className="text-sm font-bold text-orange-600">{COPShort(invStats.totalCostValue)}</p>
+                        <p className="text-sm font-bold text-amber-900">{COPShort(invStats.totalCostValue)}</p>
                       </div>
                       <div>
                         <p className="text-xs text-gray-500 mb-0.5">Utilidad potencial</p>
@@ -1001,7 +1001,7 @@ const Reports: React.FC = () => {
                                 <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${pct}%` }} />
                               </div>
                               {invStats.hasCostData && (
-                                <p className="text-[11px] text-gray-500 mt-0.5 text-right">
+                                <p className="text-xs text-gray-500 mt-0.5 text-right">
                                   {cost !== undefined ? `costo: ${COPShort(p.stock * cost)}` : 'sin costo registrado'}
                                 </p>
                               )}
@@ -1038,7 +1038,7 @@ const Reports: React.FC = () => {
                               <td className="py-2 font-medium text-gray-800">{p.name}</td>
                               <td className="py-2 text-center font-bold text-red-600">{Number(p.stock).toLocaleString('es-CO')} {p.unit}</td>
                               <td className="py-2 text-center text-gray-500">{Number(p.minStock).toLocaleString('es-CO')} {p.unit}</td>
-                              <td className="py-2 text-right font-semibold text-orange-600">
+                              <td className="py-2 text-right font-semibold text-amber-900">
                                 {Math.abs(p.stock) + p.minStock} {p.unit}
                               </td>
                             </tr>
@@ -1084,7 +1084,7 @@ const Reports: React.FC = () => {
                   <div className={`rounded-xl border shadow-sm p-4 ${poStats.ordered.length > 0 ? 'bg-amber-50 border-amber-200' : 'bg-white border-gray-200'}`}>
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-7 h-7 bg-amber-100 rounded-lg flex items-center justify-center">
-                        <Clock className="w-4 h-4 text-amber-500" />
+                        <Clock className="w-4 h-4 text-amber-800" />
                       </div>
                       <span className="text-xs font-medium text-gray-500">En tránsito</span>
                     </div>
@@ -1166,7 +1166,7 @@ const Reports: React.FC = () => {
                     <div className="grid grid-cols-3 gap-4">
                       {[
                         { label: 'Borradores', count: poStats.draft.length, icon: FileText, color: 'text-gray-500', bg: 'bg-gray-50' },
-                        { label: 'Ordenadas', count: poStats.ordered.length, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50' },
+                        { label: 'Ordenadas', count: poStats.ordered.length, icon: Clock, color: 'text-amber-800', bg: 'bg-amber-50' },
                         { label: 'Recibidas', count: poStats.received.length, icon: CheckCircle, color: 'text-green-600', bg: 'bg-green-50' },
                       ].map(s => (
                         <div key={s.label} className={`${s.bg} rounded-xl p-4 text-center`}>
@@ -1273,7 +1273,7 @@ const Reports: React.FC = () => {
                       </div>
                       <span className="text-xs font-medium text-gray-500">Margen bruto</span>
                     </div>
-                    <p className={`text-lg font-bold ${rent.grossMargin >= 30 ? 'text-emerald-700' : rent.grossMargin >= 10 ? 'text-amber-600' : 'text-red-600'}`}>
+                    <p className={`text-lg font-bold ${rent.grossMargin >= 30 ? 'text-emerald-700' : rent.grossMargin >= 10 ? 'text-amber-800' : 'text-red-600'}`}>
                       {rent.grossMargin.toFixed(1)}%
                     </p>
                     <p className="text-xs text-gray-500 mt-0.5">
@@ -1302,7 +1302,7 @@ const Reports: React.FC = () => {
                     </div>
                     <div>
                       <p className="text-xs text-gray-500 mb-0.5">Costos</p>
-                      <p className="text-sm font-bold text-orange-600">{COPShort(rent.monthCost)}</p>
+                      <p className="text-sm font-bold text-amber-900">{COPShort(rent.monthCost)}</p>
                     </div>
                     <div>
                       <p className="text-xs text-gray-500 mb-0.5">Utilidad</p>

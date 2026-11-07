@@ -127,7 +127,7 @@ const Sidebar = () => {
           if (items.length === 0) return null;
           return (
             <div key={group} className="mb-3 last:mb-0">
-              <p className="px-3 pb-1 pt-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500">{group}</p>
+              <p className="px-3 pb-1 pt-1 text-xs font-semibold uppercase tracking-wide text-gray-500">{group}</p>
               <div className="space-y-0.5">
                 {items.map((item) => {
                   const active = isActive(item.to);
@@ -161,14 +161,14 @@ const Sidebar = () => {
           to="/billing"
           className="mx-3 mb-2 flex items-start gap-2 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-xl hover:bg-amber-100 transition-colors"
         >
-          <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+          <AlertTriangle className="w-4 h-4 text-amber-800 flex-shrink-0 mt-0.5" />
           <span className="text-xs text-amber-800 leading-snug">
             {trialDaysLeft <= 0
               ? 'Tu período de prueba vence HOY'
               : trialDaysLeft === 1
                 ? 'Tu prueba vence mañana'
                 : `Tu prueba vence en ${trialDaysLeft} días`}
-            <span className="block text-amber-600 font-medium mt-0.5">Activa un plan →</span>
+            <span className="block text-amber-800 font-medium mt-0.5">Activa un plan →</span>
           </span>
         </Link>
       )}
@@ -183,7 +183,7 @@ const Sidebar = () => {
               : 'bg-amber-50 border border-amber-200 hover:bg-amber-100'
           }`}
         >
-          <AlertTriangle className={`w-4 h-4 flex-shrink-0 mt-0.5 ${renewalDaysLeft < 0 ? 'text-red-600' : 'text-amber-600'}`} />
+          <AlertTriangle className={`w-4 h-4 flex-shrink-0 mt-0.5 ${renewalDaysLeft < 0 ? 'text-red-600' : 'text-amber-800'}`} />
           <span className={`text-xs leading-snug ${renewalDaysLeft < 0 ? 'text-red-800' : 'text-amber-800'}`}>
             {renewalDaysLeft < 0
               ? `Tu plan venció hace ${-renewalDaysLeft} día${renewalDaysLeft === -1 ? '' : 's'}`
@@ -192,7 +192,7 @@ const Sidebar = () => {
                 : renewalDaysLeft === 1
                   ? 'Tu plan vence mañana'
                   : `Tu plan vence en ${renewalDaysLeft} días`}
-            <span className={`block font-medium mt-0.5 ${renewalDaysLeft < 0 ? 'text-red-600' : 'text-amber-600'}`}>
+            <span className={`block font-medium mt-0.5 ${renewalDaysLeft < 0 ? 'text-red-600' : 'text-amber-800'}`}>
               {renewalDaysLeft < 0 ? 'Reporta tu pago →' : 'Renueva tu plan →'}
             </span>
           </span>
