@@ -128,10 +128,12 @@ const OrderNew: React.FC = () => {
   // recargar la página no lo vuelva a sumar
   const addedFromNav = useRef(false);
   useEffect(() => {
-    const st = location.state as { addProduct?: Product } | null;
-    if (st?.addProduct && !addedFromNav.current) {
+    const st = location.state as { addProduct?: Product; customer?: Customer } | null;
+    if ((st?.addProduct || st?.customer) && !addedFromNav.current) {
       addedFromNav.current = true; // un solo agregado aunque el efecto corra dos veces
-      handleProductSelect(st.addProduct);
+      if (st.addProduct) handleProductSelect(st.addProduct);
+      // "Nueva orden" desde el panel de Clientes: llega con el cliente elegido
+      if (st.customer) setSelectedCustomer(st.customer);
       navigate(location.pathname, { replace: true, state: null });
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps

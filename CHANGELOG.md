@@ -7,6 +7,21 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ## [Unreleased]
 
+## [1.21.0] — 2026-11-07 — Rediseño de pantallas internas, entrega A
+
+### Changed
+
+- **Detalle de orden y de cotización**:
+  - acciones con nombre en el encabezado (estado, Imprimir/PDF, Editar);
+  - productos en tabla;
+  - a la derecha, el total con el estado de pago, "Marcar pagada", los abonos (o "Convertir a
+    orden" en cotizaciones) y los datos del cliente.
+- **Clientes**:
+  - tabla con NIT, contacto y saldo, en vez de tarjetas, y filas compactas en el celular;
+  - filtro "Con saldo";
+  - panel lateral con saldo por cobrar, datos de contacto, últimas órdenes y "Nueva orden", que
+    abre Nueva orden con el cliente ya elegido.
+
 ## [1.20.0] — 2026-11-07 — Rediseño UX/UI, fase 3 (cierre del prototipo)
 
 ### Added

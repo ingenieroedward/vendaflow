@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { Plus, Search, Edit, Trash2, User, Phone, MapPin, Hash, Tag, RefreshCw, RotateCcw, AlertTriangle, CreditCard } from 'lucide-react';
+import { Plus, Search, Trash2, User, RefreshCw, RotateCcw, AlertTriangle } from 'lucide-react';
 import { useCustomerStore } from '../store/customerStore';
 import { useAuthStore } from '../store/authStore';
 import { useUIStore } from '../store/uiStore';
@@ -9,6 +9,7 @@ import Button from '../components/ui/Button';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import ErrorMessage from '../components/ui/ErrorMessage';
 import CustomerModal from '../components/ui/CustomerModal';
+import CustomerDetailsPanel from '../components/features/CustomerDetailsPanel';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -82,12 +83,18 @@ const Customers: React.FC = () => {
   }, [searchCustomers]);
 
   const displayList = searchResults ?? customers;
+  // Filtro "Con saldo": clientes con cartera pendiente (sobre la lista cargada)
+  const [withDebtOnly, setWithDebtOnly] = useState(false);
+  const visibleList = withDebtOnly ? displayList.filter(c => Number(c.creditBalance ?? 0) > 0) : displayList;
+  const [selected, setSelected] = useState<Customer | null>(null);
+  const money = (n: number) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
 
   const handleDelete = async (id: number) => {
     try {
       await deleteCustomer(id);
       addNotification({ type: 'success', title: 'Cliente eliminado', message: 'El cliente fue eliminado correctamente.' });
       setDeleteConfirm(null);
+      setSelected(null);
       setSearchResults(null);
       setSearch('');
     } catch {
@@ -102,6 +109,7 @@ const Customers: React.FC = () => {
     });
     setShowModal(false);
     setEditCustomer(undefined);
+    setSelected(null);
     getCustomers(1, 50);
     if (search) handleSearch(search);
   };
@@ -114,7 +122,7 @@ const Customers: React.FC = () => {
   const canDelete = user?.role === 'admin';
 
   return (
-    <div className="bg-gray-50 min-h-screen">
+    <div className={`bg-gray-50 min-h-screen ${selected && !showTrash ? 'xl:pr-[28rem]' : ''}`}>
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
 
         {/* Header */}
@@ -132,7 +140,7 @@ const Customers: React.FC = () => {
               {canDelete && (
                 <button
                   onClick={() => { setShowTrash(!showTrash); setSearch(''); setSearchResults(null); }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                  className={`flex items-center gap-1.5 min-h-[36px] px-3 rounded-lg text-sm font-medium border transition-colors ${
                     showTrash
                       ? 'bg-red-50 border-red-200 text-red-700'
                       : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
@@ -208,7 +216,8 @@ const Customers: React.FC = () => {
         <div className="relative mb-5">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
           <input
-            type="text"
+            type="search"
+            aria-label="Buscar clientes"
             placeholder="Buscar por código, nombre, NIT o contacto..."
             value={search}
             onChange={(e) => handleSearch(e.target.value)}
@@ -217,17 +226,31 @@ const Customers: React.FC = () => {
           {searching && <LoadingSpinner size="sm" className="absolute right-3 top-1/2 -translate-y-1/2" />}
         </div>
 
-        {/* Stats */}
-        <div className="text-xs text-gray-500 mb-3 px-1">
+        {/* Conteo + filtro */}
+        <div className="flex items-center gap-2 mb-3 px-1">
+        <button
+          type="button"
+          aria-pressed={withDebtOnly}
+          onClick={() => setWithDebtOnly(v => !v)}
+          className={`min-h-[36px] px-3 rounded-full border text-sm font-medium whitespace-nowrap ${
+            withDebtOnly ? 'border-amber-500 bg-amber-50 text-amber-900' : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+          }`}
+        >
+          Con saldo
+        </button>
+        <div className="text-sm text-gray-600">
           {search
             ? `${displayList.length} resultado${displayList.length !== 1 ? 's' : ''} para "${search}"`
-            : `${pagination.total || customers.length} cliente${(pagination.total || customers.length) !== 1 ? 's' : ''} en total`}
+            : withDebtOnly
+              ? `${visibleList.length} con saldo por cobrar`
+              : `${pagination.total || customers.length} cliente${(pagination.total || customers.length) !== 1 ? 's' : ''} en total`}
+        </div>
         </div>
 
         {/* List */}
         {loading && !customers.length ? (
           <div className="flex justify-center py-16"><LoadingSpinner size="lg" /></div>
-        ) : displayList.length === 0 ? (
+        ) : visibleList.length === 0 ? (
           <div className="text-center py-16">
             <User className="w-14 h-14 text-gray-300 mx-auto mb-3" />
             <h3 className="text-lg font-medium text-gray-700 mb-1">
@@ -243,81 +266,71 @@ const Customers: React.FC = () => {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {displayList.map((customer) => (
-              <div key={customer.id} className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow p-4">
-                {/* Header */}
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                      {customer.code && (
-                        <span className="flex items-center gap-1 px-1.5 py-0.5 bg-primary/10 text-primary text-xs font-mono font-medium rounded">
-                          <Tag className="w-3 h-3" />
-                          {customer.code}
-                        </span>
-                      )}
-                    </div>
-                    <h3 className="text-sm font-semibold text-gray-900 truncate">{customer.name}</h3>
-                    {customer.nit && (
-                      <div className="flex items-center gap-1 mt-0.5">
-                        <Hash className="w-3 h-3 text-gray-500 flex-shrink-0" />
-                        <span className="text-xs text-gray-500">{customer.nit}</span>
-                      </div>
-                    )}
-                    {(customer.creditBalance ?? 0) > 0 && (
-                      <span className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-medium rounded">
-                        <CreditCard className="w-3 h-3" />
-                        Debe {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(customer.creditBalance!)}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex gap-1 ml-2 flex-shrink-0">
-                    {canManage && (
-                      <button
-                        onClick={() => { setEditCustomer(customer); setShowModal(true); }}
-                        className="p-1.5 text-gray-500 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                        title="Editar"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                    )}
-                    {canDelete && (
-                      <button
-                        onClick={() => setDeleteConfirm(customer.id)}
-                        className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Eliminar"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Details */}
-                <div className="space-y-1">
-                  {customer.contact && (
-                    <div className="flex items-center gap-2 text-xs text-gray-500">
-                      <Phone className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
-                      <span className="truncate">{customer.contact}</span>
-                    </div>
-                  )}
-                  {customer.address && (
-                    <div className="flex items-center gap-2 text-xs text-gray-500">
-                      <MapPin className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
-                      <span className="truncate">{customer.address}</span>
-                    </div>
-                  )}
-                  {customer.note && (
-                    <p className="text-xs text-gray-500 italic truncate pt-0.5">{customer.note}</p>
-                  )}
-                </div>
-
-                <div className="mt-3 pt-2 border-t border-gray-100">
-                  <span className="text-xs text-gray-500">Creado: {formatDate(customer.createdAt)}</span>
-                </div>
-              </div>
-            ))}
+          <>
+          {/* Desktop: tabla densa con saldo (antes 3 columnas de tarjetas) */}
+          <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 text-left text-xs font-medium text-gray-600">
+                <tr>
+                  <th scope="col" className="px-4 py-2.5">Cliente</th>
+                  <th scope="col" className="px-4 py-2.5">NIT/CC</th>
+                  <th scope="col" className="px-4 py-2.5">Contacto</th>
+                  <th scope="col" className={`px-4 py-2.5 ${selected ? 'hidden 2xl:table-cell' : ''}`}>Dirección</th>
+                  <th scope="col" className="px-4 py-2.5 text-right">Saldo</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {visibleList.map((customer) => {
+                  const isSel = selected?.id === customer.id;
+                  const debt = Number(customer.creditBalance ?? 0);
+                  return (
+                    <tr
+                      key={customer.id}
+                      tabIndex={0}
+                      aria-selected={isSel}
+                      onClick={() => setSelected(customer)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(customer); } }}
+                      className={`cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary ${isSel ? 'bg-primary/5' : 'hover:bg-gray-50'}`}
+                    >
+                      <td className="px-4 py-2.5">
+                        <p className="font-medium text-gray-900">{customer.name}</p>
+                        {customer.code && <p className="text-xs text-gray-600 font-mono">{customer.code}</p>}
+                      </td>
+                      <td className="px-4 py-2.5 text-gray-700 whitespace-nowrap">{customer.nit || '—'}</td>
+                      <td className="px-4 py-2.5 text-gray-700">{customer.contact || '—'}</td>
+                      <td className={`px-4 py-2.5 text-gray-700 ${selected ? 'hidden 2xl:table-cell' : ''}`}>{customer.address || '—'}</td>
+                      <td className="px-4 py-2.5 text-right whitespace-nowrap tabular-nums">
+                        {debt > 0 ? <span className="font-semibold text-amber-900">{money(debt)}</span> : <span className="text-gray-500">—</span>}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
+
+          {/* Mobile: filas compactas */}
+          <ul className="md:hidden bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
+            {visibleList.map((customer) => {
+              const debt = Number(customer.creditBalance ?? 0);
+              return (
+                <li key={customer.id}>
+                  <button
+                    type="button"
+                    onClick={() => setSelected(customer)}
+                    className="w-full min-h-[64px] flex items-center gap-3 px-4 py-2.5 text-left active:bg-gray-50"
+                  >
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-medium text-gray-900">{customer.name}</span>
+                      <span className="block text-xs text-gray-600 truncate">{[customer.nit, customer.contact].filter(Boolean).join(' · ') || 'Sin datos de contacto'}</span>
+                    </span>
+                    {debt > 0 && <span className="text-sm font-semibold text-amber-900 tabular-nums flex-shrink-0">{money(debt)}</span>}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+          </>
         )}
 
         {/* Pagination */}
@@ -331,6 +344,15 @@ const Customers: React.FC = () => {
         </> /* end of non-trash view */
         )}
       </div>
+
+      {!showTrash && (
+        <CustomerDetailsPanel
+          customer={selected}
+          onClose={() => setSelected(null)}
+          onEdit={canManage ? (c) => { setEditCustomer(c); setShowModal(true); } : undefined}
+          onDelete={canDelete ? (c) => setDeleteConfirm(c.id) : undefined}
+        />
+      )}
 
       {/* Create/Edit Modal */}
       {showModal && (
