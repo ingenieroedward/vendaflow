@@ -140,7 +140,7 @@ const Customers: React.FC = () => {
               {canDelete && (
                 <button
                   onClick={() => { setShowTrash(!showTrash); setSearch(''); setSearchResults(null); }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                  className={`flex items-center gap-1.5 min-h-[36px] px-3 rounded-lg text-sm font-medium border transition-colors ${
                     showTrash
                       ? 'bg-red-50 border-red-200 text-red-700'
                       : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
