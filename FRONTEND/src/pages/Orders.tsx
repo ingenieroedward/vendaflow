@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Plus, Eye, Edit, Trash2, Calendar, User,
   WifiOff, RefreshCw, AlertCircle, CloudOff, CheckCircle2, Clock,
-  RotateCcw, AlertTriangle, CreditCard, RotateCw, X
+  RotateCcw, AlertTriangle, CreditCard, RotateCw
 } from "lucide-react";
 import { useOrderStore } from "../store/orderStore";
 import { useAuthStore } from "../store/authStore";
@@ -77,9 +77,9 @@ const Orders: React.FC = () => {
     }, 400);
     return () => clearTimeout(t);
   }, [search]);
-  const [receivablesDismissed, setReceivablesDismissed] = useState(
-    () => sessionStorage.getItem('receivablesBannerDismissed') === '1'
-  );
+  // Filtros de la lista: solo vencidas (desde la franja de cartera) y forma de pago
+  const [overdueOnly, setOverdueOnly] = useState(false);
+  const [paymentFilter, setPaymentFilter] = useState<'all' | 'cash' | 'credit'>('all');
 
   useEffect(() => { getOrders(1, 50); }, [getOrders]);
 
@@ -216,7 +216,12 @@ const Orders: React.FC = () => {
   const searchBase = serverResults
     ? serverResults.filter((order) => activeTab === 'closed' ? CLOSED_ORDER_STATUSES.includes(order.status) : !CLOSED_ORDER_STATUSES.includes(order.status))
     : tabOrders;
+  const overdueIds = new Set(
+    (receivables?.orders ?? []).filter(r => r.daysUntilDue !== null && r.daysUntilDue < 0).map(r => r.id)
+  );
   const filteredOrders = searchBase.filter((order) => {
+    if (overdueOnly && !overdueIds.has(order.id)) return false;
+    if (paymentFilter !== 'all' && (order.paymentType ?? 'cash') !== paymentFilter) return false;
     const searchLower = search.toLowerCase();
     return (
       order.orderNumber.toString().includes(searchLower) ||
@@ -313,48 +318,42 @@ const Orders: React.FC = () => {
         {error && <ErrorMessage message={error} onDismiss={clearError} onRetry={handleRefresh} className="mb-4 sm:mb-6" />}
 
         {/* Cartera: crédito pendiente de cobro */}
-        {receivables && receivables.count > 0 && !receivablesDismissed && (
-          <div className={`mb-4 rounded-xl border p-4 relative ${receivables.overdueCount > 0 ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'}`}>
-            <button
-              onClick={() => { setReceivablesDismissed(true); sessionStorage.setItem('receivablesBannerDismissed', '1'); }}
-              className="absolute top-1 right-1 w-10 h-10 flex items-center justify-center text-gray-500 hover:text-gray-700 rounded-lg"
-              title="Ocultar (reaparece en la próxima sesión)"
-              aria-label="Ocultar aviso de cartera"
-            >
-              <X className="w-4 h-4" />
-            </button>
-            <div className="flex items-start gap-2.5">
-              <CreditCard className={`w-4 h-4 mt-0.5 flex-shrink-0 ${receivables.overdueCount > 0 ? 'text-red-600' : 'text-amber-600'}`} />
-              <div className="min-w-0 flex-1">
-                <p className={`text-sm font-semibold ${receivables.overdueCount > 0 ? 'text-red-800' : 'text-amber-800'}`}>
-                  Cartera: {formatCurrency(receivables.totalDue)} en {receivables.count} orden{receivables.count !== 1 ? 'es' : ''} a crédito
-                  {receivables.overdueCount > 0 && ` — ${receivables.overdueCount} vencida${receivables.overdueCount !== 1 ? 's' : ''}`}
+        {/* Cartera de un vistazo (antes un aviso que se podía ocultar): lo que
+            importa para cobrar, siempre visible si hay órdenes a crédito */}
+        {receivables && receivables.count > 0 && (() => {
+          const overdue = receivables.orders.filter(r => r.daysUntilDue !== null && r.daysUntilDue < 0);
+          const soon = receivables.orders.filter(r => r.daysUntilDue !== null && r.daysUntilDue >= 0 && r.daysUntilDue <= 7);
+          const sum = (xs: typeof overdue) => xs.reduce((t, r) => t + Number(r.balance), 0);
+          return (
+            <div className="mb-4 grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
+              <div className="rounded-xl border border-gray-200 bg-white p-3 sm:p-4">
+                <p className="text-xs font-medium text-gray-600">
+                  Por cobrar · {receivables.count} orden{receivables.count !== 1 ? 'es' : ''} a crédito
                 </p>
-                <div className="mt-1 space-y-0.5">
-                  {receivables.orders.slice(0, 3).map(r => (
-                    <button
-                      key={r.id}
-                      onClick={() => navigate(`/orders/${r.id}`)}
-                      className={`block text-xs hover:underline text-left ${r.daysUntilDue !== null && r.daysUntilDue < 0 ? 'text-red-700' : 'text-amber-700'}`}
-                    >
-                      #{r.orderNumber} · {r.customer?.name ?? 'Cliente'} · {formatCurrency(r.balance)}{r.paidAmount > 0 && ` (abonado ${formatCurrency(r.paidAmount)})`}
-                      {r.daysUntilDue !== null && (
-                        r.daysUntilDue < 0
-                          ? ` — venció hace ${-r.daysUntilDue} día${r.daysUntilDue === -1 ? '' : 's'}`
-                          : r.daysUntilDue === 0
-                            ? ' — vence HOY'
-                            : ` — vence en ${r.daysUntilDue} día${r.daysUntilDue === 1 ? '' : 's'}`
-                      )}
-                    </button>
-                  ))}
-                  {receivables.orders.length > 3 && (
-                    <p className="text-xs text-gray-500">…y {receivables.orders.length - 3} más</p>
-                  )}
-                </div>
+                <p className="text-xl font-bold text-gray-900 tabular-nums">{formatCurrency(receivables.totalDue)}</p>
+              </div>
+              <button
+                type="button"
+                aria-pressed={overdueOnly}
+                disabled={overdue.length === 0}
+                onClick={() => { setOverdueOnly(v => !v); setActiveTab('active'); }}
+                className={`text-left rounded-xl border p-3 sm:p-4 transition-colors disabled:cursor-default ${
+                  overdueOnly ? 'border-red-600 bg-red-50 ring-1 ring-red-600' : overdue.length > 0 ? 'border-red-200 bg-red-50 hover:border-red-400' : 'border-gray-200 bg-white'
+                }`}
+              >
+                <p className={`text-xs font-medium ${overdue.length > 0 ? 'text-red-800' : 'text-gray-600'}`}>
+                  Vencidas · {overdue.length} orden{overdue.length !== 1 ? 'es' : ''}
+                  {overdue.length > 0 && <span className="ml-1 underline">{overdueOnly ? 'ver todas' : 'ver solo estas'}</span>}
+                </p>
+                <p className={`text-xl font-bold tabular-nums ${overdue.length > 0 ? 'text-red-700' : 'text-gray-900'}`}>{formatCurrency(sum(overdue))}</p>
+              </button>
+              <div className="rounded-xl border border-gray-200 bg-white p-3 sm:p-4">
+                <p className="text-xs font-medium text-gray-600">Vencen en los próximos 7 días · {soon.length}</p>
+                <p className={`text-xl font-bold tabular-nums ${soon.length > 0 ? 'text-amber-900' : 'text-gray-900'}`}>{formatCurrency(sum(soon))}</p>
               </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Tabs */}
         <SegmentedTabs<TabType>
@@ -557,6 +556,17 @@ const Orders: React.FC = () => {
                       <span className="text-gray-500 font-normal ml-2 text-sm sm:text-base">({tabOrders.length})</span>
                     </h2>
                     <div className="flex items-center w-full sm:w-auto gap-2">
+                      <label htmlFor="pay-filter" className="sr-only">Forma de pago</label>
+                      <select
+                        id="pay-filter"
+                        value={paymentFilter}
+                        onChange={(e) => setPaymentFilter(e.target.value as 'all' | 'cash' | 'credit')}
+                        className="px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+                      >
+                        <option value="all">Contado y crédito</option>
+                        <option value="cash">Solo contado</option>
+                        <option value="credit">Solo crédito</option>
+                      </select>
                       <input
                         type="search"
                         aria-label="Buscar órdenes"

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   ArrowLeft,
   Plus,
@@ -46,6 +46,7 @@ const DRAFT_KEY = 'orderNewDraft';
 
 const OrderNew: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { isOffline } = useNetworkStatus();
   const { user } = useAuthStore();
   const { createOrder, loading, error, clearError } = useOrderStore();
@@ -116,6 +117,17 @@ const OrderNew: React.FC = () => {
       ];
     });
   };
+
+  // "Agregar a una orden" desde el panel de Productos: llega el producto por
+  // el estado de navegación; se agrega una vez y se limpia el estado para que
+  // recargar la página no lo vuelva a sumar
+  useEffect(() => {
+    const st = location.state as { addProduct?: Product } | null;
+    if (st?.addProduct) {
+      handleProductSelect(st.addProduct);
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleRemoveItem = (id: string) => {
     if (confirmDeleteId !== id) {

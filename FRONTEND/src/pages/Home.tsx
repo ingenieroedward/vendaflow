@@ -5,12 +5,12 @@ import { useProductStore } from '../store/productStore';
 import { useAuthStore } from '../store/authStore';
 import SearchBar from '../components/features/SearchBar';
 import ProductDetailsPanel from '../components/features/ProductDetailsPanel';
-import ProductCard from '../components/features/ProductCard';
 import Pagination from '../components/features/Pagination';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import ErrorMessage from '../components/ui/ErrorMessage';
 import Button from '../components/ui/Button';
 import { Product } from '../types';
+import { productService } from '../services/products';
 
 // Productos por página en la lista (antes 10 tarjetas grandes)
 const PAGE_SIZE = 25;
@@ -88,6 +88,18 @@ const Home: React.FC = () => {
 
   const showSearchResults = searchQuery.trim().length > 0;
 
+  // Filtro "Stock bajo": productos con stock en o bajo su mínimo (endpoint de alertas)
+  const [lowStockOnly, setLowStockOnly] = useState(false);
+  const [lowStock, setLowStock] = useState<Product[] | null>(null);
+  useEffect(() => {
+    if (!lowStockOnly || lowStock !== null) return;
+    productService.getStockAlerts()
+      // solo los que tienen mínimo configurado: quien no lleva inventario tiene todo en 0
+      .then((all) => setLowStock(all.filter((p) => Number(p.minStock) > 0)))
+      .catch(() => setLowStock([]));
+  }, [lowStockOnly, lowStock]);
+  const listProducts = lowStockOnly && !showSearchResults ? (lowStock ?? []) : products;
+
   return (
     // Con el panel acoplado (≥1280px) la página se corre para no quedar debajo
     <div className={`bg-gray-50 ${selected ? 'xl:pr-[28rem]' : ''}`}>
@@ -112,9 +124,21 @@ const Home: React.FC = () => {
           <div className="items-center flex justify-between gap-2 sm:gap-3">
               {/* Antes: 3 tarjetas de indicadores calculadas solo sobre la página
                   visible (25) pero divididas por el total — cifras falsas. */}
-              <p className="text-sm text-gray-600 tabular-nums mr-auto" aria-live="polite">
-                {pagination.total} {pagination.total === 1 ? 'producto' : 'productos'}
+              <p className="text-sm text-gray-600 tabular-nums" aria-live="polite">
+                {lowStockOnly && !showSearchResults
+                  ? `${listProducts.length} con stock bajo`
+                  : `${pagination.total} ${pagination.total === 1 ? 'producto' : 'productos'}`}
               </p>
+              <button
+                type="button"
+                aria-pressed={lowStockOnly}
+                onClick={() => { setLowStockOnly(v => !v); setLowStock(null); }}
+                className={`mr-auto min-h-[36px] px-3 rounded-full border text-sm font-medium transition-colors ${
+                  lowStockOnly ? 'border-amber-500 bg-amber-50 text-amber-900' : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Stock bajo
+              </button>
               <Button
                 variant="outline"
                 icon={RefreshCw}
@@ -167,7 +191,7 @@ const Home: React.FC = () => {
               )}
 
               {/* Lista de productos: tabla en desktop, filas compactas en mobile */}
-              {products.length > 0 ? (
+              {listProducts.length > 0 ? (
                 <>
                 <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-x-auto">
                   <table className="w-full text-sm">
@@ -179,12 +203,13 @@ const Home: React.FC = () => {
                         <th className="px-4 py-2.5 font-medium text-right">Stock</th>
                         <th className="px-4 py-2.5 font-medium text-right">Precio venta</th>
                         <th className="px-4 py-2.5 font-medium text-right">Menor costo</th>
+                        <th className="px-4 py-2.5 font-medium text-right">Margen</th>
                         <th className={`px-4 py-2.5 font-medium text-right ${selected ? 'hidden 2xl:table-cell' : ''}`}>Proveedores</th>
                         <th className={`px-4 py-2.5 font-medium text-right ${selected ? 'hidden 2xl:table-cell' : ''}`}>Actualizado</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                      {products.map((product) => {
+                      {listProducts.map((product) => {
                         const cost = minCost(product);
                         const isSelected = selected?.id === product.id;
                         return (
@@ -209,6 +234,14 @@ const Home: React.FC = () => {
                             <td className="px-4 py-2.5 text-right whitespace-nowrap">
                               {cost !== null ? <span className="text-green-700">{formatCurrency(cost)}</span> : <span className="text-gray-500">—</span>}
                             </td>
+                            <td className="px-4 py-2.5 text-right whitespace-nowrap tabular-nums">
+                              {cost !== null && product.salePrice > 0
+                                ? (() => {
+                                    const m = Math.round(((product.salePrice - cost) / product.salePrice) * 100);
+                                    return <span className={m < 0 ? 'font-semibold text-red-700' : m < 10 ? 'text-amber-900' : 'text-gray-900'}>{m}%</span>;
+                                  })()
+                                : <span className="text-gray-500">—</span>}
+                            </td>
                             <td className={`px-4 py-2.5 text-right text-gray-600 ${selected ? 'hidden 2xl:table-cell' : ''}`}>{product.prices?.length ?? 0}</td>
                             <td className={`px-4 py-2.5 text-right text-gray-600 whitespace-nowrap ${selected ? 'hidden 2xl:table-cell' : ''}`}>{formatDate(product.updatedAt)}</td>
                           </tr>
@@ -219,12 +252,41 @@ const Home: React.FC = () => {
                 </div>
 
                 {/* Mobile: tarjetas, como antes */}
-                <div className="md:hidden grid grid-cols-1 gap-4">
-                  {products.map((product) => (
-                    <ProductCard key={product.id} product={product} onClick={() => handleProductClick(product)} />
+                {/* Mobile: filas compactas (antes tarjetas grandes: ~3 productos por pantalla) */}
+                <ul className="md:hidden bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
+                  {listProducts.map((product) => (
+                    <li key={product.id}>
+                      <button
+                        type="button"
+                        onClick={() => handleProductClick(product)}
+                        className="w-full min-h-[64px] flex items-center gap-3 px-4 py-2.5 text-left active:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+                      >
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-sm font-medium text-gray-900 leading-snug">{product.name}</span>
+                          <span className="block text-xs text-gray-600">
+                            <span className="font-mono">{product.code}</span> · {product.unit}
+                          </span>
+                        </span>
+                        <span className="flex flex-col items-end gap-0.5 flex-shrink-0">
+                          <span className="text-sm font-semibold text-gray-900 tabular-nums">{formatCurrency(product.salePrice)}</span>
+                          <span className="text-xs tabular-nums">
+                            <StockCell stock={product.stock} minStock={product.minStock} unit={product.unit} />
+                          </span>
+                        </span>
+                      </button>
+                    </li>
                   ))}
-                </div>
+                </ul>
                 </>
+              ) : lowStockOnly && !showSearchResults ? (
+                <div className="text-center py-12 px-4" role="status">
+                  <h3 className="text-base font-medium text-gray-900 mb-1">
+                    {lowStock === null ? 'Buscando productos con stock bajo…' : 'Ningún producto está en su stock mínimo'}
+                  </h3>
+                  {lowStock !== null && (
+                    <p className="text-sm text-gray-600">Solo aparecen aquí los productos que tienen un stock mínimo configurado.</p>
+                  )}
+                </div>
               ) : !loading && (
                 <div className="text-center py-12 sm:py-16 px-4">
                   <Package className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 mx-auto mb-4" />
@@ -251,7 +313,7 @@ const Home: React.FC = () => {
               )}
 
               {/* Pagination - Más compacto en mobile */}
-              {!showSearchResults && products.length > 0 && (
+              {!showSearchResults && !lowStockOnly && products.length > 0 && (
                 <div className="mt-6 sm:mt-8">
                   <Pagination
                     pagination={pagination}
@@ -264,7 +326,11 @@ const Home: React.FC = () => {
         </div>
       </div>
 
-      <ProductDetailsPanel product={selected} onClose={() => setSelected(null)} />
+      <ProductDetailsPanel
+        product={selected}
+        onClose={() => setSelected(null)}
+        onProductChanged={(p) => { setSelected(p); getProducts(pagination.page, pagination.limit, false); }}
+      />
     </div>
   );
 };
