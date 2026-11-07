@@ -695,7 +695,7 @@ export class TenantService {
       order: [['createdAt', 'ASC']],
     });
     if (!admin) throw new NotFoundError('El tenant no tiene usuario admin');
-    const token = new AuthService().generateToken(admin.id, admin.username, admin.role, admin.tenantId);
+    const token = new AuthService().generateToken(admin.id, admin.username, admin.role, admin.tenantId, admin.tokenVersion ?? 0);
     return { token, slug: tenant.slug, username: admin.username };
   }
 

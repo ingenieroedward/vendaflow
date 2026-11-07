@@ -72,7 +72,7 @@ export class AuthService {
       }
     }
 
-    const token = this.generateToken(user.id, user.username, user.role, user.tenantId);
+    const token = this.generateToken(user.id, user.username, user.role, user.tenantId, user.tokenVersion ?? 0);
 
     return {
       user: { id: user.id, name: user.name, username: user.username, role: user.role, tenantId: user.tenantId },
@@ -102,8 +102,8 @@ export class AuthService {
     }
   }
 
-  generateToken(userId: number, username: string, role: string, tenantId: number): string {
-    const payload: JwtPayload = { userId, username, role: role as any, tenantId };
+  generateToken(userId: number, username: string, role: string, tenantId: number, tokenVersion = 0): string {
+    const payload: JwtPayload = { userId, username, role: role as any, tenantId, tv: tokenVersion };
     return jwt.sign(payload, config.jwt.secret, { expiresIn: config.jwt.expiresIn as any });
   }
 }

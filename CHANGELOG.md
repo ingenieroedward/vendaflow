@@ -7,6 +7,26 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ## [Unreleased]
 
+## [1.16.9] — 2026-11-07 — Seguridad: aislamiento entre tenants y revocación de sesiones
+
+### Security
+
+- **[ALTA] Fuga de datos entre tenants al editar** (auditoría nov 2026, confirmada con ataque real):
+  crear validaba cliente/productos/proveedor contra el tenant, editar no. Un admin o vendedor podía
+  poner un `customerId`/`productId` ajeno en su orden, o un `supplierId` ajeno en su compra, y el
+  detalle exponía nombre, teléfono, NIT y dirección de clientes y proveedores de otros tenants (IDs
+  consecutivos → enumerables). `updateOrder` valida cliente y productos nuevos o cambiados (los ítems
+  que no cambian se respetan aunque el producto esté archivado); `updatePurchaseOrder` valida
+  proveedor. Ambos → 404.
+- **[ALTA] Sesiones no revocables**: el JWT (24h) se aceptaba sin mirar la BD — un usuario eliminado
+  seguía entrando, uno degradado de admin seguía con permisos de admin y cambiar la contraseña no
+  cerraba sesiones. Ahora `isAuth` compara el token contra el usuario actual
+  (`core/auth/sessionCache.ts`, caché 60s invalidada al instante): debe existir, ser del mismo
+  tenant, tener el mismo rol y el mismo `users.tokenVersion` (claim `tv`; nueva columna vía
+  `ensureSchema`). `tokenVersion` sube al eliminar, cambiar rol o contraseña. Tokens previos sin
+  `tv` cuentan como 0 → nadie pierde la sesión al desplegar. Cambiar la propia contraseña devuelve
+  un token nuevo (el frontend lo guarda) y cierra las demás sesiones.
+
 ## [1.16.8] — 2026-10-05 — Productos: tarjetas en mobile
 
 ### Changed

@@ -25,6 +25,7 @@ export interface UserAttributes {
   totpSecret?: string | null;
   totpBackupCodes?: string | null;
   name?: string | null;
+  tokenVersion?: number;
   role: 'buyer' | 'seller' | 'admin' | 'superadmin';
   createdAt: Date;
   updatedAt: Date;
@@ -80,6 +81,12 @@ export class User extends Model<UserAttributes, UserCreationAttributes> {
   // Nombre completo — opcional, distinto del username (que es el login)
   @Column({ type: DataType.STRING(255), allowNull: true })
   name!: string | null;
+
+  // Contador de sesión: viaja en el JWT (claim `tv`). Subirlo invalida todas las
+  // sesiones abiertas del usuario (eliminar, cambiar rol o contraseña). Ver
+  // core/auth/sessionCache.ts
+  @Column({ type: DataType.INTEGER, allowNull: false, defaultValue: 0 })
+  tokenVersion!: number;
 
   @Column({
     type: DataType.ENUM('buyer', 'seller', 'admin', 'superadmin'),
