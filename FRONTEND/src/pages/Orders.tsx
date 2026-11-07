@@ -269,13 +269,13 @@ const Orders: React.FC = () => {
 
   const getSyncStatusIcon = (item: LocalOrderMeta) => {
     if (item.errorMsg) return <AlertCircle className="w-4 h-4 text-red-500" />;
-    if (item.attempts > 0) return <AlertCircle className="w-4 h-4 text-orange-500" />;
+    if (item.attempts > 0) return <AlertCircle className="w-4 h-4 text-amber-900" />;
     return <Clock className="w-4 h-4 text-primary" />;
   };
 
   const getSyncStatusLabel = (item: LocalOrderMeta) => {
     if (item.errorMsg) return <span className="text-xs text-red-600 font-medium">Error al sincronizar</span>;
-    if (item.attempts > 0) return <span className="text-xs text-orange-600 font-medium">{item.attempts} intento{item.attempts > 1 ? 's' : ''} fallido{item.attempts > 1 ? 's' : ''}</span>;
+    if (item.attempts > 0) return <span className="text-xs text-amber-900 font-medium">{item.attempts} intento{item.attempts > 1 ? 's' : ''} fallido{item.attempts > 1 ? 's' : ''}</span>;
     return <span className="text-xs text-primary font-medium">Pendiente de enviar</span>;
   };
 

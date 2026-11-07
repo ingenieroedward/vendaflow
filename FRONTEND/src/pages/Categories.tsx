@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Plus, Search, X, Edit, Trash2, Tag, MoreVertical, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Plus, Search, X, Edit, Trash2, Tag, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { productService } from '../services/products';
 import { Category, CreateCategoryRequest } from '../types';
@@ -15,7 +15,6 @@ const Categories: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeMenu, setActiveMenu] = useState<number | null>(null);
   const [modal, setModal] = useState<{ mode: 'create' | 'edit'; category?: Category } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Category | null>(null);
   const [form, setForm] = useState<CreateCategoryRequest>({ name: '', description: '' });
@@ -42,7 +41,6 @@ const Categories: React.FC = () => {
   const openEdit = (c: Category) => {
     setForm({ name: c.name, description: c.description ?? '' });
     setModal({ mode: 'edit', category: c });
-    setActiveMenu(null);
   };
 
   const handleSave = async () => {
@@ -115,7 +113,7 @@ const Categories: React.FC = () => {
 
 
       {/* List */}
-      <div className="px-3 sm:px-6 lg:px-8 py-2 space-y-2">
+      <div className="px-3 sm:px-6 lg:px-8 py-2">
         {loading ? (
           <div className="flex justify-center py-16"><LoadingSpinner size="lg" /></div>
         ) : filtered.length === 0 ? (
@@ -132,52 +130,56 @@ const Categories: React.FC = () => {
             )}
           </div>
         ) : (
-          filtered.map(c => (
-            <div key={c.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3 flex-1 min-w-0">
-                  <div className="w-10 h-10 bg-purple-50 rounded-full flex items-center justify-center flex-shrink-0">
-                    <Tag className="w-5 h-5 text-purple-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-base font-medium text-gray-900 truncate">{c.name}</p>
-                    {c.description && (
-                      <p className="text-sm text-gray-500 truncate">{c.description}</p>
-                    )}
-                  </div>
-                </div>
-                <div className="relative">
-                  <button
-                    onClick={() => setActiveMenu(activeMenu === c.id ? null : c.id)}
-                    className="p-2 rounded-lg text-gray-500 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-                  >
-                    <MoreVertical className="w-5 h-5" />
-                  </button>
-                  {activeMenu === c.id && (
-                    <>
-                      <div className="fixed inset-0 z-40" onClick={() => setActiveMenu(null)} />
-                      <div className="absolute right-0 top-full mt-1 w-44 bg-white rounded-xl shadow-lg border border-gray-200 py-1 z-50">
-                        <button
-                          onClick={() => openEdit(c)}
-                          className="flex items-center space-x-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                        >
-                          <Edit className="w-4 h-4 text-gray-500" />
-                          <span>Editar</span>
-                        </button>
-                        <button
-                          onClick={() => { setConfirmDelete(c); setActiveMenu(null); }}
-                          className="flex items-center space-x-3 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          <span>Eliminar</span>
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))
+          <>
+          {/* Tabla densa con acciones visibles (antes tarjetas con menú ⋮ escondido) */}
+          <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 text-left text-xs font-medium text-gray-600">
+                <tr>
+                  <th scope="col" className="px-4 py-2.5 ">Categoría</th>
+                  <th scope="col" className="px-4 py-2.5 ">Descripción</th>
+                  <th scope="col" className="px-2 py-2.5"><span className="sr-only">Acciones</span></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {filtered.map(c => (
+                  <tr key={c.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-2.5 text-gray-700 "><span className="font-medium text-gray-900">{c.name}</span></td>
+                    <td className="px-4 py-2.5 text-gray-700 ">{c.description || '—'}</td>
+                    <td className="px-2 py-1.5 whitespace-nowrap text-right">
+                      <button type="button" onClick={() => openEdit(c)} aria-label={`Editar categoría ${c.name}`} title="Editar"
+                        className="inline-flex w-9 h-9 items-center justify-center rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900">
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button type="button" onClick={() => setConfirmDelete(c)} aria-label={`Eliminar categoría ${c.name}`} title="Eliminar"
+                        className="inline-flex w-9 h-9 items-center justify-center rounded-lg text-gray-600 hover:bg-red-50 hover:text-red-700">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <ul className="md:hidden bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
+            {filtered.map(c => (
+              <li key={c.id} className="flex items-center gap-2 px-4 py-2.5 min-h-[64px]">
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-medium text-gray-900">{c.name}</span>
+                  <span className="block text-xs text-gray-600 truncate">{[c.description].filter(Boolean).join(' · ')}</span>
+                </span>
+                <button type="button" onClick={() => openEdit(c)} aria-label={`Editar categoría ${c.name}`}
+                  className="w-11 h-11 flex items-center justify-center rounded-lg text-gray-600 hover:bg-gray-100">
+                  <Edit className="w-4 h-4" />
+                </button>
+                <button type="button" onClick={() => setConfirmDelete(c)} aria-label={`Eliminar categoría ${c.name}`}
+                  className="w-11 h-11 flex items-center justify-center rounded-lg text-gray-600 hover:bg-red-50 hover:text-red-700">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </li>
+            ))}
+          </ul>
+          </>
         )}
       </div>
       <div className="h-6" />

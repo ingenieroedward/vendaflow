@@ -7,6 +7,20 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ## [Unreleased]
 
+## [1.23.0] — 2026-11-07 — Rediseño de pantallas internas, entrega C (cierre)
+
+### Changed
+
+- **Proveedores, Categorías y Usuarios**: tablas densas con acciones visibles (Editar, Eliminar,
+  Restaurar) en vez de tarjetas con un menú ⋮ escondido; filas compactas en el celular.
+- Roles con colores distinguibles: Administrador en gris, Vendedor en azul cielo y Comprador en
+  ámbar. Antes "Admin" era rojo, que en la app significa error.
+- **Ficha de producto**: Editar como acción principal, eliminar discreto, "Agregar precio" solo en
+  su sección y sin el botón "Volver" duplicado.
+- **Mi perfil**: encabezado alineado como el resto y botones de 40 px.
+- **Configuración**: "Branding" ahora se llama "Color de la marca".
+- Contraste: textos de 10–11 px y tonos naranja o ámbar claros subidos a AA en toda la app.
+
 ## [1.22.0] — 2026-11-07 — Rediseño de pantallas internas, entrega B
 
 ### Changed

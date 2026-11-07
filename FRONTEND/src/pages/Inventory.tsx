@@ -64,7 +64,7 @@ const Inventory: React.FC = () => {
   const getStockBadge = (product: Product) => {
     if (product.stock < 0) return { label: 'Negativo', className: 'bg-red-200 text-red-800 font-bold' };
     if (product.stock === 0) return { label: 'Sin stock', className: 'bg-red-100 text-red-700' };
-    if (product.stock <= product.minStock) return { label: 'Stock bajo', className: 'bg-yellow-100 text-yellow-700' };
+    if (product.stock <= product.minStock) return { label: 'Stock bajo', className: 'bg-yellow-100 text-amber-800' };
     return { label: 'OK', className: 'bg-green-100 text-green-700' };
   };
 

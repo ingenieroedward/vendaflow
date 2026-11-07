@@ -239,13 +239,13 @@ const Quotes: React.FC = () => {
 
   const getSyncStatusIcon = (item: LocalQuoteMeta) => {
     if (item.errorMsg) return <AlertCircle className="w-4 h-4 text-red-500" />;
-    if (item.attempts > 0) return <AlertCircle className="w-4 h-4 text-orange-500" />;
+    if (item.attempts > 0) return <AlertCircle className="w-4 h-4 text-amber-900" />;
     return <Clock className="w-4 h-4 text-primary" />;
   };
 
   const getSyncStatusLabel = (item: LocalQuoteMeta) => {
     if (item.errorMsg) return <span className="text-xs text-red-600 font-medium">Error al sincronizar</span>;
-    if (item.attempts > 0) return <span className="text-xs text-orange-600 font-medium">{item.attempts} intento{item.attempts > 1 ? 's' : ''} fallido{item.attempts > 1 ? 's' : ''}</span>;
+    if (item.attempts > 0) return <span className="text-xs text-amber-900 font-medium">{item.attempts} intento{item.attempts > 1 ? 's' : ''} fallido{item.attempts > 1 ? 's' : ''}</span>;
     return <span className="text-xs text-primary font-medium">Pendiente de enviar</span>;
   };
 
@@ -321,14 +321,14 @@ const Quotes: React.FC = () => {
           </button>
           <button
             onClick={() => setActiveTab('local')}
-            className={`px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'local' ? 'border-orange-500 text-orange-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+            className={`px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'local' ? 'border-orange-500 text-amber-900' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
           >
             <span className="flex items-center gap-1.5">
               <CloudOff className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
               <span className="hidden xs:inline">Pendientes</span>
               <span className="xs:hidden">Offline</span>
               {pendingSync > 0 && (
-                <span className={`px-1.5 py-0.5 rounded-full text-xs ${activeTab === 'local' ? 'bg-orange-100 text-orange-700' : 'bg-orange-50 text-orange-600'}`}>
+                <span className={`px-1.5 py-0.5 rounded-full text-xs ${activeTab === 'local' ? 'bg-orange-100 text-orange-700' : 'bg-orange-50 text-amber-900'}`}>
                   {pendingSync}
                 </span>
               )}

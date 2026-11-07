@@ -176,7 +176,7 @@ const ProductDetailsPanel: React.FC<ProductDetailsPanelProps> = ({ product, onCl
                       <MapPin className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
                       <span className="truncate">{p.supplier?.name ?? 'Proveedor'}</span>
                       {i === 0 && prices.length > 1 && (
-                        <span className="flex-shrink-0 text-[10px] font-semibold uppercase text-green-700 bg-green-100 rounded px-1.5 py-0.5">Mejor</span>
+                        <span className="flex-shrink-0 text-xs font-semibold uppercase text-green-700 bg-green-100 rounded px-1.5 py-0.5">Mejor</span>
                       )}
                     </span>
                     <span className="font-medium text-gray-900 flex-shrink-0">{formatCurrency(p.price)}</span>
