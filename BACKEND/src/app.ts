@@ -48,7 +48,8 @@ app.use(cors({
     // Lista estática de orígenes permitidos
     if (config.cors.origin.includes(origin)) return callback(null, true);
     // Wildcard: *.merco.edwsystem.com → cualquier origen que termine en .merco.edwsystem.com
-    if (CORS_WILDCARD_SUFFIX && origin.endsWith(CORS_WILDCARD_SUFFIX)) {
+    // Solo https: un subdominio por http viajaría sin cifrar (auditoría nov 2026)
+    if (CORS_WILDCARD_SUFFIX && origin.startsWith('https://') && origin.endsWith(CORS_WILDCARD_SUFFIX)) {
       return callback(null, true);
     }
     callback(new Error(`CORS: origin ${origin} not allowed`));

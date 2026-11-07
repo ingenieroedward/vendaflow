@@ -25,6 +25,15 @@ const onboardingLimiter = rateLimit({
 const captchaSign = (a: number, b: number, exp: number) =>
   crypto.createHmac('sha256', config.jwt.secret).update(`captcha:${a}:${b}:${exp}`).digest('hex');
 
+// Captcha de un solo uso: antes un mismo captcha resuelto servía para varias
+// solicitudes durante sus 10 min de vigencia (auditoría nov 2026)
+const usedCaptchas = new Map<string, number>(); // token → exp
+function markCaptchaUsed(token: string, exp: number): void {
+  const now = Date.now();
+  for (const [t, e] of usedCaptchas) if (e < now) usedCaptchas.delete(t);
+  usedCaptchas.set(token, exp);
+}
+
 router.get('/captcha', onboardingLimiter, (_req: Request, res: Response) => {
   const a = crypto.randomInt(2, 10);
   const b = crypto.randomInt(2, 10);
@@ -91,9 +100,10 @@ router.post('/request', onboardingLimiter, asyncHandler(async (req: Request, res
 
   // Captcha: firma válida, no expirado y respuesta correcta
   const { a, b, exp, token, answer } = d.captcha;
-  if (exp < Date.now() || token !== captchaSign(a, b, exp) || answer !== a + b) {
+  if (exp < Date.now() || token !== captchaSign(a, b, exp) || answer !== a + b || usedCaptchas.has(token)) {
     throw new ValidationError('Verificación incorrecta — resuelve la suma de nuevo');
   }
+  markCaptchaUsed(token, exp);
 
   // Evitar duplicados pendientes del mismo email
   const existing = await TenantRequest.findOne({ where: { email: d.email, status: 'pending' } });

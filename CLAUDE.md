@@ -628,23 +628,31 @@ Ver plan completo en `PLAN-FEATURES-Y-POS.md` — este es el Punto 2 (base para 
 - DECISIÓN (jul 2026): se probó un dashboard de KPIs en el Home y se revirtió — el Home es la página de búsqueda de productos y el dashboard le estorbaba. NO volver a ponerlo ahí; si se quiere dashboard del tenant, hacerlo como página aparte
 - El backend `GET /orders/stats/home` (isSeller: pendientes, ventas del mes, últimas 5 órdenes) quedó desplegado y disponible para esa futura página. `productService.getStockAlerts()` y `getHomeStats()` siguen en los services del frontend
 
-### Seguridad — pendientes de la auditoría nov 2026 (v1.16.9 cerró los 2 hallazgos altos)
-Corregido en v1.16.9: fuga entre tenants al editar órdenes/compras y revocación de sesiones
+### Seguridad — auditoría nov 2026 (v1.16.9 altos, v1.17.0 el resto)
+v1.16.9: fuga entre tenants al editar órdenes/compras y revocación de sesiones
 (`core/auth/sessionCache.ts`: toda query nueva que cambie rol/contraseña o elimine usuarios debe
-subir `tokenVersion` e invalidar la caché). Quedan, por prioridad:
-- [ ] **Dependencias** con avisos conocidos (`npm audit --omit=dev`): BACKEND 1 crítica/10 altas
-  (sequelize, mysql2, body-parser, nodemailer, path-to-regexp, proxy-addr), FRONTEND 4 críticas/6 altas
-  (@capacitor/android, dompurify, react-router, axios, form-data), ADMIN 2 altas (axios,
-  follow-redirects). `npm audit fix` por proyecto + tests
-- [ ] **Impersonar**: hoy entrega un JWT de admin de 24h en la URL (`/login?impersonate=`), queda en
-  historial/logs. Cambiar a código de un solo uso de pocos minutos canjeado por POST
-- [ ] **Contraseñas**: mínimo 6 caracteres y sin bloqueo por cuenta (solo 20 intentos/15min por IP)
-- [ ] `DELETE /users/:id?transferTo=` no valida que `transferTo` sea del mismo tenant
-- [ ] `receiptMime` del comprobante de pago sin lista blanca en el servidor (el panel lo muestra en
-  `<img>`, por eso hoy no es explotable)
-- [ ] Push: `subscribe` reasigna una suscripción existente a quien conozca su `endpoint`
-- [ ] Captcha de registro reutilizable durante sus 10 min de vigencia (mitigado por 10 req/h)
-- [ ] CORS acepta `http://` además de `https://` en `*.merco.edwsystem.com`
+subir `tokenVersion` e invalidar la caché). v1.17.0 (verificado con ataques reales contra un backend
+local en modo producción):
+- [x] **Dependencias**: `npm audit fix` en los 3 proyectos (FRONTEND/ADMIN en 0), nodemailer 10 y
+  **imagen base `node:22-alpine`** en los 3 Dockerfiles (Node 18 está EOL; nodemailer 10 exige ≥20)
+- [x] **Impersonar con código de un solo uso**: `POST /tenants/:id/impersonate` ya no devuelve un JWT
+  sino un código (`core/auth/impersonationCodes.ts`, en memoria, 2 min, un uso) que `Login.tsx` canjea
+  por `POST /auth/impersonate {code, tenantSlug}` (debe coincidir el slug) → sesión de **2h**. El
+  código se borra de la URL antes del canje. En memoria: un redeploy invalida códigos sin usar (inofensivo)
+- [x] **Contraseñas**: mínimo 8 en todo lo que crea/cambia una contraseña (usuarios, cambio propio,
+  admin de tenant nuevo/aprobado). El login sigue aceptando las viejas de 6-7. **Bloqueo por cuenta**
+  (`core/auth/loginThrottle.ts`): 10 fallos en 15 min → 429 por 15 min para ese usuario+tenant (no
+  afecta a otros usuarios). En memoria, por instancia
+- [x] `DELETE /users/:id?transferTo=` exige un admin del mismo tenant. De paso: el borrado definitivo
+  ahora reasigna también kardex/cotizaciones/compras/turnos de caja (antes la FK de
+  `stock_movements` daba 500 para cualquier usuario que hubiera vendido) y borra sus suscripciones push
+- [x] `receiptMime` con lista blanca de imágenes en el servidor (SVG/HTML → 422)
+- [x] Push: `subscribe` con un endpoint de otro usuario y llaves distintas → 403
+- [x] Captcha de registro de un solo uso
+- [x] CORS wildcard solo `https://`
+- [ ] **zod 3 → 4** (1 alta en `npm audit` del BACKEND, consumo de memoria con entradas enormes):
+  mitigado por el límite de tamaño del body; migrar es un cambio mayor de API en todos los DTOs —
+  hacerlo como tarea propia
 
 ### Seguridad (hardening)
 - [x] Rate limiting general en todos los endpoints (3000/15min por IP)
