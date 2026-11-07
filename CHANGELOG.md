@@ -7,6 +7,27 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ## [Unreleased]
 
+## [1.24.0] — 2026-11-08 — Cotizaciones, Órdenes en el celular y formularios
+
+### Changed
+
+- **Cotizaciones**:
+  - tabla en escritorio (cliente, fecha, válida hasta —en rojo si venció—, estado, total) y filas
+    compactas en el celular;
+  - pestañas como en Órdenes ("Sin enviar" en vez de "Pendientes/Offline");
+  - "Enviada" en azul cielo, ya no con el color del negocio.
+- **Órdenes en el celular**: filas compactas con estado, vencimiento y saldo, en vez de tarjetas
+  grandes con caja de subtotal e IVA.
+- **Formularios de producto y de usuario** (crear y editar): encabezado compacto con flecha de
+  volver, como en Nueva orden.
+- **Paginación**: Clientes usa el mismo paginador que Productos; Órdenes y Cotizaciones siguen con
+  "Cargar más".
+- El buscador de Órdenes y Cotizaciones ya no queda aplastado en el celular.
+
+### Fixed
+
+- El botón "Actualizar" de Cotizaciones usaba el ícono de lupa.
+
 ## [1.23.0] — 2026-11-07 — Rediseño de pantallas internas, entrega C (cierre)
 
 ### Changed

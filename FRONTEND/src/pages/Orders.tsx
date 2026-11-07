@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Plus, Eye, Edit, Trash2, Calendar, User,
+  Plus, Edit, Trash2, Calendar, User,
   WifiOff, RefreshCw, AlertCircle, CloudOff, CheckCircle2, Clock,
-  RotateCcw, AlertTriangle, CreditCard, RotateCw
+  RotateCcw, AlertTriangle, RotateCw
 } from "lucide-react";
 import { useOrderStore } from "../store/orderStore";
 import { useAuthStore } from "../store/authStore";
@@ -550,12 +550,12 @@ const Orders: React.FC = () => {
             ) : (
               <>
                 {tabOrders.length > 0 && (
-                  <div className="flex gap-4 justify-between items-center px-1">
+                  <div className="flex flex-wrap gap-3 justify-between items-center px-1">
                     <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
                       {activeTab === 'closed' ? 'Cerradas' : 'Activas'}
                       <span className="text-gray-500 font-normal ml-2 text-sm sm:text-base">({tabOrders.length})</span>
                     </h2>
-                    <div className="flex items-center w-full sm:w-auto gap-2">
+                    <div className="flex flex-wrap sm:flex-nowrap items-center w-full sm:w-auto gap-2">
                       <label htmlFor="pay-filter" className="sr-only">Forma de pago</label>
                       <select
                         id="pay-filter"
@@ -573,7 +573,7 @@ const Orders: React.FC = () => {
                         placeholder="Buscar por cliente, usuario, orden o fecha"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="w-full sm:w-80 px-3 py-2 border rounded-md shadow-sm text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary"
+                        className="w-full sm:w-80 min-w-0 flex-1 px-3 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary"
                       />
                     </div>
                   </div>
@@ -681,104 +681,43 @@ const Orders: React.FC = () => {
                     </table>
                   </div>
 
-                  {/* Mobile: tarjetas */}
-                  <div className="md:hidden grid grid-cols-1 gap-4">
+                  {/* Mobile: filas compactas (antes tarjetas grandes con caja de subtotal/IVA) */}
+                  <ul className="md:hidden bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
                     {filteredOrders.map((order) => {
-                      const priceBreakdown = getPriceBreakdown(order);
-                      const isLocal = (order as any)._isLocal;
+                      const isLocal = (order as { _isLocal?: boolean })._isLocal;
+                      const due = order.paymentDueDate ? new Date(`${order.paymentDueDate}T00:00:00`) : null;
+                      const overdue = order.paymentType === 'credit' && !order.paidAt && due !== null && due < new Date();
+                      const balance = balanceById.get(order.id);
                       return (
-                        <div key={order.id} className={`bg-white rounded-xl shadow-sm border p-4 sm:p-6 hover:shadow-md transition-shadow duration-200 ${isLocal ? 'border-amber-300' : 'border-gray-200'}`}>
-                          <div className="flex justify-between items-start mb-4">
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <h3 className="text-lg font-semibold text-gray-900">#{order.orderNumber}</h3>
-                                {isLocal && (
-                                  <span className="flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-700">
-                                    <WifiOff className="w-3 h-3" />
-                                    Sin sincronizar
+                        <li key={order.id}>
+                          <button type="button" onClick={() => navigate(`/orders/${order.id}`)}
+                            className="w-full min-h-[64px] flex items-center gap-3 px-4 py-2.5 text-left active:bg-gray-50">
+                            <span className="min-w-0 flex-1">
+                              <span className="block text-sm font-medium text-gray-900 truncate">{order.customer?.name || `ID: ${order.customerId}`}</span>
+                              <span className="block text-xs text-gray-600">
+                                <span className="font-mono">#{order.orderNumber}</span> · {formatDate(order.createdAt)}
+                              </span>
+                              <span className="mt-1 flex flex-wrap items-center gap-1.5">
+                                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>{getStatusText(order.status)}</span>
+                                {order.paymentType === 'credit' && !order.paidAt && (
+                                  <span className={`text-xs ${overdue ? 'font-semibold text-red-700' : 'text-amber-900'}`}>
+                                    {due ? `${overdue ? 'Venció' : 'Vence'} ${format(due, 'd MMM', { locale: es })}` : 'Crédito'}
                                   </span>
                                 )}
-                              </div>
-                              <p className="text-sm text-gray-500">{formatDate(order.createdAt)}</p>
-                            </div>
-                            <div className="flex flex-col items-end gap-1">
-                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
-                                {getStatusText(order.status)}
+                                {isLocal && <span className="text-xs text-amber-900">Sin enviar</span>}
                               </span>
-                              {order.paymentType === 'credit' && (
-                                order.paidAt ? (
-                                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
-                                    Crédito pagado
-                                  </span>
-                                ) : (
-                                  <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-                                    order.paymentDueDate && new Date(`${order.paymentDueDate}T00:00:00`) < new Date()
-                                      ? 'bg-red-100 text-red-700'
-                                      : 'bg-amber-100 text-amber-700'
-                                  }`}>
-                                    <CreditCard className="w-3 h-3" />
-                                    {order.paymentDueDate
-                                      ? `Vence ${format(new Date(`${order.paymentDueDate}T00:00:00`), 'd MMM', { locale: es })}`
-                                      : 'Crédito'}
-                                  </span>
-                                )
+                            </span>
+                            <span className="flex flex-col items-end flex-shrink-0">
+                              <span className="text-sm font-semibold text-gray-900 tabular-nums">{formatCurrency(getPriceBreakdown(order).total)}</span>
+                              {balance !== undefined && balance > 0 && (
+                                <span className={`text-xs tabular-nums ${overdue ? 'font-semibold text-red-700' : 'text-gray-700'}`}>Saldo {formatCurrency(balance)}</span>
                               )}
-                            </div>
-                          </div>
-
-                          <div className="space-y-3 mb-4">
-                            <div className="flex items-center space-x-2">
-                              <User className="w-4 h-4 text-gray-500" />
-                              <span className="text-sm text-gray-600">Cliente: {order.customer?.name || `ID: ${order.customerId}`}</span>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <User className="w-4 h-4 text-gray-500" />
-                              <span className="text-sm text-gray-600">Creado por: {order.user?.username || `ID: ${order.userId}`}</span>
-                            </div>
-
-                            <div className="bg-gray-50 p-3 rounded-lg space-y-1">
-                              <div className="flex justify-between items-center text-sm">
-                                <span className="text-gray-600">Subtotal:</span>
-                                <span className="font-medium">{formatCurrency(priceBreakdown.subtotal)}</span>
-                              </div>
-                              {priceBreakdown.tax > 0 && (
-                                <div className="flex justify-between items-center text-sm">
-                                  <span className="text-gray-600">IVA:</span>
-                                  <span className="font-medium">{formatCurrency(priceBreakdown.tax)}</span>
-                                </div>
-                              )}
-                              <div className="border-t pt-1 mt-2">
-                                <div className="flex justify-between items-center">
-                                  <span className="text-sm font-semibold text-gray-900">Total:</span>
-                                  <span className="font-bold text-lg text-gray-900">{formatCurrency(priceBreakdown.total)}</span>
-                                </div>
-                              </div>
-                            </div>
-
-                            {order.items && order.items.length > 0 && (
-                              <div className="text-sm text-gray-500">
-                                {order.items.length} producto{order.items.length !== 1 ? "s" : ""}
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="flex items-center space-x-2 pt-4 border-t border-gray-100">
-                            <Button variant="ghost" icon={Eye} onClick={() => navigate(`/orders/${order.id}`)} size="sm" className="flex-1">Ver</Button>
-                            {(user?.role === "admin" || user?.role === "seller") && (
-                              <>
-                                <Button variant="ghost" icon={Edit} onClick={() => navigate(`/orders/${order.id}/edit`)} size="sm" className="flex-1" disabled={isLocal} title={isLocal ? 'No disponible hasta sincronizar' : undefined}>
-                                  Editar
-                                </Button>
-                                <Button variant="ghost" icon={Trash2} onClick={() => { setOrderToDelete(order.id); setShowDeleteModal(true); }} size="sm" className="flex-1 text-red-600 hover:text-red-700">
-                                  Eliminar
-                                </Button>
-                              </>
-                            )}
-                          </div>
-                        </div>
+                            </span>
+                          </button>
+                        </li>
                       );
                     })}
-                  </div>
+                  </ul>
                   </>
                 ) : (
                   <div className="text-center py-12 sm:py-16 px-4">
