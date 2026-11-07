@@ -30,6 +30,15 @@ const METHOD_META: Record<PosPaymentMethod, { label: string; icon: React.Element
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
+// Sugerencias de efectivo: el monto exacto y los siguientes montos redondos
+// que suele entregar el cliente (billetes colombianos)
+function quickCash(amount: number): number[] {
+  if (!(amount > 0)) return [];
+  const up = (step: number) => Math.ceil(amount / step) * step;
+  const candidates = [amount, up(1000), up(5000), up(10000), up(50000), up(100000)];
+  return [...new Set(candidates)].filter(v => v >= amount).slice(0, 5);
+}
+
 // Cobro del POS: por defecto una sola línea en efectivo por el total (flujo
 // rápido de un clic); "Agregar método" habilita pago mixto. El campo
 // "Efectivo recibido" solo aparece si hay una línea en efectivo y calcula
@@ -119,8 +128,8 @@ const PosPaymentModal: React.FC<Props> = ({ isOpen, total, busy, result, printin
     <Modal isOpen={isOpen} onClose={onClose} title="Cobrar">
       <div className="p-1 space-y-4">
         <div className="text-center">
-          <p className="text-xs text-gray-500">Total a cobrar</p>
-          <p className="text-3xl font-extrabold text-gray-900">{formatCurrency(total)}</p>
+          <p className="text-xs text-gray-600">Total a cobrar</p>
+          <p className="text-3xl font-extrabold text-gray-900 tabular-nums">{formatCurrency(total)}</p>
         </div>
 
         <div className="space-y-2">
@@ -129,15 +138,17 @@ const PosPaymentModal: React.FC<Props> = ({ isOpen, total, busy, result, printin
             const Icon = meta.icon;
             return (
               <div key={line.method} className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
-                <Icon className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                <span className="text-sm font-medium text-gray-700 w-24 flex-shrink-0">{meta.label}</span>
+                <Icon className="w-4 h-4 text-gray-500 flex-shrink-0" aria-hidden="true" />
+                <label htmlFor={`pay-${line.method}`} className="text-sm font-medium text-gray-700 w-24 flex-shrink-0">{meta.label}</label>
                 <input
+                  id={`pay-${line.method}`}
                   type="number" min="0" value={line.amount}
                   onChange={e => setAmount(idx, Number(e.target.value))}
-                  className="flex-1 min-w-0 px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-right focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="flex-1 min-w-0 px-3 py-2.5 border border-gray-300 rounded-lg text-base text-right tabular-nums focus:outline-none focus:ring-2 focus:ring-primary"
                 />
                 {lines.length > 1 && (
-                  <button onClick={() => removeLine(idx)} className="text-gray-300 hover:text-red-500 flex-shrink-0">
+                  <button onClick={() => removeLine(idx)} aria-label={`Quitar ${meta.label}`}
+                    className="w-10 h-10 -mr-2 flex items-center justify-center rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50 flex-shrink-0">
                     <X className="w-4 h-4" />
                   </button>
                 )}
@@ -155,9 +166,9 @@ const PosPaymentModal: React.FC<Props> = ({ isOpen, total, busy, result, printin
                 <button
                   key={m}
                   onClick={() => addLine(m)}
-                  className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-gray-500 border border-dashed border-gray-300 rounded-lg hover:bg-gray-50"
+                  className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-700 border border-dashed border-gray-400 rounded-lg hover:bg-gray-50"
                 >
-                  <Plus className="w-3 h-3" /> <Icon className="w-3 h-3" /> {meta.label}
+                  <Plus className="w-4 h-4" aria-hidden="true" /> <Icon className="w-4 h-4" aria-hidden="true" /> {meta.label}
                 </button>
               );
             })}
@@ -172,31 +183,53 @@ const PosPaymentModal: React.FC<Props> = ({ isOpen, total, busy, result, printin
 
         {cashLine && (
           <div className="pt-2 border-t border-gray-100">
-            <label className="block text-xs font-medium text-gray-700 mb-1">
-              Efectivo recibido del cliente <span className="text-gray-400 font-normal">(para el vuelto)</span>
+            <label htmlFor="pay-received" className="block text-xs font-medium text-gray-700 mb-1">
+              Efectivo recibido del cliente <span className="text-gray-600 font-normal">(para el vuelto)</span>
             </label>
+            {/* Billetes rápidos: un toque en vez de digitar el monto */}
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {quickCash(cashLine.amount).map(v => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => setCashReceivedInput(String(v))}
+                  aria-pressed={Number(cashReceivedInput) === v}
+                  className={`px-3 py-2 text-sm font-medium rounded-lg border tabular-nums ${
+                    Number(cashReceivedInput) === v ? 'border-primary bg-primary/10 text-gray-900' : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  {v === cashLine.amount ? 'Exacto' : formatCurrency(v)}
+                </button>
+              ))}
+            </div>
             <input
+              id="pay-received"
               type="number" min="0" value={cashReceivedInput}
               onChange={e => setCashReceivedInput(e.target.value)}
               placeholder={String(cashLine.amount)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-base tabular-nums focus:outline-none focus:ring-2 focus:ring-primary"
             />
             {change !== null && (
-              <p className={`mt-1.5 text-sm font-semibold ${change < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
-                {change < 0 ? 'El efectivo recibido no alcanza' : `Vuelto: ${formatCurrency(change)}`}
-              </p>
+              change < 0
+                ? <p className="mt-2 text-sm font-semibold text-red-700">El efectivo recibido no alcanza</p>
+                : (
+                  <div className="mt-2 flex items-baseline justify-between rounded-lg bg-emerald-50 px-3 py-2" aria-live="polite">
+                    <span className="text-sm font-medium text-emerald-800">Vuelto</span>
+                    <span className="text-2xl font-extrabold text-emerald-800 tabular-nums">{formatCurrency(change)}</span>
+                  </div>
+                )
             )}
           </div>
         )}
 
         <div className="flex gap-2 pt-1">
-          <button onClick={onClose} className="flex-1 px-4 py-2.5 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">
+          <button onClick={onClose} className="flex-1 px-4 py-3 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">
             Cancelar
           </button>
           <button
             onClick={handleConfirm}
             disabled={!canConfirm || busy}
-            className="flex-1 px-4 py-2.5 text-sm font-semibold bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex-1 px-4 py-3 text-sm font-semibold bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {busy ? 'Cobrando…' : 'Confirmar cobro'}
           </button>

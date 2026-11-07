@@ -350,6 +350,7 @@ export class ProductService {
       salePrice: Number(product.salePrice),
       stock: Number(product.stock),
       minStock: Number(product.minStock),
+      taxRate: Number(product.taxRate ?? 0),
       categoryId: product.categoryId,
       ...(product.category && {
         category: {

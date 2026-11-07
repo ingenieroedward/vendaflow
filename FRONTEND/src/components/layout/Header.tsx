@@ -9,6 +9,7 @@ import { useTenantStore } from '../../store/tenantStore';
 import { useTenantRenewalStatus } from '../../hooks/useTenantRenewalStatus';
 import InstallModal from '../ui/InstallModal';
 import TopLoadingBar from '../ui/TopLoadingBar';
+import { roleLabel } from '../../utils/roles';
 
 const Header = () => {
   const { user, logout } = useAuthStore();
@@ -105,7 +106,7 @@ const Header = () => {
                   onClick={toggleUserMenu}
                   aria-expanded={isUserMenuOpen}
                   aria-haspopup="true"
-                  className="relative w-9 h-9 bg-gradient-to-br from-primary/70 to-primary rounded-full flex items-center justify-center shadow-sm"
+                  className="relative w-9 h-9 bg-primary rounded-full flex items-center justify-center shadow-sm"
                 >
                   <User className="w-4 h-4 text-white" />
                   {/* green = online & synced, orange = has pending */}
@@ -125,14 +126,14 @@ const Header = () => {
                       {/* User info */}
                       <div className="px-4 py-3 border-b border-gray-100">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 bg-gradient-to-br from-primary/70 to-primary rounded-full flex items-center justify-center shadow-sm shrink-0">
+                          <div className="w-9 h-9 bg-primary rounded-full flex items-center justify-center shadow-sm shrink-0">
                             <User className="w-4 h-4 text-white" />
                           </div>
                           <div>
                             <p className="text-sm font-semibold text-gray-900">{user.name || user.username}</p>
-                            <p className="text-xs text-gray-500 capitalize flex items-center gap-1">
+                            <p className="text-xs text-gray-600 flex items-center gap-1">
                               <Shield className="w-3 h-3" />
-                              <span>{user.role}</span>
+                              <span>{roleLabel(user.role)}</span>
                             </p>
                           </div>
                         </div>

@@ -620,7 +620,7 @@ async function seed(): Promise<void> {
       for (const [name, code, unit, salePrice] of rows) {
         const [prod, created] = await Product.findOrCreate({
           where: { tenantId: seedTenant.id, code },
-          defaults: { tenantId: seedTenant.id, name, code, unit, salePrice, stock: 0, minStock: 0, categoryId: cat.id },
+          defaults: { tenantId: seedTenant.id, name, code, unit, salePrice, stock: 0, minStock: 0, taxRate: 19, categoryId: cat.id },
         });
         if (created) productCount++;
         allProducts.push(prod);

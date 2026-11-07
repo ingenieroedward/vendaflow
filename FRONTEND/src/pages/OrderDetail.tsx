@@ -117,9 +117,9 @@ const OrderDetail: React.FC = () => {
 
   const statusOptions = [
     { value: 'pending', label: 'Pendiente', color: 'bg-yellow-100 text-yellow-800' },
-    { value: 'processing', label: 'En Proceso', color: 'bg-primary/15 text-primary' },
+    { value: 'processing', label: 'En Proceso', color: 'bg-sky-100 text-sky-900' },
     { value: 'completed', label: 'Completada', color: 'bg-green-100 text-green-800' },
-    { value: 'cancelled', label: 'Cancelada', color: 'bg-red-100 text-red-800' },
+    { value: 'cancelled', label: 'Cancelada', color: 'bg-gray-200 text-gray-700' },
   ];
 
   useEffect(() => {

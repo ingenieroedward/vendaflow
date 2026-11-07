@@ -6,6 +6,7 @@ import { useUIStore } from '../store/uiStore';
 import { useAuthStore } from '../store/authStore';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
+import TaxRateField from '../components/features/TaxRateField';
 import { productService } from '../services/products';
 import { Supplier, CreateSupplierRequest, CreatePriceRequest, Product, Category } from '../types/product';
 
@@ -15,6 +16,7 @@ interface ProductFormData {
   unit: string;
   categoryId?: number | null;
   salePrice: number;
+  taxRate: number;
   stock: number;
   minStock: number;
 }
@@ -59,6 +61,7 @@ const ProductEdit: React.FC = () => {
     code: '',
     unit: '',
     salePrice: 0,
+    taxRate: 0,
     stock: 0,
     minStock: 0,
   });
@@ -88,6 +91,7 @@ const ProductEdit: React.FC = () => {
           unit: productData.unit,
           categoryId: productData.categoryId,
           salePrice: productData.salePrice,
+          taxRate: Number(productData.taxRate ?? 0),
           stock: productData.stock ?? 0,
           minStock: productData.minStock ?? 0,
         });
@@ -462,6 +466,11 @@ const ProductEdit: React.FC = () => {
                   error={errors.salePrice}
                   placeholder="Ej: 100.00"
                   required
+                />
+
+                <TaxRateField
+                  value={formData.taxRate}
+                  onChange={(taxRate) => setFormData(prev => ({ ...prev, taxRate }))}
                 />
               </div>
             </div>

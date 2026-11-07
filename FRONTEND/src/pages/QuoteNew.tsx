@@ -133,6 +133,8 @@ const QuoteNew: React.FC = () => {
     if (product) {
       setSelectedProduct(product);
       setUnitPrice(product.salePrice);
+      // IVA de la ficha del producto (antes arrancaba en 0 en cada línea)
+      setTaxRate(Number(product.taxRate ?? 0));
     } else {
       setSelectedProduct(null);
       setUnitPrice(0);
@@ -444,7 +446,8 @@ const QuoteNew: React.FC = () => {
                           type="button"
                           onClick={handleAddItem}
                           disabled={quantity <= 0 || unitPrice <= 0}
-                          className="px-3 py-1.5 bg-primary text-white rounded text-sm font-medium disabled:opacity-40 hover:bg-primary/90 transition-colors"
+                          aria-label="Agregar producto a la lista"
+                          className="h-11 px-4 bg-primary text-white rounded-lg text-sm font-medium disabled:opacity-40 hover:bg-primary/90 transition-colors"
                         >
                           <Plus className="w-4 h-4" />
                         </button>
