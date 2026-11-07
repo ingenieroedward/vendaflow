@@ -13,6 +13,7 @@ const mapLocalToProduct = (p: LocalProduct, prices: Price[] = []): Product => ({
   unit: p.unit,
   salePrice: p.salePrice,
   taxRate: p.taxRate ?? 0,
+  priceIncludesTax: p.priceIncludesTax !== false,
   categoryId: p.categoryId ?? null,
   createdAt: p.createdAt ?? new Date().toISOString(),
   updatedAt: p.updatedAt ?? new Date().toISOString(),
@@ -92,8 +93,8 @@ interface ProductState {
   searchProducts: (query: string, includePrices?: boolean) => Promise<void>;
   getProducts: (page?: number, limit?: number, includePrices?: boolean) => Promise<void>;
   getProductById: (id: number) => Promise<void>;
-  createProduct: (data: { name: string; code: string; unit: string; salePrice: number; taxRate?: number; categoryId?: number | null }) => Promise<Product>;
-  updateProduct: (id: number, data: { name: string; code: string; unit: string; salePrice: number; taxRate?: number; categoryId?: number | null }) => Promise<Product>;
+  createProduct: (data: { name: string; code: string; unit: string; salePrice: number; taxRate?: number; priceIncludesTax?: boolean; categoryId?: number | null }) => Promise<Product>;
+  updateProduct: (id: number, data: { name: string; code: string; unit: string; salePrice: number; taxRate?: number; priceIncludesTax?: boolean; categoryId?: number | null }) => Promise<Product>;
   deleteProduct: (id: number) => Promise<void>;
 
   // Price Actions
@@ -122,6 +123,7 @@ const mapServerProduct = (p: any): Product => ({
   stock: p.stock ?? 0,
   minStock: p.minStock ?? 0,
   taxRate: Number(p.taxRate ?? 0),
+  priceIncludesTax: p.priceIncludesTax !== false,
   categoryId: p.categoryId || null,
   category: p.category,
   createdAt: p.createdAt || new Date().toISOString(),
@@ -226,13 +228,13 @@ export const useProductStore = create<ProductState>((set) => ({
             if (existing?.id) {
               await db.products.update(existing.id, {
                 name: p.name, code: p.code, unit: p.unit,
-                salePrice: p.salePrice, taxRate: Number(p.taxRate ?? 0), categoryId: p.categoryId ?? undefined,
+                salePrice: p.salePrice, taxRate: Number(p.taxRate ?? 0), priceIncludesTax: p.priceIncludesTax !== false, categoryId: p.categoryId ?? undefined,
                 updatedAt: p.updatedAt, _syncStatus: 'synced' as const,
               });
             } else {
               await db.products.add({
                 serverId: p.id, name: p.name, code: p.code, unit: p.unit,
-                salePrice: p.salePrice, taxRate: Number(p.taxRate ?? 0), categoryId: p.categoryId ?? undefined,
+                salePrice: p.salePrice, taxRate: Number(p.taxRate ?? 0), priceIncludesTax: p.priceIncludesTax !== false, categoryId: p.categoryId ?? undefined,
                 createdAt: p.createdAt, updatedAt: p.updatedAt,
                 _syncStatus: 'synced' as const, _version: 1, _lastModifiedAt: Date.now(),
               } as LocalProduct);
@@ -325,6 +327,7 @@ export const useProductStore = create<ProductState>((set) => ({
         unit: data.unit,
         salePrice: data.salePrice,
         taxRate: data.taxRate,
+        priceIncludesTax: data.priceIncludesTax,
         categoryId: data.categoryId ?? undefined,
       });
       set({ loading: false });
@@ -345,6 +348,7 @@ export const useProductStore = create<ProductState>((set) => ({
         unit: data.unit,
         salePrice: data.salePrice,
         taxRate: data.taxRate,
+        priceIncludesTax: data.priceIncludesTax,
         categoryId: data.categoryId ?? undefined,
       });
       const mapped = mapServerProduct(product);
@@ -479,13 +483,13 @@ export const useProductStore = create<ProductState>((set) => ({
             if (existing._syncStatus !== SyncStatus.SYNCED) continue; // no sobreescribir pendientes
             await db.products.update(existing.id, {
               name: p.name, code: p.code, unit: p.unit,
-              salePrice: p.salePrice, taxRate: Number(p.taxRate ?? 0), categoryId: p.categoryId ?? undefined,
+              salePrice: p.salePrice, taxRate: Number(p.taxRate ?? 0), priceIncludesTax: p.priceIncludesTax !== false, categoryId: p.categoryId ?? undefined,
               updatedAt: p.updatedAt, _syncStatus: 'synced' as const,
             });
           } else {
             await db.products.add({
               serverId: p.id, name: p.name, code: p.code, unit: p.unit,
-              salePrice: p.salePrice, taxRate: Number(p.taxRate ?? 0), categoryId: p.categoryId ?? undefined,
+              salePrice: p.salePrice, taxRate: Number(p.taxRate ?? 0), priceIncludesTax: p.priceIncludesTax !== false, categoryId: p.categoryId ?? undefined,
               createdAt: p.createdAt, updatedAt: p.updatedAt,
               _syncStatus: 'synced' as const, _version: 1, _lastModifiedAt: Date.now(),
             } as LocalProduct);

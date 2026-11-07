@@ -15,6 +15,7 @@ import ProductSearch from '../components/features/ProductSearch';
 import CustomerModal from '../components/ui/CustomerModal';
 import { UpdateOrderRequest } from '../types/order';
 import { Product } from '../types';
+import { lineFromProduct } from "../utils/tax";
 import { Customer } from '../types/customer';
 import { productService } from '../services/products';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
@@ -175,9 +176,10 @@ const OrderEdit: React.FC = () => {
   const handleProductSelect = (product: Product | null) => {
     if (product) {
       setSelectedProduct(product);
-      setUnitPrice(product.salePrice ?? 0);
-      setTaxRate(Number(product.taxRate ?? 0));
-      setTaxRate(0);
+      // Precio e IVA de la ficha (desglosado si el precio ya incluye IVA)
+      const line = lineFromProduct(product);
+      setUnitPrice(line.unitPrice);
+      setTaxRate(line.taxRate);
     } else {
       setSelectedProduct(null);
       setUnitPrice(0);

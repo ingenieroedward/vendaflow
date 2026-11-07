@@ -38,6 +38,7 @@ export interface LocalProduct extends BaseLocalModel {
   unit: string;
   salePrice: number;
   taxRate?: number;
+  priceIncludesTax?: boolean;
   categoryId?: number;
 }
 

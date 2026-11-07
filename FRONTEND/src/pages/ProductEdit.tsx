@@ -17,6 +17,7 @@ interface ProductFormData {
   categoryId?: number | null;
   salePrice: number;
   taxRate: number;
+  priceIncludesTax: boolean;
   stock: number;
   minStock: number;
 }
@@ -62,6 +63,7 @@ const ProductEdit: React.FC = () => {
     unit: '',
     salePrice: 0,
     taxRate: 0,
+    priceIncludesTax: true,
     stock: 0,
     minStock: 0,
   });
@@ -92,6 +94,7 @@ const ProductEdit: React.FC = () => {
           categoryId: productData.categoryId,
           salePrice: productData.salePrice,
           taxRate: Number(productData.taxRate ?? 0),
+          priceIncludesTax: productData.priceIncludesTax !== false,
           stock: productData.stock ?? 0,
           minStock: productData.minStock ?? 0,
         });
@@ -471,6 +474,8 @@ const ProductEdit: React.FC = () => {
                 <TaxRateField
                   value={formData.taxRate}
                   onChange={(taxRate) => setFormData(prev => ({ ...prev, taxRate }))}
+                  included={formData.priceIncludesTax}
+                  onIncludedChange={(priceIncludesTax) => setFormData(prev => ({ ...prev, priceIncludesTax }))}
                 />
               </div>
             </div>

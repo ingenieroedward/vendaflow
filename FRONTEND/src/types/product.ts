@@ -28,6 +28,8 @@ export interface Product {
   minStock: number;
   /** IVA % por defecto al vender (0, 5, 19…) */
   taxRate?: number;
+  /** true (por defecto): el precio de venta ya incluye el IVA */
+  priceIncludesTax?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -107,6 +109,7 @@ export interface CreateProductRequest {
   stock?: number;
   minStock?: number;
   taxRate?: number;
+  priceIncludesTax?: boolean;
 }
 
 export interface CreatePriceRequest {

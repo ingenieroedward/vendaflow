@@ -351,6 +351,7 @@ export class ProductService {
       stock: Number(product.stock),
       minStock: Number(product.minStock),
       taxRate: Number(product.taxRate ?? 0),
+      priceIncludesTax: product.priceIncludesTax !== false,
       categoryId: product.categoryId,
       ...(product.category && {
         category: {

@@ -8,6 +8,7 @@ import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
 import { useProductStore } from '../store/productStore';
 import { useTenantStore } from '../store/tenantStore';
+import { lineTotal } from '../utils/tax';
 import { useUIStore } from '../store/uiStore';
 import { posService, CashSession, PosPaymentLine, PosSaleResult } from '../services/pos';
 import { orderService } from '../services/orders';
@@ -24,6 +25,9 @@ interface CartLine {
   code: string;
   unit: string;
   unitPrice: number;
+  /** IVA sumado encima: solo si el precio del producto NO lo incluye. Con IVA
+   *  incluido (lo normal) el POS cobra el precio tal cual, como siempre. */
+  taxRate: number;
   quantity: number;
   stock: number;
 }
@@ -123,15 +127,18 @@ const Pos: React.FC = () => {
     if (results.length === 1) { e.preventDefault(); addToCart(results[0]); }
   };
 
-  const total = useMemo(() => cart.reduce((s, l) => s + l.unitPrice * l.quantity, 0), [cart]);
+  // Misma fórmula que el backend: el total del carrito debe cuadrar exacto con
+  // el de la venta (los pagos se validan contra ese total)
+  const total = useMemo(() => cart.reduce((s, l) => s + lineTotal(l.quantity, l.unitPrice, l.taxRate), 0), [cart]);
 
-  const addToCart = (p: { id: number; name: string; code: string; unit: string; salePrice: number; stock: number }) => {
+  const addToCart = (p: { id: number; name: string; code: string; unit: string; salePrice: number; stock: number; taxRate?: number; priceIncludesTax?: boolean }) => {
     setCart(prev => {
       const existing = prev.find(l => l.productId === p.id);
       if (existing) {
         return prev.map(l => l.productId === p.id ? { ...l, quantity: l.quantity + 1 } : l);
       }
-      return [...prev, { productId: p.id, name: p.name, code: p.code, unit: p.unit, unitPrice: p.salePrice, quantity: 1, stock: p.stock }];
+      const taxRate = p.priceIncludesTax === false ? Number(p.taxRate ?? 0) : 0;
+      return [...prev, { productId: p.id, name: p.name, code: p.code, unit: p.unit, unitPrice: p.salePrice, taxRate, quantity: 1, stock: p.stock }];
     });
     setSearch('');
     searchRef.current?.focus();
@@ -169,7 +176,7 @@ const Pos: React.FC = () => {
     setCheckingOut(true);
     try {
       const sale = await posService.sale(
-        cart.map(l => ({ productId: l.productId, quantity: l.quantity, unitPrice: l.unitPrice, taxRate: 0 })),
+        cart.map(l => ({ productId: l.productId, quantity: l.quantity, unitPrice: l.unitPrice, taxRate: l.taxRate })),
         payments,
         cashReceived,
       );
@@ -378,7 +385,10 @@ const Pos: React.FC = () => {
               {cart.map(l => (
                 <div key={l.productId} className="px-4 py-2.5">
                   <div className="flex items-start justify-between gap-2">
-                    <p className="text-sm font-medium text-gray-800 leading-tight flex-1">{l.name}</p>
+                    <p className="text-sm font-medium text-gray-800 leading-tight flex-1">
+                      {l.name}
+                      {l.taxRate > 0 && <span className="block text-xs font-normal text-gray-600">+ IVA {l.taxRate}%</span>}
+                    </p>
                     <button onClick={() => setQty(l.productId, 0)} aria-label={`Quitar ${l.name}`}
                       className="-mr-2 -mt-2 w-10 h-10 flex items-center justify-center rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50 flex-shrink-0">
                       <Trash2 className="w-4 h-4" />
@@ -397,7 +407,7 @@ const Pos: React.FC = () => {
                         <Plus className="w-4 h-4" />
                       </button>
                     </div>
-                    <span className="text-sm font-bold text-gray-900">{formatCurrency(l.unitPrice * l.quantity)}</span>
+                    <span className="text-sm font-bold text-gray-900">{formatCurrency(lineTotal(l.quantity, l.unitPrice, l.taxRate))}</span>
                   </div>
                 </div>
               ))}
