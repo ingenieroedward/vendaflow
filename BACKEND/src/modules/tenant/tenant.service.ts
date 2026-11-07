@@ -10,11 +10,10 @@ import { Customer } from '../customer/customer.model';
 import { PurchaseOrder } from '../purchase-order/purchase-order.model';
 import { PurchaseOrderItem } from '../purchase-order/purchase-order-item/purchase-order-item.model';
 import { StockMovement } from '../stock-movement/stock-movement.model';
-import { AuthService } from '../auth/auth.service';
 import { pushService } from '../push/push.service';
 import { getJobStatuses } from '@/core/jobs/jobStatus';
 import { APP_VERSION } from '@/config/version';
-import { ConflictError, NotFoundError, BadRequestError, ForbiddenError } from '@/core/errors/AppError';
+import { ConflictError, NotFoundError, BadRequestError, ForbiddenError, ValidationError } from '@/core/errors/AppError';
 import { computePaymentPeriod, toDateOnly } from './subscription';
 import { sendEmail, renderEmail } from '@/core/email';
 import sequelize from '@/database';
@@ -419,6 +418,12 @@ export class TenantService {
     const { getPlanConfig } = await import('@/config/plans');
     const cfg = await getPlanConfig();
     if (!cfg.prices[data.plan]) throw new ConflictError('Plan inválido');
+    // Solo imágenes (la app sube con accept="image/*" y el panel las muestra en <img>):
+    // nada de SVG/HTML que pudiera ejecutar código si algún día se abre de otra forma
+    const RECEIPT_MIMES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif'];
+    if (data.receiptBase64 && (!data.receiptMime || !RECEIPT_MIMES.includes(data.receiptMime))) {
+      throw new ValidationError('El comprobante debe ser una imagen (JPG, PNG, WEBP, GIF o HEIC)');
+    }
     if (data.receiptBase64 && data.receiptBase64.length > 2_800_000) {
       throw new ConflictError('El comprobante supera 2MB — usa una imagen más liviana');
     }
@@ -695,8 +700,11 @@ export class TenantService {
       order: [['createdAt', 'ASC']],
     });
     if (!admin) throw new NotFoundError('El tenant no tiene usuario admin');
-    const token = new AuthService().generateToken(admin.id, admin.username, admin.role, admin.tenantId, admin.tokenVersion ?? 0);
-    return { token, slug: tenant.slug, username: admin.username };
+    // Código opaco de un solo uso (2 min), no un JWT: viaja en la URL hacia el
+    // subdominio del tenant y se canjea por POST /api/auth/impersonate
+    const { issueImpersonationCode } = await import('@/core/auth/impersonationCodes');
+    const code = issueImpersonationCode(admin.id, admin.tenantId);
+    return { code, slug: tenant.slug, username: admin.username };
   }
 
   // Detalle operativo del tenant para el panel superadmin

@@ -1,3 +1,4 @@
+import { ForbiddenError } from '@/core/errors/AppError';
 import webpush from 'web-push';
 import { config } from '@/config';
 import { PushSubscription } from './push-subscription.model';
@@ -24,6 +25,12 @@ export interface SubscriptionPayload {
 export class PushService {
   async subscribe(userId: number, subscription: SubscriptionPayload): Promise<void> {
     const existing = await PushSubscription.findOne({ where: { endpoint: subscription.endpoint } });
+    // Pasar una suscripción a OTRO usuario (mismo navegador, otra cuenta) exige sus
+    // mismas llaves: quien solo conozca el endpoint no puede desviar los avisos ajenos
+    if (existing && existing.userId !== userId &&
+        (existing.p256dh !== subscription.keys.p256dh || existing.auth !== subscription.keys.auth)) {
+      throw new ForbiddenError('Suscripción inválida');
+    }
     if (existing) {
       await existing.update({ userId, p256dh: subscription.keys.p256dh, auth: subscription.keys.auth });
     } else {
