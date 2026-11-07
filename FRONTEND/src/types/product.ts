@@ -26,6 +26,8 @@ export interface Product {
   salePrice: number;
   stock: number;
   minStock: number;
+  /** IVA % por defecto al vender (0, 5, 19…) */
+  taxRate?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -104,6 +106,7 @@ export interface CreateProductRequest {
   salePrice: number;
   stock?: number;
   minStock?: number;
+  taxRate?: number;
 }
 
 export interface CreatePriceRequest {

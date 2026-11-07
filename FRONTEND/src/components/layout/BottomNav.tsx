@@ -12,12 +12,15 @@ interface NavItem {
   feature?: string;
 }
 
+// Orden pensado para el vendedor: vender y órdenes siempre a un toque (antes
+// el POS caía en "Más"). Para el comprador el filtro por rol deja Productos,
+// Precios, Proveedores y Categorías, igual que antes.
 const NAV_ITEMS: NavItem[] = [
+  { label: 'Vender',      to: '/pos',             icon: Store,         roles: ['seller', 'admin'], feature: 'pos' },
+  { label: 'Órdenes',     to: '/orders',          icon: ClipboardList, roles: ['seller', 'admin'] },
   { label: 'Productos',   to: '/',                icon: Package,       roles: ['buyer', 'seller', 'admin'] },
   { label: 'Clientes',    to: '/customers',       icon: UserCheck,     roles: ['seller', 'admin'] },
-  { label: 'Órdenes',     to: '/orders',          icon: ClipboardList, roles: ['seller', 'admin'] },
   { label: 'Cotizaciones', to: '/quotes',         icon: FileText,      roles: ['seller', 'admin'], feature: 'quotes' },
-  { label: 'Punto de venta', to: '/pos',          icon: Store,         roles: ['seller', 'admin'], feature: 'pos' },
   { label: 'Inventario',  to: '/inventory',       icon: Warehouse,     roles: ['seller', 'admin'] },
   { label: 'Precios',     to: '/prices',          icon: DollarSign,    roles: ['buyer', 'admin'] },
   { label: 'Proveedores', to: '/suppliers',       icon: Truck,         roles: ['buyer', 'admin'] },
@@ -68,11 +71,11 @@ const BottomNav = () => {
                 key={item.to}
                 to={item.to}
                 className={`flex-1 flex flex-col items-center justify-center space-y-0.5 text-xs font-medium transition-colors duration-150 relative ${
-                  active ? 'text-primary' : 'text-gray-400 hover:text-gray-600'
+                  active ? 'text-primary' : 'text-gray-600 hover:text-gray-900'
                 }`}
                 aria-current={active ? 'page' : undefined}
               >
-                <item.icon className={`w-5 h-5 flex-shrink-0 ${active ? 'text-primary' : 'text-gray-400'}`} />
+                <item.icon className={`w-5 h-5 flex-shrink-0 ${active ? 'text-primary' : 'text-gray-500'}`} />
                 <span className="leading-none">{item.label}</span>
                 {active && (
                   <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary rounded-full" aria-hidden="true" />
@@ -85,11 +88,11 @@ const BottomNav = () => {
             <button
               onClick={() => setShowMore(v => !v)}
               className={`flex-1 flex flex-col items-center justify-center space-y-0.5 text-xs font-medium transition-colors duration-150 relative ${
-                overflowActive || showMore ? 'text-primary' : 'text-gray-400 hover:text-gray-600'
+                overflowActive || showMore ? 'text-primary' : 'text-gray-600 hover:text-gray-900'
               }`}
               aria-label="Más opciones"
             >
-              <MoreHorizontal className={`w-5 h-5 ${overflowActive || showMore ? 'text-primary' : 'text-gray-400'}`} />
+              <MoreHorizontal className={`w-5 h-5 ${overflowActive || showMore ? 'text-primary' : 'text-gray-500'}`} />
               <span className="leading-none">Más</span>
               {overflowActive && !showMore && (
                 <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary rounded-full" aria-hidden="true" />
@@ -113,7 +116,8 @@ const BottomNav = () => {
               <span className="text-sm font-semibold text-gray-700">Más opciones</span>
               <button
                 onClick={() => setShowMore(false)}
-                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400"
+                aria-label="Cerrar"
+                className="w-11 h-11 -mr-2 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-600"
               >
                 <X className="w-4 h-4" />
               </button>

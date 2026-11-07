@@ -176,6 +176,7 @@ const QuoteEdit: React.FC = () => {
     if (product) {
       setSelectedProduct(product);
       setUnitPrice(product.salePrice ?? 0);
+      setTaxRate(Number(product.taxRate ?? 0));
       setTaxRate(0);
     } else {
       setSelectedProduct(null);

@@ -23,6 +23,7 @@ export interface ProductAttributes {
   salePrice: number;
   stock: number;
   minStock: number;
+  taxRate: number;
   categoryId: number | null;
   createdAt: Date;
   updatedAt: Date;
@@ -101,6 +102,15 @@ export class Product extends Model<ProductAttributes, ProductCreationAttributes>
     },
   })
   minStock!: number;
+
+  // IVA en % (0, 5, 19…) que la orden/POS/cotización toman por defecto
+  @Column({
+    type: DataType.DECIMAL(5, 2),
+    allowNull: false,
+    defaultValue: 0,
+    validate: { min: 0, max: 100 },
+  })
+  taxRate!: number;
 
   @ForeignKey(() => Category)
   @Column({

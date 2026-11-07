@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, RefreshCw, Package, TrendingUp } from 'lucide-react';
+import { Plus, RefreshCw, Package } from 'lucide-react';
 import { useProductStore } from '../store/productStore';
 import { useTenantStore } from '../store/tenantStore';
 import { useAuthStore } from '../store/authStore';
@@ -23,6 +23,20 @@ const formatDate = (dateString: string) =>
   new Date(dateString).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
 
 const minCost = (p: Product) => (p.prices?.length ? Math.min(...p.prices.map(pr => pr.price)) : null);
+
+// Stock con semáforo (solo con mínimo configurado): agotado / bajo / normal
+const StockCell: React.FC<{ stock?: number; minStock?: number; unit: string }> = ({ stock = 0, minStock = 0 }) => {
+  const n = Number(stock);
+  const fmt = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 2 }).format(n);
+  // Solo alerta si el negocio configuró un mínimo: quien no lleva inventario
+  // tiene todo en 0 y no debe ver "Agotado" en cada fila
+  if (Number(minStock) <= 0) return <span className={n <= 0 ? 'text-gray-500' : 'text-gray-900'}>{fmt}</span>;
+  if (n <= 0) return <span className="inline-flex items-center rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">Agotado</span>;
+  if (n <= Number(minStock)) {
+    return <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800" title={`Mínimo: ${minStock}`}>{fmt} · bajo</span>;
+  }
+  return <span className="text-gray-900">{fmt}</span>;
+};
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
@@ -100,13 +114,18 @@ const Home: React.FC = () => {
           </div>
 
           {/* Actions - Stack vertical en mobile */}
-          <div className="items-center flex justify-between space-x-2 sm:space-x-3">
+          <div className="items-center flex justify-between gap-2 sm:gap-3">
+              {/* Antes: 3 tarjetas de indicadores calculadas solo sobre la página
+                  visible (25) pero divididas por el total — cifras falsas. */}
+              <p className="text-sm text-gray-600 tabular-nums mr-auto" aria-live="polite">
+                {pagination.total} {pagination.total === 1 ? 'producto' : 'productos'}
+              </p>
               <Button
                 variant="outline"
                 icon={RefreshCw}
                 onClick={handleRefresh}
                 size="sm"
-                className="flex-1 sm:flex-none text-xs sm:text-sm"
+                className="text-xs sm:text-sm"
               >
                 Actualizar
               </Button>
@@ -116,55 +135,13 @@ const Home: React.FC = () => {
                   icon={Plus}
                   onClick={() => navigate('/products/new')}
                   size="sm"
-                  className="w-full sm:w-auto font-medium"
+                  className="font-medium"
                 >
                   Nuevo producto
                 </Button>
               )}
           </div>
         </div>
-
-        {/* Stats Cards - Optimizado para mobile */}
-        {!showSearchResults && (
-          <div className="grid grid-cols-3 gap-3 sm:gap-6 mb-6 sm:mb-8">
-            <div className="bg-white  rounded-lg p-4 sm:p-6 shadow-sm border border-gray-200">
-              <div className="flex items-center  gap-2 flex-wrap">
-                <Package className="w-6 h-6 sm:w-8 sm:h-8 text-primary mr-3" />
-                <div>
-                  <p className="text-xs sm:text-sm font-medium text-gray-600">P. Totales</p>
-                  <p className="text-xl sm:text-2xl font-bold text-gray-900">{pagination.total}</p>
-                </div>
-              </div>
-            </div>
-            <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-200">
-              <div className="flex items-center gap-2 flex-wrap">
-                <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-green-600 mr-3" />
-                <div>
-                  <p className="text-xs sm:text-sm font-medium text-gray-600">Con precios</p>
-                  <p className="text-xl sm:text-2xl font-bold text-gray-900">
-                    {products.filter(p => p.prices && p.prices.length > 0).length}
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-200">
-              <div className="flex items-center gap-2 flex-wrap">
-                <div className="w-6 h-6 sm:w-8 sm:h-8 bg-orange-100 rounded-full flex items-center justify-center mr-3">
-                  <span className="text-orange-600 font-bold text-sm sm:text-base">%</span>
-                </div>
-                <div>
-                  <p className="text-xs sm:text-sm font-medium text-gray-600">Cobertura</p>
-                  <p className="text-xl sm:text-2xl font-bold text-gray-900">
-                    {pagination.total > 0 
-                      ? Math.round((products.filter(p => p.prices && p.prices.length > 0).length / pagination.total) * 100)
-                      : 0
-                    }%
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Error Message */}
         {error && (
@@ -199,13 +176,14 @@ const Home: React.FC = () => {
               {/* Lista de productos: tabla en desktop, filas compactas en mobile */}
               {products.length > 0 ? (
                 <>
-                <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-hidden">
+                <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-x-auto">
                   <table className="w-full text-sm">
-                    <thead className="bg-gray-50 text-left text-xs font-medium text-gray-500">
+                    <thead className="bg-gray-50 text-left text-xs font-medium text-gray-600">
                       <tr>
                         <th className="px-4 py-2.5 font-medium">Código</th>
                         <th className="px-4 py-2.5 font-medium">Producto</th>
                         <th className="px-4 py-2.5 font-medium">Unidad</th>
+                        <th className="px-4 py-2.5 font-medium text-right">Stock</th>
                         <th className="px-4 py-2.5 font-medium text-right">Precio venta</th>
                         <th className="px-4 py-2.5 font-medium text-right">Menor costo</th>
                         <th className="px-4 py-2.5 font-medium text-right">Proveedores</th>
@@ -220,17 +198,26 @@ const Home: React.FC = () => {
                           <tr
                             key={product.id}
                             onClick={() => handleProductClick(product)}
-                            className={`cursor-pointer transition-colors ${isSelected ? 'bg-primary/5' : 'hover:bg-gray-50'}`}
+                            // Fila operable con teclado (antes solo con mouse)
+                            tabIndex={0}
+                            aria-selected={isSelected}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleProductClick(product); }
+                            }}
+                            className={`cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary ${isSelected ? 'bg-primary/5' : 'hover:bg-gray-50'}`}
                           >
                             <td className="px-4 py-2.5 font-mono text-xs text-primary whitespace-nowrap">{product.code}</td>
                             <td className="px-4 py-2.5 font-medium text-gray-900">{product.name}</td>
                             <td className="px-4 py-2.5 text-gray-600 whitespace-nowrap">{product.unit}</td>
-                            <td className="px-4 py-2.5 text-right font-semibold text-gray-900 whitespace-nowrap">{formatCurrency(product.salePrice)}</td>
+                            <td className="px-4 py-2.5 text-right whitespace-nowrap tabular-nums">
+                              <StockCell stock={product.stock} minStock={product.minStock} unit={product.unit} />
+                            </td>
+                            <td className="px-4 py-2.5 text-right font-semibold text-gray-900 whitespace-nowrap tabular-nums">{formatCurrency(product.salePrice)}</td>
                             <td className="px-4 py-2.5 text-right whitespace-nowrap">
-                              {cost !== null ? <span className="text-green-700">{formatCurrency(cost)}</span> : <span className="text-gray-300">—</span>}
+                              {cost !== null ? <span className="text-green-700">{formatCurrency(cost)}</span> : <span className="text-gray-500">—</span>}
                             </td>
                             <td className="px-4 py-2.5 text-right text-gray-600">{product.prices?.length ?? 0}</td>
-                            <td className="px-4 py-2.5 text-right text-gray-500 whitespace-nowrap">{formatDate(product.updatedAt)}</td>
+                            <td className="px-4 py-2.5 text-right text-gray-600 whitespace-nowrap">{formatDate(product.updatedAt)}</td>
                           </tr>
                         );
                       })}

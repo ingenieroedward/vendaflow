@@ -7,6 +7,40 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ## [Unreleased]
 
+## [1.18.0] — 2026-11-07 — IVA por producto y arreglos rápidos de UX
+
+### Added
+
+- **IVA por producto** (`products.taxRate`, vía `ensureSchema`): la ficha del producto tiene un
+  selector de IVA (19 % general, 5 %, 0 % exento/excluido) y órdenes y cotizaciones (nuevas y
+  editadas) lo toman por defecto en cada línea. Antes el IVA arrancaba en 0 y el vendedor tenía
+  que digitar 19 a mano en cada producto. Al desplegar, cada producto existente toma el IVA de su
+  última venta; los nunca vendidos quedan en 0. Productos nuevos arrancan en 19 %.
+- Productos: columna de stock en la tabla (alerta de bajo/agotado solo si hay stock mínimo
+  configurado) y la tabla se opera con teclado.
+- POS: billetes rápidos ("Exacto", $ 50.000…) y el vuelto en grande al cobrar.
+
+### Changed
+
+- Menú lateral agrupado en Vender / Catálogo / Negocio, con scroll (en pantallas de 768 px se
+  cortaba). En el celular, "Vender" (POS) y "Órdenes" quedan en la barra inferior.
+- Roles en español (Administrador, Vendedor, Comprador).
+- Estado "En proceso" en color fijo (antes tomaba el color del negocio y con el rosa parecía un
+  error); "Cancelada" en gris.
+- POS: botones de cantidad de 44 px (antes 24 px).
+- Inventario usa el color del negocio en vez de índigo fijo.
+
+### Removed
+
+- Indicadores "Con precios" y "Cobertura" de Productos: contaban solo la página visible y
+  dividían por el total (cifras incorrectas). Queda el conteo de productos.
+
+### Accessibility
+
+- Modal con `role="dialog"`, foco al abrir y al cerrar, y botón de cerrar etiquetado.
+- Etiquetas en botones de ícono e inputs del POS, cobro y Nueva orden; contraste de textos grises
+  subido a AA en menú, barra inferior y POS.
+
 ## [1.17.0] — 2026-11-07 — Seguridad: resto de la auditoría
 
 ### Security
