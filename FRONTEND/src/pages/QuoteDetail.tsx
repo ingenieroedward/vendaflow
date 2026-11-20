@@ -31,6 +31,7 @@ import ErrorMessage from "../components/ui/ErrorMessage";
 import Button from "../components/ui/Button";
 import QuotePrintView from "../components/features/QuotePrintView";
 import { generateCartaPdf, urlToDataUrl } from "../utils/generateCartaPdf";
+import { generateCartaPdfModerna } from '../utils/generateCartaPdfModerna';
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import jsPDF from "jspdf";
@@ -63,6 +64,18 @@ const QuoteDetail: React.FC = () => {
   const { currentQuote, loading, error, getQuoteById, clearError, updateQuote, deleteQuote, convertToOrder } =
     useQuoteStore();
   const printRef = useRef<HTMLDivElement>(null);
+  // Plantilla de documentos: la elegida en Configuración (moderna por defecto);
+  // la otra sigue disponible en el menú "Imprimir / PDF"
+  type Tpl = 'moderna' | 'clasica';
+  const [ticketTpl, setTicketTpl] = useState<Tpl | undefined>(undefined);
+  const tplTenant = useTenantStore(st => st.tenant);
+  const defaultTpl: Tpl = tplTenant?.documentTemplate === 'clasica' ? 'clasica' : 'moderna';
+  const otherTpl: Tpl = defaultTpl === 'moderna' ? 'clasica' : 'moderna';
+  // re-renderiza la vista oculta del ticket con la plantilla pedida antes de capturarla/imprimirla
+  const renderTicketAs = async (tpl: Tpl) => {
+    setTicketTpl(tpl);
+    await new Promise((r) => setTimeout(r, 80));
+  };
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [showPdfMenu, setShowPdfMenu] = useState(false);
@@ -119,10 +132,11 @@ const QuoteDetail: React.FC = () => {
     }
   };
 
-  const handlePrint = async () => {
+  const handlePrint = async (tpl?: Tpl) => {
     if (!currentQuote || generatingPdf || !printRef.current) return;
 
     setGeneratingPdf(true);
+    if (tpl) await renderTicketAs(tpl);
     try {
       // Render ticket at 80mm width (302px) — single tall page, no pagination
       const el = printRef.current;
@@ -177,20 +191,22 @@ const QuoteDetail: React.FC = () => {
 
   // Impresión directa (PC/navegador) — ver .print-ticket-root en index.css
   // y el mismo mecanismo en OrderDetail.tsx.
-  const handleDirectPrint = () => {
+  const handleDirectPrint = async (tpl?: Tpl) => {
     if (!currentQuote || generatingPdf) return;
     setShowPdfMenu(false);
+    if (tpl) await renderTicketAs(tpl);
     window.print();
   };
 
-  const handlePrintCarta = async () => {
+  const handlePrintCarta = async (tpl?: Tpl) => {
     if (!currentQuote || generatingPdf) return;
 
     setGeneratingPdf(true);
     setShowPdfMenu(false);
     try {
       const logo = tenant?.logoUrl ? await urlToDataUrl(tenant.logoUrl) : null;
-      const pdf = await generateCartaPdf({
+      const cartaTpl: Tpl = tpl ?? defaultTpl;
+      const cartaOpts = {
         business: {
           name: tenant?.name ?? 'Merco',
           nit: tenant?.nit,
@@ -224,7 +240,11 @@ const QuoteDetail: React.FC = () => {
         notes: currentQuote.notes,
         totalLabel: 'Total Cotizado',
         footerNote: 'Este documento no constituye una factura',
-      });
+      };
+      // Moderna con el color del negocio; la clásica queda igual que siempre
+      const pdf = cartaTpl === 'moderna'
+        ? await generateCartaPdfModerna({ ...cartaOpts, accentHex: tplTenant?.primaryColor, sellerName: currentQuote.user?.username })
+        : await generateCartaPdf(cartaOpts);
 
       const fileName = `${currentQuote.quoteNumber}-carta.pdf`;
       if (Capacitor.isNativePlatform()) {
@@ -404,28 +424,40 @@ const QuoteDetail: React.FC = () => {
               Imprimir / PDF
             </button>
             {showPdfMenu && (
-              <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-20 min-w-[160px] py-1">
-                <button
-                  onClick={() => { setShowPdfMenu(false); handlePrint(); }}
-                  className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-                >
-                  <Download className="w-3.5 h-3.5 text-gray-500" />
-                  Ticket 80mm
+              <div role="menu" className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-20 min-w-[230px] py-1">
+                <p className="px-3 pt-1.5 pb-1 text-xs font-medium text-gray-600">
+                  Plantilla {defaultTpl === 'moderna' ? 'moderna' : 'clásica'}
+                </p>
+                <button role="menuitem" onClick={() => { setShowPdfMenu(false); handlePrint(defaultTpl); }}
+                  className="w-full text-left px-3 py-2 text-sm text-gray-800 hover:bg-gray-50 flex items-center gap-2">
+                  <Download className="w-4 h-4 text-gray-500" aria-hidden="true" /> Ticket 80 mm (PDF)
                 </button>
-                <button
-                  onClick={() => handlePrintCarta()}
-                  className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-                >
-                  <Download className="w-3.5 h-3.5 text-gray-500" />
-                  Hoja carta
+                <button role="menuitem" onClick={() => handlePrintCarta(defaultTpl)}
+                  className="w-full text-left px-3 py-2 text-sm text-gray-800 hover:bg-gray-50 flex items-center gap-2">
+                  <Download className="w-4 h-4 text-gray-500" aria-hidden="true" /> Hoja carta (PDF)
                 </button>
                 {!Capacitor.isNativePlatform() && (
-                  <button
-                    onClick={() => handleDirectPrint()}
-                    className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 border-t border-gray-100"
-                  >
-                    <Printer className="w-3.5 h-3.5 text-gray-500" />
-                    Imprimir (térmica)
+                  <button role="menuitem" onClick={() => handleDirectPrint(defaultTpl)}
+                    className="w-full text-left px-3 py-2 text-sm text-gray-800 hover:bg-gray-50 flex items-center gap-2">
+                    <Printer className="w-4 h-4 text-gray-500" aria-hidden="true" /> Imprimir en térmica
+                  </button>
+                )}
+                {/* La otra plantilla sigue disponible a un clic */}
+                <p className="mt-1 border-t border-gray-100 px-3 pt-2 pb-1 text-xs font-medium text-gray-600">
+                  Plantilla {otherTpl === 'moderna' ? 'moderna' : 'clásica'}
+                </p>
+                <button role="menuitem" onClick={() => { setShowPdfMenu(false); handlePrint(otherTpl); }}
+                  className="w-full text-left px-3 py-2 text-sm text-gray-800 hover:bg-gray-50 flex items-center gap-2">
+                  <Download className="w-4 h-4 text-gray-500" aria-hidden="true" /> Ticket 80 mm (PDF)
+                </button>
+                <button role="menuitem" onClick={() => handlePrintCarta(otherTpl)}
+                  className="w-full text-left px-3 py-2 text-sm text-gray-800 hover:bg-gray-50 flex items-center gap-2">
+                  <Download className="w-4 h-4 text-gray-500" aria-hidden="true" /> Hoja carta (PDF)
+                </button>
+                {!Capacitor.isNativePlatform() && (
+                  <button role="menuitem" onClick={() => handleDirectPrint(otherTpl)}
+                    className="w-full text-left px-3 py-2 text-sm text-gray-800 hover:bg-gray-50 flex items-center gap-2">
+                    <Printer className="w-4 h-4 text-gray-500" aria-hidden="true" /> Imprimir en térmica
                   </button>
                 )}
               </div>
@@ -558,7 +590,7 @@ const QuoteDetail: React.FC = () => {
         {/* Portal a #print-root — ver mismo mecanismo en OrderDetail.tsx */}
         {createPortal(
           <div className="print-ticket-root" style={{ position: 'absolute', left: '-9999px', top: 0, width: '302px', pointerEvents: 'none' }}>
-            <QuotePrintView ref={printRef} quote={currentQuote} />
+            <QuotePrintView ref={printRef} template={ticketTpl} quote={currentQuote} />
           </div>,
           document.getElementById('print-root') ?? document.body
         )}

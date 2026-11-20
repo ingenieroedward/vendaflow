@@ -77,6 +77,8 @@ export async function ensureSchema(): Promise<void> {
     ['nit', { type: DataType.STRING(30), allowNull: true }],
     ['address', { type: DataType.STRING(255), allowNull: true }],
     ['city', { type: DataType.STRING(120), allowNull: true }],
+    // Plantilla de documentos (v1.25): null = 'moderna'; 'clasica' = la anterior
+    ['documentTemplate', { type: DataType.STRING(20), allowNull: true }],
   ] as const) {
     if (!(name in tenantCols)) {
       await qi.addColumn('tenants', name, spec as never);

@@ -3,28 +3,53 @@ import { Order } from "../../types/order";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useTenantStore } from "../../store/tenantStore";
+import TicketModern from "./TicketModern";
 
 interface OrderPrintViewProps {
   order: Order;
+  /** Plantilla: por defecto la elegida en Configuración (moderna si no hay) */
+  template?: 'moderna' | 'clasica';
 }
 
 // Diseño para ticket de 80mm (~302px a 96dpi)
 // Columnas estrechas, sin grid, sin tablas complejas
+const statusLabels: Record<string, string> = {
+  pending: "Pendiente",
+  processing: "En Proceso",
+  completed: "Completada",
+  cancelled: "Cancelada",
+};
+
 const OrderPrintView = forwardRef<HTMLDivElement, OrderPrintViewProps>(
-  ({ order }, ref) => {
+  ({ order, template }, ref) => {
     const tenant = useTenantStore(s => s.tenant);
+    const tpl = template ?? (tenant?.documentTemplate === 'clasica' ? 'clasica' : 'moderna');
+    if (tpl === 'moderna') {
+      return (
+        <TicketModern
+          ref={ref}
+          business={{ name: tenant?.name ?? 'Merco', logoUrl: tenant?.logoUrl, nit: tenant?.nit, address: tenant?.address, city: tenant?.city, phone: tenant?.contactPhone }}
+          docLabel="ORDEN DE VENTA"
+          docNumber={order.orderNumber}
+          createdAt={order.createdAt}
+          statusLabel={statusLabels[order.status] ?? order.status}
+          extraLines={order.paymentType === 'credit' && order.paymentDueDate ? [`Crédito · vence ${format(new Date(`${order.paymentDueDate}T00:00:00`), 'dd/MM/yyyy')}`] : undefined}
+          customer={{ name: order.customer?.name ?? `Cliente #${order.customerId}`, nit: order.customer?.nit, contact: order.customer?.contact }}
+          sellerName={order.user?.username}
+          items={(order.items || []).map(it => ({ code: it.product?.code ?? '', name: it.product?.name ?? `Producto #${it.productId}`, quantity: Number(it.quantity), unitPrice: Number(it.unitPrice), taxRate: Number(it.taxRate) || 0 }))}
+          notes={order.notes}
+          totalLabel="TOTAL"
+          footer="¡Gracias por su compra!"
+          payment={order.changeGiven != null ? { change: Number(order.changeGiven), cashReceived: undefined } : null}
+        />
+      );
+    }
     const formatDate = (d: string) =>
       format(new Date(d), "dd/MM/yyyy HH:mm", { locale: es });
 
     const formatCurrency = (n: number) =>
       new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0 }).format(n);
 
-    const statusLabel: Record<string, string> = {
-      pending: "Pendiente",
-      processing: "En Proceso",
-      completed: "Completada",
-      cancelled: "Cancelada",
-    };
 
     const calculateTotals = () => {
       let subtotal = 0, totalTax = 0;
@@ -78,7 +103,7 @@ const OrderPrintView = forwardRef<HTMLDivElement, OrderPrintViewProps>(
           <div style={{ fontSize: "13px", fontWeight: "bold" }}>{order.orderNumber}</div>
           <div style={{ fontSize: "9px", color: "#555" }}>{formatDate(order.createdAt)}</div>
           <div style={{ fontSize: "9px", fontWeight: "bold", marginTop: "2px" }}>
-            Estado: {statusLabel[order.status] ?? order.status}
+            Estado: {statusLabels[order.status] ?? order.status}
           </div>
         </div>
 

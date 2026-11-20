@@ -622,7 +622,7 @@ const Orders: React.FC = () => {
                               </td>
                               <td className="px-4 py-2.5">
                                 <p className="font-medium text-gray-900">{order.customer?.name || `ID: ${order.customerId}`}</p>
-                                <p className="text-xs text-gray-600">{order.user?.name || order.user?.username || ''}</p>
+                                <p className="text-xs text-gray-600">{order.user?.username || ''}</p>
                               </td>
                               <td className="px-4 py-2.5 text-gray-700 whitespace-nowrap">{formatDate(order.createdAt)}</td>
                               <td className="px-4 py-2.5 whitespace-nowrap">

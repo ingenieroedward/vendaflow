@@ -16,6 +16,8 @@ export async function updateMyTheme(data: {
   nit?: string | null;
   address?: string | null;
   city?: string | null;
+  contactPhone?: string | null;
+  documentTemplate?: 'moderna' | 'clasica';
   contactEmail?: string | null;
 }): Promise<void> {
   await apiService.put<unknown>('/tenants/me/theme', data);
