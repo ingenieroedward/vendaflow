@@ -141,6 +141,7 @@ export class TenantService {
       address: tenant.address,
       city: tenant.city,
       contactPhone: tenant.contactPhone,
+      documentTemplate: tenant.documentTemplate === 'clasica' ? 'clasica' : 'moderna',
       contactEmail: tenant.contactEmail,
     };
   }
@@ -153,6 +154,8 @@ export class TenantService {
     address?: string | null | undefined;
     city?: string | null | undefined;
     contactEmail?: string | null | undefined;
+    contactPhone?: string | null | undefined;
+    documentTemplate?: 'moderna' | 'clasica' | undefined;
   }) {
     const tenant = await this.findById(tenantId);
     // Logo propio es la feature "custom_branding" — el color sí es libre para
@@ -177,6 +180,8 @@ export class TenantService {
     if (data.address !== undefined) updates.address = data.address;
     if (data.city !== undefined) updates.city = data.city;
     if (data.contactEmail !== undefined) updates.contactEmail = data.contactEmail;
+    if (data.contactPhone !== undefined) updates.contactPhone = data.contactPhone;
+    if (data.documentTemplate !== undefined) updates.documentTemplate = data.documentTemplate;
     await tenant.update(updates);
     return tenant;
   }

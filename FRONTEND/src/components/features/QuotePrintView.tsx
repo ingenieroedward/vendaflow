@@ -3,29 +3,54 @@ import { Quote } from "../../types/quote";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useTenantStore } from "../../store/tenantStore";
+import TicketModern from "./TicketModern";
 
 interface QuotePrintViewProps {
   quote: Quote;
+  /** Plantilla: por defecto la elegida en Configuración (moderna si no hay) */
+  template?: 'moderna' | 'clasica';
 }
 
 // Diseño para ticket de 80mm (~302px a 96dpi) — mirror de OrderPrintView.tsx
+const statusLabels: Record<string, string> = {
+  draft: "Borrador",
+  sent: "Enviada",
+  accepted: "Aceptada",
+  rejected: "Rechazada",
+  expired: "Vencida",
+  converted: "Convertida",
+};
+
 const QuotePrintView = forwardRef<HTMLDivElement, QuotePrintViewProps>(
-  ({ quote }, ref) => {
+  ({ quote, template }, ref) => {
     const tenant = useTenantStore(s => s.tenant);
+    const tpl = template ?? (tenant?.documentTemplate === 'clasica' ? 'clasica' : 'moderna');
+    if (tpl === 'moderna') {
+      return (
+        <TicketModern
+          ref={ref}
+          business={{ name: tenant?.name ?? 'Merco', logoUrl: tenant?.logoUrl, nit: tenant?.nit, address: tenant?.address, city: tenant?.city, phone: tenant?.contactPhone }}
+          docLabel="COTIZACIÓN"
+          docNumber={quote.quoteNumber}
+          createdAt={quote.createdAt}
+          statusLabel={statusLabels[quote.status] ?? quote.status}
+          extraLines={quote.validUntil ? [`Válida hasta ${format(new Date(quote.validUntil), 'dd/MM/yyyy')}`] : undefined}
+          customer={{ name: quote.customer?.name ?? `Cliente #${quote.customerId}`, nit: quote.customer?.nit, contact: quote.customer?.contact }}
+          sellerName={quote.user?.username}
+          items={(quote.items || []).map(it => ({ code: it.product?.code ?? '', name: it.product?.name ?? `Producto #${it.productId}`, quantity: Number(it.quantity), unitPrice: Number(it.unitPrice), taxRate: Number(it.taxRate) || 0 }))}
+          notes={quote.notes}
+          totalLabel="TOTAL COTIZADO"
+          footer="Cotización sin valor fiscal"
+          
+        />
+      );
+    }
     const formatDate = (d: string) =>
       format(new Date(d), "dd/MM/yyyy HH:mm", { locale: es });
 
     const formatCurrency = (n: number) =>
       new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0 }).format(n);
 
-    const statusLabel: Record<string, string> = {
-      draft: "Borrador",
-      sent: "Enviada",
-      accepted: "Aceptada",
-      rejected: "Rechazada",
-      expired: "Vencida",
-      converted: "Convertida",
-    };
 
     const calculateTotals = () => {
       let subtotal = 0, totalTax = 0;
@@ -79,7 +104,7 @@ const QuotePrintView = forwardRef<HTMLDivElement, QuotePrintViewProps>(
           <div style={{ fontSize: "13px", fontWeight: "bold" }}>{quote.quoteNumber}</div>
           <div style={{ fontSize: "9px", color: "#555" }}>{formatDate(quote.createdAt)}</div>
           <div style={{ fontSize: "9px", fontWeight: "bold", marginTop: "2px" }}>
-            Estado: {statusLabel[quote.status] ?? quote.status}
+            Estado: {statusLabels[quote.status] ?? quote.status}
           </div>
           {quote.validUntil && (
             <div style={{ fontSize: "9px", color: "#555" }}>Válida hasta: {format(new Date(quote.validUntil), "dd/MM/yyyy")}</div>

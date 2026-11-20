@@ -41,6 +41,9 @@ const updateThemeSchema = z.object({
   nit: z.string().max(30).nullable().optional(),
   address: z.string().max(255).nullable().optional(),
   city: z.string().max(120).nullable().optional(),
+  // Teléfono que sale en los PDF de venta (antes solo lo fijaba el superadmin)
+  contactPhone: z.string().max(30).nullable().optional(),
+  documentTemplate: z.enum(['moderna', 'clasica']).optional(),
   // Correo de facturación: distinto de "marca" — es el destino de los avisos
   // de vencimiento de plan (push + email ya existían, pero el tenant no podía
   // fijar/corregir su propio contactEmail, solo el superadmin al crear/editar

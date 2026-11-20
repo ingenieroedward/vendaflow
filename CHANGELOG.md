@@ -7,6 +7,27 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ## [Unreleased]
 
+## [1.25.0] — 2026-11-20 — Plantillas nuevas para PDF y ticket (las clásicas siguen)
+
+### Added
+
+- **Plantilla "Moderna" para documentos descargables** (órdenes y cotizaciones):
+  - hoja carta: franja con el color del negocio, NIT/dirección/teléfono del negocio, número grande con
+    estado, columnas Cliente/Detalles (fecha, vencimiento o validez, forma de pago, vendedor), tabla
+    con encabezado de color y filas alternas, caja de TOTAL destacada, notas, valor en letras
+    ("SON: … PESOS M/CTE") y pie en cada página;
+  - ticket 80 mm: datos fiscales del negocio, cliente y vendedor, "cant × precio + IVA" por línea,
+    unidades, subtotal/IVA, TOTAL grande y efectivo/cambio; todo en negro para la térmica.
+- **Las plantillas clásicas se conservan**: en Configuración → "Plantilla de documentos" se elige la
+  predeterminada (`tenants.documentTemplate`: `moderna` | `clasica`, default moderna) y el menú
+  "Imprimir / PDF" ofrece las dos en cada documento.
+- Teléfono del negocio editable en Configuración (antes solo el superadmin podía cambiarlo).
+
+### Changed
+
+- **Configuración**: dos columnas con vista previa del encabezado del documento y del color de botones.
+- **Perfil**: etiquetas enlazadas a sus campos, campos de 44 px y textos con más contraste.
+
 ## [1.24.0] — 2026-11-08 — Cotizaciones, Órdenes en el celular y formularios
 
 ### Changed

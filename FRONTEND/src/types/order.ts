@@ -27,6 +27,8 @@ export interface Order {
   paymentDueDate?: string | null;
   reminderDays?: number | null;
   paidAt?: string | null;
+  /** Vuelto entregado en una venta POS (informativo) */
+  changeGiven?: number | null;
   customer: {
     id: number;
     name: string;

@@ -54,6 +54,8 @@ export interface Tenant {
   // el tenant; ahora también auto-editable (destino de los avisos de
   // vencimiento de plan por email, además del push)
   contactEmail?: string | null;
+  // plantilla de PDF/tickets de venta (solo /tenants/me)
+  documentTemplate?: 'moderna' | 'clasica';
 }
 
 export interface LoginResponse {
