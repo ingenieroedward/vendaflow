@@ -10,6 +10,7 @@ import LoadingSpinner from '../components/ui/LoadingSpinner';
 import ErrorMessage from '../components/ui/ErrorMessage';
 import CustomerModal from '../components/ui/CustomerModal';
 import CustomerDetailsPanel from '../components/features/CustomerDetailsPanel';
+import Pagination from '../components/features/Pagination';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -334,11 +335,10 @@ const Customers: React.FC = () => {
         )}
 
         {/* Pagination */}
-        {!search && pagination.totalPages > 1 && (
-          <div className="flex justify-center items-center gap-2 mt-6">
-            <Button variant="outline" size="sm" onClick={() => getCustomers(pagination.page - 1, 50)} disabled={pagination.page <= 1 || loading}>Anterior</Button>
-            <span className="text-sm text-gray-600">{pagination.page} / {pagination.totalPages}</span>
-            <Button variant="outline" size="sm" onClick={() => getCustomers(pagination.page + 1, 50)} disabled={pagination.page >= pagination.totalPages || loading}>Siguiente</Button>
+        {/* Mismo paginador que Productos (listas de catálogo) */}
+        {!search && !withDebtOnly && pagination.totalPages > 1 && (
+          <div className="mt-6">
+            <Pagination pagination={pagination} onPageChange={(page) => { setSelected(null); getCustomers(page, 50); }} />
           </div>
         )}
         </> /* end of non-trash view */

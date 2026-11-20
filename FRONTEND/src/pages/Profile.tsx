@@ -84,30 +84,33 @@ const Profile: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">Nombre completo</label>
+            <label htmlFor="pf-name" className="block text-sm font-medium text-gray-800 mb-1">Nombre completo</label>
             <input
+              id="pf-name"
               name="name" value={form.name} onChange={handle}
               placeholder="Opcional"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+              className="w-full h-11 px-3 border border-gray-300 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">Usuario</label>
+            <label htmlFor="pf-user" className="block text-sm font-medium text-gray-800 mb-1">Usuario</label>
             <input
+              id="pf-user"
+              autoComplete="username"
               name="username" value={form.username} onChange={handle} required minLength={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+              className="w-full h-11 px-3 border border-gray-300 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
             />
-            <p className="mt-1 text-xs text-gray-500">Es lo que usas para iniciar sesión.</p>
+            <p className="mt-1 text-xs text-gray-600">Es lo que usas para iniciar sesión.</p>
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">Rol</label>
-            <div className="flex items-center gap-1.5 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-600">
+            <p className="block text-sm font-medium text-gray-800 mb-1">Rol</p>
+            <div className="flex items-center gap-1.5 h-11 px-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800">
               <Shield className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
               {user ? (ROLE_LABELS[user.role] ?? user.role) : '—'}
             </div>
-            <p className="mt-1 text-xs text-gray-500">Solo un administrador puede cambiar tu rol.</p>
+            <p className="mt-1 text-xs text-gray-600">Solo un administrador puede cambiar tu rol.</p>
           </div>
         </div>
 

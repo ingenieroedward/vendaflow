@@ -391,6 +391,16 @@ de Orders en cada capa, sin la parte de descuento de stock (no aplica a una coti
   Dexie) cubriendo create/update/delete con items, numeración, búsqueda, filtros,
   estadísticas y upsert desde servidor — passing en la primera corrida.
 
+## PLANTILLAS DE DOCUMENTOS (v1.25.0, nov 2026)
+
+- `tenants.documentTemplate` (STRING(20), `ensureSchema`; `moderna` | `clasica`, `null` = moderna). Editable vía `PUT /tenants/me/theme` (allowlist `updateThemeSchema`, junto con `contactPhone`), expuesto en `GET /tenants/me`.
+- **Moderna**: `utils/generateCartaPdfModerna.ts` (carta, jsPDF + autotable, acento = `primaryColor`, valor en letras con `utils/numberToWords.ts::pesosEnLetras`) y `components/features/TicketModern.tsx` (ticket 80 mm, solo negro para térmica de 1 bit).
+- **Clásica conservada intacta**: `generateCartaPdf.ts` y el JSX original de `OrderPrintView`/`QuotePrintView`. Esos dos componentes reciben `template?` (default = la del tenant) y renderizan `TicketModern` si es moderna. `OrderDetail`/`QuoteDetail` ofrecen ambas en el menú "Imprimir / PDF". No borrar la clásica: el usuario pidió mantenerla.
+
+## TYPECHECK DEL FRONTEND — OJO
+
+`npm run typecheck` en `FRONTEND/` **no revisa nada** (el `tsconfig.json` raíz solo tiene references). El chequeo real es `npx tsc --noEmit -p tsconfig.app.json`, que hoy arroja ~95 errores preexistentes (muchos `addNotification` sin `title`). Hasta limpiarlos: comparar contra la rama base (normalizar "archivo | error" sin línea/columna) y exigir 0 errores nuevos.
+
 ## INFRAESTRUCTURA Y DEPLOY
 
 **Servidor:** VPS — Dokploy + Traefik

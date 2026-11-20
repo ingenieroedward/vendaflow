@@ -1,15 +1,16 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Plus, Search, Eye, Edit, Trash2, Calendar, User,
+  Plus, Edit, Trash2, Calendar, User,
   WifiOff, RefreshCw, AlertCircle, CloudOff, CheckCircle2, Clock,
-  RotateCcw, AlertTriangle, FileText
+  RotateCcw, AlertTriangle, FileText, RotateCw
 } from "lucide-react";
 import { useQuoteStore } from "../store/quoteStore";
 import { useAuthStore } from "../store/authStore";
 import { useUIStore } from "../store/uiStore";
 import { quoteService, searchQuotesServer } from "../services/quotes";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
+import SegmentedTabs from '../components/ui/SegmentedTabs';
 import ErrorMessage from "../components/ui/ErrorMessage";
 import Button from "../components/ui/Button";
 import { format } from "date-fns";
@@ -40,7 +41,7 @@ const STATUS_LABEL: Record<Quote['status'], string> = {
 
 const STATUS_COLOR: Record<Quote['status'], string> = {
   draft: 'bg-gray-100 text-gray-700',
-  sent: 'bg-primary/15 text-primary',
+  sent: 'bg-sky-100 text-sky-900',
   accepted: 'bg-green-100 text-green-800',
   rejected: 'bg-red-100 text-red-800',
   expired: 'bg-amber-100 text-amber-800',
@@ -265,7 +266,7 @@ const Quotes: React.FC = () => {
 
           <div className="flex justify-between items-center gap-2">
             <div className="flex gap-2">
-              <Button variant="outline" icon={Search} onClick={handleRefresh} size="sm" className="text-xs sm:text-sm">
+              <Button variant="outline" icon={RotateCw} onClick={handleRefresh} size="sm" className="text-xs sm:text-sm">
                 Actualizar
               </Button>
               {navigator.onLine && (pendingSync > 0 || localQuotes.length > 0 || quotes.some(q => (q as any)._isLocal)) && (
@@ -292,63 +293,20 @@ const Quotes: React.FC = () => {
         {error && <ErrorMessage message={error} onDismiss={clearError} onRetry={handleRefresh} className="mb-4 sm:mb-6" />}
 
         {/* Tabs */}
-        <div className="flex border-b border-gray-200 mb-4 overflow-x-auto scrollbar-none">
-          <button
-            onClick={() => { setActiveTab('active'); setSearch(''); }}
-            className={`px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'active' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-          >
-            <span className="flex items-center gap-1.5">
-              Activas
-              {activeCount > 0 && (
-                <span className={`px-1.5 py-0.5 rounded-full text-xs ${activeTab === 'active' ? 'bg-primary/15 text-primary' : 'bg-gray-100 text-gray-600'}`}>
-                  {activeCount}
-                </span>
-              )}
-            </span>
-          </button>
-          <button
-            onClick={() => { setActiveTab('closed'); setSearch(''); }}
-            className={`px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'closed' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-          >
-            <span className="flex items-center gap-1.5">
-              Cerradas
-              {closedCount > 0 && (
-                <span className={`px-1.5 py-0.5 rounded-full text-xs ${activeTab === 'closed' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'}`}>
-                  {closedCount}
-                </span>
-              )}
-            </span>
-          </button>
-          <button
-            onClick={() => setActiveTab('local')}
-            className={`px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'local' ? 'border-orange-500 text-amber-900' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-          >
-            <span className="flex items-center gap-1.5">
-              <CloudOff className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-              <span className="hidden xs:inline">Pendientes</span>
-              <span className="xs:hidden">Offline</span>
-              {pendingSync > 0 && (
-                <span className={`px-1.5 py-0.5 rounded-full text-xs ${activeTab === 'local' ? 'bg-orange-100 text-orange-700' : 'bg-orange-50 text-amber-900'}`}>
-                  {pendingSync}
-                </span>
-              )}
-            </span>
-          </button>
-          {user?.role === 'admin' && (
-            <button
-              onClick={() => setActiveTab('trash')}
-              className={`px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'trash' ? 'border-red-500 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-            >
-              <span className="flex items-center gap-1.5">
-                <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                <span className="hidden sm:inline">Papelera</span>
-                {trashList.length > 0 && activeTab === 'trash' && (
-                  <span className="px-1.5 py-0.5 rounded-full text-xs bg-red-100 text-red-700">{trashList.length}</span>
-                )}
-              </span>
-            </button>
-          )}
-        </div>
+        <SegmentedTabs<TabType>
+          ariaLabel="Tipo de cotizaciones"
+          className="mb-4"
+          value={activeTab}
+          onChange={(k) => { setActiveTab(k); if (k === 'active' || k === 'closed') setSearch(''); }}
+          tabs={[
+            { key: 'active', label: 'Activas', count: activeCount },
+            { key: 'closed', label: 'Cerradas', count: closedCount },
+            { key: 'local', label: 'Sin enviar', icon: CloudOff, count: pendingSync, attention: true },
+            ...(user?.role === 'admin'
+              ? [{ key: 'trash' as const, label: 'Papelera', icon: Trash2, count: activeTab === 'trash' ? trashList.length : undefined }]
+              : []),
+          ]}
+        />
 
         {/* ── TRASH TAB ────────────────────────────────────────────────── */}
         {activeTab === 'trash' && (
@@ -523,101 +481,122 @@ const Quotes: React.FC = () => {
             ) : (
               <>
                 {tabQuotes.length > 0 && (
-                  <div className="flex gap-4 justify-between items-center px-1">
+                  <div className="flex flex-wrap gap-3 justify-between items-center px-1">
                     <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
                       {activeTab === 'closed' ? 'Cerradas' : 'Activas'}
                       <span className="text-gray-500 font-normal ml-2 text-sm sm:text-base">({tabQuotes.length})</span>
                     </h2>
-                    <div className="flex items-center w-full sm:w-auto gap-2">
+                    <div className="flex flex-wrap sm:flex-nowrap items-center w-full sm:w-auto gap-2">
                       <input
-                        type="text"
+                        type="search"
+                        aria-label="Buscar cotizaciones"
                         placeholder="Buscar por cliente, usuario, cotización o fecha"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="w-full sm:w-80 px-3 py-2 border rounded-md shadow-sm text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary"
+                        className="w-full sm:w-80 min-w-0 flex-1 px-3 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary"
                       />
                     </div>
                   </div>
                 )}
 
                 {filteredQuotes.length > 0 ? (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
-                    {filteredQuotes.map((quote) => {
-                      const priceBreakdown = getPriceBreakdown(quote);
-                      const isLocal = (quote as any)._isLocal;
-                      return (
-                        <div key={quote.id} className={`bg-white rounded-xl shadow-sm border p-4 sm:p-6 hover:shadow-md transition-shadow duration-200 ${isLocal ? 'border-amber-300' : 'border-gray-200'}`}>
-                          <div className="flex justify-between items-start mb-4">
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <h3 className="text-lg font-semibold text-gray-900">#{quote.quoteNumber}</h3>
+                  <>
+                  {/* Desktop: tabla densa (antes 3 columnas de tarjetas) */}
+                  <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50 text-left text-xs font-medium text-gray-600">
+                        <tr>
+                          <th scope="col" className="px-4 py-2.5">Cotización</th>
+                          <th scope="col" className="px-4 py-2.5">Cliente</th>
+                          <th scope="col" className="px-4 py-2.5">Fecha</th>
+                          <th scope="col" className="px-4 py-2.5">Válida hasta</th>
+                          <th scope="col" className="px-4 py-2.5">Estado</th>
+                          <th scope="col" className="px-4 py-2.5 text-right">Total</th>
+                          <th scope="col" className="px-2 py-2.5"><span className="sr-only">Acciones</span></th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {filteredQuotes.map((quote) => {
+                          const isLocal = (quote as { _isLocal?: boolean })._isLocal;
+                          const canEdit = (user?.role === "admin" || user?.role === "seller") && quote.status !== 'converted';
+                          const expired = !!quote.validUntil && new Date(quote.validUntil) < new Date() && !CLOSED_STATUSES.includes(quote.status);
+                          return (
+                            <tr
+                              key={quote.id}
+                              tabIndex={0}
+                              onClick={() => navigate(`/quotes/${quote.id}`)}
+                              onKeyDown={(e) => { if (e.key === 'Enter') navigate(`/quotes/${quote.id}`); }}
+                              className="cursor-pointer hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+                            >
+                              <td className="px-4 py-2.5 whitespace-nowrap">
+                                <span className="font-mono text-xs font-semibold text-gray-900">#{quote.quoteNumber}</span>
                                 {isLocal && (
-                                  <span className="flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-700">
-                                    <WifiOff className="w-3 h-3" />
-                                    Sin sincronizar
+                                  <span className="ml-2 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium bg-amber-100 text-amber-900">
+                                    <WifiOff className="w-3 h-3" aria-hidden="true" /> Sin enviar
                                   </span>
                                 )}
-                              </div>
-                              <p className="text-sm text-gray-500">{formatDate(quote.createdAt)}</p>
-                            </div>
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${STATUS_COLOR[quote.status]}`}>
-                              {STATUS_LABEL[quote.status]}
+                              </td>
+                              <td className="px-4 py-2.5">
+                                <p className="font-medium text-gray-900">{quote.customer?.name || `ID: ${quote.customerId}`}</p>
+                                <p className="text-xs text-gray-600">{quote.user?.username || ''}</p>
+                              </td>
+                              <td className="px-4 py-2.5 text-gray-700 whitespace-nowrap">{formatDate(quote.createdAt)}</td>
+                              <td className={`px-4 py-2.5 whitespace-nowrap ${expired ? 'font-semibold text-red-700' : 'text-gray-700'}`}>
+                                {quote.validUntil ? format(new Date(quote.validUntil), 'd MMM', { locale: es }) : '—'}
+                              </td>
+                              <td className="px-4 py-2.5 whitespace-nowrap">
+                                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLOR[quote.status]}`}>{STATUS_LABEL[quote.status]}</span>
+                              </td>
+                              <td className="px-4 py-2.5 text-right font-semibold text-gray-900 whitespace-nowrap tabular-nums">
+                                {formatCurrency(getPriceBreakdown(quote).total)}
+                              </td>
+                              <td className="px-2 py-1.5 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
+                                {canEdit && (
+                                  <>
+                                    <button type="button" onClick={() => navigate(`/quotes/${quote.id}/edit`)} disabled={isLocal}
+                                      aria-label={`Editar cotización ${quote.quoteNumber}`} title={isLocal ? 'No disponible hasta sincronizar' : 'Editar'}
+                                      className="inline-flex w-9 h-9 items-center justify-center rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 disabled:opacity-40">
+                                      <Edit className="w-4 h-4" />
+                                    </button>
+                                    <button type="button" onClick={() => { setQuoteToDelete(quote.id); setShowDeleteModal(true); }}
+                                      aria-label={`Eliminar cotización ${quote.quoteNumber}`} title="Eliminar"
+                                      className="inline-flex w-9 h-9 items-center justify-center rounded-lg text-gray-600 hover:bg-red-50 hover:text-red-700">
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Mobile: filas compactas */}
+                  <ul className="md:hidden bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
+                    {filteredQuotes.map((quote) => {
+                      const isLocal = (quote as { _isLocal?: boolean })._isLocal;
+                      return (
+                        <li key={quote.id}>
+                          <button type="button" onClick={() => navigate(`/quotes/${quote.id}`)}
+                            className="w-full min-h-[64px] flex items-center gap-3 px-4 py-2.5 text-left active:bg-gray-50">
+                            <span className="min-w-0 flex-1">
+                              <span className="block text-sm font-medium text-gray-900 truncate">{quote.customer?.name || `ID: ${quote.customerId}`}</span>
+                              <span className="block text-xs text-gray-600">
+                                <span className="font-mono">#{quote.quoteNumber}</span> · {formatDate(quote.createdAt)}{isLocal ? ' · sin enviar' : ''}
+                              </span>
                             </span>
-                          </div>
-
-                          <div className="space-y-3 mb-4">
-                            <div className="flex items-center space-x-2">
-                              <User className="w-4 h-4 text-gray-500" />
-                              <span className="text-sm text-gray-600">Cliente: {quote.customer?.name || `ID: ${quote.customerId}`}</span>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <User className="w-4 h-4 text-gray-500" />
-                              <span className="text-sm text-gray-600">Creada por: {quote.user?.username || `ID: ${quote.userId}`}</span>
-                            </div>
-
-                            <div className="bg-gray-50 p-3 rounded-lg space-y-1">
-                              <div className="flex justify-between items-center text-sm">
-                                <span className="text-gray-600">Subtotal:</span>
-                                <span className="font-medium">{formatCurrency(priceBreakdown.subtotal)}</span>
-                              </div>
-                              {priceBreakdown.tax > 0 && (
-                                <div className="flex justify-between items-center text-sm">
-                                  <span className="text-gray-600">IVA:</span>
-                                  <span className="font-medium">{formatCurrency(priceBreakdown.tax)}</span>
-                                </div>
-                              )}
-                              <div className="border-t pt-1 mt-2">
-                                <div className="flex justify-between items-center">
-                                  <span className="text-sm font-semibold text-gray-900">Total:</span>
-                                  <span className="font-bold text-lg text-gray-900">{formatCurrency(priceBreakdown.total)}</span>
-                                </div>
-                              </div>
-                            </div>
-
-                            {quote.items && quote.items.length > 0 && (
-                              <div className="text-sm text-gray-500">
-                                {quote.items.length} producto{quote.items.length !== 1 ? "s" : ""}
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="flex items-center space-x-2 pt-4 border-t border-gray-100">
-                            <Button variant="ghost" icon={Eye} onClick={() => navigate(`/quotes/${quote.id}`)} size="sm" className="flex-1">Ver</Button>
-                            {(user?.role === "admin" || user?.role === "seller") && quote.status !== 'converted' && (
-                              <>
-                                <Button variant="ghost" icon={Edit} onClick={() => navigate(`/quotes/${quote.id}/edit`)} size="sm" className="flex-1" disabled={isLocal} title={isLocal ? 'No disponible hasta sincronizar' : undefined}>
-                                  Editar
-                                </Button>
-                                <Button variant="ghost" icon={Trash2} onClick={() => { setQuoteToDelete(quote.id); setShowDeleteModal(true); }} size="sm" className="flex-1 text-red-600 hover:text-red-700">
-                                  Eliminar
-                                </Button>
-                              </>
-                            )}
-                          </div>
-                        </div>
+                            <span className="flex flex-col items-end gap-1 flex-shrink-0">
+                              <span className="text-sm font-semibold text-gray-900 tabular-nums">{formatCurrency(getPriceBreakdown(quote).total)}</span>
+                              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLOR[quote.status]}`}>{STATUS_LABEL[quote.status]}</span>
+                            </span>
+                          </button>
+                        </li>
                       );
                     })}
-                  </div>
+                  </ul>
+                  </>
                 ) : (
                   <div className="text-center py-12 sm:py-16 px-4">
                     {activeTab === 'closed'
